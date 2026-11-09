@@ -24,6 +24,7 @@ import co.voik.agesandtheart.desk.ArchiveStockPayload
 import co.voik.agesandtheart.desk.ArchiveSyncPayload
 import co.voik.agesandtheart.desk.ArchiveWritePayload
 import co.voik.agesandtheart.desk.ArchiveWithdrawPayload
+import co.voik.agesandtheart.book.BookbinderRenamePayload
 import co.voik.agesandtheart.desk.DeskBindPayload
 import co.voik.agesandtheart.desk.DeskCommands
 import co.voik.agesandtheart.desk.DeskNoticePayload
@@ -88,6 +89,8 @@ object Payloads {
         // The desk's instructions, re-checked server-side whatever the screen believed.
         Serverbound(DeskTemplatePayload.TYPE, DeskTemplatePayload.STREAM_CODEC, DeskCommands::template),
         Serverbound(DeskBindPayload.TYPE, DeskBindPayload.STREAM_CODEC, DeskCommands::bind),
+        // A book's name, typed at a bookbinder.
+        Serverbound(BookbinderRenamePayload.TYPE, BookbinderRenamePayload.STREAM_CODEC, BookbinderRenamePayload::handle),
         // The page a notebook is scrolled to, as vanilla's bundle tells its own.
         Serverbound(NotebookSelectPayload.TYPE, NotebookSelectPayload.STREAM_CODEC, NotebookSelectPayload::handle),
         Clientbound(ArchiveSyncPayload.TYPE, ArchiveSyncPayload.STREAM_CODEC),

@@ -6,6 +6,8 @@ import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.book.CoverLayout
+import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -23,17 +25,48 @@ import co.voik.agesandtheart.content.PageItem
 
 internal object PlayerInstruments {
 
-    /** The debug affordances: a bound book in hand, and the words a player knows. */
+    /** The debug affordances: a bound book in hand, how its cover is laid out, and the words a player knows. */
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(bindSubcommand())
+            .then(coverSubcommand())
             .then(pagesSubcommand())
             .then(forgetSubcommand())
     }
 
     private const val WORD_ARGUMENT = "word"
+    private const val LAYOUT_ARGUMENT = "layout"
 
     /** The other half of the corpus: one word per block in the pack, and all of them materials. */
     private const val DERIVED_LITERAL = "derived"
+
+    /**
+     * `/age cover <layout>` — how the book in hand wears its banner, until there is somewhere in the game to
+     * choose it.
+     */
+    private fun coverSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("cover").then(
+            Commands.argument(LAYOUT_ARGUMENT, StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(CoverLayout.entries.map { it.serializedName }, builder) }
+                .executes(::runCover),
+        )
+
+    private fun runCover(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val player = source.playerOrException
+        val named = StringArgumentType.getString(context, LAYOUT_ARGUMENT)
+        val layout = CoverLayout.entries.firstOrNull { it.serializedName == named } ?: run {
+            source.sendFailure(Component.literal("No layout '$named'"))
+            return FAILURE
+        }
+        val book = player.mainHandItem
+        if (!LecternBooks.isOurs(book)) {
+            source.sendFailure(Component.literal("Hold a descriptive or linking book"))
+            return FAILURE
+        }
+        book.set(AgeComponents.COVER_LAYOUT, layout)
+        source.sendSuccess({ Component.literal("The book wears its pattern $named") }, false)
+        return SUCCESS
+    }
 
     /**
      * `/age bind <name>` — a Descriptive Book already bound to an Age that exists.

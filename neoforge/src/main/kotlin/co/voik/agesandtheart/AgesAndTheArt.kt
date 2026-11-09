@@ -420,7 +420,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     }
 
     private companion object {
-        const val PAYLOAD_VERSION = "6"
+        const val PAYLOAD_VERSION = "7"
     }
 }
 

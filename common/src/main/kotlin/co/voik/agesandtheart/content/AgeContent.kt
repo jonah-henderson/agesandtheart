@@ -21,7 +21,7 @@ import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.DescriptiveBookItem
 import co.voik.agesandtheart.book.LinkingBookItem
-import co.voik.agesandtheart.book.RepatternBookRecipe
+import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
@@ -1975,6 +1975,7 @@ object AgeContent {
         Compounder.ID to Compounder.BLOCK,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.BLOCK,
         DryingRack.ID to DryingRack.BLOCK,
+        Bookbinder.ID to Bookbinder.BLOCK,
         PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
@@ -2037,6 +2038,7 @@ object AgeContent {
         Compounder.ID to Compounder.ENTITY,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ENTITY,
         DryingRack.ID to DryingRack.ENTITY,
+        Bookbinder.ID to Bookbinder.ENTITY,
         Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
@@ -2116,11 +2118,11 @@ object AgeContent {
         STATION_ID to STATION_MENU,
         Compounder.ID to Compounder.MENU,
         DryingRack.ID to DryingRack.MENU,
+        Bookbinder.ID to Bookbinder.MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
         listOf(
-            "repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER,
             ShapelessIntoOneBottleRecipe.ID to ShapelessIntoOneBottleRecipe.SERIALIZER,
             ShapelessKeepingRecipe.ID to ShapelessKeepingRecipe.SERIALIZER,
         ) + StationRecipes.serializers +
@@ -2181,6 +2183,7 @@ object AgeContent {
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ITEM,
         AdvancedAnalysisMachine.PROBES_ID to AdvancedAnalysisMachine.PROBES,
         DryingRack.ID to DryingRack.ITEM,
+        Bookbinder.ID to Bookbinder.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         PULP_ID to PULP,

@@ -25,8 +25,8 @@ class LecternBookPlaneCheck : FunSpec({
     )
 
     fun lookAt(facing: Direction, across: Double, up: Double): LecternBookSpot? {
-        val point = LecternBookPlane.pointOnTheBook(facing, lectern, across, up)
-        return LecternBookPlane.spotLookedAt(facing, lectern, readerFacing(facing), point)
+        val point = LecternBookPlane.pointOnTheBook(facing, lectern, BookBinding.THICK, across, up)
+        return LecternBookPlane.spotLookedAt(facing, lectern, BookBinding.THICK, readerFacing(facing), point)
     }
 
     for (facing in Direction.Plane.HORIZONTAL) {
@@ -47,13 +47,13 @@ class LecternBookPlaneCheck : FunSpec({
     test("the left page is on the reader's left") {
         // Facing north, the reader stands north of the lectern looking south, so their left hand is east.
         val (across, up) = centreOf(LecternBookPlane.panelOn(BookPage.LEFT))
-        val leftPanel = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, across, up)
+        val leftPanel = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, BookBinding.THICK, across, up)
         check(leftPanel.x > lectern.x + 0.5) { "the left panel sits at x=${leftPanel.x}, west of the lectern" }
     }
 
     test("the book leans back, away from its reader") {
-        val top = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, 0.0, 0.25)
-        val bottom = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, 0.0, -0.25)
+        val top = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, BookBinding.THICK, 0.0, 0.25)
+        val bottom = LecternBookPlane.pointOnTheBook(Direction.NORTH, lectern, BookBinding.THICK, 0.0, -0.25)
         check(top.y > bottom.y) { "the top edge is not the higher one" }
         check(top.z > bottom.z) { "facing north, the top edge should be the southern one" }
     }
@@ -61,11 +61,11 @@ class LecternBookPlaneCheck : FunSpec({
     test("a look from behind the lectern lands on nothing") {
         val behind = Vec3.atCenterOf(lectern).add(0.0, 1.1, 2.0)
         val atTheBook = Vec3.atCenterOf(lectern).add(0.0, 0.6, 0.0)
-        check(LecternBookPlane.spotLookedAt(Direction.NORTH, lectern, behind, atTheBook) == null)
+        check(LecternBookPlane.spotLookedAt(Direction.NORTH, lectern, BookBinding.THICK, behind, atTheBook) == null)
     }
 
     test("a look at the lectern's foot lands on nothing") {
         val foot = Vec3.atCenterOf(lectern).add(0.0, -0.4, 0.0)
-        check(LecternBookPlane.spotLookedAt(Direction.NORTH, lectern, readerFacing(Direction.NORTH), foot) == null)
+        check(LecternBookPlane.spotLookedAt(Direction.NORTH, lectern, BookBinding.THICK, readerFacing(Direction.NORTH), foot) == null)
     }
 })

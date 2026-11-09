@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.book.CoverLayout
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.PageArchive
 import co.voik.agesandtheart.location
@@ -8,6 +9,7 @@ import com.mojang.serialization.Codec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.resources.Identifier
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.ItemStack
 
 /**
@@ -159,6 +161,24 @@ object AgeComponents {
         .networkSynchronized(ByteBufCodecs.VAR_INT)
         .build()
 
+    /** How a patterned book wears its banner; absent is [CoverLayout.DEFAULT]. */
+    val COVER_LAYOUT: DataComponentType<CoverLayout> = DataComponentType.builder<CoverLayout>()
+        .persistent(CoverLayout.CODEC)
+        .networkSynchronized(CoverLayout.STREAM_CODEC)
+        .build()
+
+    /** The colour of the name on a book's cover, dyed at a bookbinder; absent is gilt. */
+    val TITLE_COLOUR: DataComponentType<DyeColor> = DataComponentType.builder<DyeColor>()
+        .persistent(DyeColor.CODEC)
+        .networkSynchronized(DyeColor.STREAM_CODEC)
+        .build()
+
+    /** Whether the name on a book's cover glows, as a sign's writing does after a glow ink sac. */
+    val TITLE_GLOWS: DataComponentType<Boolean> = DataComponentType.builder<Boolean>()
+        .persistent(Codec.BOOL)
+        .networkSynchronized(ByteBufCodecs.BOOL)
+        .build()
+
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
@@ -173,5 +193,8 @@ object AgeComponents {
         "notebook_pages".location() to NOTEBOOK_PAGES,
         "notebook_selected".location() to NOTEBOOK_SELECTED,
         "archive_pages".location() to ARCHIVE_PAGES,
+        "cover_layout".location() to COVER_LAYOUT,
+        "title_colour".location() to TITLE_COLOUR,
+        "title_glows".location() to TITLE_GLOWS,
     )
 }

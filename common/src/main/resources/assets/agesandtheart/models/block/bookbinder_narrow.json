@@ -1,0 +1,636 @@
+{
+  "credit": "Made with Blockbench; UV'd by build/claude-scratch/make_bookbinder_model.py",
+  "parent": "minecraft:block/block",
+  "textures": {
+    "board": "minecraft:block/dark_oak_planks",
+    "rail": "minecraft:block/birch_planks",
+    "particle": "minecraft:block/dark_oak_planks"
+  },
+  "elements": [
+    {
+      "name": "board",
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        2,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#board"
+        },
+        "south": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#board"
+        },
+        "east": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#board"
+        },
+        "west": {
+          "uv": [
+            0,
+            14,
+            16,
+            16
+          ],
+          "texture": "#board"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#board"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#board"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        1,
+        2,
+        1
+      ],
+      "to": [
+        2,
+        4,
+        4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            14,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            1,
+            12,
+            2,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            12,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            1,
+            12,
+            4,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            2,
+            4
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            1,
+            12,
+            2,
+            15
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        14,
+        2,
+        1
+      ],
+      "to": [
+        15,
+        4,
+        4
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            12,
+            2,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            14,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            12,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            1,
+            12,
+            4,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            14,
+            1,
+            15,
+            4
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            14,
+            12,
+            15,
+            15
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        14,
+        2,
+        12
+      ],
+      "to": [
+        15,
+        4,
+        15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            12,
+            2,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            14,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            1,
+            12,
+            4,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            12,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            14,
+            12,
+            15,
+            15
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            14,
+            1,
+            15,
+            4
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        1,
+        2,
+        12
+      ],
+      "to": [
+        2,
+        4,
+        15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            14,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            1,
+            12,
+            2,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            1,
+            12,
+            4,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            12,
+            12,
+            15,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            1,
+            12,
+            2,
+            15
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            2,
+            4
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        2,
+        3,
+        13
+      ],
+      "to": [
+        14,
+        4,
+        14
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            2,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            2,
+            12,
+            3,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            13,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            2,
+            13,
+            14,
+            14
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            2,
+            2,
+            14,
+            3
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "rail",
+      "from": [
+        2,
+        3,
+        2
+      ],
+      "to": [
+        14,
+        4,
+        3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            2,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "south": {
+          "uv": [
+            2,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "east": {
+          "uv": [
+            13,
+            12,
+            14,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "west": {
+          "uv": [
+            2,
+            12,
+            3,
+            13
+          ],
+          "texture": "#rail"
+        },
+        "up": {
+          "uv": [
+            2,
+            2,
+            14,
+            3
+          ],
+          "texture": "#rail"
+        },
+        "down": {
+          "uv": [
+            2,
+            13,
+            14,
+            14
+          ],
+          "texture": "#rail"
+        }
+      }
+    },
+    {
+      "name": "clamp",
+      "from": [
+        5,
+        2,
+        1
+      ],
+      "to": [
+        7,
+        7,
+        15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            9,
+            9,
+            11,
+            14
+          ],
+          "texture": "#board"
+        },
+        "south": {
+          "uv": [
+            5,
+            9,
+            7,
+            14
+          ],
+          "texture": "#board"
+        },
+        "east": {
+          "uv": [
+            1,
+            9,
+            15,
+            14
+          ],
+          "texture": "#board"
+        },
+        "west": {
+          "uv": [
+            1,
+            9,
+            15,
+            14
+          ],
+          "texture": "#board"
+        },
+        "up": {
+          "uv": [
+            1,
+            9,
+            15,
+            11
+          ],
+          "texture": "#board",
+          "rotation": 90
+        },
+        "down": {
+          "uv": [
+            1,
+            5,
+            15,
+            7
+          ],
+          "texture": "#board",
+          "rotation": 270
+        }
+      }
+    },
+    {
+      "name": "clamp",
+      "from": [
+        9,
+        2,
+        1
+      ],
+      "to": [
+        11,
+        7,
+        15
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5,
+            9,
+            7,
+            14
+          ],
+          "texture": "#board"
+        },
+        "south": {
+          "uv": [
+            9,
+            9,
+            11,
+            14
+          ],
+          "texture": "#board"
+        },
+        "east": {
+          "uv": [
+            1,
+            9,
+            15,
+            14
+          ],
+          "texture": "#board"
+        },
+        "west": {
+          "uv": [
+            1,
+            9,
+            15,
+            14
+          ],
+          "texture": "#board"
+        },
+        "up": {
+          "uv": [
+            1,
+            5,
+            15,
+            7
+          ],
+          "texture": "#board",
+          "rotation": 90
+        },
+        "down": {
+          "uv": [
+            1,
+            9,
+            15,
+            11
+          ],
+          "texture": "#board",
+          "rotation": 270
+        }
+      }
+    }
+  ]
+}

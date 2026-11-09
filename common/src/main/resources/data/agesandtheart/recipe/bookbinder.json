@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "A press (Jonah): two planks over two sticks on a slab, any wood, for the board it stands on and the",
+    "posts its jaws run between."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "P P",
+    "S S",
+    " W "
+  ],
+  "key": {
+    "P": "#minecraft:planks",
+    "S": "minecraft:stick",
+    "W": "#minecraft:wooden_slabs"
+  },
+  "result": {
+    "id": "agesandtheart:bookbinder",
+    "count": 1
+  }
+}

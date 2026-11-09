@@ -24,6 +24,7 @@ import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.client.event.RegisterSpecialModelRendererEvent
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent
 import net.minecraft.world.inventory.tooltip.TooltipComponent
 import net.neoforged.neoforge.client.event.ScreenEvent
@@ -52,6 +53,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         eventBus.addListener(::onRegisterBlockTints)
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
+        eventBus.addListener(::onRegisterSpecialItemRenderers)
         // The clientbound payloads' handlers, which the main class registers those payloads without.
         eventBus.addListener(::onRegisterPayloadHandlers)
         NeoForge.EVENT_BUS.addListener(::onClientTick)
@@ -106,6 +108,10 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
         ClientRegistrations.ENTITY_RENDERERS.forEach { registerEntityRenderer(event, it) }
         ClientRegistrations.BLOCK_ENTITY_RENDERERS.forEach { registerBlockEntityRenderer(event, it) }
+    }
+
+    private fun onRegisterSpecialItemRenderers(event: RegisterSpecialModelRendererEvent) {
+        ClientRegistrations.SPECIAL_ITEM_RENDERERS.forEach { (id, codec) -> event.register(id, codec) }
     }
 
     private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {

@@ -1,0 +1,35 @@
+{
+  "_comment": "The press is modelled facing north, its rails running away from whoever stands in front of it; the book in it is drawn by `BookbinderRenderer`, turned the same way. Its clamps stand narrow round a linking book.",
+  "variants": {
+    "clamps=wide,facing=north": {
+      "model": "agesandtheart:block/bookbinder"
+    },
+    "clamps=narrow,facing=north": {
+      "model": "agesandtheart:block/bookbinder_narrow"
+    },
+    "clamps=wide,facing=east": {
+      "model": "agesandtheart:block/bookbinder",
+      "y": 90
+    },
+    "clamps=narrow,facing=east": {
+      "model": "agesandtheart:block/bookbinder_narrow",
+      "y": 90
+    },
+    "clamps=wide,facing=south": {
+      "model": "agesandtheart:block/bookbinder",
+      "y": 180
+    },
+    "clamps=narrow,facing=south": {
+      "model": "agesandtheart:block/bookbinder_narrow",
+      "y": 180
+    },
+    "clamps=wide,facing=west": {
+      "model": "agesandtheart:block/bookbinder",
+      "y": 270
+    },
+    "clamps=narrow,facing=west": {
+      "model": "agesandtheart:block/bookbinder_narrow",
+      "y": 270
+    }
+  }
+}

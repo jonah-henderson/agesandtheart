@@ -2,7 +2,12 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.content.NotebookTooltip
+import co.voik.agesandtheart.location
+import com.mojang.serialization.MapCodec
+import net.minecraft.client.renderer.special.SpecialModelRenderer
+import net.minecraft.resources.Identifier
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.world.inventory.tooltip.TooltipComponent
 import co.voik.agesandtheart.station.Compounder
@@ -59,6 +64,11 @@ object ClientRegistrations {
             if (type.isInstance(component)) draws(type.cast(component)) else null
     }
 
+    /** The item models drawn in code, by the `type` an item model's `minecraft:special` names. */
+    val SPECIAL_ITEM_RENDERERS: List<Pair<Identifier, MapCodec<out SpecialModelRenderer.Unbaked<*>>>> = listOf(
+        "age_book".location() to AgeBookItemRenderer.Unbaked.MAP_CODEC,
+    )
+
     val TOOLTIPS: List<TooltipFor<*>> = listOf(
         TooltipFor(NotebookTooltip::class.java, ::ClientNotebookTooltip),
     )
@@ -98,6 +108,7 @@ object ClientRegistrations {
         RendererForBlockEntity(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() },
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
+        RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(
@@ -115,6 +126,7 @@ object ClientRegistrations {
         ScreenForMenu(AgeContent.STATION_MENU, ::StationScreen),
         ScreenForMenu(Compounder.MENU, ::CompounderScreen),
         ScreenForMenu(DryingRack.MENU, ::DryingRackScreen),
+        ScreenForMenu(Bookbinder.MENU, ::BookbinderScreen),
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
         // the fence lives in the menu rather than in the drawing.
         ScreenForMenu(AgeContent.TOOLBOX_MENU, ::ContainerScreen),

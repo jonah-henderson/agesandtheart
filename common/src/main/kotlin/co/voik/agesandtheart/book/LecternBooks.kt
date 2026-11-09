@@ -91,7 +91,7 @@ object LecternBooks {
             return InteractionResult.SUCCESS
         }
         val facing = state.getValue(LecternBlock.FACING)
-        val spot = LecternBookPlane.spotLookedAt(facing, pos, player.eyePosition, hit.location)
+        val spot = LecternBookPlane.spotLookedAt(facing, pos, BookBinding.of(lectern.book), player.eyePosition, hit.location)
         when (clickOn(lectern.book, panelPage, spot)) {
             Click.LINK -> linkFrom(level, lectern, player)
             Click.READ -> read(level, lectern, player)

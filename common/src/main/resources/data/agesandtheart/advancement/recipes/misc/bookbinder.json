@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Keyed on the book rather than on banners, for the same reason as dyeing: banners arrive first."
+    "Learned on first holding a book of ours, which is all a bookbinder is for."
   ],
   "parent": "minecraft:recipes/root",
   "criteria": {
@@ -14,22 +14,33 @@
         ]
       }
     },
+    "has_linking_book": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:linking_book"
+          }
+        ]
+      }
+    },
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipes": "agesandtheart:pattern_descriptive_book"
+        "recipes": "agesandtheart:bookbinder"
       }
     }
   },
   "requirements": [
     [
       "has_descriptive_book",
+      "has_linking_book",
       "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "agesandtheart:pattern_descriptive_book"
+      "agesandtheart:bookbinder"
     ]
   }
 }

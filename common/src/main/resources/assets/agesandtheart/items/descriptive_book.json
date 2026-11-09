@@ -1,7 +1,8 @@
 {
-  "_comment": "No tint. The cover was dyed before patterns were the plan, and a flat wash over every book said the one thing a pattern is meant to say.",
+  "_comment": "The shut book itself, so its banner and name show wherever the item does (`AgeBookItemRenderer`).",
   "model": {
-    "type": "minecraft:model",
-    "model": "agesandtheart:item/descriptive_book"
+    "type": "minecraft:special",
+    "base": "agesandtheart:item/age_book",
+    "model": { "type": "agesandtheart:age_book" }
   }
 }

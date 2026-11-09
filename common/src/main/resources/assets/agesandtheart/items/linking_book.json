@@ -1,1 +1,8 @@
-{ "model": { "type": "minecraft:model", "model": "agesandtheart:item/linking_book" } }
+{
+  "_comment": "The shut book itself, so its banner and name show wherever the item does (`AgeBookItemRenderer`).",
+  "model": {
+    "type": "minecraft:special",
+    "base": "agesandtheart:item/age_book",
+    "model": { "type": "agesandtheart:age_book" }
+  }
+}

@@ -27,13 +27,12 @@ data class BookRectangle(
 /**
  * Where the book on a lectern lies, and what a look at it lands on.
  *
- * The transform is `LecternRenderer`'s, and [CENTRE_HEIGHT], [TILT_DEGREES] and [DOWN_THE_SLOPE] are the
- * numbers our renderer draws with, so what is drawn and what is clicked cannot drift apart. A click lands on
- * the lectern's voxel shape, which is a stair of boxes the book does not rest on, so the ray is carried on
- * to the book's own plane instead.
+ * The transform is `LecternRenderer`'s, and [CENTRE_HEIGHT], [TILT_DEGREES], [DOWN_THE_SLOPE] and
+ * [ONTO_THE_SLOPE] are the numbers our renderer draws with, so what is drawn and what is clicked cannot drift apart. The book's own
+ * measurements are `AgeBookModel`'s. A click lands on the lectern's voxel shape, which is a stair of boxes the
+ * book does not rest on, so the ray is carried on to the book's own plane instead.
  *
- * Left and right are the reader's, standing on the lectern's `FACING` side. Vanilla's model names the page
- * on the reader's right its left, which is why nothing here reads the model's part names.
+ * Left and right are the reader's, standing on the lectern's `FACING` side.
  */
 object LecternBookPlane {
 
@@ -46,16 +45,28 @@ object LecternBookPlane {
     /** How far the book slides down the slope, toward the reader. */
     const val DOWN_THE_SLOPE = 0.125
 
-    /** The top page stands proud of the model's origin by its pivot offset and its own thickness. */
-    private const val PAGE_SURFACE = 1.5 / 16.0
+    /**
+     * How far the slope lies below the book's centre, along the book's own normal, which a book lying flat is
+     * lowered by to rest on it. The lectern's top board is tilted as the book is and stands
+     * [TOP_BOARD_FROM_THE_MIDDLE] out from the middle of the block; sliding down the slope moves neither nearer it.
+     */
+    val ONTO_THE_SLOPE: Double = (CENTRE_HEIGHT - BLOCK_MIDDLE) * sin(Math.toRadians(TILT_DEGREES)) - TOP_BOARD_FROM_THE_MIDDLE
+
+    /** A block of pages, which the open page stands proud of the boards by. */
+    private const val PAGES_THICKNESS = 1.0 / 16.0
+
+    private const val BLOCK_MIDDLE = 0.5
+
+    /** The top face of the lectern's top board, 16 pixels up, before the model tilts it about the block's middle. */
+    private const val TOP_BOARD_FROM_THE_MIDDLE = 0.5
 
     /** One page of the model, spine to fore-edge and bottom to top. */
-    private const val PAGE_WIDTH = 5.0 / 16.0
+    private const val PAGE_WIDTH = 6.0 / 16.0
     private const val PAGE_HEIGHT = 8.0 / 16.0
 
-    /** The covers, which stand past the pages and are still the book. */
-    private const val BOOK_HALF_WIDTH = 6.0 / 16.0
-    private const val BOOK_HALF_HEIGHT = 5.0 / 16.0
+    /** The boards, which reach past the pages and are still the book. */
+    private const val BOOK_HALF_WIDTH = 7.0 / 16.0
+    private const val BOOK_HALF_HEIGHT = 4.0 / 16.0
 
     /** The book screen's panel as a share of its leaf: 104 of 128 across, and 30 down from the top of 180. */
     private const val PANEL_SHARE_ACROSS = 104.0 / 128.0
@@ -79,8 +90,8 @@ object LecternBookPlane {
     }
 
     /** Where on the open book a look from [eye] through [through] lands, or null where it misses the book. */
-    fun spotLookedAt(facing: Direction, pos: BlockPos, eye: Vec3, through: Vec3): LecternBookSpot? {
-        val frame = frameOf(facing, pos)
+    fun spotLookedAt(facing: Direction, pos: BlockPos, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? {
+        val frame = frameOf(facing, pos, binding)
         val direction = through.subtract(eye)
         val intoTheFace = direction.dot(frame.normal)
         // Edge-on or from behind: a book is read from its reader's side and no other.
@@ -99,28 +110,31 @@ object LecternBookPlane {
     }
 
     /** Where in the world a point on the book lies, [across] and [up] measured as [BookRectangle] measures them. */
-    fun pointOnTheBook(facing: Direction, pos: BlockPos, across: Double, up: Double): Vec3 {
-        val frame = frameOf(facing, pos)
+    fun pointOnTheBook(facing: Direction, pos: BlockPos, binding: BookBinding, across: Double, up: Double): Vec3 {
+        val frame = frameOf(facing, pos, binding)
         return frame.surface.add(frame.towardTheLeft.scale(across)).add(frame.upThePage.scale(up))
     }
 
     /** The book's page surface, and the three directions it is measured in. */
     private class Frame(val surface: Vec3, val normal: Vec3, val upThePage: Vec3, val towardTheLeft: Vec3)
 
-    private fun frameOf(facing: Direction, pos: BlockPos): Frame {
+    private fun frameOf(facing: Direction, pos: BlockPos, binding: BookBinding): Frame {
         val tilt = Math.toRadians(TILT_DEGREES)
         val towardTheReader = horizontal(facing)
         val normal = towardTheReader.scale(cos(tilt)).add(UP.scale(sin(tilt)))
         val upThePage = towardTheReader.scale(-sin(tilt)).add(UP.scale(cos(tilt)))
         val centre = Vec3(pos.x + 0.5, pos.y + CENTRE_HEIGHT, pos.z + 0.5).add(upThePage.scale(-DOWN_THE_SLOPE))
         return Frame(
-            surface = centre.add(normal.scale(PAGE_SURFACE)),
+            surface = centre.add(normal.scale(pageSurfaceOf(binding) - ONTO_THE_SLOPE)),
             normal = normal,
             upThePage = upThePage,
             // The reader stands on the facing side looking back across the lectern, so their left is clockwise.
             towardTheLeft = horizontal(facing.clockWise),
         )
     }
+
+    /** The open page stands proud of the slope by a board and a block of pages. */
+    private fun pageSurfaceOf(binding: BookBinding): Double = binding.boardThickness / 16.0 + PAGES_THICKNESS
 
     private fun horizontal(direction: Direction) = Vec3(direction.stepX.toDouble(), 0.0, direction.stepZ.toDouble())
 }

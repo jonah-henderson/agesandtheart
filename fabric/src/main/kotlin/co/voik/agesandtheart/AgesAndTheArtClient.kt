@@ -27,6 +27,7 @@ import net.minecraft.client.renderer.entity.EntityRenderers
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.client.renderer.special.SpecialModelRenderers
 import net.minecraft.world.level.block.entity.BlockEntity
 
 /** Fabric client entrypoint. */
@@ -43,6 +44,8 @@ fun initClient() {
     ClientRegistrations.ENTITY_RENDERERS.forEach { registerEntityRenderer(it) }
     ClientRegistrations.BLOCK_ENTITY_RENDERERS.forEach { registerBlockEntityRenderer(it) }
     ClientRegistrations.MENU_SCREENS.forEach { registerScreen(it) }
+    // Fabric API has no registry of its own for these; its transitive access wideners open vanilla's.
+    ClientRegistrations.SPECIAL_ITEM_RENDERERS.forEach { (id, codec) -> SpecialModelRenderers.ID_MAPPER.put(id, codec) }
     ClientTooltipComponentCallback.EVENT.register { component ->
         ClientRegistrations.TOOLTIPS.firstNotNullOfOrNull { it.drawing(component) }
     }
