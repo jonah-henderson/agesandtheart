@@ -135,6 +135,7 @@ entity_type agesandtheart:palm_boat
 entity_type agesandtheart:palm_chest_boat
 entity_type agesandtheart:sand_column
 entity_type agesandtheart:scarab
+entity_type agesandtheart:tornado
 entity_type agesandtheart:volcanic_bomb
 fluid agesandtheart:deep_water
 fluid agesandtheart:fine_ink
@@ -352,6 +353,7 @@ sound_event agesandtheart:gale_exposed
 sound_event agesandtheart:gale_sheltered
 sound_event agesandtheart:gust
 sound_event agesandtheart:surf
+sound_event agesandtheart:tornado
 ticket_type agesandtheart:panel
 trigger_type agesandtheart:caged_from_a_field
 trigger_type agesandtheart:climbed_temperstone
