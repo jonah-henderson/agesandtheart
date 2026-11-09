@@ -1,12 +1,15 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.consequence.Taming
 import co.voik.agesandtheart.generation.Ages
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Unit
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityTypes
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.ai.memory.MemoryModuleType
+import net.minecraft.world.entity.monster.warden.AngerLevel
 import net.minecraft.world.entity.monster.warden.Warden
 
 /**
@@ -29,10 +32,19 @@ object Wardens {
         if (warden.hasPose(Pose.EMERGING)) warden.addTag(SUMMONED) else if (noShriekerCalled(warden)) renew(warden)
     }
 
-    /** Renews the dig cooldown of every warden in [level] that no shrieker called. */
+    /** Renews the dig cooldown of every warden in [level] that no shrieker called, or that somebody tamed. */
     fun keepAboveGround(level: ServerLevel) {
         if (level.gameTime % RENEWED_EVERY_TICKS != 0L) return
-        level.getEntities(EntityTypes.WARDEN, ::noShriekerCalled).forEach(::renew)
+        level.getEntities(EntityTypes.WARDEN) { noShriekerCalled(it) || Taming.isTamed(it) }.forEach(::renew)
+    }
+
+    /**
+     * A tamed warden going for its owner's foe: it fights only what it is angry at, and drops a target the moment its
+     * anger is gone, so it is angered as a blow would anger it.
+     */
+    fun setOn(warden: Warden, foe: LivingEntity) {
+        warden.increaseAngerAt(foe, AngerLevel.ANGRY.minimumAnger + ANGRY_ENOUGH_TO_FIGHT, false)
+        warden.setAttackTarget(foe)
     }
 
     private fun noShriekerCalled(warden: Warden) = SUMMONED !in warden.entityTags()
@@ -42,6 +54,9 @@ object Wardens {
     }
 
     private const val SUMMONED = "agesandtheart.summoned_by_shrieker"
+
+    /** What a blow adds past angry, in `Warden.hurtServer`. */
+    private const val ANGRY_ENOUGH_TO_FIGHT = 20
 
     /** Vanilla's own cooldown, from `Warden.finalizeSpawn`. */
     private const val DIG_COOLDOWN_TICKS = 1200L

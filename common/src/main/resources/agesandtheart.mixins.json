@@ -5,6 +5,7 @@
   "mixins": [
     "AgeStructureRingsMixin",
     "CanAttackMixin",
+    "WardenTargetingMixin",
     "FishingHookMixin",
     "BlockDefaultStateMixin",
     "BlockEntityTypeMixin",

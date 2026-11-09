@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
+import co.voik.agesandtheart.content.Wardens
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -30,6 +31,7 @@ import net.minecraft.world.entity.monster.Ghast
 import net.minecraft.world.entity.monster.Phantom
 import net.minecraft.world.entity.monster.Vex
 import net.minecraft.world.entity.monster.cubemob.AbstractCubeMob
+import net.minecraft.world.entity.monster.warden.Warden
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
@@ -180,8 +182,11 @@ object TamedGoals {
         override fun start() {
             val chosen = foe ?: return
             mob.target = chosen
-            if (mob.brain.checkMemory(MemoryModuleType.ATTACK_TARGET, MemoryStatus.REGISTERED)) {
-                mob.brain.setMemory(MemoryModuleType.ATTACK_TARGET, chosen)
+            val warden = mob as? Warden
+            val fightsByMemory = mob.brain.checkMemory(MemoryModuleType.ATTACK_TARGET, MemoryStatus.REGISTERED)
+            when {
+                warden != null -> Wardens.setOn(warden, chosen)
+                fightsByMemory -> mob.brain.setMemory(MemoryModuleType.ATTACK_TARGET, chosen)
             }
             super.start()
         }

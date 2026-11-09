@@ -45,6 +45,7 @@ object Taming {
     /** [mob]'s owner, where they are in the same level. */
     fun ownerIn(mob: Mob): Player? = ownerOf(mob)?.let { mob.level().getPlayerByUUID(it) }
 
+    @JvmStatic
     fun isTamed(mob: Mob): Boolean = ownerOf(mob) != null
 
     /** Where [mob]'s owner told it to hold, if they did. */
