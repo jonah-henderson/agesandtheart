@@ -39,6 +39,14 @@
       "dry": 0.3
     }
   },
+  "tornado": {
+    "_comment": "Wind gone round on itself and come down out of a thunderstorm. `hostile` for what it tears up and throws, a shade under the meteors', since it can be outrun and walled against; `watery` for the storm it needs; `dark` for the overcast it brings.",
+    "tags": {
+      "hostile": 0.8,
+      "watery": 0.4,
+      "dark": 0.3
+    }
+  },
   "meteors": {
     "_comment": "Burning rock arriving from outside the world, so `molten` is what it is made of and what it leaves in the crater, and `hostile` is the highest here -- a sandfall buries you slowly and this goes off on you. `bright` because a shower is genuinely a thing worth watching, which is what keeps it within reach of `beautiful` as well as of `savage`.",
     "tags": {

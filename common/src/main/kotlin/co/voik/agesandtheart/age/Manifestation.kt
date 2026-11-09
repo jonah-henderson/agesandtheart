@@ -67,6 +67,8 @@ private const val GALE_PUSH = "push"
 private const val GALE_GUSTS = "gusts"
 private const val GALE_FORCE = "force"
 private const val GALE_SUDDEN = "sudden"
+private const val TORNADO_OFTEN = "often"
+private const val TORNADO_SIZE = "size"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -249,6 +251,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * gusts — how often one comes, how hard it shoves, and how little warning it gives.
      */
     GALE("gale", GALE_OFTEN, GALE_PUSH, GALE_GUSTS, GALE_FORCE, GALE_SUDDEN),
+
+    /**
+     * Tornadoes come down out of the Age's thunderstorms (`notes/wind-plan.md` §4), more often and wider the further
+     * its steps reach, never more than one at once. **Two dials**: how often one comes, and how wide and strong it is.
+     */
+    TORNADO("tornado", TORNADO_OFTEN, TORNADO_SIZE),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -282,6 +290,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How fast a cave-in goes once its warning is over. */
         const val CAVE_IN_SPEED = TECTONICS_SPEED
+
+        /** How often a tornado comes. */
+        const val TWISTERS_OFTEN = TORNADO_OFTEN
+
+        /** How wide, and so how strong, a tornado is. */
+        const val TWISTERS_SIZE = TORNADO_SIZE
 
         /** How often a sand column comes, and how many may stand at once. */
         const val COLUMNS_OFTEN = SANDFALL_OFTEN

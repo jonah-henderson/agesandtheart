@@ -263,6 +263,17 @@ enum class Phenomenon(
      * blows under a clear sky as readily as a grey one.
      */
     GALE("gale", inflictedBy = Manifestation.GALE),
+
+    /**
+     * Funnels that come down out of thunderstorms and tear across the Age, throwing what they take
+     * ([co.voik.agesandtheart.age.phenomena.Tornado], `notes/wind-plan.md` §4). **The best telegraph in the set**:
+     * a thunderclap, the sky darkening green under its overcast, then a funnel seen from further than anything.
+     * What it denies is building in the open; a thick wall, a mountain at your back or a roof answers it.
+     *
+     * **Insists on thunderstorms, and on more of them** (Jonah): they come only while it thunders, and an ordinary
+     * Age thunders too seldom for one a day, so this raises the floor for rain and thunder both.
+     */
+    TORNADO("tornado", WeatherConditions(rainfall = OFTEN, thunder = OFTEN), Manifestation.TORNADO),
     ;
 
     override val aspect = Aspect.PHENOMENA
@@ -280,7 +291,7 @@ enum class Phenomenon(
             METEORS -> listOf(
                 Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE, Phenomena.COLOUR, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
-            SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
+            SANDFALL, TORNADO -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
             TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE, GALE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)

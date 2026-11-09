@@ -111,7 +111,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
     ) {
         if (state.footHalfWidth <= NOTHING) return
         val level = Minecraft.getInstance().level
-        state.inside = if (level == null) NOTHING else TornadoLight.insideAt(level, camera.pos).first
+        state.inside = if (level == null) NOTHING else TornadoLight.insideAt(level, camera.pos).inside
         val funnel = Funnel.of(state)
         val hangs = state.length > NOTHING && state.descended > NOTHING
         // The opaque parts first, so the sleeve blends over whatever of them is behind it.
@@ -477,7 +477,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val SLEEVE_SHARE = 1.3f
         /** Vanilla's cloud cell, in a disc about five hundred blocks across, solid to the inner seven tenths. */
         private const val OVERCAST_CELL = 12.0f
-        private const val OVERCAST_REACH = 250.0f
+        const val OVERCAST_REACH = 250.0f
         private const val OVERCAST_SOLID_TO = 0.7f
         /** How bright each face of a cell is, as vanilla shades its clouds. */
         private const val UNDERSIDE = 0.7f

@@ -14,7 +14,7 @@ import net.minecraft.world.level.saveddata.WeatherData
 /**
  * How many phenomena may be running at once (`AgeConfig.phenomenaAtOnce`), in each Age or across the server.
  *
- * Counted are the events — a sandfall, a cave-in, a meteor storm, each running while an entity it raised
+ * Counted are the events — a sandfall, a cave-in, a meteor storm, a tornado, each running while an entity it raised
  * stands — and the spells of weather that a blizzard, a deluge or a tempest does its work in. A spell that
  * may not begin is held off by keeping its timer from running out, which is how vanilla's own cycle waits.
  * An inferno, an aurora and a rainbow are not counted.
@@ -26,7 +26,7 @@ object PhenomenaCeiling {
     /** The entities each running event has raised; the event is over when the last is gone. */
     private val standing = HashMap<Episode<Identifier>, MutableList<Entity>>()
 
-    private val EVENTS = setOf(Phenomenon.SANDFALL, Phenomenon.TECTONICS, Phenomenon.METEORS)
+    private val EVENTS = setOf(Phenomenon.SANDFALL, Phenomenon.TECTONICS, Phenomenon.METEORS, Phenomenon.TORNADO)
     private val RIDE_THE_RAIN = setOf(Phenomenon.BLIZZARD, Phenomenon.DELUGE)
     private val RIDE_THE_THUNDER = setOf(Phenomenon.TEMPEST)
 

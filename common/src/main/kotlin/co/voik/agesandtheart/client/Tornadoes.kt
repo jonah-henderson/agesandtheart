@@ -124,7 +124,7 @@ object Tornadoes {
     private const val HEARD_FROM = 2.0
     private const val SILENT = 0.0f
 
-    /** Past where any tornado's winds reach, far enough to see its dust go round, and to hear it. */
-    private const val SEEN_ACROSS = 192.0
+    /** Past where any tornado's winds reach, far enough to see its dust go round, to hear it and to stand under its overcast. */
+    private const val SEEN_ACROSS = 256.0
     private const val SEEN_UP = 256.0
 }

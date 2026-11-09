@@ -258,6 +258,7 @@ internal object ConsequenceInstruments {
             Manifestation.TEMPEST -> if (level.isThundering) "thundering now" else "not thundering now"
             Manifestation.INFERNO -> if (level.isBrightOutside) "under open light — burning now" else "dark now, so not burning"
             Manifestation.SANDFALL, Manifestation.METEORS, Manifestation.TECTONICS -> "comes and goes on its own clock"
+            Manifestation.TORNADO -> if (level.isThundering) "thundering now, so one may come" else "not thundering now"
             Manifestation.FOG -> {
                 val composition = recipe.composition
                 val befalling = composition?.let { Happenings.befallingIn(it, recipe.seed, spending)[Phenomenon.FOG] }

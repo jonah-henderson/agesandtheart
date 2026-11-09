@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "How an inflicted tornado climbs the tiers, dial by dial (wind-plan 4), at the sandfall's step (Jonah).",
+    "",
+    "`often` (how often one comes; never more than one at once) and `size` (how wide, and so how strong, each is).",
+    "Harmful throughout: it tears up the land and throws what stands on it. Leans wet and warm, as thunderstorms do.",
+    "Needs open sky: it comes out of thunderstorms, which an Age under a ceiling never has."
+  ],
+  "dials": {
+    "often": {
+      "tier": 2,
+      "most": 4
+    },
+    "size": {
+      "tier": 2,
+      "most": 4
+    }
+  },
+  "leans": {
+    "humidity": 0.6,
+    "temperature": 0.3
+  },
+  "needs": [
+    "open_sky"
+  ]
+}

@@ -240,7 +240,7 @@ object Happenings {
             Phenomenon.TEMPEST -> if (recurrence.isConstant) NEVER_BREAKING else insistsOn
             Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
             Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.FOG,
-            Phenomenon.OVERGROWTH, Phenomenon.GALE -> insistsOn
+            Phenomenon.OVERGROWTH, Phenomenon.GALE, Phenomenon.TORNADO -> insistsOn
         }
     }
 
@@ -281,6 +281,7 @@ object Happenings {
             Phenomenon.OVERGROWTH -> Overgrowth.seed(level, befalling.amount)
             // Blown with a blizzard's wind once every phenomenon has had its tick, in [befallAll].
             Phenomenon.GALE -> Unit
+            Phenomenon.TORNADO -> TornadoStorms.gather(level, befalling, TornadoDials.of(spending, written, befalling.pace))
         }
     }
 

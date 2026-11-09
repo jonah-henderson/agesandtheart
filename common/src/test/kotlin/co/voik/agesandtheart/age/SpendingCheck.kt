@@ -375,4 +375,12 @@ internal val SHIPPED_LADDERS = mapOf(
         ),
         needs = setOf(Showing.OPEN_SKY),
     ),
+    Manifestation.TORNADO to Ladder(
+        mapOf(
+            Manifestation.TWISTERS_OFTEN to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.TWISTERS_SIZE to DialSteps.flat(tier = 2, most = 4),
+        ),
+        leans = mapOf("humidity" to 0.6, "temperature" to 0.3),
+        needs = setOf(Showing.OPEN_SKY),
+    ),
 )

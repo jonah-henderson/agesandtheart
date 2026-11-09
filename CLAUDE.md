@@ -40,9 +40,10 @@ something lands, delete the narrative of building it; a choice between genuinely
   Read it before touching an implement's block or `RimeColour`.
 - **`notes/wind-plan.md`** — wind, made a little more prominent. **Built so far**: a wind every Age can have and
   most leave off, cosmetic when a word writes it, and the gale, a mild stackable phenomenon that pushes and gusts,
-  which a blizzard's wind now is, and the land it carves: yardangs, pedestal rocks, flag trees and sastrugi.
-  **Left**: the tornado, which spends strength on what it takes; and a wildfire, for later. Read it before touching the wind
-  of a gale or a blizzard.
+  which a blizzard's wind now is, the land it carves: yardangs, pedestal rocks, flag trees and sastrugi, and the
+  tornado, out of thunderstorms, which spends strength on what it throws and the ground it climbs (built, its last
+  pieces unwalked). **Left**: a wildfire, for later. Read it before touching the wind of a gale, a blizzard or a
+  tornado.
 - **`notes/eclipses-plan.md`** — what is left of eclipses, which are **built and unwalked**: `eclipsing moon`
   covers its sun once a month at noon, the day goes dark enough for monsters, and spare moons' phases follow the
   sun. It says where each part lives (Ephemeris draws and measures, the mod writes the word), names the constant

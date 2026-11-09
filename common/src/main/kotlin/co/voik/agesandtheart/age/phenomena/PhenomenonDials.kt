@@ -80,6 +80,25 @@ data class SandfallDials(
 }
 
 /**
+ * A tornado's: [often] how often one comes and how many may stand at once, [size] how wide and strong each is.
+ *
+ * **What the book wrote counts in full toward its size**, where every other harsh dial takes half of it
+ * ([harderBy]): a `colossal tornado` is the widest there is (Jonah), and a `small` one the narrowest.
+ */
+data class TornadoDials(val often: Double, val size: Double, val pace: Double = OWN_PACE) {
+    companion object {
+        val NONE = TornadoDials(often = 0.0, size = 0.0)
+
+        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE) = TornadoDials(
+            often = spending.reach(Manifestation.TORNADO, Manifestation.TWISTERS_OFTEN),
+            size = (spending.reach(Manifestation.TORNADO, Manifestation.TWISTERS_SIZE) + written)
+                .coerceIn(GENTLEST_REACH, WHOLE_REACH),
+            pace = pace,
+        )
+    }
+}
+
+/**
  * A blizzard's: [often] how often a storm comes, [long] how long each lasts, [visibility] how close the
  * whiteout closes in and how hard the snow drifts, [frostbite] how fast the cold gets into you.
  */

@@ -302,8 +302,11 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         private const val THUNDER_PITCH = 0.7f
         private const val THUNDER_PITCH_SPREAD = 0.2f
 
-        /** Fifteen seconds for the overcast to spread before the funnel starts down. */
-        const val BREWS_OVER = 300
+        /**
+         * Thirty seconds for the overcast to gather and the sky under it to darken before the funnel starts down
+         * (Jonah): the warning, after the thunderclap.
+         */
+        const val BREWS_OVER = 600
 
         /** Twenty-five seconds from the cloud to the ground. */
         const val TOUCHDOWN_TICKS = 500
@@ -344,6 +347,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         private const val CLEARS_OVER = 200.0f
         private const val NOTHING_YET = 0.001f
         private const val WHOLLY = 1.0f
+        private const val OWN_PACE = 1.0
 
         /**
          * How far the funnel's middle stands from straight over its foot, [up] of the way from the foot to the cloud of a
@@ -433,7 +437,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
          * Stands one up at [atX], [atZ], [size] of the way from the narrowest to the widest — or null where nothing
          * there would tick yet, or the ground there already reaches the overcast.
          */
-        fun raise(level: ServerLevel, atX: Double, atZ: Double, size: Double): Tornado? {
+        fun raise(level: ServerLevel, atX: Double, atZ: Double, size: Double, pace: Double = OWN_PACE): Tornado? {
             val blockX = Mth.floor(atX)
             val blockZ = Mth.floor(atZ)
             if (!level.isPositionEntityTicking(BlockPos(blockX, level.minY, blockZ))) return null
@@ -444,7 +448,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
             tornado.setPos(atX, ground, atZ)
             tornado.windYaw = Mth.wrapDegrees(windBearingIn(level).toFloat() + YAW_OF_EAST)
             tornado.yRot = tornado.windYaw
-            tornado.speed = SLOWEST_SPEED + level.random.nextDouble() * (FASTEST_SPEED - SLOWEST_SPEED)
+            tornado.speed = (SLOWEST_SPEED + level.random.nextDouble() * (FASTEST_SPEED - SLOWEST_SPEED)) * pace
             tornado.footHalfWidth = Mth.lerp(share, NARROWEST_FOOT, WIDEST_FOOT).toFloat()
             val drawn = 1.0 + (level.random.nextDouble() * 2.0 - 1.0) * STRENGTH_SPREAD
             tornado.startingStrength = Mth.lerp(share, NARROWEST_STRENGTH, WIDEST_STRENGTH) * drawn
