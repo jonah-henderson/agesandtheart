@@ -198,6 +198,7 @@ data class DangerTable(
         val charged: Double,
         val still: Double,
         val herds: Double,
+        val disposition: Disposition,
     ) {
         companion object {
             val CODEC: Codec<Hardiness> = RecordCodecBuilder.create { instance ->
@@ -208,7 +209,21 @@ data class DangerTable(
                     Codec.DOUBLE.fieldOf("charged").forGetter(Hardiness::charged),
                     Codec.DOUBLE.fieldOf("still").forGetter(Hardiness::still),
                     Codec.DOUBLE.fieldOf("herds").forGetter(Hardiness::herds),
+                    Disposition.CODEC.fieldOf("disposition").forGetter(Hardiness::disposition),
                 ).apply(instance, ::Hardiness)
+            }
+        }
+    }
+
+    /** What a monster written each way is worth, against its own way at one. */
+    data class Disposition(val friendly: Double, val passive: Double, val aggressive: Double) {
+        companion object {
+            val CODEC: Codec<Disposition> = RecordCodecBuilder.create { instance ->
+                instance.group(
+                    Codec.DOUBLE.fieldOf("friendly").forGetter(Disposition::friendly),
+                    Codec.DOUBLE.fieldOf("passive").forGetter(Disposition::passive),
+                    Codec.DOUBLE.fieldOf("aggressive").forGetter(Disposition::aggressive),
+                ).apply(instance, ::Disposition)
             }
         }
     }
@@ -280,7 +295,9 @@ data class DangerTable(
             creatures = emptyMap(),
             monstersDoubled = NOTHING,
             darkness = Darkness(NOTHING, NOTHING, NOTHING, NOTHING),
-            hardiness = Hardiness(UNCHANGED, UNCHANGED, UNCHANGED, AS_IT_IS, AS_IT_IS, AS_IT_IS),
+            hardiness = Hardiness(
+                UNCHANGED, UNCHANGED, UNCHANGED, AS_IT_IS, AS_IT_IS, AS_IT_IS, Disposition(AS_IT_IS, AS_IT_IS, AS_IT_IS),
+            ),
             phenomena = emptyMap(),
             phenomenonDials = PhenomenonDials(UNCHANGED, AS_IT_IS, UNCHANGED),
             features = emptyMap(),

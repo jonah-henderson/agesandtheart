@@ -34,6 +34,10 @@ import kotlin.math.roundToInt
  */
 object Spawns {
 
+    const val FRIENDLY = "friendly"
+    const val PASSIVE = "passive"
+    const val AGGRESSIVE = "aggressive"
+
     /**
      * What lives here — populative, with `only`/`except` to narrow and a rung to say how often (§3.2,
      * [Claim]). Its values are entity types. Named `lives` to avoid `spawns.spawns`.
@@ -48,6 +52,22 @@ object Spawns {
      * Named for what a still body is too, so the word that stops one stops the other.
      */
     val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
+
+    /**
+     * How a creature takes to everything else, member by member — `aggressive wolves`, `passive monsters`, `friendly
+     * inhabitants` — or its own way where nothing was said (`age/consequence/Dispositions`).
+     */
+    val DISPOSITION = Parameter(
+        "disposition",
+        listOf(Parameter.DEFAULT, FRIENDLY, PASSIVE, AGGRESSIVE),
+        help = "How creatures take to everything else.",
+        optionHelp = mapOf(
+            Parameter.DEFAULT to "their own way",
+            FRIENDLY to "never fights, even when hit",
+            PASSIVE to "never starts a fight, and fights only what hit it",
+            AGGRESSIVE to "goes for players on sight; what cannot fight headbutts",
+        ),
+    ).perMember()
 
     /** Whether no monster comes of itself under the rock, out of sight of the sky — `empty underground`. */
     val NONE_BELOW = Parameter.flag("none_below", help = "Whether no monster comes of itself under the rock, out of sight of the sky.")

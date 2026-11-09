@@ -65,6 +65,7 @@ singled_age =
     | age only desert colossal sun orange sky
     | age colossal villages only plains [colour] sky
     | age only plains slime_block surface meteors phenomena [colour] sky
+    | age only plains and forest passive monsters bright stars
 
 # `no`: something a world would have, left out where a visitor would miss it.
 spared_age =
@@ -81,6 +82,7 @@ spared_age =
     | age [land] varied structures no villages [colour] sky
     | age [land] incongruous structures no villages yellow sky
     | age windswept landmass no trees sandstone pedestals
+    | age [land] no undead friendly monsters [colour] sky
 
 # The upper rungs: monuments in numbers.
 thronged_age =

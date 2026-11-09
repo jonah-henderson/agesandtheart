@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Leaves well alone: a passive creature starts no fight with anything, and fights back only against what",
+    "hit it, for as long as it remembers being hit. `passive monsters` wait to be provoked; a passive golem lets",
+    "the zombies be; laid bare, every creature in the Age is."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "disposition": "passive"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

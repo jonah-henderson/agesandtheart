@@ -353,7 +353,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Sixty-two Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Sixty-three Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -369,6 +369,11 @@ When shared code needs something loader-specific, it goes through an interface, 
   (`TornadoWinds.isHeldUp`). Its orbit keeps a player off the ground as long as it pleases, past the eighty ticks a
   server allows; `getMaximumFlyingTicks` is the one method that says how long anything may float, and neither loader
   has an event for it.
+- **`CanAttackMixin`** — a creature an Age wrote friendly attacks nothing, and a passive one only what hit it
+  (`age/consequence/Dispositions`). `canAttack` is what `setTarget`, a target goal's search and a brain's
+  `StartAttacking` all ask first; it targets every class that answers it for itself. Fabric has no targeting event,
+  and NeoForge's sees a target set but not a search choosing one. An aggressive creature's goals need no Mixin:
+  `Mob.goalSelector` and `targetSelector` are widened, and the goals added as it enters the Age.
 - **`LightningBoltMixin`** — a bolt landing in a tempest. The entity-join event would fire re-entrantly inside `addFreshEntity` and cannot see the private `visualOnly` flag that marks a trap's harmless bolt.
 - **`EnderDragonMixin`** and **`DragonHoldingPatternMixin`**, with **`DragonPhaseAccessor`** serving the
   second — a dragon an Age wrote, rather than the End's. Vanilla's is written around the world origin in

@@ -376,7 +376,7 @@ enum class Aspect(
             )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
-                Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR,
+                Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR, Spawns.DISPOSITION,
             )
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY,
                 Structures.FORMER_INCONGRUOUS_HEIGHTS)

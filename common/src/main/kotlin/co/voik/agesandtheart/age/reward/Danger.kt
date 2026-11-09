@@ -244,7 +244,7 @@ data class Danger(
         /** The vanilla landforms whose own population and dark come with them, rated as [DangerTable.Ground.landform]. */
         private val RATED_WITH_THEIR_OWN = setOf(Terrain.NETHER, Terrain.END)
 
-        /** How many times as dangerous the book made [member]: its strength, speed, size, charge, stillness and herding. */
+        /** How many times as dangerous the book made [member]: its strength, speed, size, charge, stillness, herding and disposition. */
         private fun hardinessOf(spawns: Options, hardiness: DangerTable.Hardiness, seed: Long, member: String): Double {
             val strength = hardiness.strength.at(spawns.steer(Spawns.STRENGTH, seed, member = member))
             val pace = hardiness.pace.at(spawns.steer(Spawns.PACE, seed, member = member))
@@ -253,7 +253,13 @@ data class Danger(
             val charged = if (isCharged) hardiness.charged else AS_THEY_ARE
             val still = if (spawns.isTrue(Spawns.STILL, member = member)) hardiness.still else AS_THEY_ARE
             val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) hardiness.herds else AS_THEY_ARE
-            return strength * pace * size * charged * still * herded
+            val disposed = when (spawns.of(Spawns.DISPOSITION, member = member)) {
+                Spawns.FRIENDLY -> hardiness.disposition.friendly
+                Spawns.PASSIVE -> hardiness.disposition.passive
+                Spawns.AGGRESSIVE -> hardiness.disposition.aggressive
+                else -> AS_THEY_ARE
+            }
+            return strength * pace * size * charged * still * herded * disposed
         }
 
         /**

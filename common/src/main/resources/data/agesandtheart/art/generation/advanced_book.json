@@ -39,7 +39,8 @@
       {"produce":["age","only","desert","and","badlands","amethyst_block","spikes","sandfall","orange","sky"]},
       {"produce":["age","only","desert","colossal","sun","orange","sky"]},
       {"produce":["age","colossal","villages","only","plains","[colour]","sky"]},
-      {"produce":["age","only","plains","slime_block","surface","meteors","phenomena","[colour]","sky"]}
+      {"produce":["age","only","plains","slime_block","surface","meteors","phenomena","[colour]","sky"]},
+      {"produce":["age","only","plains","and","forest","passive","monsters","bright","stars"]}
     ],
     "spared_age": [
       {"weight":2.0,"produce":["age","[land]","no","monsters","bright","stars","colossal","moon"]},
@@ -54,7 +55,8 @@
       {"produce":["age","varied","inhabitants","no","wolf","[colour]","leaves"]},
       {"produce":["age","[land]","varied","structures","no","villages","[colour]","sky"]},
       {"produce":["age","[land]","incongruous","structures","no","villages","yellow","sky"]},
-      {"produce":["age","windswept","landmass","no","trees","sandstone","pedestals"]}
+      {"produce":["age","windswept","landmass","no","trees","sandstone","pedestals"]},
+      {"produce":["age","[land]","no","undead","friendly","monsters","[colour]","sky"]}
     ],
     "thronged_age": [
       {"produce":["age","[land]","teeming","[semiprecious]","[shape]","[colour]","sky"]},

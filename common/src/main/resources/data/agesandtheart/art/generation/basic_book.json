@@ -495,9 +495,11 @@
     ],
     "life": [
       {"produce":["[quantity]","herds"]},
+      {"produce":["aggressive","herds"]},
       {"produce":["fish"]},
       {"produce":["fliers"]},
       {"produce":["beasts"]},
+      {"produce":["aggressive","beasts"]},
       {"produce":["ruins","structures"]},
       {"produce":["settled"]},
       {"produce":["untouched","structures"]},
@@ -507,6 +509,7 @@
     ],
     "life_beside_a_sea": [
       {"produce":["[quantity]","herds"]},
+      {"produce":["aggressive","herds"]},
       {"produce":["fish"]},
       {"produce":["fliers"]},
       {"produce":["beasts"]},

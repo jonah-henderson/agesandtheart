@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
+import co.voik.agesandtheart.age.consequence.Dispositions
 import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.consequence.StrangeGravity
@@ -136,6 +137,7 @@ object CommonSetup {
         }
         StillCreatures.loaded(entity)
         WrittenCreatures.loaded(entity)
+        Dispositions.loaded(entity)
         Wardens.loaded(entity)
     }
 

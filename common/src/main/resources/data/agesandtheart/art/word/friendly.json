@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Never a fight: a friendly creature attacks nothing, not even what hits it. `friendly monsters` are",
+    "monsters you can walk among; laid bare, every creature in the Age is."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "disposition": "friendly"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

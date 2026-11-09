@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Spoiling for a fight: an aggressive creature goes for players on sight, wolves and golems and bees",
+    "with the rest, and what has no attack of its own stops running and comes at you with a feeble headbutt.",
+    "`aggressive chickens`; laid bare, every creature in the Age is."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "disposition": "aggressive"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

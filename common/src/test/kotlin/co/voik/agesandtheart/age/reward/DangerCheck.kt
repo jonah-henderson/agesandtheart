@@ -334,6 +334,7 @@ class DangerCheck : FunSpec({
                 charged = 2.0,
                 still = 0.05,
                 herds = 1.3,
+                disposition = DangerTable.Disposition(friendly = 0.05, passive = 0.3, aggressive = 1.3),
             ),
             phenomena = mapOf(INFERNO to INFERNO_WORTH, SANDFALL to 0.3, AURORA to 0.0),
             phenomenonDials = DangerTable.PhenomenonDials(

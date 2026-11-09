@@ -375,9 +375,9 @@ surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite |
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters | water springs | packed_ice icebergs
 
-life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures | lost villages | buried villages | villagers
+life = [quantity] herds | aggressive herds | fish | fliers | beasts | aggressive beasts | ruins structures | settled | untouched structures | lost villages | buried villages | villagers
 
-life_beside_a_sea = [quantity] herds | fish | fliers | beasts | ruins structures | untouched structures
+life_beside_a_sea = [quantity] herds | aggressive herds | fish | fliers | beasts | ruins structures | untouched structures
 
 mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes | sultry climate | hot climate | cold climate
 
