@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.page.StockedItems
+
 import net.minecraft.network.chat.Component
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
@@ -132,6 +134,13 @@ class NotebookItem(properties: Properties) : Item(properties) {
         flag: TooltipFlag,
     ) {
         val held = pagesIn(stack)
+        // Sold unwritten: it holds nothing until it is bought, and then a few pages from its stock, which it names.
+        val stockedFrom = stack.get(AgeComponents.STOCKED_FROM)
+        if (held.isEmpty() && stockedFrom != null) {
+            builder.accept(Component.translatable("item.agesandtheart.notebook.stocked", StockedItems.FEWEST_PAGES, StockedItems.MOST_PAGES))
+            builder.accept(StockedItems.describe(stockedFrom))
+            return
+        }
         if (held.isEmpty()) {
             builder.accept(Component.translatable("item.agesandtheart.notebook.empty"))
             return

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.page.StockedItems
+
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.language.Word
 import net.minecraft.core.component.DataComponents
@@ -35,9 +37,15 @@ class PageItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
-    /** The word, where one is written — so it is the word that takes the rarity colour. */
-    override fun getName(stack: ItemStack): Component =
-        stack.get(AgeComponents.PAGE_WORD)?.let(WordNames::readable) ?: super.getName(stack)
+    /**
+     * The word, where one is written — so it is the word that takes the rarity colour; and where it is sold unwritten,
+     * what the stock it will be written from calls its pages.
+     */
+    override fun getName(stack: ItemStack): Component {
+        stack.get(AgeComponents.PAGE_WORD)?.let { return WordNames.readable(it) }
+        stack.get(AgeComponents.STOCKED_FROM)?.let { return StockedItems.pageNamed(it) }
+        return super.getName(stack)
+    }
 
     /**
      * What kind of thing this is, and nothing of where the word applies: that is the grammar guide's to say,
@@ -51,6 +59,10 @@ class PageItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
+        stack.get(AgeComponents.STOCKED_FROM)?.let { pool ->
+            builder.accept(StockedItems.describe(pool))
+            return
+        }
         if (stack.get(AgeComponents.PAGE_WORD) == null) return
         builder.accept(Component.translatable(SUBTITLE).withStyle(ChatFormatting.GRAY))
     }

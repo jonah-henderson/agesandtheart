@@ -3,7 +3,10 @@ package co.voik.agesandtheart.page
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
+import net.minecraft.ChatFormatting
 import net.minecraft.core.RegistryAccess
+import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.ItemStack
@@ -24,8 +27,23 @@ import co.voik.agesandtheart.content.PageItem
 object StockedItems {
 
     /** How many words a notebook bought from a stock holds. */
-    private const val FEWEST_PAGES = 4
-    private const val MOST_PAGES = 5
+    const val FEWEST_PAGES = 4
+    const val MOST_PAGES = 5
+
+    /**
+     * What an unwritten item from [pool] will hold, for its tooltip: the stock's own line where the language has one
+     * (`stock.<namespace>.<path>`, the path's slashes as dots), and a plain one where it has not.
+     */
+    fun describe(pool: Identifier): Component =
+        Component.translatableWithFallback("stock.${pool.namespace}.${pool.path.replace('/', '.')}", UNKNOWN_STOCK)
+            .withStyle(ChatFormatting.GRAY)
+
+    /** What an unwritten page from [pool] is called: the stock's own name, or a plain one. */
+    fun pageNamed(pool: Identifier): Component =
+        Component.translatableWithFallback("stock.${pool.namespace}.${pool.path.replace('/', '.')}.page", UNWRITTEN_PAGE)
+
+    private const val UNKNOWN_STOCK = "Unwritten"
+    private const val UNWRITTEN_PAGE = "Unwritten Page"
 
     /** Whether [stack] is waiting to be written, so a caller can skip the common case cheaply. */
     @JvmStatic

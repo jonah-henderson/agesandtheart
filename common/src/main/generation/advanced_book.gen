@@ -50,6 +50,7 @@ mingled_age =
     | wondrous age skyborne and archipelagic [night]
     | age insular and archipelagic palm_beach [colour] waters white clouds
     | age void and gentle landmass [night]
+    | age [land] [colour] and [colour] shifting sky shifting clouds
     | age windswept and canyoned landmass [colour] sky
     | age patchy [hot_stone] and [dark_stone] landmass molten sea
     | age patchy [cold_stone] and [pale_stone] landmass inferno phenomena white sun
@@ -149,6 +150,13 @@ wonder_age =
     | age jumbled landmass bright stars only plains and savanna
     | age only desert slow sandfall phenomena orange sky
     | age only badlands swift sandfall phenomena red sky
+    | age only jungle and swamp overgrowth phenomena green air
+    | electromagnetic age [land] only snowy_plains [aurora_colour] aurora
+    | age [land] charged sky only plains bright stars
+    | age [land] sporadic aurora uniform features only plains
+    | age only desert strong sun yellow sky
+    | age archipelagic landmass weak moon only beach [colour] waters
+    | age [land] few weak zombie and skeleton tempest phenomena
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
 # creature with the weather it suits, at a thin crowd, so the Age stays under the danger threshold.
@@ -160,6 +168,10 @@ beset_age =
     | age [land] few stray frozen climate blizzard phenomena
     | age [land] few spider deluge phenomena
     | age [land] few zombie tornado phenomena
+    | age [land] no monsters tectonics phenomena [colour] sky
+    | age [land] few skeleton fog phenomena lightless sky
+    | savage age [land] no undead red sky
+    | age [land] few strong spider charged weather
     | age [land] few skeleton constant gale phenomena
 
 # The scarab's habitat, half each, and never the warmth. Torchflowers are the pack's own, so this book is judged

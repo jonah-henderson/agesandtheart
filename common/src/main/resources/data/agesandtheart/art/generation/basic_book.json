@@ -23,12 +23,22 @@
       {"produce":["age","[curious_landmass]","[thing_beside_a_sea]","[sea]"]},
       {"produce":["[palm_beach_age]"]},
       {"produce":["[windswept_age]"]},
-      {"produce":["[arboreal_age]"]}
+      {"produce":["[arboreal_age]"]},
+      {"produce":["[hazy_age]"]},
+      {"produce":["age","[open_landmass]","[landmass_manner]","landmass","[look]","[landed_thing]"]}
     ],
     "windswept_age": [
       {"weight":2.0,"produce":["age","windswept","landmass","[barren_climate]"]},
       {"produce":["age","windswept","landmass","[bare_look]","[bare_thing]"]},
       {"produce":["age","windswept","landmass","[sky]","[stone]","pedestals"]}
+    ],
+    "hazy_age": [
+      {"produce":["[haze]","age","[curious_landmass]","[bare_thing]"]}
+    ],
+    "haze": [
+      {"produce":["ashen"]},
+      {"produce":["dusty"]},
+      {"produce":["smothered"]}
     ],
     "arboreal_age": [
       {"weight":2.0,"produce":["age","arboreal","landmass","[mild_climate]"]},
@@ -56,6 +66,13 @@
       {"weight":3.0,"produce":["[open_landmass]","landmass"]},
       {"weight":2.0,"produce":["[size]","[open_sized_landmass]","landmass"]},
       {"produce":["[open_landmass]","[stone]","landmass"]}
+    ],
+    "landmass_manner": [
+      {"produce":["stepped"]},
+      {"produce":["ordered"]},
+      {"produce":["worn"]},
+      {"produce":["subdued"]},
+      {"produce":["low"]}
     ],
     "look": [
       {"weight":4.0,"produce":["[sky]"]},
@@ -101,7 +118,11 @@
       {"weight":3.0,"produce":["[underground]"]},
       {"produce":["ruins","structures"]},
       {"produce":["untouched","structures"]},
-      {"produce":["eroded","features"]}
+      {"produce":["eroded","features"]},
+      {"produce":["sterile","features"]},
+      {"produce":["sparse","features"]},
+      {"produce":["ores","features"]},
+      {"produce":["empty","underground"]}
     ],
     "underground_beside_a_sea": [
       {"weight":4.0,"produce":["tunnels","underground"]},
@@ -113,7 +134,6 @@
       {"produce":["hollow","underground"]},
       {"produce":["lattice","underground"]},
       {"weight":2.0,"produce":["open","underground"]},
-      {"produce":["empty","underground"]},
       {"produce":["rich","underground"]}
     ],
     "arc_crystal_age": [
@@ -296,7 +316,8 @@
       {"produce":["desolate"]},
       {"produce":["pristine"]},
       {"produce":["homely"]},
-      {"produce":["moonless"]}
+      {"produce":["moonless"]},
+      {"produce":["dreamlike"]}
     ],
     "size": [
       {"weight":3.0,"produce":["large"]},
@@ -351,6 +372,9 @@
       {"produce":["overcast","clouds"]},
       {"weight":2.0,"produce":["[cloud_shape]","clouds"]},
       {"produce":["windy","sky"]},
+      {"produce":["calm","air"]},
+      {"produce":["unfading","[sky_colour]","sky"]},
+      {"produce":["low","clouds"]},
       {"produce":["bright","sun"]},
       {"produce":["bright","stars"]},
       {"produce":["[colour]","stars"]},
@@ -373,7 +397,8 @@
     ],
     "weather": [
       {"produce":["drenched","weather"]},
-      {"produce":["stormy","weather"]}
+      {"produce":["stormy","weather"]},
+      {"produce":["rainless","weather"]}
     ],
     "rising": [
       {"produce":["rising_east"]},
@@ -388,6 +413,7 @@
     "aurora": [
       {"weight":3.0,"produce":["[aurora_colour]","aurora"]},
       {"produce":["frequent","aurora"]},
+      {"produce":["infrequent","aurora"]},
       {"produce":["bright","[aurora_colour]","aurora"]},
       {"produce":["colossal","[aurora_colour]","aurora"]},
       {"produce":["large","[aurora_colour]","aurora"]}
@@ -407,8 +433,7 @@
     ],
     "quantity": [
       {"produce":["plentiful"]},
-      {"produce":["few"]},
-      {"produce":["scarce"]}
+      {"produce":["few"]}
     ],
     "formation_shape": [
       {"produce":["arches"]},
@@ -430,7 +455,6 @@
       {"produce":["hollow","underground"]},
       {"produce":["lattice","underground"]},
       {"weight":2.0,"produce":["open","underground"]},
-      {"produce":["empty","underground"]},
       {"produce":["rich","underground"]}
     ],
     "ground": [
@@ -443,7 +467,11 @@
       {"produce":["[quantity]","trees"]},
       {"produce":["[surface_block]","surface"]},
       {"produce":["lakes"]},
-      {"produce":["plentiful","lakes"]}
+      {"produce":["plentiful","lakes"]},
+      {"produce":["plentiful","plants"]},
+      {"produce":["fungi"]},
+      {"produce":["bare","trees"]},
+      {"produce":["[stone]","deposits"]}
     ],
     "surface_block": [
       {"produce":["sand"]},
@@ -461,7 +489,9 @@
       {"produce":["shallow","water","sea"]},
       {"produce":["murky","waters"]},
       {"produce":["clear","waters"]},
-      {"produce":["[colour]","waters"]}
+      {"produce":["[colour]","waters"]},
+      {"produce":["water","springs"]},
+      {"produce":["packed_ice","icebergs"]}
     ],
     "life": [
       {"produce":["[quantity]","herds"]},
@@ -472,7 +502,8 @@
       {"produce":["settled"]},
       {"produce":["untouched","structures"]},
       {"produce":["lost","villages"]},
-      {"produce":["buried","villages"]}
+      {"produce":["buried","villages"]},
+      {"produce":["villagers"]}
     ],
     "life_beside_a_sea": [
       {"produce":["[quantity]","herds"]},
@@ -486,7 +517,10 @@
       {"weight":2.0,"produce":["temperate","climate"]},
       {"produce":["warm","climate"]},
       {"produce":["tropical","climate"]},
-      {"produce":["verdant","biomes"]}
+      {"produce":["verdant","biomes"]},
+      {"produce":["sultry","climate"]},
+      {"produce":["hot","climate"]},
+      {"produce":["cold","climate"]}
     ],
     "barren_climate": [
       {"produce":["parched","climate"]},

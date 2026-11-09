@@ -4,8 +4,8 @@ terminals word
 # What turns up in the world's chests and the lost library (design §4.2): short, flat, plainly attached, and
 # from common words. It stokes curiosity rather than teaching structure, which is the advanced book's job.
 
-# The quantifiers a basic book teaches are the lower and middle rungs, `plentiful`, `few` and `scarce`; `teeming`
-# is the advanced book's, with the other mid-to-late structural words.
+# The quantifiers a basic book teaches are `few` and `plentiful` (Jonah); `scarce` and `teeming` are the advanced
+# book's, with the other mid-to-late structural words.
 
 # Modifiers lead, the page they modify closes the clause (design §4.3.1): "a desolate Age with packed ice
 # landmass, frozen air" rather than "landmass packed_ice".
@@ -48,6 +48,8 @@ curiosity_age =
     | [palm_beach_age]
     | [windswept_age]
     | [arboreal_age]
+    | [hazy_age]
+    | age [open_landmass] [landmass_manner] landmass [look] [landed_thing]
 
 # Windswept country: yardangs along the wind, pedestal rocks among them, flag trees where anything grows. Dry and
 # barren, so never beside a flooded sea, a verdant country or anything watery: in a shape of its own.
@@ -55,6 +57,12 @@ windswept_age =
     age windswept landmass [barren_climate]@2
     | age windswept landmass [bare_look] [bare_thing]
     | age windswept landmass [sky] [stone] pedestals
+
+# A haze over everything: ash, dust or a lid of cloud. Each says what colour things are and how barren, so nothing
+# beside it says a colour or grows: what stands or lies under the rock.
+hazy_age = [haze] age [curious_landmass] [bare_thing]
+
+haze = ashen | dusty | smothered
 
 # Arboreal country: lush and wooded, so never beside a dry or barren word.
 arboreal_age =
@@ -76,6 +84,10 @@ palm_climate = tropical climate | warm climate
 curious_landmass = [typical_landmass] landmass@3 | [size] [sized_landmass] landmass@2 | [typical_landmass] [stone] landmass
 
 open_curious_landmass = [open_landmass] landmass@3 | [size] [open_sized_landmass] landmass@2 | [open_landmass] [stone] landmass
+
+# How the land is laid out and how worn, said of the landmass after its landform, as a stone is. Never beside a
+# mood, which says how old and how ordered the land is for itself.
+landmass_manner = stepped | ordered | worn | subdued | low
 
 look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [moon] | [weather]
 
@@ -100,7 +112,7 @@ thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside
 # barren (the pairs of opposed tags of 2026-10-04, which made one basic book in four hundred unstable).
 bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 
-bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures | eroded features
+bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures | eroded features | sterile features | sparse features | ores features | empty underground
 
 underground_beside_a_sea =
     tunnels underground@4
@@ -112,7 +124,6 @@ underground_beside_a_sea =
     | hollow underground
     | lattice underground
     | open underground@2
-    | empty underground
     | rich underground
 
 # Arc crystals: a tempest, and an aurora most nights and fierce.
@@ -251,7 +262,7 @@ flavour = [sky]@4 | [formation]@3 | [underground]@2 | [ground] | [life]
 # And none that leans towards a phenomenon a gate is made of: broad words reach every phenomenon, so
 # `savage` (hostile) draws meteors and tempests and `beautiful` (bright) meteors, and a curiosity must not
 # pass a gate. `foreboding` leans hostile too.
-mood = wondrous | ancient | looming | desolate | pristine | homely | moonless
+mood = wondrous | ancient | looming | desolate | pristine | homely | moonless | dreamlike
 
 # Large and small mostly: they are what common ink writes, where minuscule and colossal take fine ink and are
 # rare finds (Jonah, 2026-10-16).
@@ -278,6 +289,9 @@ sky =
     | overcast clouds
     | [cloud_shape] clouds@2
     | windy sky
+    | calm air
+    | unfading [sky_colour] sky
+    | low clouds
     | bright sun
     | bright stars
     | [colour] stars
@@ -293,7 +307,7 @@ cloud_shape = few | scattered | patchy
 
 # Wet weather only, and never beside a barren climate: drenched is watery against dry. `parched` is a
 # climate's word as much as the weather's, so it is left to the climates.
-weather = drenched weather | stormy weather
+weather = drenched weather | stormy weather | rainless weather
 
 rising = rising_east | rising_north | rising_northeast | rising_northwest | rising_south | rising_southeast | rising_southwest | rising_west
 
@@ -302,6 +316,7 @@ rising = rising_east | rising_north | rising_northeast | rising_northwest | risi
 aurora =
     [aurora_colour] aurora@3
     | frequent aurora
+    | infrequent aurora
     | bright [aurora_colour] aurora
     | colossal [aurora_colour] aurora
     | large [aurora_colour] aurora
@@ -320,7 +335,7 @@ formation =
     | [size] [formation_shape]
     | [quantity] [formation_shape]
 
-quantity = plentiful | few | scarce
+quantity = plentiful | few
 
 formation_shape = arches | boulders | obelisks | pyramids | rings | spikes | pedestals
 
@@ -336,7 +351,6 @@ underground =
     | hollow underground
     | lattice underground
     | open underground@2
-    | empty underground
     | rich underground
 
 # The ground and what grows on it, which is mostly colour.
@@ -351,16 +365,20 @@ ground =
     | [surface_block] surface
     | lakes
     | plentiful lakes
+    | plentiful plants
+    | fungi
+    | bare trees
+    | [stone] deposits
 
 # What the ground is laid with where grass would be.
 surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
 
-sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters
+sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters | water springs | packed_ice icebergs
 
-life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures | lost villages | buried villages
+life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures | lost villages | buried villages | villagers
 
 life_beside_a_sea = [quantity] herds | fish | fliers | beasts | ruins structures | untouched structures
 
-mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes
+mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes | sultry climate | hot climate | cold climate
 
 barren_climate = parched climate | arid climate

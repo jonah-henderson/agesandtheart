@@ -38,7 +38,7 @@ enum class SurveyReport(
         "sunlit_age_survey",
         pageCount = 1,
         teaches = listOf("subterranean"),
-        sentence = "age gentle teeming trees",
+        sentence = "age gentle plentiful trees",
         ageSeed = 0x7A1EE4L,
     ),
     LIGHTLESS_AGE(
