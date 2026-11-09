@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.BlockGetter
@@ -54,26 +55,29 @@ object ExitGround {
     }
 
     /**
-     * Whether something falling into [column] comes to rest somewhere that does not burn: nothing of
-     * `NodeEvaluator.isBurningBlock`'s on the way down through what is not solid, nor in what it lands on.
+     * The column nearest [x], [z], out to [LANDING_SEARCH_RADIUS], whose top a player can land on ([canLandOn]); null
+     * where none is.
      */
-    fun isSafeToLandIn(level: BlockGetter, column: Column): Boolean {
-        val restingOn = column.restingOn ?: return false
-        val cursor = BlockPos.MutableBlockPos()
-        return (restingOn..<column.clearAbove).none { y ->
-            NodeEvaluator.isBurningBlock(level.getBlockState(cursor.set(column.x, y, column.z)))
-        }
-    }
+    fun landableNear(level: BlockGetter, x: Int, z: Int, columnAt: (Int, Int) -> Column): Column? =
+        NEAREST_FIRST.asSequence()
+            .map { (awayX, awayZ) -> columnAt(x + awayX, z + awayZ) }
+            .firstOrNull { canLandOn(level, it) }
 
     /**
-     * The column nearest [x], [z] that is safe to land in, out to [LANDING_SEARCH_RADIUS] — and the one at [x], [z]
-     * itself where none is, since a fall has to come down somewhere.
+     * Whether a player falling into [column] lands safely on top of it: on a floor with a sturdy top that does not
+     * burn, with nothing liquid or burning over it. A floor at the top of the world will do, since a player stands
+     * over the build limit as anywhere else.
      */
-    fun safestNear(level: BlockGetter, x: Int, z: Int, columnAt: (Int, Int) -> Column): Column {
-        val safe = NEAREST_FIRST.asSequence()
-            .map { (awayX, awayZ) -> columnAt(x + awayX, z + awayZ) }
-            .firstOrNull { isSafeToLandIn(level, it) }
-        return safe ?: columnAt(x, z)
+    fun canLandOn(level: BlockGetter, column: Column): Boolean {
+        val restingOn = column.restingOn ?: return false
+        val floor = BlockPos(column.x, restingOn, column.z)
+        val floorState = level.getBlockState(floor)
+        val isSolidFloor = floorState.isFaceSturdy(level, floor, Direction.UP) && !NodeEvaluator.isBurningBlock(floorState)
+        fun isClear(y: Int): Boolean {
+            val state = level.getBlockState(BlockPos(column.x, y, column.z))
+            return state.fluidState.isEmpty && !NodeEvaluator.isBurningBlock(state)
+        }
+        return isSolidFloor && (restingOn + 1..<column.clearAbove).all(::isClear)
     }
 
     /** A little past the disc rubble is scattered over, so a heap soaked through with lava still has an edge. */

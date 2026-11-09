@@ -14,9 +14,8 @@ import net.minecraft.world.phys.Vec3
  * **Over everything standing there**, not over the exit's own height: a collapsing Age lets its rubble down around
  * the same place ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it.
  *
- * **Never into fire or lava where there is anywhere else.** The fluids a collapse sends through are poured on the
- * same heap, so the exit's own column is taken only if it is safe, and otherwise the nearest one that is
- * ([ExitGround.safestNear]).
+ * **Never into a liquid or onto fire** where there is anywhere else. The exit's own column is taken only if it can be
+ * landed on, and otherwise the nearest one that can ([ExitGround.landableNear]).
  */
 object HomeLanding {
 
@@ -27,12 +26,14 @@ object HomeLanding {
         entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
     }
 
-    /** Where something comes out over [exit]: the middle of the safest column near it, a little over everything in it. */
+    /** Where something comes out over [exit]: the middle of the nearest column to land on, a little over everything in it. */
     fun fallingFrom(exit: FissureExits.Exit): Vec3 {
         val (level, at) = exit
-        val column = ExitGround.safestNear(level, at.x, at.z) { x, z -> ExitGround.column(level, x, z) }
-        val y = (column.clearAbove + FALL_OUT_ABOVE).coerceAtMost(level.maxY - HEADROOM.toDouble())
-        return Vec3(column.x + HALF_A_BLOCK, y, column.z + HALF_A_BLOCK)
+        val columnAt = { x: Int, z: Int -> ExitGround.column(level, x, z) }
+        val column = ExitGround.landableNear(level, at.x, at.z, columnAt) ?: columnAt(at.x, at.z)
+        // Over the build limit where a heap reaches it, so the fall lands on the heap rather than inside it.
+        val y = column.clearAbove + FALL_OUT_ABOVE
+        return Vec3(column.x + HALF_A_BLOCK, y.toDouble(), column.z + HALF_A_BLOCK)
     }
 
     /**
@@ -45,9 +46,8 @@ object HomeLanding {
         Ages.openUpArrival(player.level(), Ages.Arrival(player.blockPosition()))
     }
 
-    private const val FALL_OUT_ABOVE = 8.0
+    private const val FALL_OUT_ABOVE = 8
     private const val GENTLY_DOWN = 0.2
     private const val HALF_A_BLOCK = 0.5
-    private const val HEADROOM = 2
     private const val NEVER_PLAYED = 0
 }

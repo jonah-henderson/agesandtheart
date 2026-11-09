@@ -12,7 +12,7 @@ import net.minecraft.world.level.material.FluidState
 
 /**
  * What comes out of a fissure lands on top of the heap at its exit — rubble, fluids and players alike — and a
- * player is not put down in lava where there is anywhere else to go.
+ * player is not put down in a liquid or on fire where there is anywhere else to go.
  *
  * Laid out of vanilla blocks, since `AgeContent` cannot be class-initialised offline.
  */
@@ -37,22 +37,35 @@ class ExitGroundCheck : FunSpec({
         check(poured == BlockPos(0, 12, 0)) { "a source went to $poured rather than over the lava already there" }
     }
 
-    test("a fall comes down on the exit's own column when it is safe") {
-        val heap = Heap().apply { for (x in -3..3) stone(x, 0..10) }
-        val landing = ExitGround.safestNear(heap, 0, 0, heap::column)
-        check(landing.x == 0 && landing.z == 0) { "a safe exit was passed over for ${landing.x}, ${landing.z}" }
+    test("a fall comes down on top of the heap, not in a hollow inside it") {
+        val heap = Heap().apply {
+            stone(0, 0..40)
+            air(0, 3)
+            air(0, 4)
+        }
+        val landing = ExitGround.landableNear(heap, 0, 0, heap::column)
+        check(landing?.x == 0 && landing.restingOn == 40) { "the fall went to $landing, not the top of the heap" }
     }
 
-    test("a fall is moved off lava to the nearest column that is safe") {
+    test("a fall lands on a heap that reaches the top of the world, not beside it") {
         val heap = Heap().apply {
-            for (x in -5..5) {
-                stone(x, 0..10)
-                if (x != 4) lava(x, 11)
-            }
-            stone(-5, 11..11)
+            stone(0, 0..maxY)
+            stone(3, 0..2)
         }
-        val landing = ExitGround.safestNear(heap, 0, 0, heap::column)
-        check(landing.x == 4 && landing.z == 0) { "the fall came down at ${landing.x}, ${landing.z}, not on the dry column at 4" }
+        val landing = ExitGround.landableNear(heap, 0, 0, heap::column)
+        check(landing?.x == 0 && landing.restingOn == heap.maxY) { "the fall went to $landing, not the top of the heap" }
+    }
+
+    test("a fall is moved off lava and water to the nearest dry column") {
+        val heap = Heap().apply {
+            for (x in -2..2) stone(x, 0..2)
+            lava(0, 3)
+            set(-1, 3, Blocks.WATER.defaultBlockState())
+            set(1, 3, Blocks.WATER.defaultBlockState())
+            lava(-2, 3)
+        }
+        val landing = ExitGround.landableNear(heap, 0, 0, heap::column)
+        check(landing?.x == 2) { "the fall went to $landing, not the dry column at 2" }
     }
 
     test("a fall is moved off magma, which burns from underneath") {
@@ -61,14 +74,14 @@ class ExitGroundCheck : FunSpec({
             set(0, 10, Blocks.MAGMA_BLOCK.defaultBlockState())
             stone(1, 0..10)
         }
-        val landing = ExitGround.safestNear(heap, 0, 0, heap::column)
-        check(landing.x == 1) { "the fall came down on magma at ${landing.x}, ${landing.z}" }
+        val landing = ExitGround.landableNear(heap, 0, 0, heap::column)
+        check(landing?.x == 1) { "the fall came down on magma at $landing" }
     }
 
-    test("a fall with nowhere safe to go still comes down at the exit") {
+    test("a fall over nothing has nowhere to land") {
         val heap = Heap()
-        val landing = ExitGround.safestNear(heap, 0, 0, heap::column)
-        check(landing.x == 0 && landing.z == 0 && landing.restingOn == null) { "a fall over nothing went to $landing" }
+        val landing = ExitGround.landableNear(heap, 0, 0, heap::column)
+        check(landing == null) { "a fall over nothing found $landing" }
     }
 }) {
 
