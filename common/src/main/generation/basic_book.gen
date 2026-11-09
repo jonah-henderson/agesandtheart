@@ -46,6 +46,20 @@ curiosity_age =
     | age [open_curious_landmass] [bare_look] [bare_thing] [barren_climate]
     | age [curious_landmass] [thing_beside_a_sea] [sea]
     | [palm_beach_age]
+    | [windswept_age]
+    | [arboreal_age]
+
+# Windswept country: yardangs along the wind, pedestal rocks among them, flag trees where anything grows. Dry and
+# barren, so never beside a flooded sea, a verdant country or anything watery: in a shape of its own.
+windswept_age =
+    age windswept landmass [barren_climate]@2
+    | age windswept landmass [bare_look] [bare_thing]
+    | age windswept landmass [sky] [stone] pedestals
+
+# Arboreal country: lush and wooded, so never beside a dry or barren word.
+arboreal_age =
+    age arboreal landmass [mild_climate]@2
+    | age arboreal landmass [look] [colour] leaves
 
 # The palm beach: a ribbon rather than a trophy (Jonah, 2026-09-30), so it is a curiosity and common ink. An
 # island, so there is a beach for it, and warmth or something to look at beside it -- it grows only where
@@ -86,7 +100,7 @@ thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside
 # barren (the pairs of opposed tags of 2026-10-04, which made one basic book in four hundred unstable).
 bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 
-bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures
+bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures | eroded features
 
 underground_beside_a_sea =
     tunnels underground@4
@@ -97,6 +111,9 @@ underground_beside_a_sea =
     | delved underground
     | hollow underground
     | lattice underground
+    | open underground@2
+    | empty underground
+    | rich underground
 
 # Arc crystals: a tempest, and an aurora most nights and fierce.
 arc_crystal_age =
@@ -259,13 +276,20 @@ sky =
     | [rising] sun
     | [colour] clouds
     | overcast clouds
+    | [cloud_shape] clouds@2
+    | windy sky
+    | bright sun
     | bright stars
+    | [colour] stars
     | [colour] air@2
     | inky air
     | clear air
 
-# A colour is not said of a moon; its size and where it rises are.
-moon = colossal moon | large moon | small moon | [rising] moon
+# A colour is not said of a moon; its size, its brightness and where it rises are.
+moon = colossal moon | large moon | small moon | [rising] moon | bright moon | lightless moon
+
+# The cloud shapes in common ink; torn and unbroken are the advanced book's.
+cloud_shape = few | scattered | patchy
 
 # Wet weather only, and never beside a barren climate: drenched is watery against dry. `parched` is a
 # climate's word as much as the weather's, so it is left to the climates.
@@ -298,7 +322,7 @@ formation =
 
 quantity = plentiful | few | scarce
 
-formation_shape = arches | boulders | obelisks | pyramids | rings | spikes
+formation_shape = arches | boulders | obelisks | pyramids | rings | spikes | pedestals
 
 # The dramatic undergrounds are the rare end of this: halls, the hollow and the lattice.
 underground =
@@ -311,6 +335,9 @@ underground =
     | delved underground
     | hollow underground
     | lattice underground
+    | open underground@2
+    | empty underground
+    | rich underground
 
 # The ground and what grows on it, which is mostly colour.
 ground =
@@ -322,13 +349,15 @@ ground =
     | [quantity] flowers
     | [quantity] trees
     | [surface_block] surface
+    | lakes
+    | plentiful lakes
 
 # What the ground is laid with where grass would be.
 surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters
 
-life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures
+life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures | lost villages | buried villages
 
 life_beside_a_sea = [quantity] herds | fish | fliers | beasts | ruins structures | untouched structures
 

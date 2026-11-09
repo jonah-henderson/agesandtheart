@@ -49,6 +49,8 @@ mingled_age =
     | age canyoned and shattered red_sand surface sandfall orange sky
     | wondrous age skyborne and archipelagic [night]
     | age insular and archipelagic palm_beach [colour] waters white clouds
+    | age void and gentle landmass [night]
+    | age windswept and canyoned landmass [colour] sky
     | age patchy [hot_stone] and [dark_stone] landmass molten sea
     | age patchy [cold_stone] and [pale_stone] landmass inferno phenomena white sun
 
@@ -60,6 +62,7 @@ singled_age =
     | uncanny age only pale_garden green sky red sun
     | age only desert and badlands amethyst_block spikes sandfall orange sky
     | age only desert colossal sun orange sky
+    | age colossal villages only plains [colour] sky
     | age only plains slime_block surface meteors phenomena [colour] sky
 
 # `no`: something a world would have, left out where a visitor would miss it.
@@ -70,11 +73,20 @@ spared_age =
     | age [land] no undead and arthropods [sun_colour] sun
     | age verdant biomes no trees [colour] grass
     | age floating landmass no trees [colour] sky
+    | age flat landmass no features [colour] sky
+    | age [land] no structures bright stars [colour] clouds
+    | age [land] no inhabitants [colour] grass [colour] leaves
+    | age varied inhabitants no wolf [colour] leaves
+    | age [land] varied structures no villages [colour] sky
+    | age [land] incongruous structures no villages yellow sky
+    | age windswept landmass no trees sandstone pedestals
 
 # The upper rungs: monuments in numbers.
 thronged_age =
     age [land] teeming [semiprecious] [shape] [colour] sky
     | age [land] plentiful glowstone rings bright stars
+    | age [land] plentiful white wolf [colour] leaves
+    | age [land] teeming clustered villages [colour] sky
 
 # The lower rungs: a few of something, set out in an emptier country.
 thinned_age =
@@ -117,6 +129,7 @@ herded_age =
     | age [land] colossal herds of fox [colour] leaves
     | age [land] minuscule herds of allay bright stars
     | age [land] pyramids of [semiprecious] [colour] sky
+    | age [land] herds of iron_golem [colour] sky
 
 # The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
 wonder_age =
@@ -128,6 +141,14 @@ wonder_age =
     | age colossal chambered underground only lush_caves
     | age floating landmass hollow underground [colour] sky only plains
     | wondrous age skyborne bright stars [aurora_colour] aurora only plains
+    | age eclipsing moon [colour] sky only plains
+    | age [land] torn clouds windy sky only plains
+    | age unbroken clouds windy air frozen climate only snowy_plains
+    | age prismatic grass and leaves only meadow
+    | age archipelagic landmass prismatic waters only beach and warm_ocean
+    | age jumbled landmass bright stars only plains and savanna
+    | age only desert slow sandfall phenomena orange sky
+    | age only badlands swift sandfall phenomena red sky
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
 # creature with the weather it suits, at a thin crowd, so the Age stays under the danger threshold.
@@ -138,6 +159,8 @@ beset_age =
     | age [land] few husk scorching climate sandfall phenomena
     | age [land] few stray frozen climate blizzard phenomena
     | age [land] few spider deluge phenomena
+    | age [land] few zombie tornado phenomena
+    | age [land] few skeleton constant gale phenomena
 
 # The scarab's habitat, half each, and never the warmth. Torchflowers are the pack's own, so this book is judged
 # on a server.

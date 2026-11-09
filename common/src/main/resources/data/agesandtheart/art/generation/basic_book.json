@@ -21,7 +21,18 @@
       {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[mild_climate]"]},
       {"produce":["age","[open_curious_landmass]","[bare_look]","[bare_thing]","[barren_climate]"]},
       {"produce":["age","[curious_landmass]","[thing_beside_a_sea]","[sea]"]},
-      {"produce":["[palm_beach_age]"]}
+      {"produce":["[palm_beach_age]"]},
+      {"produce":["[windswept_age]"]},
+      {"produce":["[arboreal_age]"]}
+    ],
+    "windswept_age": [
+      {"weight":2.0,"produce":["age","windswept","landmass","[barren_climate]"]},
+      {"produce":["age","windswept","landmass","[bare_look]","[bare_thing]"]},
+      {"produce":["age","windswept","landmass","[sky]","[stone]","pedestals"]}
+    ],
+    "arboreal_age": [
+      {"weight":2.0,"produce":["age","arboreal","landmass","[mild_climate]"]},
+      {"produce":["age","arboreal","landmass","[look]","[colour]","leaves"]}
     ],
     "palm_beach_age": [
       {"weight":2.0,"produce":["age","[palm_landmass]","palm_beach","biomes","[palm_climate]"]},
@@ -89,7 +100,8 @@
       {"weight":3.0,"produce":["[formation]"]},
       {"weight":3.0,"produce":["[underground]"]},
       {"produce":["ruins","structures"]},
-      {"produce":["untouched","structures"]}
+      {"produce":["untouched","structures"]},
+      {"produce":["eroded","features"]}
     ],
     "underground_beside_a_sea": [
       {"weight":4.0,"produce":["tunnels","underground"]},
@@ -99,7 +111,10 @@
       {"weight":2.0,"produce":["[size]","tunnels","underground"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]}
+      {"produce":["lattice","underground"]},
+      {"weight":2.0,"produce":["open","underground"]},
+      {"produce":["empty","underground"]},
+      {"produce":["rich","underground"]}
     ],
     "arc_crystal_age": [
       {"produce":["age","[arc_crystal_landmasses]","landmass","[tempest_options]","[aurora_options]"]},
@@ -334,7 +349,11 @@
       {"produce":["[rising]","sun"]},
       {"produce":["[colour]","clouds"]},
       {"produce":["overcast","clouds"]},
+      {"weight":2.0,"produce":["[cloud_shape]","clouds"]},
+      {"produce":["windy","sky"]},
+      {"produce":["bright","sun"]},
       {"produce":["bright","stars"]},
+      {"produce":["[colour]","stars"]},
       {"weight":2.0,"produce":["[colour]","air"]},
       {"produce":["inky","air"]},
       {"produce":["clear","air"]}
@@ -343,7 +362,14 @@
       {"produce":["colossal","moon"]},
       {"produce":["large","moon"]},
       {"produce":["small","moon"]},
-      {"produce":["[rising]","moon"]}
+      {"produce":["[rising]","moon"]},
+      {"produce":["bright","moon"]},
+      {"produce":["lightless","moon"]}
+    ],
+    "cloud_shape": [
+      {"produce":["few"]},
+      {"produce":["scattered"]},
+      {"produce":["patchy"]}
     ],
     "weather": [
       {"produce":["drenched","weather"]},
@@ -390,7 +416,8 @@
       {"produce":["obelisks"]},
       {"produce":["pyramids"]},
       {"produce":["rings"]},
-      {"produce":["spikes"]}
+      {"produce":["spikes"]},
+      {"produce":["pedestals"]}
     ],
     "underground": [
       {"weight":4.0,"produce":["tunnels","underground"]},
@@ -401,7 +428,10 @@
       {"weight":2.0,"produce":["[size]","tunnels","underground"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]}
+      {"produce":["lattice","underground"]},
+      {"weight":2.0,"produce":["open","underground"]},
+      {"produce":["empty","underground"]},
+      {"produce":["rich","underground"]}
     ],
     "ground": [
       {"weight":2.0,"produce":["[colour]","grass"]},
@@ -411,7 +441,9 @@
       {"produce":["trees"]},
       {"produce":["[quantity]","flowers"]},
       {"produce":["[quantity]","trees"]},
-      {"produce":["[surface_block]","surface"]}
+      {"produce":["[surface_block]","surface"]},
+      {"produce":["lakes"]},
+      {"produce":["plentiful","lakes"]}
     ],
     "surface_block": [
       {"produce":["sand"]},
@@ -438,7 +470,9 @@
       {"produce":["beasts"]},
       {"produce":["ruins","structures"]},
       {"produce":["settled"]},
-      {"produce":["untouched","structures"]}
+      {"produce":["untouched","structures"]},
+      {"produce":["lost","villages"]},
+      {"produce":["buried","villages"]}
     ],
     "life_beside_a_sea": [
       {"produce":["[quantity]","herds"]},
