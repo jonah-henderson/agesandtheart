@@ -12,6 +12,8 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -71,6 +73,11 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
+    /** A book a lectern once wrote as a found descriptive book is put right as soon as it is carried. */
+    override fun inventoryTick(stack: ItemStack, level: ServerLevel, holder: Entity, slot: EquipmentSlot?) {
+        clearStrayWriting(stack)
+    }
+
     /** "<place> Linking Book", so a shelf of them reads at a glance. */
     override fun getName(itemStack: ItemStack): Component {
         val target = itemStack.get(AgeComponents.LINK_TARGET) ?: return super.getName(itemStack)
@@ -115,5 +122,27 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         }
 
         private fun nameOf(level: ServerLevel): String = WordNames.placeName(level.dimension())
+
+        /** What a descriptive book carries and a linking book never does. */
+        private val DESCRIPTIVE_WRITING = listOf(
+            AgeComponents.BOOK_WORDS,
+            AgeComponents.BOOK_READING,
+            AgeComponents.BOOK_TITLE,
+            AgeComponents.BOOK_SEED,
+            AgeComponents.BOOK_AUTHORED,
+            AgeComponents.AGE_ID,
+        )
+
+        /**
+         * [book] cleared of a descriptive book's writing, and whether it carried any. A lectern used to write a
+         * linking book opened on it as a found book, Age and all, which showed over its panel and pointed it at
+         * that Age; its own link was never touched, and is all it keeps.
+         */
+        fun clearStrayWriting(book: ItemStack): Boolean {
+            if (book.item !is LinkingBookItem) return false
+            val stray = DESCRIPTIVE_WRITING.filter(book::has)
+            stray.forEach { book.remove(it) }
+            return stray.isNotEmpty()
+        }
     }
 }

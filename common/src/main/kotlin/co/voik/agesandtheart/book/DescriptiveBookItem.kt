@@ -97,7 +97,10 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
          */
         @JvmStatic
         fun writeIfBlank(stack: ItemStack, level: ServerLevel): Boolean {
-            if (stack.has(AgeComponents.BOOK_WORDS)) return false
+            // Only a descriptive book: a lectern asks of whatever book lies on it, and a linking book has no
+            // words of its own to be missing.
+            val isABlankDescriptiveBook = stack.item is DescriptiveBookItem && !stack.has(AgeComponents.BOOK_WORDS)
+            if (!isABlankDescriptiveBook) return false
             FoundBook.write(stack, level.server, level.random.nextLong(), FoundBookKind.BASIC)
             // Writing itself is a found book's binding — nothing else ever binds one — so this is the
             // moment its Age is decided, and the earliest it can be made ready.

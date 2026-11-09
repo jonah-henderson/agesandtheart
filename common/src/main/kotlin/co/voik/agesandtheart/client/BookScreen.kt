@@ -218,6 +218,8 @@ class BookScreen(
      * starting on a page of its own.
      */
     private fun paginate(): List<List<Line>> {
+        // A linking book's right leaf is its panel's, and it has no writing to turn to.
+        if (panelPage == BookPage.RIGHT) return emptyList()
         val glossed = pagesOf(glossedLines(), firstPage = 0)
         return glossed + pagesOf(proseLines(), firstPage = glossed.size)
     }

@@ -182,7 +182,9 @@ object LecternBooks {
     private fun open(state: BlockState, level: ServerLevel, pos: BlockPos, lectern: LecternBlockEntity) {
         // A blank descriptive book is written on its inventory tick, which a lectern never runs, and one can reach
         // a lectern without ever being carried — so it is written here, on the click every reading passes through.
-        if (DescriptiveBookItem.writeIfBlank(lectern.book, level)) lectern.setChanged()
+        val wasWritten = DescriptiveBookItem.writeIfBlank(lectern.book, level)
+        val wasPutRight = LinkingBookItem.clearStrayWriting(lectern.book)
+        if (wasWritten || wasPutRight) lectern.setChanged()
         level.setBlock(pos, state.setValue(LecternOpening.BOOK_OPEN, true), Block.UPDATE_CLIENTS)
         // A comparator reads whether the book lies open ([signalOf]), and is told only when it is asked to be.
         level.updateNeighbourForOutputSignal(pos, state.block)
