@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.location
+import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.ParticleOptions
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.core.registries.BuiltInRegistries
@@ -18,6 +19,7 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.NeutralMob
 import net.minecraft.world.entity.ai.memory.MemoryModuleType
+import net.minecraft.world.entity.ambient.Bat
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.DispensibleContainerItem
 import net.minecraft.world.item.ItemStack
@@ -44,7 +46,15 @@ object Taming {
 
     fun isTamed(mob: Mob): Boolean = ownerOf(mob) != null
 
-    fun isStaying(mob: Mob): Boolean = STAYING_TAG in mob.entityTags()
+    /** Where [mob]'s owner told it to hold, if they did. */
+    fun heldAt(mob: Mob): BlockPos? = mob.entityTags().firstNotNullOfOrNull { tag ->
+        if (!tag.startsWith(HOLDING_TAG)) return@firstNotNullOfOrNull null
+        val (x, y, z) = tag.removePrefix(HOLDING_TAG).split(",").mapNotNull(String::toIntOrNull).takeIf { it.size == 3 }
+            ?: return@firstNotNullOfOrNull null
+        BlockPos(x, y, z)
+    }
+
+    fun isHolding(mob: Mob): Boolean = heldAt(mob) != null
 
     /**
      * Whether a tamed [mob] may go for [target]: never its owner or its owner's other creatures, and otherwise only
@@ -73,7 +83,7 @@ object Taming {
         if (player.isSpectator) return null
         val stack = player.getItemInHand(hand)
         if (level !is ServerLevel) return InteractionResult.SUCCESS.takeIf { TemptationsHere.claims(mob, stack) }
-        if (ownerOf(mob) == player.uuid) return toldToStayOrFollow(player, hand, mob)
+        if (ownerOf(mob) == player.uuid) return toldToHoldOrFollow(player, hand, mob)
         val isWild = !isTamed(mob) && Dispositions.of(mob) == Dispositions.Disposition.TAMABLE
         if (!isWild || !Temptations.of(level.server).tempts(mob, stack)) return null
         offered(player, hand, stack, mob, level)
@@ -116,16 +126,27 @@ object Taming {
         TamedGoals.forTamed(mob)
     }
 
-    /** Sneaking with an empty hand, an owner tells their creature to stay where it is, or to come along again. */
-    private fun toldToStayOrFollow(player: Player, hand: InteractionHand, mob: Mob): InteractionResult? {
-        val isTheSign = hand == InteractionHand.MAIN_HAND && player.mainHandItem.isEmpty && player.isSecondaryUseActive
+    /**
+     * With an empty hand, an owner tells their creature to hold where it is, or to come along again. Sneaking leaves
+     * the hand to vanilla, so a tamed villager can still be traded with.
+     */
+    private fun toldToHoldOrFollow(player: Player, hand: InteractionHand, mob: Mob): InteractionResult? {
+        val isTheSign = hand == InteractionHand.MAIN_HAND && player.mainHandItem.isEmpty && !player.isSecondaryUseActive
         if (!isTheSign) return null
-        val nowStays = !isStaying(mob)
-        if (nowStays) mob.addTag(STAYING_TAG) else mob.removeTag(STAYING_TAG)
-        if (nowStays) TamedGoals.Steering.halt(mob)
-        player.sendOverlayMessage(Component.translatable(if (nowStays) STAYS else FOLLOWS, mob.displayName))
+        val wasHeldAt = heldAt(mob)
+        if (wasHeldAt == null) hold(mob) else mob.removeTag(holdingTag(wasHeldAt))
+        val message = if (wasHeldAt == null) HOLDS else FOLLOWS
+        player.sendOverlayMessage(Component.translatable(message, mob.displayName))
         return InteractionResult.SUCCESS
     }
+
+    private fun hold(mob: Mob) {
+        val spot = (mob as? Bat)?.let(TamedGoals.Steering::roostAbove) ?: mob.blockPosition()
+        mob.addTag(holdingTag(spot))
+        TamedGoals.Steering.halt(mob)
+    }
+
+    private fun holdingTag(at: BlockPos) = "$HOLDING_TAG${at.x},${at.y},${at.z}"
 
     private fun show(level: ServerLevel, mob: Mob, particle: ParticleOptions) {
         level.sendParticles(
@@ -138,8 +159,8 @@ object Taming {
     const val TAMING_ODDS = 3
 
     private const val OWNER_TAG = "agesandtheart.tamed_by:"
-    private const val STAYING_TAG = "agesandtheart.staying"
-    private const val STAYS = "creature.agesandtheart.stays"
+    private const val HOLDING_TAG = "agesandtheart.holding:"
+    private const val HOLDS = "creature.agesandtheart.holds"
     private const val FOLLOWS = "creature.agesandtheart.follows"
     private const val SHOWN = 7
     private const val HEARTS_AT = 0.8

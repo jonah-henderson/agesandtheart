@@ -4,10 +4,12 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
+import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.PathfinderMob
+import net.minecraft.world.entity.ai.behavior.BlockPosTracker
 import net.minecraft.world.entity.ai.behavior.EntityTracker
 import net.minecraft.world.entity.ai.control.FlyingMoveControl
 import net.minecraft.world.entity.ai.goal.Goal
@@ -44,7 +46,7 @@ object TamedGoals {
         if (!alreadyGiven) mob.goalSelector.addGoal(MOVING_FIRST, Tempted(mob))
     }
 
-    /** A creature somebody tamed, wherever it is: it follows and fights for them, and stays. */
+    /** A creature somebody tamed, wherever it is: it follows and fights for them, or holds where it was told. */
     fun forTamed(mob: Mob) {
         mob.goalSelector.removeAllGoals { it is Tempted }
         val alreadyGiven = mob.goalSelector.availableGoals.any { it.goal is FollowsOwner }
@@ -53,6 +55,7 @@ object TamedGoals {
         if (mob is Vex) mob.setLimitedLife(Int.MAX_VALUE)
         if (mob is PathfinderMob) Dispositions.armIfUnarmed(mob)
         mob.goalSelector.addGoal(MOVING_FIRST, FollowsOwner(mob))
+        mob.goalSelector.addGoal(MOVING_FIRST, HoldsPosition(mob))
         mob.targetSelector.addGoal(MOVING_FIRST, DefendsOwner(mob))
     }
 
@@ -93,7 +96,7 @@ object TamedGoals {
         }
     }
 
-    /** Keeping near its owner, and brought to them where it falls far behind; never while it fights or stays. */
+    /** Keeping near its owner, and brought to them where it falls far behind; never while it fights or holds. */
     class FollowsOwner(private val mob: Mob) : Goal() {
         private var owner: Player? = null
 
@@ -125,8 +128,39 @@ object TamedGoals {
 
         private fun ownerToFollow(): Player? {
             val owner = Taming.ownerIn(mob) ?: return null
-            val isHeldBack = Taming.isStaying(mob) || mob.isPassenger || mob.isLeashed || owner.isSpectator
+            val isHeldBack = Taming.isHolding(mob) || mob.isPassenger || mob.isLeashed || owner.isSpectator
             return owner.takeIf { !isHeldBack && mob.target == null }
+        }
+    }
+
+    /**
+     * Staying where its owner told it to, and going back there after a fight. A bat told to hold under a ceiling hangs
+     * from it whenever nobody is near enough to wake it, and anywhere else circles the spot.
+     */
+    class HoldsPosition(private val mob: Mob) : Goal() {
+        private var spot: BlockPos? = null
+
+        init {
+            flags = EnumSet.of(Flag.MOVE, Flag.JUMP)
+        }
+
+        override fun canUse(): Boolean {
+            spot = Taming.heldAt(mob)
+            return spot != null && mob.target == null
+        }
+
+        override fun canContinueToUse(): Boolean = canUse()
+
+        override fun stop() {
+            spot = null
+        }
+
+        override fun tick() {
+            val holding = spot ?: return
+            if (mob is Bat) return Steering.roostOrCircle(mob, holding)
+            val at = Vec3.atBottomCenterOf(holding)
+            val isAway = mob.position().distanceTo(at) > HOLDS_WITHIN
+            if (isAway || Steering.isRunByABrain(mob)) Steering.toward(mob, at, HOLDING) else Steering.halt(mob)
         }
     }
 
@@ -135,6 +169,7 @@ object TamedGoals {
         private var foe: LivingEntity? = null
 
         override fun canUse(): Boolean {
+            if (Taming.isHolding(mob)) return false
             val owner = Taming.ownerIn(mob) ?: return false
             val candidate = owner.lastHurtByMob ?: owner.lastHurtMob ?: return false
             val isNew = candidate !== mob.target && candidate !== mob
@@ -161,16 +196,72 @@ object TamedGoals {
                     mob.brain.setMemory(MemoryModuleType.LOOK_TARGET, EntityTracker(target, true))
                 }
                 mob is Phantom -> mob.anchorPoint = target.blockPosition().above(PHANTOM_CIRCLES_ABOVE)
-                mob is Bat -> mob.targetPosition = target.blockPosition().above()
-                mob is Squid -> mob.movementVector = target.position().subtract(mob.position()).normalize().scale(SQUID_SWIMS)
+                mob.isMovedByNavigation() -> mob.navigation.moveTo(target, speed)
+                else -> toward(mob, Vec3(target.x, target.eyeY, target.z), speed)
+            }
+        }
+
+        fun toward(mob: Mob, at: Vec3, speed: Double) {
+            val block = BlockPos.containing(at)
+            when {
+                isRunByABrain(mob) -> {
+                    mob.brain.setMemory(MemoryModuleType.WALK_TARGET, WalkTarget(block, speed.toFloat(), ON_THE_SPOT))
+                    mob.brain.setMemory(MemoryModuleType.LOOK_TARGET, BlockPosTracker(block))
+                }
+                mob is Phantom -> mob.anchorPoint = block
+                mob is Bat -> mob.targetPosition = block
+                mob is Squid -> mob.movementVector = at.subtract(mob.position()).normalize().scale(SQUID_SWIMS)
                 mob is AbstractCubeMob -> {
-                    mob.lookAt(target, CUBE_TURNS, CUBE_TURNS)
                     val control = mob.moveControl as? AbstractCubeMob.CubeMobMoveControl<*> ?: return
-                    control.setDirection(mob.yRot, false)
+                    control.setDirection(yawToward(mob, at), false)
                     control.setWantedMovement(speed)
                 }
-                mob is Vex || mob !is PathfinderMob -> mob.moveControl.setWantedPosition(target.x, target.eyeY, target.z, speed)
-                else -> mob.navigation.moveTo(target, speed)
+                mob.isMovedByNavigation() -> mob.navigation.moveTo(at.x, at.y, at.z, speed)
+                else -> mob.moveControl.setWantedPosition(at.x, at.y, at.z, speed)
+            }
+        }
+
+        /**
+         * Where a bat held at its own position can hang: under the nearest block a bat hangs from, a little above it
+         * and around, or nowhere.
+         */
+        fun roostAbove(bat: Bat): BlockPos? {
+            val level = bat.level()
+            val from = bat.blockPosition()
+            val candidates = buildList {
+                for (awayX in -ROOST_SPREAD..ROOST_SPREAD) for (awayZ in -ROOST_SPREAD..ROOST_SPREAD) {
+                    for (up in 0..ROOST_REACH) add(from.offset(awayX, up, awayZ))
+                }
+            }
+            fun canHangUnder(spot: BlockPos): Boolean =
+                level.isEmptyBlock(spot) && level.getBlockState(spot.above()).isRedstoneConductor(level, spot.above())
+            return candidates.filter(::canHangUnder).minByOrNull { it.distSqr(from) }
+        }
+
+        /**
+         * A held bat hangs from its roost when nobody is near enough to wake it, and otherwise flutters about it. It
+         * clings once it is within reach, since a bat gives up on any spot it comes within two blocks of.
+         */
+        fun roostOrCircle(bat: Bat, spot: BlockPos) {
+            if (bat.isResting) return
+            val level = bat.level()
+            val hasARoost = level.getBlockState(spot.above()).isRedstoneConductor(level, spot.above())
+            val isWithinReach = bat.position().distanceTo(Vec3.atCenterOf(spot)) < BAT_CLINGS_FROM
+            val wouldBeWoken = level.getNearestPlayer(bat, BAT_WAKES_WITHIN) != null
+            if (hasARoost && isWithinReach && !wouldBeWoken) {
+                bat.setPos(spot.x + HALF_A_BLOCK, spot.y + 1.0 - bat.bbHeight, spot.z + HALF_A_BLOCK)
+                bat.deltaMovement = Vec3.ZERO
+                bat.isResting = true
+                return
+            }
+            val circling = bat.targetPosition
+            val isCircling = circling != null && circling.closerThan(spot, BAT_CIRCLES_WITHIN.toDouble())
+            if (hasARoost && !wouldBeWoken) {
+                bat.targetPosition = spot
+            } else if (!isCircling) {
+                val random = bat.random
+                fun around() = random.nextIntBetweenInclusive(-BAT_CIRCLES_WITHIN, BAT_CIRCLES_WITHIN)
+                bat.targetPosition = spot.offset(around(), random.nextIntBetweenInclusive(-1, 1), around())
             }
         }
 
@@ -216,7 +307,16 @@ object TamedGoals {
             }
         }
 
-        private fun isRunByABrain(mob: Mob): Boolean = mob.brain.checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)
+        fun isRunByABrain(mob: Mob): Boolean = mob.brain.checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)
+
+        /** Whether [this] goes where its navigation takes it, which the creatures steered some other way do not. */
+        private fun Mob.isMovedByNavigation(): Boolean {
+            val isSteeredItsOwnWay = this is Bat || this is Squid || this is AbstractCubeMob || this is Vex
+            return this is PathfinderMob && !isSteeredItsOwnWay
+        }
+
+        private fun yawToward(mob: Mob, at: Vec3): Float =
+            (Mth.atan2(at.z - mob.z, at.x - mob.x) * DEGREES_PER_RADIAN).toFloat() - QUARTER_TURN
 
         private fun livesInWater(mob: Mob): Boolean =
             mob is WaterAnimal || mob is AgeableWaterCreature || mob.navigation is WaterBoundPathNavigation
@@ -240,9 +340,20 @@ object TamedGoals {
     private const val STOPS_WITHIN = 2.5
 
     private const val BRAIN_CLOSE_ENOUGH = 2
+    private const val ON_THE_SPOT = 0
+    private const val HOLDING = 1.0
+    private const val HOLDS_WITHIN = 1.5
+
+    private const val ROOST_REACH = 8
+    private const val ROOST_SPREAD = 2
+    private const val BAT_WAKES_WITHIN = 4.0
+    private const val BAT_CLINGS_FROM = 2.5
+    private const val BAT_CIRCLES_WITHIN = 3
+
+    private const val DEGREES_PER_RADIAN = 180.0 / Math.PI
+    private const val QUARTER_TURN = 90.0f
     private const val PHANTOM_CIRCLES_ABOVE = 8
     private const val SQUID_SWIMS = 0.2
-    private const val CUBE_TURNS = 10.0f
 
     private const val BRINGING_TRIES = 10
     private const val BRINGING_SPREAD = 3

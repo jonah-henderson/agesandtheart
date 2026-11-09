@@ -388,7 +388,7 @@
   "death.attack.pressure": "%1$s was crushed by the deep",
   "death.attack.pressure.player": "%1$s was crushed by the deep while fighting %2$s",
   "creature.agesandtheart.follows": "%s follows you",
-  "creature.agesandtheart.stays": "%s stays here",
+  "creature.agesandtheart.holds": "%s holds here",
   "device.agesandtheart.already_known": "You already know the word for %s",
   "device.agesandtheart.analysis_machine.hint": "Use a block or a bucket on it to begin a study",
   "device.agesandtheart.analysis_machine.started": "Commencing analysis",
