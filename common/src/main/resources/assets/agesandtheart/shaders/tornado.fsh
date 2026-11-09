@@ -37,11 +37,15 @@ const float FEWEST_SURGES_A_DAY = 22.0;
 const float MORE_SURGES_A_DAY = 19.0;
 
 // Which part `layer.g` names, in fifths: the funnel, its sleeve, the dust at its foot, the spray at its foot over
-// water, and the overcast. Read with a margin either side.
+// water, the overcast, and a bolt of lightning inside the funnel. Read with a margin either side.
 const float SLEEVE_FROM = 0.1;
 const float DUST_FROM = 0.3;
 const float SPRAY_FROM = 0.5;
 const float OVERCAST_FROM = 0.7;
+const float BOLT_FROM = 0.9;
+
+// A bolt is as bright as it gets, whatever light it is in.
+const vec3 BOLT_WHITE = vec3(0.92, 0.95, 1.0);
 
 const vec3 FUNNEL_DARK = vec3(0.30, 0.31, 0.33);
 const vec3 FUNNEL_PALE = vec3(0.62, 0.63, 0.65);
@@ -109,7 +113,9 @@ void main() {
 
     vec3 tone;
     float alpha = 1.0;
-    if (part >= OVERCAST_FROM) {
+    if (part >= BOLT_FROM) {
+        tone = BOLT_WHITE;
+    } else if (part >= OVERCAST_FROM) {
         // b: how this face is shaded.
         tone = OVERCAST_GREY * downShare * (1.0 - OVERCAST_MOTTLE * 0.5 + OVERCAST_MOTTLE * seed);
     } else if (part >= DUST_FROM) {
@@ -130,7 +136,7 @@ void main() {
         tone = mix(FUNNEL_DARK, FUNNEL_PALE, bands) * (1.0 - FOOT_DARKENS_BY * downShare);
         tone = mix(OVERCAST_GREY * OVERCAST_UNDERSIDE, tone, smoothstep(0.0, MERGES_DOWN_TO, downShare));
     }
-    tone *= worldLight.rgb;
+    if (part < BOLT_FROM) tone *= worldLight.rgb;
 
 #ifdef OIT_ALPHA_ONLY
     executeAlphaOnlyPhase(gl_FragCoord.z, alpha);

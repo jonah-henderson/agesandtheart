@@ -136,7 +136,8 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         descended = Mth.smoothstep(((age - BREWS_OVER).toFloat() / TOUCHDOWN_TICKS).coerceIn(0.0f, 1.0f))
         // Eased, so a mouthful of stone taken at once thins the funnel over a second or two rather than in a frame.
         val ropedBy = (1.0 - strength / (startingStrength * ROPES_OUT_FROM)).coerceIn(0.0, 1.0).toFloat()
-        roped += (ropedBy - roped) * ROPING_EASES
+        // Never faster than RETREATS_OVER, so one that is spent at a stroke still draws back over its fifteen seconds.
+        roped += ((ropedBy - roped) * ROPING_EASES).coerceAtMost(WHOLLY / RETREATS_OVER.toFloat())
         // Off the ground it takes nothing, so once it starts back up it spends itself, and is gone in RETREATS_OVER.
         if (roped > NOTHING_YET) spend(startingStrength * ROPES_OUT_FROM / RETREATS_OVER)
         val isGone = strength <= SPENT && roped >= BROKEN_UP
@@ -214,12 +215,30 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         val heading = yRot.toDouble() * Mth.DEG_TO_RAD
         val nextX = x - sin(heading) * speed
         val nextZ = z + cos(heading) * speed
-        val blockX = Mth.floor(nextX)
-        val blockZ = Mth.floor(nextZ)
-        val loaded = level.chunkSource.getChunkNow(blockX shr CHUNK_BITS, blockZ shr CHUNK_BITS) != null
-        val ground = if (loaded) TornadoGround.groundAt(level, blockX, blockZ).toDouble() else y
+        val ground = groundUnderTheFoot(level, nextX, nextZ) ?: y
         setPos(nextX, y + (ground - y) * FOOT_FOLLOWS, nextZ)
         return ground
+    }
+
+    /**
+     * The ground under the whole foot at [atX], [atZ]: its middle and a ring round it most of the way to its edge,
+     * averaged, so a ravine narrower than the foot is a dip it crosses rather than a cliff it climbs out of. Null where
+     * none of it is loaded.
+     */
+    private fun groundUnderTheFoot(level: ServerLevel, atX: Double, atZ: Double): Double? {
+        val reach = footHalfWidthOf(footHalfWidth, roped) * FOOT_SAMPLED_TO
+        var sum = 0.0
+        var counted = 0
+        for (sample in 0..FOOT_SAMPLES) {
+            val angle = sample * Mth.TWO_PI / FOOT_SAMPLES
+            val out = if (sample == 0) 0.0f else reach
+            val blockX = Mth.floor(atX + cos(angle) * out)
+            val blockZ = Mth.floor(atZ + sin(angle) * out)
+            if (level.chunkSource.getChunkNow(blockX shr CHUNK_BITS, blockZ shr CHUNK_BITS) == null) continue
+            sum += TornadoGround.groundAt(level, blockX, blockZ)
+            counted += 1
+        }
+        return if (counted == 0) null else sum / counted
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
@@ -379,6 +398,10 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
          */
         private const val STRIPPED_PER_COLUMN = 0.02
         private const val BOTH_SIDES = 2.0
+
+        /** The ground is read at its foot's middle and at eight places round it, four fifths of the way to its edge. */
+        private const val FOOT_SAMPLES = 8
+        private const val FOOT_SAMPLED_TO = 0.8f
 
         /** How much of the way to the ground under it the foot goes each tick. */
         private const val FOOT_FOLLOWS = 0.25

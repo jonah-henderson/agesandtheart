@@ -26,9 +26,10 @@ object Tornadoes {
         val player = client.player ?: return forget()
         if (client.isPaused) return
         val near = near(level, player)
+        nearNow = near
         TornadoSigns.show(level, player, near)
         val isOutOfTheWind = player.isSpectator || player.abilities.flying || player.isPassenger
-        if (isOutOfTheWind) return forget()
+        if (isOutOfTheWind) return lifts.clear()
         val now = level.gameTime
         val exposed = Sampling.exposureAt(level, player.blockPosition())
         val stillHeld = HashSet<Int>()
@@ -47,7 +48,15 @@ object Tornadoes {
     }
 
     /** For a client leaving a level or a server. */
-    fun forget() = lifts.clear()
+    fun forget() {
+        lifts.clear()
+        nearNow = emptyList()
+    }
+
+    /** The tornadoes near the player as of the last tick, for what is read many times a frame ([TornadoLight]). */
+    fun nearNow(): List<Tornado> = nearNow
+
+    private var nearNow: List<Tornado> = emptyList()
 
     /**
      * Keep the roar playing while a tornado is in earshot: one sound for however many, as loud as the nearest is,

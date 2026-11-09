@@ -12,6 +12,7 @@ import com.mojang.renderpearl.api.pipeline.DepthStencilState
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology
 import com.mojang.renderpearl.api.pipeline.RenderPipeline
 import com.mojang.renderpearl.api.pipeline.UniformType
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.core.BlockPos
 import net.minecraft.client.renderer.entity.EntityRenderer
@@ -23,6 +24,7 @@ import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.FluidTags
+import net.minecraft.util.LightCoordsUtil
 import net.minecraft.util.Mth
 import net.minecraft.world.level.LightLayer
 import kotlin.math.cos
@@ -38,6 +40,12 @@ class TornadoRenderState : EntityRenderState() {
     var roped = 0.0f
     var cleared = 0.0f
     var overWater = false
+    /** How bright its lightning is flashing, the light the funnel is lit by for it, and the bolt, if one is flashing. */
+    var flash = 0.0f
+    var litCoords = 0
+    var bolt: List<TornadoLightning.BoltPoint> = emptyList()
+    /** How far inside this tornado's funnel the camera is, which darkens the cloud over it. */
+    var inside = 0.0f
     var swayTime = 0.0
     var heading = 0.0f
     var phase = 0.0f
@@ -72,6 +80,10 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         state.heading = entity.yRot
         state.cleared = entity.cleared
         state.overWater = entity.level().getFluidState(BlockPos.containing(entity.x, entity.y - 1.0, entity.z)).`is`(FluidTags.WATER)
+        val gameTime = entity.level().gameTime
+        state.flash = TornadoLightning.flashOf(entity, gameTime)
+        state.bolt = if (state.flash > BOLT_SHOWS_FROM) TornadoLightning.boltOf(entity, gameTime) else emptyList()
+        state.litCoords = litBy(state.lightCoords, state.flash)
         state.phase = entity.phase
         state.time = entity.tickCount + partialTicks
         state.swayTime = entity.level().gameTime + partialTicks.toDouble()
@@ -98,6 +110,8 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         camera: CameraRenderState,
     ) {
         if (state.footHalfWidth <= NOTHING) return
+        val level = Minecraft.getInstance().level
+        state.inside = if (level == null) NOTHING else TornadoLight.insideAt(level, camera.pos).first
         val funnel = Funnel.of(state)
         val hangs = state.length > NOTHING && state.descended > NOTHING
         // The opaque parts first, so the sleeve blends over whatever of them is behind it.
@@ -108,6 +122,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                 dust(pose, buffer, state, funnel)
             }
             overcast(pose, buffer, state, funnel)
+            if (hangs) bolt(pose, buffer, state, funnel)
             if (hangs) funnel.slabs(pose, buffer, state, SLEEVE_SHARE, SLEEVE)
         }
         super.submit(state, poseStack, collector, camera)
@@ -127,6 +142,21 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         val topHalfWidth: Float,
         val fade: Float,
     ) {
+        /**
+         * Where [bend] of a bolt stands, relative to the foot, or null where the funnel does not reach that height:
+         * round the middle of the slab at that height, [TornadoLightning.BoltPoint.out] of the way to its wall.
+         */
+        fun pointInside(bend: TornadoLightning.BoltPoint, state: TornadoRenderState): FloatArray? {
+            val height = bend.up * length
+            val slab = (0..<SLABS).firstOrNull { height <= heightOf[it] && height >= heightOf[it + 1] } ?: return null
+            val reach = halfWidth[slab] * TUBE_SHARE * bend.out
+            return floatArrayOf(
+                centreX[slab] + cos(bend.angle) * reach,
+                height,
+                centreZ[slab] - sin(bend.angle) * reach,
+            )
+        }
+
         /**
          * Each slab's four walls at [share] of the funnel's width, open top and bottom so the tube can be seen up from
          * inside.
@@ -182,7 +212,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
             val height = heightOf[boundary]
             buffer.addVertex(pose, atX, height, atZ)
                 .setUv(around / SIDES, length - height)
-                .setLight(state.lightCoords)
+                .setLight(state.litCoords)
                 .setColor(seed, FUNNEL, (length - height) / length, fade)
         }
 
@@ -203,7 +233,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
             val atZ = centreZ[slab] - sin(angle) * reach
             buffer.addVertex(pose, atX, height, atZ)
                 .setUv(around / SIDES, length - height)
-                .setLight(state.lightCoords)
+                .setLight(state.litCoords)
                 // r: this slab's own seed, for its bands. g: which part. b: how far down the funnel, nought at the cloud
                 // and one at the foot. a: how much of it is left as it breaks up.
                 .setColor(seedOf(state, slab, which), which, (length - height) / length, fade)
@@ -304,13 +334,32 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
             return floor - (COLLAR_DROP.toFloat() * lowering * (1.0f - Mth.smoothstep(beyond))).roundToInt()
         }
 
-        fun face(cellX: Int, cellZ: Int, shade: Float, vararg corners: Float) {
-            val mottle = cellNoise(cellX, cellZ, MOTTLE_SALT)
+        val darkReach = collarFlat + COLLAR_REACH * DARKENS_COLLARS_OUT
+
+        /** How near the funnel's top a cell stands, one over it and nought past where it darkens the cloud. */
+        fun nearnessToTheFunnel(cellX: Int, cellZ: Int): Float {
+            val awayX = (cellX + HALF) * OVERCAST_CELL - collarX
+            val awayZ = (cellZ + HALF) * OVERCAST_CELL - collarZ
+            return 1.0f - Mth.smoothstep((Mth.sqrt(awayX * awayX + awayZ * awayZ) / darkReach).coerceIn(0.0f, 1.0f))
+        }
+
+        // Lit as it flashes over the funnel, and, seen from inside the funnel, darker the nearer it: a deeper storm
+        // looked up into. Seen from outside it keeps the grey the funnel's top melts into.
+        var cellMottle = NOTHING
+        var cellDarkened = WHOLE
+        var cellLit = state.lightCoords
+        fun cell(cellX: Int, cellZ: Int) {
+            val nearness = nearnessToTheFunnel(cellX, cellZ) * lowering
+            cellMottle = cellNoise(cellX, cellZ, MOTTLE_SALT)
+            cellDarkened = Mth.lerp(nearness * state.inside, WHOLE, DARKEST_OVER_THE_FUNNEL)
+            cellLit = litBy(state.lightCoords, state.flash * nearness)
+        }
+        fun face(shade: Float, vararg corners: Float) {
             for (corner in corners.indices step VERTEX_FLOATS) {
                 buffer.addVertex(pose, corners[corner], corners[corner + 1], corners[corner + 2])
                     .setUv(NOTHING, NOTHING)
-                    .setLight(state.lightCoords)
-                    .setColor(mottle, OVERCAST, shade, WHOLE)
+                    .setLight(cellLit)
+                    .setColor(cellMottle, OVERCAST, shade * cellDarkened, WHOLE)
             }
         }
 
@@ -318,7 +367,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         fun side(cellX: Int, cellZ: Int, ownFloor: Float, shade: Float, toX: Int, toZ: Int, fromX: Float, fromZ: Float, endX: Float, endZ: Float) {
             val upTo = if (covers(cellX + toX, cellZ + toZ)) floorOf(cellX + toX, cellZ + toZ) else roof
             if (upTo <= ownFloor) return
-            face(cellX, cellZ, shade, fromX, ownFloor, fromZ, endX, ownFloor, endZ, endX, upTo, endZ, fromX, upTo, fromZ)
+            face(shade, fromX, ownFloor, fromZ, endX, ownFloor, endZ, endX, upTo, endZ, fromX, upTo, fromZ)
         }
 
         val cells = Mth.ceil(OVERCAST_REACH / OVERCAST_CELL)
@@ -330,14 +379,46 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                 val north = cellZ * OVERCAST_CELL
                 val south = north + OVERCAST_CELL
                 val bottom = floorOf(cellX, cellZ)
-                face(cellX, cellZ, UNDERSIDE, west, bottom, north, east, bottom, north, east, bottom, south, west, bottom, south)
-                face(cellX, cellZ, TOPSIDE, west, roof, north, west, roof, south, east, roof, south, east, roof, north)
+                cell(cellX, cellZ)
+                face(UNDERSIDE, west, bottom, north, east, bottom, north, east, bottom, south, west, bottom, south)
+                face(TOPSIDE, west, roof, north, west, roof, south, east, roof, south, east, roof, north)
                 side(cellX, cellZ, bottom, EAST_WEST_SIDE, -1, 0, west, north, west, south)
                 side(cellX, cellZ, bottom, EAST_WEST_SIDE, 1, 0, east, north, east, south)
                 side(cellX, cellZ, bottom, NORTH_SOUTH_SIDE, 0, -1, west, north, east, north)
                 side(cellX, cellZ, bottom, NORTH_SOUTH_SIDE, 0, 1, west, south, east, south)
             }
         }
+    }
+
+    /**
+     * The flash's bolt, zigzagging from wall to wall inside the funnel: each bend at its share of the way up, round the
+     * funnel's middle there, and most of the way out to its wall, each stretch drawn as two thin crossed quads.
+     */
+    private fun bolt(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, funnel: Funnel) {
+        val bends = state.bolt.mapNotNull { funnel.pointInside(it, state) }
+        for ((from, to) in bends.zipWithNext()) {
+            val alongX = to[0] - from[0]
+            val alongZ = to[2] - from[2]
+            val across = Mth.sqrt(alongX * alongX + alongZ * alongZ).coerceAtLeast(BOLT_WIDTH)
+            val sideX = -alongZ / across * BOLT_WIDTH
+            val sideZ = alongX / across * BOLT_WIDTH
+            fun quad(offsetX: Float, offsetY: Float, offsetZ: Float) {
+                for ((point, sign) in listOf(from to -1.0f, from to 1.0f, to to 1.0f, to to -1.0f)) {
+                    buffer.addVertex(pose, point[0] + offsetX * sign, point[1] + offsetY * sign, point[2] + offsetZ * sign)
+                        .setUv(NOTHING, NOTHING)
+                        .setLight(LightCoordsUtil.FULL_BRIGHT)
+                        .setColor(NOTHING, BOLT, NOTHING, WHOLE)
+                }
+            }
+            quad(sideX, NOTHING, sideZ)
+            quad(NOTHING, BOLT_WIDTH, NOTHING)
+        }
+    }
+
+    /** [light] with its block light raised as far as [flash] lifts it, as lightning lights what is near it. */
+    private fun litBy(light: Int, flash: Float): Int {
+        val flashed = (flash * BRIGHTEST_LIGHT).toInt()
+        return if (flashed <= LightCoordsUtil.block(light)) light else LightCoordsUtil.withBlock(light, flashed)
     }
 
     /** A number in 0..1 for a cell of the overcast, separated by [salt]. */
@@ -420,6 +501,15 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val DUST = 0.4f
         private const val SPRAY = 0.6f
         private const val OVERCAST = 0.8f
+        private const val BOLT = 1.0f
+
+        /** A bolt shows while the flash is this bright, a block wide either way, and lit up to the brightest light. */
+        private const val BOLT_SHOWS_FROM = 0.5f
+        private const val BOLT_WIDTH = 0.18f
+        private const val BRIGHTEST_LIGHT = 15.0f
+        /** The cloud over the funnel is this much as bright at its darkest, darkening out to two collars' reach past it. */
+        private const val DARKEST_OVER_THE_FUNNEL = 0.45f
+        private const val DARKENS_COLLARS_OUT = 2.0f
 
         private const val BURIED_BY = 4.0f
         /** Its foot is out of the ground by the time it has drawn back this much of the way, a tenth. */
