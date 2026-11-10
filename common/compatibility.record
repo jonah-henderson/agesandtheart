@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.19
+line=0.20
 generator=25
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -11,6 +11,7 @@ block agesandtheart:archive
 block agesandtheart:astrite_block
 block agesandtheart:astrite_shard
 block agesandtheart:blue_rime_crystal
+block agesandtheart:bookbinder
 block agesandtheart:coconut
 block agesandtheart:collapsing_fissure
 block agesandtheart:compounded_stone
@@ -95,6 +96,7 @@ block agesandtheart:yellow_rime_crystal
 block_entity_type agesandtheart:advanced_analysis_machine
 block_entity_type agesandtheart:analysis_machine
 block_entity_type agesandtheart:archive
+block_entity_type agesandtheart:bookbinder
 block_entity_type agesandtheart:drying_rack
 block_entity_type agesandtheart:fusion_compounder
 block_entity_type agesandtheart:linking_book_receptacle
@@ -115,12 +117,15 @@ data_component_type agesandtheart:book_reading
 data_component_type agesandtheart:book_seed
 data_component_type agesandtheart:book_title
 data_component_type agesandtheart:book_words
+data_component_type agesandtheart:cover_layout
 data_component_type agesandtheart:link_target
 data_component_type agesandtheart:notebook_pages
 data_component_type agesandtheart:notebook_selected
 data_component_type agesandtheart:page_drawn_for
 data_component_type agesandtheart:page_word
 data_component_type agesandtheart:stocked_from
+data_component_type agesandtheart:title_colour
+data_component_type agesandtheart:title_glows
 entity_type agesandtheart:arc_bolt
 entity_type agesandtheart:astrite_golem
 entity_type agesandtheart:cave_in
@@ -154,6 +159,7 @@ item agesandtheart:archive
 item agesandtheart:astrite_block
 item agesandtheart:astrite_shard
 item agesandtheart:blue_rime_crystal
+item agesandtheart:bookbinder
 item agesandtheart:carapace_powder
 item agesandtheart:coconut
 item agesandtheart:coconut_half
@@ -279,8 +285,8 @@ loot_function_type agesandtheart:write_found_book
 loot_pool_entry_type agesandtheart:survey_report
 map_decoration_type agesandtheart:lost_library
 menu agesandtheart:archive
+menu agesandtheart:bookbinder
 menu agesandtheart:crystal_viewer
-menu agesandtheart:drying_rack
 menu agesandtheart:frequency_tuner
 menu agesandtheart:fusion_compounder
 menu agesandtheart:geologists_tools
@@ -299,6 +305,7 @@ payload agesandtheart:archive_sync
 payload agesandtheart:archive_withdraw
 payload agesandtheart:archive_write
 payload agesandtheart:blizzard
+payload agesandtheart:bookbinder_rename
 payload agesandtheart:client_build
 payload agesandtheart:deluge
 payload agesandtheart:desk_bind
@@ -325,6 +332,7 @@ payload agesandtheart:panel_level
 payload agesandtheart:panel_open
 payload agesandtheart:server_build
 payload agesandtheart:tears
+payload agesandtheart:temptations_here
 payload agesandtheart:tuner_proposal
 point_of_interest_type agesandtheart:scarab_nest
 point_of_interest_type agesandtheart:scarab_pillar
@@ -342,7 +350,6 @@ recipe_serializer agesandtheart:crafting_shapeless_keeping
 recipe_serializer agesandtheart:drying
 recipe_serializer agesandtheart:grinding
 recipe_serializer agesandtheart:pulping
-recipe_serializer agesandtheart:repattern_descriptive_book
 recipe_type agesandtheart:compounding
 recipe_type agesandtheart:drying
 recipe_type agesandtheart:grinding
