@@ -2,7 +2,7 @@ hash-format = "sha256"
 
 [[files]]
 file = "mods/agesandtheart.pw.toml"
-hash = "290838114adc07613765190a38d62b9f0d5588dfa81342564b97f358bab37dc4"
+hash = "bbb1f3d25db4da7ef18f793670309b1dfac766e870065305d2609d99d84eb160"
 metafile = true
 
 [[files]]
