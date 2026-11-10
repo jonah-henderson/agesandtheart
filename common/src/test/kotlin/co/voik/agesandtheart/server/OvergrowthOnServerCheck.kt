@@ -53,6 +53,8 @@ class OvergrowthOnServerCheck : FunSpec({
         inWorld("setblock 28 $y 28 $OVERGROWTH")
         inWorld("setblock 28 ${y + 1} 28 minecraft:wheat[age=0]")
         inWorld("setblock 28 ${y + 1} 31 minecraft:wheat[age=0]")
+        // A fire holds the spreading back, which would otherwise now and then eat the wheat.
+        inWorld("setblock 26 ${y + 1} 28 minecraft:campfire[lit=true]")
         // A plant is only asked whether it can stand when something beside it changes.
         inWorld("setblock 29 ${y + 1} 28 minecraft:stone")
         inWorld("setblock 29 ${y + 1} 31 minecraft:stone")
