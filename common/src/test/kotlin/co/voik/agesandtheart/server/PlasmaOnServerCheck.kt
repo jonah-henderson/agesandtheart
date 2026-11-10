@@ -155,25 +155,53 @@ class PlasmaOnServerCheck : FunSpec({
         server.waitUntil("the chunk at ($x, $z) loading") { server.run("execute if loaded $x 0 $z").startsWith("Test passed") }
     }
 
-    test("a hanging unit that loses its hold lets the plasma loose, and drops nothing") {
+    test("a unit that loses what it stands on drops itself, and lets nothing loose") {
         loaded(RELEASE_X, RELEASE_Z)
-        server.run("setblock $RELEASE_X ${ERUPTION_Y + 1} $RELEASE_Z minecraft:stone")
-        server.run("setblock $RELEASE_X $ERUPTION_Y $RELEASE_Z agesandtheart:contained_plasma[hanging=true]")
+        server.run("setblock $RELEASE_X ${ERUPTION_Y - 1} $RELEASE_Z minecraft:stone")
+        server.run("setblock $RELEASE_X $ERUPTION_Y $RELEASE_Z agesandtheart:contained_plasma")
         server.run("setblock ${RELEASE_X + 1} $ERUPTION_Y $RELEASE_Z minecraft:stone")
-        server.run("setblock $RELEASE_X ${ERUPTION_Y + 1} $RELEASE_Z minecraft:air")
+        server.run("setblock $RELEASE_X ${ERUPTION_Y - 1} $RELEASE_Z minecraft:air")
         sprint(TO_THE_FIRST_BOLTS + 1)
-        check(!at(RELEASE_X + 1, ERUPTION_Y, RELEASE_Z, "minecraft:stone")) { "the stone beside the unit stood, so nothing was let loose" }
-        val dropped = server.run("execute if entity @e[type=minecraft:item,nbt={Item:{id:\"agesandtheart:contained_plasma\"}}]")
-        check(!dropped.startsWith("Test passed")) { "the unit dropped itself: $dropped" }
+        check(at(RELEASE_X + 1, ERUPTION_Y, RELEASE_Z, "minecraft:stone")) { "the stone beside the unit went, so the plasma was let loose" }
+        val dropped = server.run("execute if entity @e[type=minecraft:item,x=$RELEASE_X,y=$ERUPTION_Y,z=$RELEASE_Z,distance=..$SITE_REACH,nbt={Item:{id:\"agesandtheart:contained_plasma\"}}]")
+        check(dropped.startsWith("Test passed")) { "the unit did not drop itself: $dropped" }
     }
 
-    test("a unit broken by anything but a player gives nothing back") {
+    test("fire set beside a unit lets the plasma loose") {
+        val z = RELEASE_Z + FIRE_SITE
+        loaded(RELEASE_X, z)
+        server.run("setblock $RELEASE_X ${ERUPTION_Y - 1} $z minecraft:stone")
+        server.run("setblock ${RELEASE_X - 1} ${ERUPTION_Y - 1} $z minecraft:netherrack")
+        server.run("setblock $RELEASE_X $ERUPTION_Y $z agesandtheart:contained_plasma")
+        server.run("setblock ${RELEASE_X - 1} $ERUPTION_Y $z minecraft:fire")
+        sprint(SET_OFF_AND_A_LITTLE)
+        check(!at(RELEASE_X, ERUPTION_Y, z, "agesandtheart:contained_plasma")) { "the unit beside the fire still stood" }
+    }
+
+    test("an explosion lets the plasma loose, and drops nothing") {
+        val z = RELEASE_Z + EXPLOSION_SITE
+        loaded(RELEASE_X, z)
+        server.run("setblock $RELEASE_X ${ERUPTION_Y - 1} $z minecraft:obsidian")
+        server.run("setblock $RELEASE_X $ERUPTION_Y $z agesandtheart:contained_plasma")
+        // Frozen and stepped, since the release flashes away into its bolts two ticks after it is let loose.
+        server.run("tick freeze")
+        server.run("summon minecraft:tnt ${RELEASE_X + 2.5} $ERUPTION_Y ${z + 0.5} {fuse:0,Tags:[\"beside_the_unit\"]}")
+        fun tntStillThere() = server.run("execute if entity @e[tag=beside_the_unit]").startsWith("Test passed")
+        repeat(TICKS_FOR_THE_TNT) { if (tntStillThere()) server.step(1) }
+        val released = at(RELEASE_X, ERUPTION_Y, z, "agesandtheart:unstable_plasma")
+        server.run("tick unfreeze")
+        check(released) { "the explosion left no plasma where the unit stood" }
+        val dropped = server.run("execute if entity @e[type=minecraft:item,x=$RELEASE_X,y=$ERUPTION_Y,z=$z,distance=..$SITE_REACH,nbt={Item:{id:\"agesandtheart:contained_plasma\"}}]")
+        check(!dropped.startsWith("Test passed")) { "the exploded unit dropped itself: $dropped" }
+    }
+
+    test("a unit broken by anything gives itself back") {
         loaded(0, 0)
         server.run("setblock 6 $UNIT_Y 6 agesandtheart:contained_plasma")
         server.run("setblock 6 $UNIT_Y 7 minecraft:chest")
         server.run("loot insert 6 $UNIT_Y 7 mine 6 $UNIT_Y 6 minecraft:diamond_pickaxe")
         val held = server.run("data get block 6 $UNIT_Y 7 Items")
-        check("contained_plasma" !in held) { "mining a unit without a player gave it back: $held" }
+        check("contained_plasma" in held) { "mining a unit without a player did not give it back: $held" }
     }
 
     test("contained plasma burns in a furnace and leaves its unit behind") {
@@ -240,6 +268,17 @@ class PlasmaOnServerCheck : FunSpec({
         const val ERUPTION_Z = 200
         const val RELEASE_X = 300
         const val RELEASE_Z = 300
+        const val FIRE_SITE = 10
+        const val EXPLOSION_SITE = 20
+
+        /** Near enough to a site to find what it dropped, and short of the next site along. */
+        const val SITE_REACH = 5
+
+        /** A tick for the trigger to be heard, and one for the release that follows. */
+        const val SET_OFF_AND_A_LITTLE = 3
+
+        /** A freshly summoned entity may wait a tick or two for its chunk's entities to start ticking. */
+        const val TICKS_FOR_THE_TNT = 20
         const val ERUPTION_Y = 150
 
         /** The release sends out its bolts a tick on, and they reach the block beyond a tick after. */

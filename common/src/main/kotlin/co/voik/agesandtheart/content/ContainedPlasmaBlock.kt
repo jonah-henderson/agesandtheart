@@ -1,47 +1,39 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.tags.BlockTags
 import net.minecraft.tags.ItemTags
+import net.minecraft.util.RandomSource
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.Projectile
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Explosion
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelReader
+import net.minecraft.world.level.ScheduledTickAccess
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.phys.BlockHitResult
-import net.minecraft.server.TickTask
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.entity.player.Player
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.LanternBlock
-import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.properties.BooleanProperty
 
 /**
- * A containment unit of plasma set down like a lantern, standing or hanging, and lighting what is near it.
+ * A containment unit of plasma set down on something solid. Broken, pushed or left unsupported it drops itself
+ * as any block does.
  *
- * A player who breaks it, with any tool or none, takes the unit back: [playerWillDestroy] marks it [TAKEN],
- * and the loot table drops only a taken unit. Anything else that removes it — an explosion, a piston, a
- * hanging unit losing what it hung from — lets the plasma loose where it stood.
- *
- * **And whatever would light TNT lets it loose on purpose**: a redstone signal, flint and steel or a fire
- * charge, a burning projectile, and fire, which takes it as it takes TNT (`CommonSetup` makes it flammable).
+ * **Whatever would set off TNT lets the plasma loose instead**: a redstone signal, flint and steel or a fire
+ * charge, a burning projectile, fire beside it, and an explosion, which leaves nothing to drop.
  */
-class ContainedPlasmaBlock(properties: Properties) : LanternBlock(properties) {
-
-    init {
-        registerDefaultState(defaultBlockState().setValue(TAKEN, false))
-    }
-
-    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        super.createBlockStateDefinition(builder)
-        builder.add(TAKEN)
-    }
+class ContainedPlasmaBlock(properties: Properties) : ContainmentUnitBlock(properties) {
 
     override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
         super.onPlace(state, level, pos, oldState, movedByPiston)
-        if (!oldState.`is`(this) && level.hasNeighborSignal(pos)) letLoose(level, pos)
+        if (oldState.`is`(this)) return
+        val isSetOff = level.hasNeighborSignal(pos) || Direction.entries.any { isFire(level.getBlockState(pos.relative(it))) }
+        if (isSetOff) letLoose(level, pos)
     }
 
     override fun neighborChanged(
@@ -53,6 +45,25 @@ class ContainedPlasmaBlock(properties: Properties) : LanternBlock(properties) {
         movedByPiston: Boolean,
     ) {
         if (level.hasNeighborSignal(pos)) letLoose(level, pos)
+    }
+
+    /** Fire set beside it is answered on the next tick, since a shape update cannot change the level. */
+    override fun updateShape(
+        state: BlockState,
+        level: LevelReader,
+        ticks: ScheduledTickAccess,
+        pos: BlockPos,
+        direction: Direction,
+        neighbourPos: BlockPos,
+        neighbourState: BlockState,
+        random: RandomSource,
+    ): BlockState {
+        if (isFire(neighbourState)) ticks.scheduleTick(pos, this, 1)
+        return super.updateShape(state, level, ticks, pos, direction, neighbourPos, neighbourState, random)
+    }
+
+    override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        letLoose(level, pos)
     }
 
     override fun useItemOn(
@@ -76,30 +87,17 @@ class ContainedPlasmaBlock(properties: Properties) : LanternBlock(properties) {
         if (lights) letLoose(level, struck)
     }
 
-    /** Removed as anything but a player removes it, which the removal below answers by letting the plasma loose. */
+    override fun dropFromExplosion(explosion: Explosion): Boolean = false
+
+    /** Called once the explosion has cleared the unit, so the plasma takes its place at once. */
+    override fun wasExploded(level: ServerLevel, pos: BlockPos, explosion: Explosion) {
+        letLoose(level, pos)
+    }
+
+    /** The unit gives way to the plasma in it, dropping nothing. */
     private fun letLoose(level: Level, pos: BlockPos) {
-        if (!level.isClientSide) level.removeBlock(pos, false)
+        if (!level.isClientSide) level.setBlockAndUpdate(pos, Plasma.UNSTABLE.defaultBlockState())
     }
 
-    override fun playerWillDestroy(level: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
-        val taken = state.setValue(TAKEN, true)
-        level.setBlock(pos, taken, UPDATE_SILENTLY)
-        return super.playerWillDestroy(level, pos, taken, player)
-    }
-
-    /** Released a tick later rather than here, where the chunk is still in the middle of removing it. */
-    override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
-        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)
-        if (state.getValue(TAKEN)) return
-        val server = level.server
-        server.schedule(TickTask(server.tickCount + 1) { level.setBlockAndUpdate(pos, Plasma.UNSTABLE.defaultBlockState()) })
-    }
-
-    companion object {
-        /** Being broken by a player, who takes the unit back rather than letting it loose. */
-        val TAKEN: BooleanProperty = BooleanProperty.create("taken")
-
-        /** No neighbour told and nothing sent: the mark is read only by the removal that follows at once. */
-        private const val UPDATE_SILENTLY = UPDATE_INVISIBLE or UPDATE_KNOWN_SHAPE
-    }
+    private fun isFire(state: BlockState) = state.`is`(BlockTags.FIRE)
 }

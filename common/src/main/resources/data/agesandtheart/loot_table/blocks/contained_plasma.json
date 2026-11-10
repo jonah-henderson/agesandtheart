@@ -1,5 +1,5 @@
 {
-  "_comment": "Only a unit a player broke is marked taken (ContainedPlasmaBlock), and only a taken unit drops: anything else that removes one lets the plasma loose instead.",
+  "_comment": "Every removal drops the unit but an explosion's, which lets the plasma loose instead (ContainedPlasmaBlock).",
   "type": "minecraft:block",
   "pools": [
     {
@@ -8,12 +8,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "agesandtheart:contained_plasma",
-          "condition": {
-            "type": "minecraft:match_block",
-            "blocks": "agesandtheart:contained_plasma",
-            "state": { "taken": "true" }
-          }
+          "name": "agesandtheart:contained_plasma"
         }
       ]
     }

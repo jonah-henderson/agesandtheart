@@ -1,8 +1,8 @@
 {
-  "_comment": "Plasma's own opaque green texture (textures/block/plasma.png) on every face, culled as a full block.",
+  "_comment": "Plasma's own opaque green texture on every face, drifting up and to the left (plasma_drifting.png, drawn from plasma.png), culled as a full block.",
   "textures": {
-    "particle": "agesandtheart:block/plasma",
-    "all": "agesandtheart:block/plasma"
+    "particle": "agesandtheart:block/plasma_drifting",
+    "all": "agesandtheart:block/plasma_drifting"
   },
   "elements": [
     {

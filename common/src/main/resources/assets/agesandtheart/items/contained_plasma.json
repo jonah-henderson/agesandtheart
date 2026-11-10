@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "agesandtheart:block/contained_plasma" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/contained_plasma"
+  }
+}

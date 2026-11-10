@@ -1,8 +1,8 @@
 {
-  "_comment": "Plasma's model with a paler texture of its own (textures/block/unstable_plasma.png), so a bolt's head reads white-hot against the sea.",
+  "_comment": "Plasma's model with a paler texture of its own (unstable_plasma_drifting.png, drawn from unstable_plasma.png), so a bolt's head reads white-hot against the sea.",
   "parent": "agesandtheart:block/plasma",
   "textures": {
-    "particle": "agesandtheart:block/unstable_plasma",
-    "all": "agesandtheart:block/unstable_plasma"
+    "particle": "agesandtheart:block/unstable_plasma_drifting",
+    "all": "agesandtheart:block/unstable_plasma_drifting"
   }
 }

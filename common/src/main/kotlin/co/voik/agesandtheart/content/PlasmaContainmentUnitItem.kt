@@ -18,7 +18,7 @@ import net.minecraft.world.phys.HitResult
 
 /**
  * An empty unit of deretheni, which takes a block of a plasma sea into itself and becomes contained plasma,
- * the sea filling the gap again from beside — and which, aimed at anything else, is set down like a lantern.
+ * the sea filling the gap again from beside — and which, aimed at anything else, is set down on it.
  *
  * Aimed through `ClipContext.Block.VISUAL`, because plasma has no outline for an ordinary click to stop on:
  * a click can pass through the sea to the ground under it, and the sea is asked first so that it still fills.

@@ -122,7 +122,7 @@ block_states agesandtheart:bookbinder 8
 block_states agesandtheart:coconut 1
 block_states agesandtheart:collapsing_fissure 1
 block_states agesandtheart:compounded_stone 1
-block_states agesandtheart:contained_plasma 16
+block_states agesandtheart:contained_plasma 4
 block_states agesandtheart:crystal_viewer 1
 block_states agesandtheart:cyan_rime_crystal 48
 block_states agesandtheart:dead_paper_tree_log 3
@@ -174,7 +174,7 @@ block_states agesandtheart:paper_tree_sapling 128
 block_states agesandtheart:phasmium_block 1
 block_states agesandtheart:pitchstone 4
 block_states agesandtheart:plasma 2
-block_states agesandtheart:plasma_containment_unit 8
+block_states agesandtheart:plasma_containment_unit 4
 block_states agesandtheart:potted_palm_sapling 1
 block_states agesandtheart:pulper 3
 block_states agesandtheart:raw_temperstone 1

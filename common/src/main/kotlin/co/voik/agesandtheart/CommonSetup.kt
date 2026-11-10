@@ -87,8 +87,6 @@ object CommonSetup {
         // The palm burns as birch does. `FireBlock` keeps its table private, and this is the door into it.
         val fire = Blocks.FIRE as FireBlockInvoker
         for ((block, ignites, burns) in PalmWood.flammable) fire.`agesandtheart$setFlammable`(block, ignites, burns)
-        // Contained plasma catches as TNT does, and burning lets it loose — see `ContainedPlasmaBlock`.
-        fire.`agesandtheart$setFlammable`(Plasma.CONTAINED, CATCHES_AS_TNT_DOES, BURNS_AS_TNT_DOES)
         // A dead yema sapling burns as the dead bush it otherwise is.
         fire.`agesandtheart$setFlammable`(AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK, CATCHES_AS_A_DEAD_BUSH_DOES, BURNS_AS_A_DEAD_BUSH_DOES)
         // A spent fuel's empty unit, which the item builder could not name before the unit was registered.
@@ -242,8 +240,6 @@ object CommonSetup {
     }
 
     /** Vanilla's own odds for TNT, which fire takes almost at once. */
-    private const val CATCHES_AS_TNT_DOES = 15
-    private const val BURNS_AS_TNT_DOES = 100
 
     /** Vanilla's own odds for a dead bush. */
     private const val CATCHES_AS_A_DEAD_BUSH_DOES = 60

@@ -1,10 +1,7 @@
 {
   "variants": {
-    "hanging=false": {
-      "model": "minecraft:block/lantern"
-    },
-    "hanging=true": {
-      "model": "agesandtheart:block/plasma_containment_unit_hanging"
+    "": {
+      "model": "agesandtheart:block/plasma_containment_unit"
     }
   }
 }
