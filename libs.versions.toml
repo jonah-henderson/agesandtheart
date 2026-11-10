@@ -74,9 +74,9 @@ mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common
 
 # Ephemeris. The artifact names carry the Minecraft version, which is what its `archivesName` produces —
 # and what the substitutions in settings.gradle.kts have to match.
-ephemeris-common = { group = "co.voik.ephemeris", name = "ephemeris-common-26.2", version.ref = "ephemeris" }
-ephemeris-fabric = { group = "co.voik.ephemeris", name = "ephemeris-fabric-26.2", version.ref = "ephemeris" }
-ephemeris-neoforge = { group = "co.voik.ephemeris", name = "ephemeris-neoforge-26.2", version.ref = "ephemeris" }
+ephemeris-common = { group = "co.voik.ephemeris", name = "ephemeris-common-26.3", version.ref = "ephemeris" }
+ephemeris-fabric = { group = "co.voik.ephemeris", name = "ephemeris-fabric-26.3", version.ref = "ephemeris" }
+ephemeris-neoforge = { group = "co.voik.ephemeris", name = "ephemeris-neoforge-26.3", version.ref = "ephemeris" }
 
 # The `common` artifact carries the API under its original package names, which is what lets the spec be
 # written once in `common` instead of twice behind the SPI.
