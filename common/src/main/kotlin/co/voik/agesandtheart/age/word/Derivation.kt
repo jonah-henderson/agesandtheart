@@ -20,6 +20,7 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
 
 /**
  * How one aspect's members are tagged from what the game already states — `art/derivation/<aspect>.json`.
@@ -201,11 +202,15 @@ object DerivedTags {
      * A feature that will not encode contributes nothing rather than failing the corpus: its type still
      * speaks for it.
      *
-     * **Two things in that data are names rather than blocks, and both are followed** — 26.3's corals are
-     * the case for each. A block set spelled as a tag (`"blocks": "#minecraft:corals"`) is every block in the
-     * tag, where it was once a list of blocks. And a feature that names another registered feature by id
-     * (`"feature": "minecraft:coral/tube_block"`) places what that one places: `getSubFeatures` would say
-     * so, but a feature type that never overrides it — `coral_tree`, `coral_claw` — hides its contents.
+     * **Three things in that data are names rather than blocks, and all are followed.** A block set spelled as
+     * a tag (`"blocks": "#minecraft:corals"`) is every block in the tag. A feature that names another
+     * registered feature by id (`"feature": "minecraft:coral/tube_block"`) places what that one places:
+     * `getSubFeatures` would say so, but a feature type that never overrides it — `coral_tree`, `coral_claw` —
+     * hides its contents. And a registered block state provider (`"provider": "minecraft:cave_vines_body"`)
+     * places what it provides.
+     *
+     * **A block the feature may go on or into is not one it places**, so the fields naming those
+     * ([FIELDS_NAMING_WHERE_IT_GOES]) are not read: a nether ore cutting into netherrack is not stony.
      */
     private fun blocksNamedBy(
         feature: Holder<Feature>,
@@ -213,12 +218,17 @@ object DerivedTags {
         registries: HolderLookup.Provider,
     ): List<Identifier> {
         val features = registries.lookupOrThrow(Registries.FEATURE)
-        val followed = mutableSetOf<Identifier>()
+        val providers = registries.lookupOrThrow(Registries.BLOCK_STATE_PROVIDER)
+        val followed = mutableSetOf<ResourceKey<*>>()
         fun encoded(of: Feature): JsonElement? = Feature.DIRECT_CODEC.encodeStart(ops, of).result().orElse(null)
+        fun encoded(of: BlockStateProvider): JsonElement? =
+            BlockStateProvider.DIRECT_CODEC.encodeStart(ops, of).result().orElse(null)
         return buildList {
             fun walk(element: JsonElement) {
                 when {
-                    element.isJsonObject -> element.asJsonObject.entrySet().forEach { walk(it.value) }
+                    element.isJsonObject -> element.asJsonObject.entrySet()
+                        .filter { it.key !in FIELDS_NAMING_WHERE_IT_GOES }
+                        .forEach { walk(it.value) }
                     element.isJsonArray -> element.asJsonArray.forEach(::walk)
                     element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
                         val spelled = element.asString
@@ -231,8 +241,15 @@ object DerivedTags {
                             add(id)
                             return
                         }
-                        val named = features.get(ResourceKey.create(Registries.FEATURE, id)).orElse(null) ?: return
-                        if (followed.add(id)) encoded(named.value())?.let(::walk)
+                        val featureKey = ResourceKey.create(Registries.FEATURE, id)
+                        val namedFeature = features.get(featureKey).orElse(null)
+                        if (namedFeature != null) {
+                            if (followed.add(featureKey)) encoded(namedFeature.value())?.let(::walk)
+                            return
+                        }
+                        val providerKey = ResourceKey.create(Registries.BLOCK_STATE_PROVIDER, id)
+                        val namedProvider = providers.get(providerKey).orElse(null) ?: return
+                        if (followed.add(providerKey)) encoded(namedProvider.value())?.let(::walk)
                     }
                 }
             }
@@ -253,6 +270,14 @@ object DerivedTags {
     }
 
     private const val TAG_MARK = "#"
+
+    /** Vanilla's 26.3 feature fields, and `OreVein`'s, that name a block to go on, into or through. */
+    private val FIELDS_NAMING_WHERE_IT_GOES = setOf(
+        "target", "cuts", "valid_blocks", "valid_base_block", "can_be_placed_on", "can_place_on", "cannot_place_on",
+        "replaceable", "replaceable_blocks", "root_replaceable", "can_replace", "can_replace_with_air_or_fluid",
+        "can_replace_with_barrier", "continue_through", "muddy_roots_in", "accepted_neighbors", "predicate",
+        "predicates", "allowed_placement", "allowed_search_condition", "if_true", "input_predicate",
+    )
 
     /**
      * For each tag any of [blocks] carries, **how much of the feature it speaks for** — the share of the

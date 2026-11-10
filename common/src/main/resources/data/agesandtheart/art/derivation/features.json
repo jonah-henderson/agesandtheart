@@ -187,11 +187,6 @@
       "flowering": 1.0,
       "colourful": 0.8
     },
-    "#minecraft:crops": {
-      "grown": 0.9,
-      "lush": 0.6,
-      "undergrowth": 0.9
-    },
     "#minecraft:cave_vines": {
       "grown": 0.8,
       "cavernous": 0.8,

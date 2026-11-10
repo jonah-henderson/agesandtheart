@@ -297,6 +297,21 @@
       "stony": 0.9
     }
   },
+  "minecraft:large_dripstone": {
+    "tags": {
+      "stony": 0.9
+    }
+  },
+  "minecraft:dripstone_cluster": {
+    "tags": {
+      "stony": 0.7
+    }
+  },
+  "minecraft:pointed_dripstone": {
+    "tags": {
+      "stony": 0.5
+    }
+  },
   "minecraft:amethyst_geode": {
     "available_to_broad_words": false
   },
