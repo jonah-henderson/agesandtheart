@@ -175,7 +175,9 @@ class DryingRackBlock(properties: Properties) : BaseEntityBlock(properties), Wor
 
     /**
      * As a campfire takes food: something that dries is hung, one at a time, at the free spot nearest the click, and
-     * anything else is used as it would be anywhere. A client knows what dries from the recipes it was sent.
+     * anything else is used as it would be anywhere. A client knows what dries from the recipes it was sent. Holding
+     * what something dried into gathers the nearest of it that hangs there into the hand, or the inventory once the
+     * hand is full.
      */
     override fun useItemOn(
         stack: ItemStack,
@@ -187,12 +189,26 @@ class DryingRackBlock(properties: Properties) : BaseEntityBlock(properties), Wor
         hitResult: BlockHitResult,
     ): InteractionResult {
         if (stack.isEmpty) return InteractionResult.TRY_WITH_EMPTY_HAND
-        if (level.isClientSide) return if (KnownMachineRecipes.dries(stack, level)) InteractionResult.SUCCESS else InteractionResult.PASS
         val rack = rackOf(state, level, pos) ?: return InteractionResult.PASS
+        val driedLikeIt = rack.spotHoldingDried(stack, hitResult.location)
+        if (driedLikeIt != null) {
+            if (!level.isClientSide) gather(rack.takeFrom(driedLikeIt), stack, player)
+            return InteractionResult.SUCCESS
+        }
+        if (level.isClientSide) return if (KnownMachineRecipes.dries(stack, level)) InteractionResult.SUCCESS else InteractionResult.PASS
         if (!rack.dries(stack)) return InteractionResult.PASS
         val spot = rack.spotToHang(hitResult.location) ?: return InteractionResult.SUCCESS
         rack.setItem(spot, stack.consumeAndReturn(1, player))
         return InteractionResult.SUCCESS
+    }
+
+    /** [taken] onto [held], which it is like, or into [player]'s inventory where [held] is full. */
+    private fun gather(taken: ItemStack, held: ItemStack, player: Player) {
+        if (held.count < held.maxStackSize) {
+            held.grow(taken.count)
+        } else {
+            player.inventory.placeItemBackInInventory(taken, Prediction.SERVER_ONLY)
+        }
     }
 
     /** An empty hand takes back what hangs nearest the click, dried or not. */
@@ -324,6 +340,10 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
 
     /** The free spot nearest a click landing at [clicked], or none where the rack is full. */
     fun spotToHang(clicked: Vec3): Int? = nearest(clicked) { items[it].isEmpty }
+
+    /** The spot nearest [clicked] holding something dried just like [like], or none where nothing like it has dried. */
+    fun spotHoldingDried(like: ItemStack, clicked: Vec3): Int? =
+        nearest(clicked) { slot -> isDone(slot) && ItemStack.isSameItemSameComponents(items[slot], like) }
 
     /** The spot holding something nearest a click landing at [clicked], or none where nothing hangs. */
     fun spotToTakeFrom(clicked: Vec3): Int? = nearest(clicked) { !items[it].isEmpty }
