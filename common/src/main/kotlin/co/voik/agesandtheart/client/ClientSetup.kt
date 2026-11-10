@@ -49,6 +49,8 @@ object ClientSetup {
         PlasmaHaze.tick(minecraft)
         // A worn grindstone's cracks, which the client forgets unless they are drawn again.
         WornGrindstones.tick(minecraft)
+        // The beta's word on what this version changed, once per installation after an update.
+        ChangelogNotice.tick(minecraft)
     }
 
     /**

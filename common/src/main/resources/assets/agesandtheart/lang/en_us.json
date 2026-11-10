@@ -1,4 +1,9 @@
 {
+  "chat.agesandtheart.changelog": "Ages and the Art is now at version %s. See the %s.",
+  "chat.agesandtheart.changelog.link": "changelog",
+  "chat.agesandtheart.changelog.hover": "What changed in this version",
+  "chat.agesandtheart.changelog.title": "Ages and the Art %s",
+  "chat.agesandtheart.changelog.heading": "Version %s",
   "advancements.agesandtheart.be_first_into_an_age.description": "Enter an Age without a way back",
   "advancements.agesandtheart.be_first_into_an_age.title": "You and I Will Live Here... Forever",
   "advancements.agesandtheart.be_pulled_by_live_iron.description": "Be pulled by an iron assembly",

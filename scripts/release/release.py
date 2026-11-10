@@ -45,6 +45,8 @@ SERVER_RUN_FILES = ["eula.txt", "server.properties"]
 SMOKE_SERVER = CACHE / "smoke-server"
 SMOKE_SECONDS = 300
 PACK_BRANCH = "pack"
+# Each release's notes, written by hand: shown in game to whoever has not seen them, and heading the GitHub release's.
+NOTES = "common/src/main/resources/assets/agesandtheart/changelog/{version}.txt"
 PACK_RAW = "https://raw.githubusercontent.com/{slug}/{branch}/pack.toml"
 ASSET_URL = "https://github.com/{slug}/releases/download/{tag}/{name}"
 
@@ -309,6 +311,9 @@ class Release:
         recorded_line = next(line.split("=", 1)[1] for line in record.splitlines() if line.startswith("line="))
         if compatibility_line(self.version) < number_parts(recorded_line):
             fail(f"the content at {commit[:8]} needs a release on line {recorded_line} or later, and {self.version} is not")
+        notes = NOTES.format(version=self.version)
+        if subprocess.run(["git", "cat-file", "-e", f"{commit}:{notes}"], cwd=ROOT, capture_output=True).returncode != 0:
+            fail(f"{commit[:8]} has no {notes}: write this release's notes first")
 
         self.check_tools()
         self.check_ephemeris()
@@ -546,13 +551,14 @@ class Release:
         return requirement.get("suggests") or requirement["equals"]
 
     def changelog(self) -> str:
-        """Every commit's subject since the last release, oldest first; the first release has none to list."""
+        """The release's notes, then every commit's subject since the last release, oldest first."""
         heading = f"# Ages and the Art {self.build}\n\n"
+        notes = git("show", f"{self.tag}:{NOTES.format(version=self.version)}") + "\n\n"
         last = self.state.get("last_tag")
         if not last:
-            return heading + "The first release of the beta.\n"
+            return heading + notes + "The first release of the beta.\n"
         subjects = git("log", "--reverse", "--format=- %s", f"{last}..{self.tag}")
-        return heading + f"What changed since {last}:\n\n{subjects}\n"
+        return heading + notes + f"Every change since {last}:\n\n{subjects}\n"
 
     def confirm_and_publish(self) -> None:
         commit = git("log", "-1", "--format=%h %s", self.state["commit"])
