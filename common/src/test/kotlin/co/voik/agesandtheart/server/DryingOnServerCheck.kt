@@ -4,9 +4,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * That the drying rack finishes a masterwork grade only under the sky its recipe names, each input drying
- * alongside the others into its output: an ink cake under a black sun, a wet sheet in an Age with an open lava sea, and neither
- * anywhere else. A recipe naming no sky, rotten flesh to leather, dries in the overworld.
+ * That the drying rack finishes a masterwork grade only under the sky its recipe names, each thing hung on it drying
+ * alongside the others into what it makes, where it hangs: an ink cake under a black sun, a wet sheet in an Age with
+ * an open lava sea, and neither anywhere else. A recipe naming no sky, rotten flesh to leather, dries in the overworld.
  *
  * On a server because the recipes are datapack JSON and the skies are written Ages. Each rack has a roof,
  * so an Age's rain cannot start it again partway.
@@ -27,23 +27,26 @@ class DryingOnServerCheck : FunSpec({
         }
     }
 
-    fun rackIn(age: String?, x: Int, item: String, inputs: Int = 1) {
+    /** A rack with [item] hung at its first [spots] spots, one to each, roofed with stone where its upper half would stand. */
+    fun rackIn(age: String?, x: Int, item: String, spots: Int = 1) {
         loaded(age, x)
         inLevel(age, "setblock $x $RACK_Y 0 agesandtheart:drying_rack")
         inLevel(age, "setblock $x ${RACK_Y + 1} 0 minecraft:stone")
-        repeat(inputs) { slot -> inLevel(age, "item replace block $x $RACK_Y 0 container.$slot with $item 2") }
+        repeat(spots) { slot -> inLevel(age, "item replace block $x $RACK_Y 0 container.$slot with $item") }
     }
 
-    /** Waits until [count] of [made] are in a rack's output, on a sprint that ends when it ends. */
-    fun untilBothDried(age: String?, x: Int, made: String, count: Int = 2): String = server.untilPasses(
-        "execute in ${dimensionOf(age)} if items block $x $RACK_Y 0 container.$OUTPUT $made[count=$count]",
-        tries = DRIED_TRIES,
-        pauseMillis = DRIED_WAIT_MILLIS,
-    )
+    /** Waits until each of a rack's first [spots] spots holds [made], on a sprint that ends when it ends. */
+    fun untilDried(age: String?, x: Int, made: String, spots: Int = 1): Boolean = (0..<spots).all { slot ->
+        server.untilPasses(
+            "execute in ${dimensionOf(age)} if items block $x $RACK_Y 0 container.$slot $made",
+            tries = DRIED_TRIES,
+            pauseMillis = DRIED_WAIT_MILLIS,
+        ).startsWith("Test passed")
+    }
 
     fun holds(age: String?, x: Int): String = inLevel(age, "data get block $x $RACK_Y 0 Items")
 
-    test("the right sky finishes each grade into the output, and the wrong one nothing") {
+    test("the right sky finishes each grade where it hangs, and the wrong one nothing") {
         server.run("age write $BLACK_SUN_AGE 7 age black sun")
         server.run("age write $LAVA_SEA_AGE 7 age lava sea")
         rackIn(BLACK_SUN_AGE, CAKE_X, "agesandtheart:ink_cake")
@@ -51,17 +54,17 @@ class DryingOnServerCheck : FunSpec({
         rackIn(LAVA_SEA_AGE, SHEET_X, "agesandtheart:wet_paper_sheet")
         rackIn(LAVA_SEA_AGE, CAKE_X, "agesandtheart:ink_cake")
         rackIn(null, CAKE_X, "agesandtheart:ink_cake")
-        rackIn(null, FLESH_X, "minecraft:rotten_flesh", inputs = FLESH_INPUTS)
-        server.run("tick sprint $BOTH_DRIED_AND_A_LITTLE")
+        rackIn(null, FLESH_X, "minecraft:rotten_flesh", spots = FLESH_SPOTS)
+        server.run("tick sprint $DRIED_AND_A_LITTLE")
 
-        val cured = untilBothDried(BLACK_SUN_AGE, CAKE_X, "agesandtheart:cured_ink_cake")
-        check(cured.startsWith("Test passed")) { "the black sun's rack holds: ${holds(BLACK_SUN_AGE, CAKE_X)}" }
-        val driedOverLava = untilBothDried(LAVA_SEA_AGE, SHEET_X, "agesandtheart:masterwork_paper")
-        check(driedOverLava.startsWith("Test passed")) { "the lava sea's rack holds: ${holds(LAVA_SEA_AGE, SHEET_X)}" }
-        // Three inputs of two take 800 ticks together and 2,400 in turn, past the sprint and the wait after it.
-        val leather = untilBothDried(null, FLESH_X, "minecraft:leather", count = 2 * FLESH_INPUTS)
-        check(leather.startsWith("Test passed")) {
-            "rotten flesh, which names no sky, should dry into leather in the overworld, every input at once: ${holds(null, FLESH_X)}"
+        val cured = untilDried(BLACK_SUN_AGE, CAKE_X, "agesandtheart:cured_ink_cake")
+        check(cured) { "the black sun's rack holds: ${holds(BLACK_SUN_AGE, CAKE_X)}" }
+        val driedOverLava = untilDried(LAVA_SEA_AGE, SHEET_X, "agesandtheart:masterwork_paper")
+        check(driedOverLava) { "the lava sea's rack holds: ${holds(LAVA_SEA_AGE, SHEET_X)}" }
+        // Three spots take 400 ticks together and 1,200 in turn, past the sprint and the wait after it.
+        val leather = untilDried(null, FLESH_X, "minecraft:leather", spots = FLESH_SPOTS)
+        check(leather) {
+            "rotten flesh, which names no sky, should dry into leather in the overworld, every spot at once: ${holds(null, FLESH_X)}"
         }
 
         // Read only once the rest have dried, so each of these has had as long as they took.
@@ -80,12 +83,10 @@ class DryingOnServerCheck : FunSpec({
         const val CAKE_X = 0
         const val SHEET_X = 4
         const val FLESH_X = 8
-        const val FLESH_INPUTS = 3
+        const val FLESH_SPOTS = 3
 
-        const val OUTPUT = 6
-
-        /** Two items at the rack's 400 ticks apiece, and a margin over. */
-        const val BOTH_DRIED_AND_A_LITTLE = 1_000
+        /** The rack's 400 ticks, and a margin over. */
+        const val DRIED_AND_A_LITTLE = 600
 
 
         /**
