@@ -48,6 +48,9 @@ class PreviewLevel private constructor(
 
     private var redirtiedOnce = false
 
+    /** When it was opened, which the mist clears from ([PanelComposite.composeLive]). */
+    val openedAtNanos: Long = System.nanoTime()
+
     /**
      * Takes one chunk of the ring, as `ClientPacketListener.handleLevelChunkWithLight` would.
      *

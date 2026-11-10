@@ -63,6 +63,9 @@ object PanelComposite {
     private fun mistClock(): Int = ((Util.getMillis() % MIST_CYCLE_MILLIS) * SIXTEEN_BITS / MIST_CYCLE_MILLIS).toInt()
 
     private const val MIST_CYCLE_MILLIS = 1_200_000L
+
+    /** A second, the least time the mist takes to clear from a panel that has just opened. */
+    private const val MIST_CLEARS_NANOS = 1_000_000_000L
     private const val SIXTEEN_BITS = 65_535L
     private const val BYTE = 8
     private const val FULLY = 255
@@ -96,11 +99,20 @@ object PanelComposite {
 
     /**
      * Renders [preview]'s Age for this frame and lays the live picture down from it — mist alone until there is
-     * something to show, thinning as the ring arrives.
+     * something to show, thinning as the ring arrives, and as far into it as [fadingOut], for a panel being given
+     * up. A book lying open [fadesIn]: its mist clears no faster than [MIST_CLEARS_NANOS] from when the preview
+     * opened, so an Age whose ring comes at once still fades in; a screen opening is transition enough.
      */
-    fun composeLive(preview: PreviewLevel?, delta: DeltaTracker): GpuTextureView {
+    fun composeLive(
+        preview: PreviewLevel?,
+        delta: DeltaTracker,
+        fadesIn: Boolean = false,
+        fadingOut: Float = 0.0f,
+    ): GpuTextureView {
         val age = preview?.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of)
-        val stillMissing = 1.0f - (preview?.load?.wholeness ?: 0.0f)
+        val ringStillMissing = 1.0f - (preview?.load?.wholeness ?: 0.0f)
+        val clearing = if (fadesIn) stillClearing(preview) else 0.0f
+        val stillMissing = maxOf(ringStillMissing, clearing, fadingOut)
         lastLive = PanelPicture.strokes(age, stillMissing)
         val target = live ?: newTarget("live", LIVE_TEXELS_PER_PAGE_PIXEL).also { live = it }
         return compose(target, lastLive)
@@ -113,6 +125,13 @@ object PanelComposite {
     fun recomposeLive(): GpuTextureView? {
         val target = live ?: return null
         return compose(target, lastLive)
+    }
+
+    /** How much of the mist the time since [preview] opened has yet to clear, `1..0`. */
+    private fun stillClearing(preview: PreviewLevel?): Float {
+        preview ?: return 1.0f
+        val cleared = (System.nanoTime() - preview.openedAtNanos).toFloat() / MIST_CLEARS_NANOS
+        return 1.0f - cleared.coerceIn(0.0f, 1.0f)
     }
 
     /** Lays the misted picture down: the one every panel wears that is not showing an Age. */

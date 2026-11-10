@@ -8,6 +8,7 @@ import co.voik.agesandtheart.book.NearbyOpenBook
 import co.voik.agesandtheart.book.OpenBookPanelChoice
 import co.voik.agesandtheart.client.BookScreen
 import co.voik.agesandtheart.client.CrystalViewerScreen
+import co.voik.agesandtheart.client.LecternBookRenderer
 import co.voik.agesandtheart.client.LinkTransit
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
@@ -39,6 +40,14 @@ object OpenBookPanels {
     /** And whether any book wearing the mist was. */
     private var mistedSeenThisFrame = false
 
+    /** The book a nearer one is taking the panel from the shown one for, and when the shown one began to fade. */
+    private var handingOverTo: BookBeingRead? = null
+    private var handOverStartedNanos = 0L
+
+    /** The shown book's lectern once it is shut and swinging so, and the game time it was first seen shut. */
+    private var swingingShut: BookBeingRead.OnALectern? = null
+    private var shutAt = 0L
+
     /** The book lying open that is being shown, or null while the panel is a hand's or nobody's. */
     val shown: BookBeingRead?
         get() = when (val book = LinkingPanel.showingFor) {
@@ -56,13 +65,58 @@ object OpenBookPanels {
         if (screen is BookScreen || screen is CrystalViewerScreen || LinkTransit.isUnderway) return
 
         val showing = shown
-        val wanted = OpenBookPanelChoice.choose(showing, openBooksNear(level, player.position()))
+        // A shown book being shut keeps the panel, and so its last picture, until it has swung shut; only then may
+        // another open book near take it up, its Age fading in as the first did.
+        if (isStillSwingingShut(level, showing)) return
+        val nearby = openBooksNear(level, player.position())
+        val wanted = OpenBookPanelChoice.choose(showing, nearby)
+        // A shown book still lying open fades into the mist before a nearer one takes its panel.
+        val showingIsStillOpen = showing != null && nearby.any { it.book == showing }
         when {
-            wanted == showing -> Unit
-            wanted == null -> LinkingPanel.release()
-            else -> LinkingPanel.ask(wanted)
+            wanted == showing -> handingOverTo = null
+            wanted == null -> {
+                handingOverTo = null
+                LinkingPanel.release()
+            }
+            showingIsStillOpen && !hasFadedFor(wanted) -> Unit
+            else -> {
+                handingOverTo = null
+                LinkingPanel.ask(wanted)
+            }
         }
         if (shown != null) LinkingPanel.tick()
+    }
+
+    /** Whether the shown book has faded for long enough to give its panel to [wanted], starting the fade if not begun. */
+    private fun hasFadedFor(wanted: BookBeingRead): Boolean {
+        if (handingOverTo != wanted) {
+            handingOverTo = wanted
+            handOverStartedNanos = System.nanoTime()
+            return false
+        }
+        return System.nanoTime() - handOverStartedNanos >= HAND_OVER_NANOS
+    }
+
+    /** How far into the mist the shown book has faded as it hands its panel over, `0..1`. */
+    private fun handOverMist(): Float {
+        handingOverTo ?: return 0.0f
+        return ((System.nanoTime() - handOverStartedNanos).toFloat() / HAND_OVER_NANOS).coerceIn(0.0f, 1.0f)
+    }
+
+    private fun isStillSwingingShut(level: ClientLevel, showing: BookBeingRead?): Boolean {
+        val onALectern = showing as? BookBeingRead.OnALectern
+        val lectern = onALectern?.let { level.getBlockEntity(it.pos) } as? LecternBlockEntity
+        val isShutWithOurBook = lectern != null &&
+            LecternBooks.isOurs(lectern.book) && !LecternOpening.isOpen(lectern.blockState)
+        if (onALectern == null || !isShutWithOurBook) {
+            swingingShut = null
+            return false
+        }
+        if (swingingShut != onALectern) {
+            swingingShut = onALectern
+            shutAt = level.gameTime
+        }
+        return level.gameTime - shutAt < LecternBookRenderer.SWING_TICKS
     }
 
     /** Called by a book's renderer as it extracts the book being shown. */
@@ -87,7 +141,7 @@ object OpenBookPanels {
         val shownIsSeen = shownSeenThisFrame
         shownSeenThisFrame = false
         if (book != null && shownIsSeen && !isComposedByItsScreen(book)) {
-            PanelComposite.composeLive(LinkingPanel.preview, delta)
+            PanelComposite.composeLive(LinkingPanel.preview, delta, fadesIn = true, fadingOut = handOverMist())
         }
         // After the live picture, whose Age may itself have had a book of ours in view.
         if (mistedSeenThisFrame) PanelComposite.composeMisted()
@@ -99,6 +153,9 @@ object OpenBookPanels {
         val screen = Minecraft.getInstance().gui.screen() as? BookScreen ?: return false
         return screen.held == book && screen.isShowingItsPanel
     }
+
+    /** Three quarters of a second, for the shown book to fade into the mist before a nearer one takes its panel. */
+    private const val HAND_OVER_NANOS = 750_000_000L
 
     /** Every open book of ours near enough to [viewer] to be chosen. */
     private fun openBooksNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> =

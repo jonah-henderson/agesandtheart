@@ -142,8 +142,8 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         return ours.takeIf { it.hasBook && it.panelPage != null }
     }
 
-    private companion object {
-        const val HALF_A_BLOCK = 0.5
+    companion object {
+        private const val HALF_A_BLOCK = 0.5
 
         /** Half a second from shut to open, as the model's own animation takes. */
         const val SWING_TICKS = 10.0
