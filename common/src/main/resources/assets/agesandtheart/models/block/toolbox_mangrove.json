@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/toolbox",
+  "textures": {
+    "planks": "minecraft:block/mangrove_planks"
+  }
+}

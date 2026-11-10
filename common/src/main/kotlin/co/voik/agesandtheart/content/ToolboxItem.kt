@@ -20,6 +20,10 @@ import java.util.function.Consumer
  */
 class ToolboxItem(block: Block, properties: Properties) : BlockItem(block, properties) {
 
+    /** Named for its wood, as a boat or a sign is; one from before any wood was kept is oak. */
+    override fun getName(stack: ItemStack): Component =
+        ToolboxBlock.nameOf(stack.get(DataComponents.BLOCK_STATE)?.get(ToolboxBlock.WOOD) ?: WoodKind.OAK)
+
     @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,

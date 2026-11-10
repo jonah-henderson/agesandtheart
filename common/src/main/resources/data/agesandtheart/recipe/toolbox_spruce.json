@@ -1,0 +1,24 @@
+{
+  "_comment": "A base with a handle over it, all of one wood, as a boat or a sign is.",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "toolbox",
+  "key": {
+    "P": "minecraft:spruce_planks",
+    "W": "minecraft:spruce_slab",
+    "I": "minecraft:stick"
+  },
+  "pattern": [
+    " I ",
+    "I I",
+    "PWP"
+  ],
+  "result": {
+    "id": "agesandtheart:toolbox",
+    "components": {
+      "minecraft:block_state": {
+        "wood": "spruce"
+      }
+    }
+  }
+}

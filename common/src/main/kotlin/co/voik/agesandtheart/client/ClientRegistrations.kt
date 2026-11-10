@@ -67,6 +67,7 @@ object ClientRegistrations {
     /** The item models drawn in code, by the `type` an item model's `minecraft:special` names. */
     val SPECIAL_ITEM_RENDERERS: List<Pair<Identifier, MapCodec<out SpecialModelRenderer.Unbaked<*>>>> = listOf(
         "age_book".location() to AgeBookItemRenderer.Unbaked.MAP_CODEC,
+        "toolbox_contents".location() to ToolboxItemRenderer.Unbaked.MAP_CODEC,
     )
 
     val TOOLTIPS: List<TooltipFor<*>> = listOf(
@@ -110,6 +111,7 @@ object ClientRegistrations {
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
+        RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.client.FrequencyTunerScreen
 import co.voik.agesandtheart.client.KnownMachineRecipes
 import co.voik.agesandtheart.client.ReadoutScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.station.Compounder
 import co.voik.agesandtheart.station.DryingRack
@@ -20,9 +21,11 @@ import mezz.jei.api.registration.IGuiHandlerRegistration
 import mezz.jei.api.registration.IRecipeCatalystRegistration
 import mezz.jei.api.registration.IRecipeCategoryRegistration
 import mezz.jei.api.registration.IRecipeRegistration
+import mezz.jei.api.registration.ISubtypeRegistration
 import mezz.jei.api.runtime.IJeiRuntime
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.renderer.Rect2i
+import net.minecraft.core.component.DataComponents
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.crafting.CraftingRecipe
 import net.minecraft.world.item.crafting.RecipeHolder
@@ -48,6 +51,11 @@ class AgesJeiPlugin : IModPlugin {
     }
 
     override fun getPluginUid(): Identifier = "jei".location()
+
+    /** A toolbox of each wood is its own entry, as the creative tab lists them. */
+    override fun registerItemSubtypes(registration: ISubtypeRegistration) {
+        registration.registerFromDataComponentTypes(AgeContent.TOOLBOX, DataComponents.BLOCK_STATE)
+    }
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {
         val guiHelper = registration.jeiHelpers.guiHelper

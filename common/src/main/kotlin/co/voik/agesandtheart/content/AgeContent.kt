@@ -871,7 +871,8 @@ object AgeContent {
             .setId(ResourceKey.create(Registries.BLOCK, TOOLBOX_ID))
             .mapColor(MapColor.WOOD)
             .strength(SET_DOWN_OFTEN)
-            .sound(SoundType.WOOD),
+            .sound(SoundType.WOOD)
+            .noOcclusion(),
     )
 
     /** The nine compartments, which travel with the block — see [ToolboxBlockEntity]. */

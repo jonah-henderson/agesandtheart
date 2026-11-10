@@ -1,9 +1,215 @@
 {
-  "_comment": [
-    "A barrel stands in until the model pass. NOT a shulker box, which is what the behaviour is derived",
-    "from: a shulker box has no baked model at all -- it is drawn by ShulkerBoxRenderer -- so pointing at",
-    "one would render nothing. A barrel is the nearest container that is an ordinary model.",
-    "It stood as a BOOKSHELF before, which read as furniture and hid that this is luggage."
-  ],
-  "variants": { "": { "model": "minecraft:block/barrel" } }
+  "_comment": "Jonah's toolbox, in the wood it was built of. The model's handle runs north and south, toward whoever set it down. The palm's is birch under its tint.",
+  "variants": {
+    "facing=north,wood=oak": {
+      "model": "agesandtheart:block/toolbox_oak"
+    },
+    "facing=east,wood=oak": {
+      "model": "agesandtheart:block/toolbox_oak",
+      "y": 90
+    },
+    "facing=south,wood=oak": {
+      "model": "agesandtheart:block/toolbox_oak",
+      "y": 180
+    },
+    "facing=west,wood=oak": {
+      "model": "agesandtheart:block/toolbox_oak",
+      "y": 270
+    },
+    "facing=north,wood=spruce": {
+      "model": "agesandtheart:block/toolbox_spruce"
+    },
+    "facing=east,wood=spruce": {
+      "model": "agesandtheart:block/toolbox_spruce",
+      "y": 90
+    },
+    "facing=south,wood=spruce": {
+      "model": "agesandtheart:block/toolbox_spruce",
+      "y": 180
+    },
+    "facing=west,wood=spruce": {
+      "model": "agesandtheart:block/toolbox_spruce",
+      "y": 270
+    },
+    "facing=north,wood=birch": {
+      "model": "agesandtheart:block/toolbox_birch"
+    },
+    "facing=east,wood=birch": {
+      "model": "agesandtheart:block/toolbox_birch",
+      "y": 90
+    },
+    "facing=south,wood=birch": {
+      "model": "agesandtheart:block/toolbox_birch",
+      "y": 180
+    },
+    "facing=west,wood=birch": {
+      "model": "agesandtheart:block/toolbox_birch",
+      "y": 270
+    },
+    "facing=north,wood=jungle": {
+      "model": "agesandtheart:block/toolbox_jungle"
+    },
+    "facing=east,wood=jungle": {
+      "model": "agesandtheart:block/toolbox_jungle",
+      "y": 90
+    },
+    "facing=south,wood=jungle": {
+      "model": "agesandtheart:block/toolbox_jungle",
+      "y": 180
+    },
+    "facing=west,wood=jungle": {
+      "model": "agesandtheart:block/toolbox_jungle",
+      "y": 270
+    },
+    "facing=north,wood=acacia": {
+      "model": "agesandtheart:block/toolbox_acacia"
+    },
+    "facing=east,wood=acacia": {
+      "model": "agesandtheart:block/toolbox_acacia",
+      "y": 90
+    },
+    "facing=south,wood=acacia": {
+      "model": "agesandtheart:block/toolbox_acacia",
+      "y": 180
+    },
+    "facing=west,wood=acacia": {
+      "model": "agesandtheart:block/toolbox_acacia",
+      "y": 270
+    },
+    "facing=north,wood=dark_oak": {
+      "model": "agesandtheart:block/toolbox_dark_oak"
+    },
+    "facing=east,wood=dark_oak": {
+      "model": "agesandtheart:block/toolbox_dark_oak",
+      "y": 90
+    },
+    "facing=south,wood=dark_oak": {
+      "model": "agesandtheart:block/toolbox_dark_oak",
+      "y": 180
+    },
+    "facing=west,wood=dark_oak": {
+      "model": "agesandtheart:block/toolbox_dark_oak",
+      "y": 270
+    },
+    "facing=north,wood=mangrove": {
+      "model": "agesandtheart:block/toolbox_mangrove"
+    },
+    "facing=east,wood=mangrove": {
+      "model": "agesandtheart:block/toolbox_mangrove",
+      "y": 90
+    },
+    "facing=south,wood=mangrove": {
+      "model": "agesandtheart:block/toolbox_mangrove",
+      "y": 180
+    },
+    "facing=west,wood=mangrove": {
+      "model": "agesandtheart:block/toolbox_mangrove",
+      "y": 270
+    },
+    "facing=north,wood=cherry": {
+      "model": "agesandtheart:block/toolbox_cherry"
+    },
+    "facing=east,wood=cherry": {
+      "model": "agesandtheart:block/toolbox_cherry",
+      "y": 90
+    },
+    "facing=south,wood=cherry": {
+      "model": "agesandtheart:block/toolbox_cherry",
+      "y": 180
+    },
+    "facing=west,wood=cherry": {
+      "model": "agesandtheart:block/toolbox_cherry",
+      "y": 270
+    },
+    "facing=north,wood=pale_oak": {
+      "model": "agesandtheart:block/toolbox_pale_oak"
+    },
+    "facing=east,wood=pale_oak": {
+      "model": "agesandtheart:block/toolbox_pale_oak",
+      "y": 90
+    },
+    "facing=south,wood=pale_oak": {
+      "model": "agesandtheart:block/toolbox_pale_oak",
+      "y": 180
+    },
+    "facing=west,wood=pale_oak": {
+      "model": "agesandtheart:block/toolbox_pale_oak",
+      "y": 270
+    },
+    "facing=north,wood=bamboo": {
+      "model": "agesandtheart:block/toolbox_bamboo"
+    },
+    "facing=east,wood=bamboo": {
+      "model": "agesandtheart:block/toolbox_bamboo",
+      "y": 90
+    },
+    "facing=south,wood=bamboo": {
+      "model": "agesandtheart:block/toolbox_bamboo",
+      "y": 180
+    },
+    "facing=west,wood=bamboo": {
+      "model": "agesandtheart:block/toolbox_bamboo",
+      "y": 270
+    },
+    "facing=north,wood=crimson": {
+      "model": "agesandtheart:block/toolbox_crimson"
+    },
+    "facing=east,wood=crimson": {
+      "model": "agesandtheart:block/toolbox_crimson",
+      "y": 90
+    },
+    "facing=south,wood=crimson": {
+      "model": "agesandtheart:block/toolbox_crimson",
+      "y": 180
+    },
+    "facing=west,wood=crimson": {
+      "model": "agesandtheart:block/toolbox_crimson",
+      "y": 270
+    },
+    "facing=north,wood=warped": {
+      "model": "agesandtheart:block/toolbox_warped"
+    },
+    "facing=east,wood=warped": {
+      "model": "agesandtheart:block/toolbox_warped",
+      "y": 90
+    },
+    "facing=south,wood=warped": {
+      "model": "agesandtheart:block/toolbox_warped",
+      "y": 180
+    },
+    "facing=west,wood=warped": {
+      "model": "agesandtheart:block/toolbox_warped",
+      "y": 270
+    },
+    "facing=north,wood=poplar": {
+      "model": "agesandtheart:block/toolbox_poplar"
+    },
+    "facing=east,wood=poplar": {
+      "model": "agesandtheart:block/toolbox_poplar",
+      "y": 90
+    },
+    "facing=south,wood=poplar": {
+      "model": "agesandtheart:block/toolbox_poplar",
+      "y": 180
+    },
+    "facing=west,wood=poplar": {
+      "model": "agesandtheart:block/toolbox_poplar",
+      "y": 270
+    },
+    "facing=north,wood=palm": {
+      "model": "agesandtheart:block/toolbox_palm"
+    },
+    "facing=east,wood=palm": {
+      "model": "agesandtheart:block/toolbox_palm",
+      "y": 90
+    },
+    "facing=south,wood=palm": {
+      "model": "agesandtheart:block/toolbox_palm",
+      "y": 180
+    },
+    "facing=west,wood=palm": {
+      "model": "agesandtheart:block/toolbox_palm",
+      "y": 270
+    }
+  }
 }

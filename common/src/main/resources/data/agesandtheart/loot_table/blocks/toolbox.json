@@ -1,5 +1,5 @@
 {
-  "_comment": "The contents travel with the box, on the shulker's own mechanism -- carrying spares is what a toolbox is for, so breaking one must not scatter them.",
+  "_comment": "The contents travel with the box, on the shulker's own mechanism -- carrying spares is what a toolbox is for, so breaking one must not scatter them. And it keeps the wood it was built of.",
   "type": "minecraft:block",
   "pools": [
     {
@@ -13,12 +13,24 @@
             {
               "type": "minecraft:copy_components",
               "source": "block_entity",
-              "include": ["minecraft:custom_name", "minecraft:container"]
+              "include": [
+                "minecraft:custom_name",
+                "minecraft:container"
+              ]
+            },
+            {
+              "type": "minecraft:copy_state",
+              "block": "agesandtheart:toolbox",
+              "properties": [
+                "wood"
+              ]
             }
           ]
         }
       ],
-      "condition": { "type": "minecraft:survives_explosion" }
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
     }
   ],
   "random_sequence": "agesandtheart:blocks/toolbox"

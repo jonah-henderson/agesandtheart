@@ -27,8 +27,10 @@ internal object ReleaseInstruments {
     }
 
     /**
-     * `/age registered` — every id of ours in a built-in registry, as `<registry> <id>`, every payload, and
-     * the generator version. `CompatibilityRecordCheck` compares this against `compatibility.record`.
+     * `/age registered` — every id of ours in a built-in registry, as `<registry> <id>`, every payload, how many
+     * states each block of ours has and every other namespace's blocks have together, and the generator version.
+     * `CompatibilityRecordCheck` compares this against `compatibility.record`. A block state travels as its index
+     * among every block's states, so a state added anywhere moves the rest.
      */
     private fun registeredSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("registered")
@@ -126,6 +128,16 @@ internal object ReleaseInstruments {
             registry.keySet().filter { it.namespace == Constants.MOD_ID }.map { "$kind $it" }
         }
         val payloads = Payloads.ROUTES.map { it.type.id } + ServerBuildPayload.TYPE.id + ClientBuildPayload.TYPE.id
-        return (registered + payloads.map { "payload $it" }).sorted()
+        return (registered + payloads.map { "payload $it" } + blockStateCounts()).sorted()
+    }
+
+    private fun blockStateCounts(): List<String> {
+        val blocks = BuiltInRegistries.BLOCK.entrySet().map { (resourceKey, block) -> resourceKey.identifier() to block }
+        val (ours, others) = blocks.partition { (id, _) -> id.namespace == Constants.MOD_ID }
+        fun statesOf(block: Block) = block.stateDefinition.possibleStates.size
+        val eachOfOurs = ours.map { (id, block) -> "block_states $id ${statesOf(block)}" }
+        val othersByNamespace = others.groupBy({ (id, _) -> id.namespace }, { (_, block) -> statesOf(block) })
+            .map { (namespace, counts) -> "block_states $namespace ${counts.sum()}" }
+        return eachOfOurs + othersByNamespace
     }
 }

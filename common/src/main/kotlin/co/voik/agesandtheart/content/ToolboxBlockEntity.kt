@@ -1,14 +1,22 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.NonNullList
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
+import net.minecraft.network.protocol.Packet
+import net.minecraft.network.protocol.game.ClientGamePacketListener
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.world.ContainerHelper
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.storage.ValueInput
+import net.minecraft.world.level.storage.ValueOutput
 
 /**
  * What a toolbox holds: nine compartments of spares.
@@ -19,7 +27,8 @@ import net.minecraft.world.level.block.state.BlockState
  *
  * **The contents travel with the block**, on the shulker's own mechanism — [BaseContainerBlockEntity]
  * already reads and writes `DataComponents.CONTAINER` for us, and the loot table copies it onto the item.
- * That is the whole of why a toolbox is worth carrying rather than worth placing.
+ * That is the whole of why a toolbox is worth carrying rather than worth placing. Set down, it keeps them in the
+ * world as a chest does, and tells the clients near what it holds, so the first few show in it.
  */
 class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
     BaseContainerBlockEntity(AgeContent.TOOLBOX_ENTITY, pos, state) {
@@ -37,7 +46,28 @@ class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
         this.items = items
     }
 
-    override fun getDefaultName(): Component = Component.translatable("block.agesandtheart.toolbox")
+    override fun loadAdditional(input: ValueInput) {
+        super.loadAdditional(input)
+        items = NonNullList.withSize(ToolboxMenu.COMPARTMENTS, ItemStack.EMPTY)
+        ContainerHelper.loadAllItems(input, items)
+    }
+
+    override fun saveAdditional(output: ValueOutput) {
+        super.saveAdditional(output)
+        ContainerHelper.saveAllItems(output, items)
+    }
+
+    override fun setChanged() {
+        super.setChanged()
+        val level = level ?: return
+        if (!level.isClientSide) level.sendBlockUpdated(blockPos, blockState, blockState, Block.UPDATE_CLIENTS)
+    }
+
+    override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
+
+    override fun getUpdateTag(registries: HolderLookup.Provider): CompoundTag = saveCustomOnly(registries)
+
+    override fun getDefaultName(): Component = ToolboxBlock.nameOf(blockState.getValue(ToolboxBlock.WOOD))
 
     override fun createMenu(containerId: Int, inventory: Inventory): AbstractContainerMenu =
         ToolboxMenu(containerId, inventory, this)

@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.20
+line=0.21
 generator=25
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -109,6 +109,98 @@ block_entity_type agesandtheart:station
 block_entity_type agesandtheart:toolbox
 block_entity_type agesandtheart:transcriber
 block_entity_type agesandtheart:writers_desk
+block_states agesandtheart:advanced_analysis_machine 32
+block_states agesandtheart:algae 2
+block_states agesandtheart:analysis_machine 3
+block_states agesandtheart:arc_crystal 1
+block_states agesandtheart:arc_crystal_block 8
+block_states agesandtheart:archive 1
+block_states agesandtheart:astrite_block 2
+block_states agesandtheart:astrite_shard 24
+block_states agesandtheart:blue_rime_crystal 48
+block_states agesandtheart:bookbinder 8
+block_states agesandtheart:coconut 1
+block_states agesandtheart:collapsing_fissure 1
+block_states agesandtheart:compounded_stone 1
+block_states agesandtheart:contained_plasma 16
+block_states agesandtheart:crystal_viewer 1
+block_states agesandtheart:cyan_rime_crystal 48
+block_states agesandtheart:dead_paper_tree_log 3
+block_states agesandtheart:dead_paper_tree_sapling 2
+block_states agesandtheart:deep_bubble_column 4
+block_states agesandtheart:deep_water 16
+block_states agesandtheart:drying_rack 8
+block_states agesandtheart:fine_ink 16
+block_states agesandtheart:frequency_tuner 1
+block_states agesandtheart:fusion_compounder 192
+block_states agesandtheart:geologists_tools 1
+block_states agesandtheart:gloomgrit 24
+block_states agesandtheart:grammar_guide 1
+block_states agesandtheart:grazed_torchflower 2
+block_states agesandtheart:green_rime_crystal 48
+block_states agesandtheart:grinder 3
+block_states agesandtheart:hanging_coconut 12
+block_states agesandtheart:ink 16
+block_states agesandtheart:lava_tube 1
+block_states agesandtheart:linking_book_receptacle 2
+block_states agesandtheart:linking_portal 2
+block_states agesandtheart:magenta_rime_crystal 48
+block_states agesandtheart:masterwork_ink 16
+block_states agesandtheart:observation_device 3
+block_states agesandtheart:orange_rime_crystal 48
+block_states agesandtheart:overgrowth 1
+block_states agesandtheart:palm_button 24
+block_states agesandtheart:palm_door 64
+block_states agesandtheart:palm_fence 64
+block_states agesandtheart:palm_fence_gate 32
+block_states agesandtheart:palm_fronds 56
+block_states agesandtheart:palm_hanging_sign 128
+block_states agesandtheart:palm_log 3
+block_states agesandtheart:palm_planks 1
+block_states agesandtheart:palm_pressure_plate 2
+block_states agesandtheart:palm_shelf 128
+block_states agesandtheart:palm_sign 64
+block_states agesandtheart:palm_slab 12
+block_states agesandtheart:palm_stairs 160
+block_states agesandtheart:palm_trapdoor 128
+block_states agesandtheart:palm_wall_hanging_sign 16
+block_states agesandtheart:palm_wall_sign 16
+block_states agesandtheart:palm_wood 3
+block_states agesandtheart:paper_tree_leaves 224
+block_states agesandtheart:paper_tree_log 6
+block_states agesandtheart:paper_tree_root 16
+block_states agesandtheart:paper_tree_roots 4
+block_states agesandtheart:paper_tree_sapling 128
+block_states agesandtheart:phasmium_block 1
+block_states agesandtheart:pitchstone 4
+block_states agesandtheart:plasma 2
+block_states agesandtheart:plasma_containment_unit 8
+block_states agesandtheart:potted_palm_sapling 1
+block_states agesandtheart:pulper 3
+block_states agesandtheart:raw_temperstone 1
+block_states agesandtheart:red_rime_crystal 48
+block_states agesandtheart:scarab_nest 1
+block_states agesandtheart:scarab_pillar 1
+block_states agesandtheart:scorched_temperstone 1
+block_states agesandtheart:seismograph 1
+block_states agesandtheart:star_fissure 1
+block_states agesandtheart:stripped_palm_log 3
+block_states agesandtheart:stripped_palm_wood 3
+block_states agesandtheart:stripped_paper_tree_log 3
+block_states agesandtheart:surveying_device 3
+block_states agesandtheart:temperstone 1
+block_states agesandtheart:thorn_vine 324
+block_states agesandtheart:toolbox 56
+block_states agesandtheart:transcriber 1
+block_states agesandtheart:unstable_plasma 624
+block_states agesandtheart:vent_lining 1
+block_states agesandtheart:white_rime_crystal 48
+block_states agesandtheart:white_sand 1
+block_states agesandtheart:white_sandstone 1
+block_states agesandtheart:wound 2
+block_states agesandtheart:writers_desk 20
+block_states agesandtheart:yellow_rime_crystal 48
+block_states minecraft 63913
 creative_mode_tab agesandtheart:agesandtheart
 data_component_type agesandtheart:age_id
 data_component_type agesandtheart:archive_pages

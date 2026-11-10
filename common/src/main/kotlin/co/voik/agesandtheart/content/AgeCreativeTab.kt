@@ -9,9 +9,9 @@ import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.ItemStack
 
 /**
- * The mod's creative tab: every item of ours, in the order they were registered. Read off the registry
- * rather than listed, so an item added anywhere, a loader's fluid buckets included, turns up without
- * anyone remembering to add it here. Each loader supplies its own builder, which is all that differs.
+ * The mod's creative tab: every item of ours, in the order they were registered, and the toolbox in each of its
+ * woods. Read off the registry rather than listed, so an item added anywhere, a loader's fluid buckets included,
+ * turns up without anyone remembering to add it here. Each loader supplies its own builder, which is all that differs.
  */
 object AgeCreativeTab {
     val ID: Identifier = Constants.MOD_ID.location()
@@ -25,7 +25,13 @@ object AgeCreativeTab {
             BuiltInRegistries.ITEM.entrySet()
                 .filter { (key, _) -> key.identifier().namespace == Constants.MOD_ID }
                 .sortedBy { (_, item) -> BuiltInRegistries.ITEM.getId(item) }
-                .forEach { (_, item) -> output.accept(item) }
+                .forEach { (_, item) ->
+                    if (item == AgeContent.TOOLBOX) {
+                        WoodKind.entries.forEach { wood -> output.accept(ToolboxBlock.stackOf(wood)) }
+                    } else {
+                        output.accept(item)
+                    }
+                }
         }
         .build()
 }

@@ -1,1 +1,130 @@
-{ "model": { "type": "minecraft:model", "model": "minecraft:block/barrel" } }
+{
+  "_comment": "The box in its wood, and what is in it standing inside (`ToolboxItemRenderer`), drawn with the box's own display settings.",
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:block_state",
+        "block_state_property": "wood",
+        "cases": [
+          {
+            "when": "oak",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_oak"
+            }
+          },
+          {
+            "when": "spruce",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_spruce"
+            }
+          },
+          {
+            "when": "birch",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_birch"
+            }
+          },
+          {
+            "when": "jungle",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_jungle"
+            }
+          },
+          {
+            "when": "acacia",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_acacia"
+            }
+          },
+          {
+            "when": "dark_oak",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_dark_oak"
+            }
+          },
+          {
+            "when": "mangrove",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_mangrove"
+            }
+          },
+          {
+            "when": "cherry",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_cherry"
+            }
+          },
+          {
+            "when": "pale_oak",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_pale_oak"
+            }
+          },
+          {
+            "when": "bamboo",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_bamboo"
+            }
+          },
+          {
+            "when": "crimson",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_crimson"
+            }
+          },
+          {
+            "when": "warped",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_warped"
+            }
+          },
+          {
+            "when": "poplar",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_poplar"
+            }
+          },
+          {
+            "when": "palm",
+            "model": {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/toolbox_palm",
+              "tints": [
+                {
+                  "type": "minecraft:constant",
+                  "value": 16630428
+                }
+              ]
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/toolbox_oak"
+        }
+      },
+      {
+        "type": "minecraft:special",
+        "base": "agesandtheart:block/toolbox_oak",
+        "model": {
+          "type": "agesandtheart:toolbox_contents"
+        }
+      }
+    ]
+  }
+}
