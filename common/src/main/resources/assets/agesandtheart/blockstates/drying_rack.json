@@ -1,8 +1,35 @@
 {
-  "_comment": "The loom stands in until the model pass.",
+  "_comment": "Two blocks tall, as a door is: each half its own part of Jonah's model, split at the block line. The model faces north, its front legs and the rungs the dried things hang from at the north edge.",
   "variants": {
-    "": {
-      "model": "minecraft:block/loom"
+    "facing=north,half=lower": {
+      "model": "agesandtheart:block/drying_rack_lower"
+    },
+    "facing=north,half=upper": {
+      "model": "agesandtheart:block/drying_rack_upper"
+    },
+    "facing=east,half=lower": {
+      "model": "agesandtheart:block/drying_rack_lower",
+      "y": 90
+    },
+    "facing=east,half=upper": {
+      "model": "agesandtheart:block/drying_rack_upper",
+      "y": 90
+    },
+    "facing=south,half=lower": {
+      "model": "agesandtheart:block/drying_rack_lower",
+      "y": 180
+    },
+    "facing=south,half=upper": {
+      "model": "agesandtheart:block/drying_rack_upper",
+      "y": 180
+    },
+    "facing=west,half=lower": {
+      "model": "agesandtheart:block/drying_rack_lower",
+      "y": 270
+    },
+    "facing=west,half=upper": {
+      "model": "agesandtheart:block/drying_rack_upper",
+      "y": 270
     }
   }
 }

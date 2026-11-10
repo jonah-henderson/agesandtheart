@@ -109,6 +109,7 @@ object ClientRegistrations {
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
+        RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(
@@ -125,7 +126,6 @@ object ClientRegistrations {
         ScreenForMenu(AgeContent.ARCHIVE_MENU, ::ArchiveScreen),
         ScreenForMenu(AgeContent.STATION_MENU, ::StationScreen),
         ScreenForMenu(Compounder.MENU, ::CompounderScreen),
-        ScreenForMenu(DryingRack.MENU, ::DryingRackScreen),
         ScreenForMenu(Bookbinder.MENU, ::BookbinderScreen),
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
         // the fence lives in the menu rather than in the drawing.

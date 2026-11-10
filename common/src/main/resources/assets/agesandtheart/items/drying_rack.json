@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "minecraft:block/loom"
+    "model": "agesandtheart:block/drying_rack"
   }
 }
