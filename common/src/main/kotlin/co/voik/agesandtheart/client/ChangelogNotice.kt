@@ -9,15 +9,9 @@ import net.minecraft.core.Holder
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
-import net.minecraft.server.dialog.CommonDialogData
-import net.minecraft.server.dialog.DialogAction
-import net.minecraft.server.dialog.NoticeDialog
-import net.minecraft.server.dialog.body.DialogBody
-import net.minecraft.server.dialog.body.PlainMessage
 import net.minecraft.server.packs.resources.ResourceManager
 import java.io.File
 import java.io.IOException
-import java.util.Optional
 
 /**
  * For the beta: once per installation after an update, a line in chat saying which version this is, its "changelog"
@@ -41,15 +35,13 @@ object ChangelogNotice {
         if (lastSeen != null && lastSeen >= current) return
         val notes = notesBetween(minecraft.resourceManager, lastSeen, current)
         if (notes.none { it.release == current }) return
+        ChangelogScreen.register()
         player.sendSystemMessage(notice(current, notes))
         remember(seenFile, current)
     }
 
-    /** One release's notes, as written. */
-    private data class Notes(val release: Release, val text: String)
-
     /** The notes of every release after [lastSeen] up to [current], newest first; only [current]'s where none was seen. */
-    private fun notesBetween(resources: ResourceManager, lastSeen: Release?, current: Release): List<Notes> {
+    private fun notesBetween(resources: ResourceManager, lastSeen: Release?, current: Release): List<ReleaseNotes> {
         val written = resources.listResources(DIRECTORY) { it.namespace == Constants.MOD_ID && it.path.endsWith(EXTENSION) }
             .mapNotNull { (file, resource) ->
                 val release = Release.of(file.path.removePrefix("$DIRECTORY/").removeSuffix(EXTENSION)) ?: return@mapNotNull null
@@ -59,9 +51,9 @@ object ChangelogNotice {
                     Constants.LOG.warn("Could not read the notes in {}", file, unreadable)
                     return@mapNotNull null
                 }
-                Notes(release, text).takeIf { text.isNotEmpty() }
+                ReleaseNotes(release, text).takeIf { text.isNotEmpty() }
             }
-        fun isMissed(notes: Notes): Boolean {
+        fun isMissed(notes: ReleaseNotes): Boolean {
             val isNewerThanSeen = lastSeen == null || notes.release > lastSeen
             val isUpToCurrent = notes.release <= current
             val isShownAtAll = lastSeen != null || notes.release == current
@@ -70,36 +62,15 @@ object ChangelogNotice {
         return written.filter(::isMissed).sortedByDescending { it.release }
     }
 
-    private fun notice(current: Release, notes: List<Notes>): Component {
+    private fun notice(current: Release, notes: List<ReleaseNotes>): Component {
         val link = Component.translatable("$KEY.link").withStyle { style ->
             style.withColor(ChatFormatting.AQUA)
                 .withUnderlined(true)
-                .withClickEvent(ClickEvent.ShowDialog(Holder.direct(dialog(current, notes))))
+                .withClickEvent(ClickEvent.ShowDialog(Holder.direct(ChangelogDialog(Component.translatable("$KEY.title", current.name), notes))))
                 .withHoverEvent(HoverEvent.ShowText(Component.translatable("$KEY.hover")))
         }
-        return Component.translatable(KEY, nameOf(current), link)
+        return Component.translatable(KEY, current.name, link)
     }
-
-    private fun dialog(current: Release, notes: List<Notes>): NoticeDialog {
-        val body = notes.flatMap { release ->
-            listOf<DialogBody>(
-                PlainMessage(Component.translatable("$KEY.heading", nameOf(release.release)).withStyle(ChatFormatting.BOLD), NOTES_WIDTH),
-                PlainMessage(Component.literal(release.text), NOTES_WIDTH),
-            )
-        }
-        val data = CommonDialogData(
-            Component.translatable("$KEY.title", nameOf(current)),
-            Optional.empty(),
-            true,
-            false,
-            DialogAction.CLOSE,
-            body,
-            emptyList(),
-        )
-        return NoticeDialog(data, NoticeDialog.DEFAULT_ACTION)
-    }
-
-    private fun nameOf(release: Release): String = "${release.major}.${release.minor}.${release.patch}"
 
     private fun lastSeen(file: File): String? = try {
         file.takeIf(File::isFile)?.readText()?.trim()
@@ -111,7 +82,7 @@ object ChangelogNotice {
     private fun remember(file: File, release: Release) {
         try {
             file.parentFile?.mkdirs()
-            file.writeText(nameOf(release))
+            file.writeText(release.name)
         } catch (unwritable: IOException) {
             Constants.LOG.warn("Could not write {}", file, unwritable)
         }
@@ -122,6 +93,4 @@ object ChangelogNotice {
     private const val DIRECTORY = "changelog"
     private const val EXTENSION = ".txt"
 
-    /** Wide enough that a line of notes seldom wraps. */
-    private const val NOTES_WIDTH = 360
 }

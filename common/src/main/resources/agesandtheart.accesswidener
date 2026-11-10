@@ -225,3 +225,6 @@ accessible	class	net/minecraft/world/entity/monster/cubemob/AbstractCubeMob$Cube
 # where it already is, and its flight graph is laid again where it has strayed from it (`Dragons.answerToTheirOwners`).
 accessible	field	net/minecraft/world/entity/boss/enderdragon/phases/DragonHoverPhase	targetLocation	Lnet/minecraft/world/phys/Vec3;
 accessible	field	net/minecraft/world/entity/boss/enderdragon/EnderDragon	nodes	[Lnet/minecraft/world/level/pathfinder/Node;
+
+# The changelog's own dialog screen, registered beside vanilla's so a chat link can open it (`client/ChangelogScreen`).
+accessible	method	net/minecraft/client/gui/screens/dialog/DialogScreens	register	(Lcom/mojang/serialization/MapCodec;Lnet/minecraft/client/gui/screens/dialog/DialogScreens$Factory;)V

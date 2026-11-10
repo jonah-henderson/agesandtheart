@@ -95,6 +95,9 @@ data class Release(val major: Int, val minor: Int, val patch: Int) : Comparable<
     /** What two releases must share to play together: the major version, or the minor while major is 0. */
     val compatibilityLine: Pair<Int, Int> get() = if (major == 0) major to minor else major to 0
 
+    /** As a player reads it: `0.21.0`. */
+    val name: String get() = "$major.$minor.$patch"
+
     override fun compareTo(other: Release): Int = compareValuesBy(this, other, Release::major, Release::minor, Release::patch)
 
     companion object {

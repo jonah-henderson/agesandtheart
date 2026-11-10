@@ -1,0 +1,11 @@
+[feature] collecting items from a drying rack will add to your stack in hand, or a new slot if full
+[feature] built-in changelog
+[art] new toolbox graphics
+[art] new plasma containment unit graphics
+[art] slightly enhanced plasma graphics
+[art] animation fixes for linking books on lecterns
+[art] minor graphics fixes for bookbinder and drying rack
+[bugfix] "unbroken" no longer heavily favours icy seas
+[bugfix] adjusted rarities of "scarce", "teeming", "few", "plentiful", "beautiful"
+[bugfix] fixed certain features incorrectly being tagged as "stony"
+[bugfix] toolboxes left in a chunk would lose their tools on reload
