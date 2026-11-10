@@ -7,8 +7,8 @@
     "and measured against the fuller of them 2026-09-07: these rules reproduce 84% of its 717",
     "usable pairs. The last rule is why. English 'a' is usually the vowel of 'cat', so sending it",
     "to 'å' is right about the word going in and wrong about D'ni, which overwhelmingly writes",
-    "plain 'a' — that one rule was 336 of 421 misses on its own, and 43% against 84%. Ask for the",
-    "other vowel deliberately with 'ah'. See notes/dni-sources.md."
+    "plain 'a' — that one rule was 336 of 421 misses on its own, and 43% against 84%. A word that",
+    "wants the other vowel is spelled in art/script/dni.json. See notes/dni-sources.md."
   ],
   "font": "agesandtheart:script",
   "rules": [

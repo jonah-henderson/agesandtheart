@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "Whole: solid rock and a solid underground, and every part leaning solid and away from caves.",
+    "Whole: solid rock and a solid underground, and now and then the rest leaning solid and away from caves",
+    "(a sea of ice, say); aimed, the lean always lands where it is aimed.",
     "`unbroken clouds`: the sky overcast but for a few gaps."
   ],
   "meanings": [
@@ -27,7 +28,7 @@
           "#cavernous": -0.8
         }
       },
-      "must_always_apply": true
+      "unaimed_chance_to_apply": 0.3
     },
     {
       "sets": {
