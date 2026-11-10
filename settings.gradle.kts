@@ -52,6 +52,32 @@ includeBuild("../ephemeris") {
         substitute(module("co.voik.ephemeris:ephemeris-neoforge-26.3")).using(project(":neoforge"))
     }
 }
+
+/**
+ * Warns when `../ephemeris` is not at the release the catalog names, since the composite build uses whatever is
+ * checked out there while a release ships the published jar. Only a warning: building against unreleased
+ * Ephemeris is the normal loop.
+ */
+fun warnWhereEphemerisDrifts() {
+    val catalog = file("libs.versions.toml").readText()
+    fun catalogVersion(name: String) = Regex("""(?m)^$name\s*=\s*"([^"]+)"""").find(catalog)?.groupValues?.get(1)
+    val ephemerisVersion = catalogVersion("ephemeris") ?: return
+    val minecraftVersion = catalogVersion("minecraft") ?: return
+    val releasedTag = "v$ephemerisVersion-mc$minecraftVersion"
+    val checkout = file("../ephemeris")
+    if (!checkout.resolve(".git").exists()) return
+    val described = providers.exec {
+        workingDir = checkout
+        commandLine("git", "describe", "--tags", "--long", "--dirty", "--match", "v*-mc$minecraftVersion")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+    if (described.isEmpty()) return
+    val isTheReleasedTag = described.startsWith("$releasedTag-0-g") && !described.endsWith("-dirty")
+    if (!isTheReleasedTag) {
+        logger.warn("Ephemeris in ../ephemeris is $described, not the catalog's $releasedTag: this build is not what a release ships")
+    }
+}
+warnWhereEphemerisDrifts()
 // Ages and the Art.
 include("common")
 include("fabric")
