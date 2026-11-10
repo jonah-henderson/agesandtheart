@@ -8,7 +8,7 @@ import net.minecraft.server.MinecraftServer
 /**
  * How hard an inferno comes — **datapack content** (`art/phenomenon/inferno.json`).
  *
- * Content rather than config (`notes/config-research.md`): a pack where an inferno burns a forest down in a
+ * Content rather than config (`notes/decisions.md`, "Content or config"): a pack where an inferno burns a forest down in a
  * minute is a different mod rather than the same one run differently. It is also the surface another mod
  * reaches for, which is why these are files rather than constants — the numbers here are the ones only a
  * walk can settle, and they should be movable without a build.

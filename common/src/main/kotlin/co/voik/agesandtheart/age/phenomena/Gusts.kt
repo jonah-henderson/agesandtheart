@@ -17,7 +17,7 @@ import kotlin.math.roundToInt
 data class Gust(val slot: Long, val warned: Double, val gusting: Double, val presence: Double, val veerDegrees: Double)
 
 /**
- * When a gale gusts, how hard, and with how much warning (`notes/wind-plan.md` §2): the gale's three gust dials and
+ * When a gale gusts, how hard, and with how much warning (`notes/the-art-design.md` §5.2.2, "Gale"): the gale's three gust dials and
  * a seed of the Age's own.
  *
  * **One schedule both sides read**, since the client pushes its own player and the server everything else: time is

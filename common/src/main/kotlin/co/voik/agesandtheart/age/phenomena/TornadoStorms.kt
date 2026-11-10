@@ -11,7 +11,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 /**
- * An Age whose thunderstorms bring tornadoes down (`notes/wind-plan.md` §4).
+ * An Age whose thunderstorms bring tornadoes down (`notes/the-art-design.md` §5.2.2, "Tornado").
  *
  * **The phenomenon is the tornado ([Tornado]); this is only the weather that sends them**, as [Sandfall] sends its
  * columns. One comes only while the Age thunders, upwind of somebody so its travel brings it their way, and about once

@@ -166,7 +166,7 @@ object SurfacingStrategy {
      *
      * The palm beach is white sand over white sandstone, as vanilla's beach is sand over sandstone, but
      * **only between two heights about [waterline]**, so the white gives way on a contour rather than along
-     * the biome's four-block cells (`notes/palm-beach-design.md`, "Where it gives way"). Above the band the
+     * the biome's four-block cells (`notes/terrain-architecture.md`, "A biome of ours"). Above the band the
      * palm beach falls through to the template's skin and wears ordinary ground under its palms.
      *
      * Asked of the *surface's* height (`yStartCheck`), not each block's, so a column just over the line is

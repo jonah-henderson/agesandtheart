@@ -11,7 +11,7 @@ import net.minecraft.server.MinecraftServer
  * Which processes exist is ours ([Phenomenon] is an enum, there being nothing behind a phenomenon in
  * vanilla to derive one from), but *how hard* one of them hits is content: a pack that wants a gentler
  * storm, or one that does not set the world alight, is a different pack rather than a differently-run
- * server (`notes/config-research.md`, "Which axis a parameter belongs on").
+ * server (`notes/decisions.md`, "Content or config").
  *
  * These were briefly config values, and that was the wrong axis (Jonah, 2026-08-07). The test is who is
  * meant to change it and whether changing it makes a different mod or the same mod run differently — and a

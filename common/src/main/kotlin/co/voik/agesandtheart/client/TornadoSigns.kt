@@ -19,7 +19,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * The winds about a tornado made visible (`notes/wind-plan.md` §4): streaks going round it in the open air about the
+ * The winds about a tornado made visible (`notes/the-art-design.md` §5.2.2, "Tornado"): streaks going round it in the open air about the
  * player, as a gust's race past ([GustSigns]), and the ground's own blocks torn up in crumbs all about its foot, or
  * spray off water, spiralling in, swung up the funnel and thrown out. Client particles added straight to the engine,
  * each turned by the same winds that move the player ([TornadoWinds]) as it goes.

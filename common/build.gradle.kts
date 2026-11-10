@@ -57,7 +57,7 @@ dependencies {
     // implementation at runtime, so this must never reach a runtime classpath. Nothing is generated here:
     // Minecraft is unobfuscated from 26.1, so there is no refmap for the annotation processor to write.
     compileOnly(libs.mixin)
-    // The config spec, written once here rather than twice behind the SPI (`notes/config-research.md`).
+    // The config spec, written once here rather than twice behind the SPI (`notes/decisions.md`, "Config").
     //
     // **The `-fabric` artifact, and that is not a mistake.** It is the one that carries
     // `net.neoforged.neoforge.common.ModConfigSpec` as classes; `-common` holds only the port's own

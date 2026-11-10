@@ -294,7 +294,7 @@ object Atmosphere {
     /**
      * What the water is tinted, from its surface to the fog a swimmer sees, which is the same colour dimmed
      * as vanilla dims its own. Baked into the chunk mesh like the grass, so it holds still; water that shifts
-     * colour over time is `notes/water-colour-research.md`'s shader, and not this.
+     * colour over time is the turning shader (`notes/coloured-light-research.md`), and not this.
      */
     val WATERCOLOUR = colour("colour", "The colour of the water.")
 

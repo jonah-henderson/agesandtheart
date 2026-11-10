@@ -25,7 +25,7 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 /**
- * One tornado (`notes/wind-plan.md` §4), standing at the foot of its funnel and wandering along the Age's wind.
+ * One tornado (`notes/the-art-design.md` §5.2.2, "Tornado"), standing at the foot of its funnel and wandering along the Age's wind.
  *
  * Its overcast brews over [BREWS_OVER], it reaches down from it over [TOUCHDOWN_TICKS], and it travels free: **only
  * the blocks it throws and the ground it climbs spend its strength** ([spend]), and over the last [ROPES_OUT_FROM] of

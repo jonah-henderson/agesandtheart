@@ -19,7 +19,7 @@ import net.minecraft.world.entity.MobCategory
  * is nought, where the Nether is about a half and deretheni begins at [Lines.paysAt]. A hazard is rated as a book
  * writes it by default, and the multipliers ([Hardiness], [PhenomenonDials], a claim's density) scale it from there.
  *
- * **Content rather than config** (`notes/config-research.md`): a pack where lava is cheap is a different mod rather
+ * **Content rather than config** (`notes/decisions.md`, "Content or config"): a pack where lava is cheap is a different mod rather
  * than the same one run differently. **Ids, never tags**, since this has to be readable offline.
  */
 data class DangerTable(

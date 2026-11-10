@@ -23,7 +23,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * The winds about a tornado (`notes/wind-plan.md` §4), as a real vortex's: going round anticlockwise seen from above,
+ * The winds about a tornado (`notes/the-art-design.md` §5.2.2, "Tornado"), as a real vortex's: going round anticlockwise seen from above,
  * fastest at the funnel's edge and falling away outside it, spiralling inward, and straight up inside it.
  *
  * Four rings. Out to [Vortex.outerReach], a push going round like a gale's, which shelter answers. Inside

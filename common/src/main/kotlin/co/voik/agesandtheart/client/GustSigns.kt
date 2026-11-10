@@ -20,7 +20,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * What a gust is seen coming by (`notes/wind-plan.md` §2): since nothing in the world bends in the wind, something has
+ * What a gust is seen coming by (`notes/the-art-design.md` §5.2.2, "Gale"): since nothing in the world bends in the wind, something has
  * to be put in the air for it, thickening through the warning and thickest as it hits. Client particles added
  * straight to the engine, so nothing about them crosses the network.
  *

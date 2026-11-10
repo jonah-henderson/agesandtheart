@@ -28,7 +28,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Wind turned up until it pushes ([co.voik.agesandtheart.age.aspect.Phenomenon.GALE], `notes/wind-plan.md` §2).
+ * Wind turned up until it pushes ([co.voik.agesandtheart.age.aspect.Phenomenon.GALE], `notes/the-art-design.md` §5.2.2, "Gale").
  *
  * **Spells of its own, as a fog's are**: time is cut into spells of [SPELL_TICKS], each windy or calm by a draw off
  * the seed at the share the Age's gale reaches, so every client and every reload agree with nothing written down. A

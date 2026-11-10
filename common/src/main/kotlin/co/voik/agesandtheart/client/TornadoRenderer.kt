@@ -55,7 +55,7 @@ class TornadoRenderState : EntityRenderState() {
 
 /**
  * A tornado: an overcast of blocky cloud just under vanilla's ([Tornado.OVERCAST_FLOOR]), a funnel hanging from it to
- * the ground, and a skirt of dust at its foot (`notes/wind-plan.md` §4).
+ * the ground, and a skirt of dust at its foot (`notes/the-art-design.md` §5.2.2, "Tornado").
  *
  * **Minecraft's own shapes**: the funnel is a stack of square slabs narrowing downward, each turned a little from the
  * one above and set a little off it, so it is a stepped, twisted tower that flexes and sways, the top leaning ahead of

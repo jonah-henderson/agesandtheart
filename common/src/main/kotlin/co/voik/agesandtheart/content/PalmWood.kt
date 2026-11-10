@@ -53,7 +53,7 @@ import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntPr
 import net.minecraft.world.phys.AABB
 
 /**
- * The palm's wood, a full set as vanilla gives every tree (Jonah, 2026-09-30) — `notes/palm-beach-design.md`.
+ * The palm's wood, a full set as vanilla gives every tree (Jonah, 2026-09-30) — `notes/terrain-architecture.md`, "A biome of ours".
  *
  * **Birch's numbers throughout**, block for block and item for item, read off the 26.3 jar: the same
  * strengths, fuel times, compost chances and flammability. A palm is not meant to be a better wood, only a

@@ -4,7 +4,7 @@
 # What to read: in the tropical Age, palm beach takes the share a coast has and the ocean and the interior
 # keep theirs -- it should not appear inland or out at sea. The plain Age names it without a climate, so it
 # grows only where the Age happens to be warm. The cold one asks for it where it does not belong, and a
-# small share or none is the right answer (the risk the writer takes, notes/palm-beach-design.md).
+# small share or none is the right answer (the risk the writer takes, notes/terrain-architecture.md).
 
 age write palms 7 age insular landmass tropical climate palm_beach biomes
 age biomes palms 24

@@ -266,7 +266,7 @@ enum class Phenomenon(
 
     /**
      * Funnels that come down out of thunderstorms and tear across the Age, throwing what they take
-     * ([co.voik.agesandtheart.age.phenomena.Tornado], `notes/wind-plan.md` §4). **The best telegraph in the set**:
+     * ([co.voik.agesandtheart.age.phenomena.Tornado], `notes/the-art-design.md` §5.2.2, "Tornado"). **The best telegraph in the set**:
      * a thunderclap, the sky darkening green under its overcast, then a funnel seen from further than anything.
      * What it denies is building in the open; a thick wall, a mountain at your back or a roof answers it.
      *

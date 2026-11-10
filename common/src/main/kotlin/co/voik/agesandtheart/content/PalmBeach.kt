@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
 import net.minecraft.world.level.material.MapColor
 
 /**
- * What the palm beach is made of — `notes/palm-beach-design.md`. A biome of ours that exists only in Ages.
+ * What the palm beach is made of — `notes/terrain-architecture.md`, "A biome of ours". A biome of ours that exists only in Ages.
  *
  * Its own object rather than more of [AgeContent], which already holds two thousand lines; each loader's
  * registration takes these lists along with that object's.

@@ -21,7 +21,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * What a tornado does to the ground (`notes/wind-plan.md` §4), and the two ways it spends its strength: **tearing up
+ * What a tornado does to the ground (`notes/the-art-design.md` §5.2.2, "Tornado"), and the two ways it spends its strength: **tearing up
  * blocks** and **climbing**.
  *
  * At its foot it tears up blocks as fast as it sweeps new ground, the tallest first, down to a trench below the

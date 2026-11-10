@@ -58,7 +58,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
 
         // The config, and the screen that reads it. NeoForge owns both `ModConfigSpec` and a generated
         // `ConfigurationScreen`, so a Config button appears on the Mods page for one line and no UI code
-        // — see `notes/config-research.md` for why the spec is shaped for screens rather than for us.
+        // — see `notes/decisions.md`, "Config" for why the spec is shaped for screens rather than for us.
         modContainer.registerConfig(ModConfig.Type.SERVER, AgeConfig.SPEC)
         modContainer.registerConfig(ModConfig.Type.CLIENT, AgeClientLook.SPEC)
         // **The screen is client-only and naming it here would take the dedicated server down** (found

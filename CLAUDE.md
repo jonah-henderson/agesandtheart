@@ -12,95 +12,63 @@ relevant one before working in its area; most of the value is in the _reasoning_
 something lands, delete the narrative of building it; a choice between genuinely open designs becomes one
 `decisions.md` entry. Rewrite the paragraph that is now wrong rather than correcting it in place.
 
+- **`notes/remaining-work.md`** — **everything not yet built, decided or designed, and nowhere else. Start here
+  when picking the next job.** Ready to build, needs a decision from Jonah, needs design, deferred and post-1.0,
+  each entry pointing at the design section that holds its reasoning; the working order and what waits on Jonah
+  are at its head, and its Reference section holds the configuration notes, the energy-export notes and the brief
+  for accretion audit pass 3 (whose tooling is `notes/audit/tooling/`; re-date every finding against the commits
+  since before acting on it). When an item is built it leaves for `walk-list.md`; when a fork is decided it becomes
+  a `decisions.md` entry.
 - **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
   what a word costs. **Built**, normative and current — it supersedes `the-art-design.md` §3 and §4. Its §3 is
   words as meanings and how a row of pages is read; `in <biome>` siting is built, its widening is not.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, consequences, book editing, the economy.
   Normative for §1–§2 and §5–§9; what was its §3 and §4 is the world model above, and only §3's two disciplines
-  and §4's found books, failure channels and pipeline remain. Read §7.4 before touching `desk/` or the desk's
-  screens.
-- **`notes/the-art-implementation-plan.md`** — where things stand and what is open: Phases 1–6 done, Phase 7's
-  open items, Phase 8 tabled, Phase 9's list, and an any-time list. **Start here when picking the next job.**
-- **`notes/vocabulary-pass-plan.md`** — what is left of the pass that writes the words: the tag hand-tuning,
-  the corpus audit and its gaps, the unbucketed words, and three design questions. It opens with the line that
-  says to delete it when the last item goes. **Author with `scripts/scrivener.sh`**, whose `Verdict` is what a
-  valid word is; read this before touching `art/word/`.
-- **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
-  design §5.0 (the strange tier holds sixteen manifestations): foreign ground's gaps, the mirage experiment,
-  and the wounds' rework. Read it before adding a manifestation or touching `art/manifestation/`.
-- **`notes/strange-words-plan.md`** — the words that let a writer ask for what instability inflicts. **Built but
-  for its remainder:** the meanings the words do not carry yet, loose ends from the per-Age clock and danger, and
-  two questions for Jonah.
-- **`notes/implements-afield-plan.md`** — what the desk implements do away from a desk. **Unbuilt.** The
-  frequency tuner reveals a place's code — five rime crystals, derived from the place and recorded forever —
-  and the crystal viewer looks at it through one fixed live eye; the geologist's tools survey their chunk;
-  the seismograph records vibrations in every world; the transcriber, in desk range, lays a descriptive book
-  onto the desk or copies it into a new instance of its Age. The grammar guide's use afield is still open.
-  Read it before touching an implement's block or `RimeColour`.
-- **`notes/wind-plan.md`** — wind, made a little more prominent. **Built so far**: a wind every Age can have and
-  most leave off, cosmetic when a word writes it, and the gale, a mild stackable phenomenon that pushes and gusts,
-  which a blizzard's wind now is, the land it carves: yardangs, pedestal rocks, flag trees and sastrugi, and the
-  tornado, out of thunderstorms, which spends strength on what it throws and the ground it climbs (built, its last
-  pieces unwalked). **Left**: a wildfire, for later. Read it before touching the wind of a gale, a blizzard or a
-  tornado.
-- **`notes/eclipses-plan.md`** — what is left of eclipses, which are **built and unwalked**: `eclipsing moon`
-  covers its sun once a month at noon, the day goes dark enough for monsters, and spare moons' phases follow the
-  sun. It says where each part lives (Ephemeris draws and measures, the mod writes the word), names the constant
-  behind every knob the walk will turn, and holds three open questions. Read it before touching a body's
-  blending, its phases, or how dark a level's day is.
+  and §4's found books, failure channels and pipeline remain. §5.0 is the instability tiers (the strange tier
+  holds sixteen manifestations; read it before adding one or touching `art/manifestation/`), and §5.2.2 each
+  phenomenon, the gale, the tornado and eclipses among them. Read §7.4 before touching `desk/` or the desk's
+  screens. **Author words with `scripts/scrivener.sh`**, whose `Verdict` is what a valid word is.
+- **`notes/the-art-implementation-plan.md`** — where things stand: the phases done, Phase 7 mostly built, Phase 8
+  tabled, Phase 9 under way. Everything open is in `remaining-work.md`.
 - **`notes/the-tag-layer.md`** — the fifty-three tags (forty-one properties and the twelve colours), where each
   is derived from, and why three separate things are called rarity. **Built**; what is left is the hand-tuning
   its §7 step 4 describes, done through Scrivener's tag screen (`/age tags` answers the same question against a
   running server). Read it before touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
-  presets): the evaluation contract, where things live, the performance budget. Built and shipped.
+  presets): the evaluation contract, where things live, the performance budget; the land as it is crossed (the
+  terrain table, variety, one sea, wear, `and` easing); the land the wind carves; and how a biome of ours, the
+  palm beach, declares its climate home and its surf. Built and shipped.
 - **`notes/walk-list.md`** — **what is built and unwalked.** A walked item is struck, and becomes a
   `decisions.md` entry only where the walk decided a real fork. Read it before walking anything or before
   assuming a recent change has been seen.
 - **`notes/decisions.md`** — **the forks that were decided**, each one subject sentence and one decision
   sentence, and only where several designs were genuinely open. It exists so that old decisions are not
-  retrodden: read it before re-proposing anything. No history, walk logs or measurements belong in it.
-- **`notes/accretion-audit.md`** — the audit against LLM accretion. Passes 1 and 2 are done; it is now the brief
-  for pass 3 (renames and comment trimming, waiting on Jonah's go-ahead) and its one open finding.
-  `notes/audit/tooling/` holds the pass-2 workflow, scan and digest that pass 3 adapts. **Re-date every finding
-  against the commits since before acting on it.**
+  retrodden: read it before re-proposing anything. No history, walk logs or measurements belong in it. Its
+  "Config" and "Content or config" say why the spec is `ModConfigSpec` and which axis (datapack or `AgeConfig`) a
+  parameter belongs on — the spec is `AgeConfig` in `common`; add an option there, not to a second spec. "Runtime
+  levels" says why they are our own (in Ephemeris) rather than DynamicDimensions or Fantasy; "An energy API"
+  settles that there is none either way.
 - **`notes/generator-versions.md`** — what moved at each `CURRENT_GENERATOR_VERSION` bump, and which Ages
   it moved. Read it when bumping the stamp, and add a row.
 - **`notes/version-upgrade.md`** — what each Minecraft hop has cost this codebase (26.1.2, 26.2, 26.3), the
-  traps the compiler cannot see, and the two 26.1 subsystems that changed what is worth building. **26.3 is the
-  line; 26.2 support lives on the `mc-26.2-support` branch on Jonah's other machine** and is revisited near 1.0.
-  Read it before the next port.
+  traps the compiler cannot see, the two 26.1 subsystems that changed what is worth building, the runtime-level
+  seams to re-verify every hop, and NeoForge's 21.9 Transfer Rework, which makes every older energy or
+  item-capability tutorial fail silently. **26.3 is the line; 26.2 support lives on the `mc-26.2-support` branch on
+  Jonah's other machine** and is revisited near 1.0. Read it before the next port.
 - **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
   26.1.2 jar: the bevel rule, the border widths, the 18-pixel grid. There is no official style guide, which
   is why this exists. Read it before drawing a control; screens are vanilla widgets composed through `client/ui/`.
-- **`notes/palm-beach-design.md`** — our own Age-only biome: white sand, a reef lagoon, palms, surf. Built and
-  walked. Its one real piece of engineering is a **declared climate home** for a biome of ours, since
-  `BiomePreference.homesFor` drops a biome it has never seen somewhere random; the surf is flat client-side
-  particles on per-stretch wave clocks. Read it before touching either.
-- **`notes/water-colour-research.md`** — water, grass and leaves that change colour, though their tint is baked into
-  the chunk mesh. **Built**: a still colour (`cyan waters`, through Ephemeris's `GroundTints`) and a turning one
-  (`prismatic`), drawn through copies of vanilla's terrain pipelines whose vertex shader turns tinted vertices
-  (`TurningTerrain`). Read it before touching how terrain is drawn.
 - **`notes/coloured-light-research.md`** — coloured light, and why the lightmap can never give it: it is a
   16×16 texture indexed by (block, sky) with no position in it, so every lightmap route tints the *whole
   view*. The route that works is per-vertex colour at section-compile time — built on both loaders (Fabric
-  through Indigo's quad transform); Sodium is open. Read it before proposing coloured light, a lightmap trick,
-  or a post effect. Also holds `CardinalLighting`, a per-Age look knob for one line of datapack.
-- **`notes/energy-interop-research.md`** — settled: **no energy API either way**; machines run on a block of arc
-  crystal beside them, and any reopening is export-only. Read its version-trap section before writing energy
-  code: NeoForge replaced the whole API in 21.9 and every older tutorial fails *silently*.
+  through Indigo's quad transform). It also says how a still or turning tint (`GroundTints`, `TurningTerrain`)
+  reaches the mesh — read it before touching how terrain is drawn — and holds `CardinalLighting`, a per-Age look
+  knob for one line of datapack. Read it before proposing coloured light, a lightmap trick, or a post effect.
 - **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, **built**: why a preview
   `ClientLevel` beats a hand-written mesh builder, and the register of everything vanilla keeps exactly one of
   per client. **Read that register before standing up a second level of any kind** — every fault this feature
   had was an item on it.
-- **`notes/neoforge-dimensions-research.md`** — why runtime levels are our own code (now in Ephemeris) rather
-  than DynamicDimensions or Fantasy, and the traps found owning them. **Read it before looking at either library
-  again.**
-- **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
-  write), why it is NeoForge's `ModConfigSpec` with Forge Config API Port on Fabric, and which axis (datapack or
-  config) a parameter belongs on. **Built** — the spec is `AgeConfig` in `common`; add an option there, not to a
-  second spec. Open: Configured on Fabric, and Fabric's once-a-second "Correcting" loop.
 - **`notes/before-release.md`** — what has to be true before anyone else plays this: the renames and codec
   changes that now cost a migration, the content debts, the Sodium survey and the assets still standing in on
   vanilla's, and the case for a base dimension being any dimension, modded ones included.
@@ -116,12 +84,12 @@ something lands, delete the narrative of building it; a choice between genuinely
 - **`notes/dni-sources.md`** — where the D'ni comes from, and how good the transliteration actually is.
   The two fan compilations we spell from (and why they stay out of this repository), the finding that the
   fuller one's headwords *are* our typeface encoding, and that the rules reproduce 84% of its 717 pairs.
-  Open: `ogla` vs `oglan`. Read it before touching `art/script/dni.json` or `art/transliteration.json`.
-- **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling, and what our
-  own datapacks could carry that they do not yet. Part II holds the open forks for pack data (a datapack
-  registry, data-driven terrain fields); Parts III and IV are built — the `.gen` grammar notation, and blocks
-  drawn from an entity renderer and stood on, with the one constraint (axis-aligned shapes) any further shaped
-  collider must answer. Read it before building a structure, a model, or anything that wants to be pack data.
+  Read it before touching `art/script/dni.json` or `art/transliteration.json`.
+- **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling, our jigsaw
+  convention and `/age jigsaw`, and what our own datapacks carry; Parts III and IV are built — the `.gen` grammar
+  notation, and blocks drawn from an entity renderer and stood on, with the one constraint (axis-aligned shapes)
+  any further shaped collider must answer. Read it before building a structure, a model, or anything that wants to
+  be pack data.
 - **`../ephemeris/notes/sky-limits.md`** — what a per-level sky can and cannot change, in Ephemeris's own notes.
 
 ## What this is
@@ -706,4 +674,4 @@ genuinely constrains the code, and worth dropping from ordinary description.
 
 Minecraft registries (items, blocks, **dimensions**, …) freeze after server startup — content cannot be added mid-game through normal registration. The mod's core feature (authoring dimensions at runtime) works around this through Ephemeris, and the persistence model is ours: store each Age's recipe/id as data and re-create the dimension on load rather than registering it permanently. Design new "Age" state as replayable data, not as registered objects.
 
-(History: DynamicDimensions was the original cross-loader pick and went dormant; Fantasy replaced it and is Fabric-only and LGPL, so its source could not be borrowed. Owning the technique turned out to cost four access-widener lines and one Mixin — `notes/neoforge-dimensions-research.md` has the reckoning.)
+(History: DynamicDimensions was the original cross-loader pick and went dormant; Fantasy replaced it and is Fabric-only and LGPL, so its source could not be borrowed. Owning the technique turned out to cost four access-widener lines and one Mixin — `notes/decisions.md` "Runtime levels" and `notes/version-upgrade.md` have the reckoning.)

@@ -23,7 +23,7 @@ import kotlin.math.sin
 
 /**
  * One palm, standing on the ground under [place]'s origin — what the palm beach grows and what a buried
- * coconut grows into (`notes/palm-beach-design.md`).
+ * coconut grows into (`notes/terrain-architecture.md`, "A biome of ours").
  *
  * **Built here because nothing in vanilla builds one.** No trunk placer leans a trunk into a curve, and no
  * foliage placer hangs fronds from a single point. So: a trunk that stands straight at the foot and bends

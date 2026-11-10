@@ -253,7 +253,7 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
     GALE("gale", GALE_OFTEN, GALE_PUSH, GALE_GUSTS, GALE_FORCE, GALE_SUDDEN),
 
     /**
-     * Tornadoes come down out of the Age's thunderstorms (`notes/wind-plan.md` §4), more often and wider the further
+     * Tornadoes come down out of the Age's thunderstorms (`notes/the-art-design.md` §5.2.2, "Tornado"), more often and wider the further
      * its steps reach, never more than one at once. **Two dials**: how often one comes, and how wide and strong it is.
      */
     TORNADO("tornado", TORNADO_OFTEN, TORNADO_SIZE),
@@ -437,7 +437,7 @@ data class DialSteps(val tiers: List<Int>) {
  * How one manifestation climbs the tiers, and where it belongs — **datapack content**
  * (`art/manifestation/<key>.json`).
  *
- * Content rather than config (`notes/config-research.md`): a pack that makes the verdicts easy to reach is a
+ * Content rather than config (`notes/decisions.md`, "Content or config"): a pack that makes the verdicts easy to reach is a
  * different mod rather than the same one run differently, and the whole ladder being one directory is the
  * tuning surface.
  */

@@ -53,7 +53,7 @@ class SandColumnRenderState : EntityRenderState() {
  * is (`Color`). One pipeline serves every column in the Age.
  *
  * **Time is free.** `GameTime` rides in the `Globals` uniform block every shader already sees, so the fall
- * costs nothing per frame and nothing per tick — see `notes/water-colour-research.md`. It is a day fraction
+ * costs nothing per frame and nothing per tick — see `notes/coloured-light-research.md`, "Colour that changes". It is a day fraction
  * and wraps at dawn, which is why the shader's drift is a whole number of turns a day.
  *
  * **The bottom is not drawn, it is buried.** The prism starts well below the ground the column rides, and

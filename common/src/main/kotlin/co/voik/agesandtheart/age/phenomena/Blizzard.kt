@@ -44,7 +44,7 @@ import kotlin.math.sin
  * and a new day brings a new storm rather than the same one for ever. Any bearing, turning to the next over
  * the last of a day, and the drifts lie to the nearest of the four.
  *
- * **A blizzard is a gale with snow on it** (`notes/wind-plan.md` §2): its wind is [Gale]'s, which pushes,
+ * **A blizzard is a gale with snow on it** (`notes/the-art-design.md` §5.2.2, "Gale"): its wind is [Gale]'s, which pushes,
  * gusts, is heard and is drawn, so all a blizzard hands it is [windIn]. What is the blizzard's own is the snow,
  * the drifts, the cold and the whiteout.
  *

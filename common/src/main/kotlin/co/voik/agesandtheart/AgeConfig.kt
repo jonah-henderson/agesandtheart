@@ -6,7 +6,7 @@ import net.neoforged.neoforge.common.ModConfigSpec
  * What a server may change about the mod, as a spec the game's own config screens can read.
  *
  * **NeoForge's `ModConfigSpec`, and on Fabric the same classes from Forge Config API Port**
- * (`notes/config-research.md`). Config screens work one of two ways — they introspect a spec they already
+ * (`notes/decisions.md`, "Config"). Config screens work one of two ways — they introspect a spec they already
  * know, or they host a screen the mod writes — and only the first is what compatibility means. This spec
  * is rendered natively by NeoForge, turned into a screen by Configured on every loader, and indexed by Mod
  * Menu's option search, none of which costs a line of interface code here.

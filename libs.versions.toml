@@ -36,7 +36,7 @@ kotest = "6.2.3"
 
 # Mordant — the terminal layer under the word-authoring tool. **A developer dependency and never a shipped
 # one**: it sits on `common`'s `preview` source set, which the loaders never pull from, so
-# `ui-libraries-research.md`'s ruling against a Kotlin UI library on NeoForge does not reach it —
+# the trouble a bundled Kotlin library has on NeoForge (CLAUDE.md, "Conventions") does not reach it —
 # `authoring-tools.md` Part III is the note that governs here.
 mordant = "3.1.0"
 

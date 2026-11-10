@@ -15,7 +15,7 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 
 /**
- * **Waves breaking on a palm beach** — `notes/palm-beach-design.md`, "Surf". On the client alone: nothing is
+ * **Waves breaking on a palm beach** — `notes/terrain-architecture.md`, "A biome of ours". On the client alone: nothing is
  * sent, nothing is saved, and nothing runs on the server.
  *
  * **The shore** is still water open to the sky with white sand level beside it, in a palm beach — the waves

@@ -10,7 +10,7 @@ import kotlin.math.roundToLong
 import kotlin.random.Random
 
 /**
- * Moons a book asked to eclipse their sun: `eclipsing moon` (`notes/eclipses-plan.md`).
+ * Moons a book asked to eclipse their sun: `eclipsing moon` (`notes/the-art-design.md` §5.2.2, "Eclipses").
  *
  * An eclipsing moon goes round on the sun's own path, the same plane, pacing and direction, one turn behind it a
  * month, so it rises a little later each day and every time it catches the sun it covers it. Its month is a whole

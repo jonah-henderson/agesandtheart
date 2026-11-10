@@ -33,7 +33,7 @@ object Biomes {
     /** The biome an Age's great halls are, carrying their own dark and their own sound. */
     val GREAT_HALL_BIOME: Identifier = "great_hall".location()
 
-    /** White sand, a reef lagoon and palms, on a warm Age's coast — `notes/palm-beach-design.md`. */
+    /** White sand, a reef lagoon and palms, on a warm Age's coast — `notes/terrain-architecture.md`, "A biome of ours". */
     val PALM_BEACH_BIOME: Identifier = "palm_beach".location()
 
 
