@@ -59,6 +59,7 @@ object FoundBook {
         val vocabulary = Vocabulary.of(server)
         val pages = vocabulary.generation.grammar(kind.grammar)?.expand(Random(seed)).orEmpty()
         writePages(stack, vocabulary, pages, seed) { AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED }
+        FoundCover.putOn(stack, server.registryAccess(), seed, kind)
     }
 
     /**
