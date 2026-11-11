@@ -62,6 +62,7 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             height = asked(minting.clause, HEIGHT),
             depth = asked(minting.clause, DEPTH),
             tallness = asked(minting.clause, TALLNESS),
+            altitude = asked(minting.clause, ALTITUDE),
         )
     }
     for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)
@@ -118,3 +119,4 @@ private const val SIZE = "size"
 private const val HEIGHT = "height"
 private const val DEPTH = "depth"
 private const val TALLNESS = "tallness"
+private const val ALTITUDE = "altitude"

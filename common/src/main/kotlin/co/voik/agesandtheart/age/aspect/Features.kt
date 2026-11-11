@@ -210,6 +210,17 @@ object Features {
         ),
     ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.isAFormation(feature) })
 
+    /** Where a lake stands against the sea — `high lakes` up on the high ground, `low lakes` down near the sea. */
+    val ALTITUDE = Parameter.ranged(
+        "altitude",
+        help = "How high over the sea a lake stands.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "only beside the sea"),
+            Parameter.Landmark(0.0, "anywhere"),
+            Parameter.Landmark(1.0, "only on the highest ground"),
+        ),
+    ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.holdsALake(feature) })
+
     /** How deep a lake's water stands — `deep lakes`, `shallow lakes`. */
     val DEPTH = Parameter.ranged(
         "depth",
@@ -316,7 +327,7 @@ object Features {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS).none { it.name in options.chosen }
+                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
@@ -346,6 +357,8 @@ object Features {
 
         fun tallnessOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(TALLNESS, salt, member = keyOf(feature))
 
+        fun altitudeOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(ALTITUDE, salt, member = keyOf(feature))
+
         private fun keyOf(feature: Holder<VanillaPlacedFeature>): String? = idOf(feature)?.toString()
 
         private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
@@ -357,6 +370,7 @@ object Features {
                 rebuilt.computeIfAbsent(feature) {
                     FeatureShape.reshaped(it, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
                         .let { reshaped -> FeatureShape.heightened(reshaped, tallnessOf(it)) }
+                        .let { reshaped -> FeatureShape.deepened(reshaped, depth = null, altitude = altitudeOf(it)) }
                 }
             }
     }
@@ -420,7 +434,7 @@ object Features {
                     height = claim.height ?: shape.heightOf(found),
                     rock = shape.rock,
                     registries = shape.registries,
-                ).let { FeatureShape.deepened(it, claim.depth) }
+                ).let { FeatureShape.deepened(it, claim.depth, claim.altitude ?: shape.altitudeOf(found)) }
                     .let { FeatureShape.heightened(it, claim.tallness ?: shape.tallnessOf(found)) }
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
                 val kept = claim.territory?.let { FeatureShape.keptToTerritory(confined, it) } ?: confined

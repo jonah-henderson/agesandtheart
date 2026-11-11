@@ -274,13 +274,17 @@ object FeatureShape {
         return placed is LakeFeature || placed is DeepLake
     }
 
-    /** [feature] with its lake's water standing as deep as [depth] says, or [feature] itself where either is missing. */
+    /**
+     * [feature] with its lake's water standing as deep as [depth] says and the lake standing at [altitude], or [feature]
+     * itself where it is no lake or neither was said.
+     */
     @Suppress("DEPRECATION")
-    fun deepened(feature: Holder<PlacedFeature>, depth: Double?): Holder<PlacedFeature> {
-        if (depth == null) return feature
+    fun deepened(feature: Holder<PlacedFeature>, depth: Double?, altitude: Double? = null): Holder<PlacedFeature> {
+        if (depth == null && altitude == null) return feature
         val placed = feature.value()
         val lake = placed.feature().value() as? LakeFeature ?: return feature
-        val deepened = DeepLake.of(lake, DeepLake.waterLayersAt(depth))
+        val waterLayers = depth?.let(DeepLake::waterLayersAt) ?: DeepLake.VANILLA_WATER_LAYERS
+        val deepened = DeepLake.of(lake, waterLayers, altitude)
         return Holder.direct(PlacedFeature(Holder.direct(deepened), placed.placement()))
     }
 

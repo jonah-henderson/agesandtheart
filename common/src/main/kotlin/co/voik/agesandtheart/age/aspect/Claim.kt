@@ -85,6 +85,8 @@ data class Claim(
     val depth: Double? = null,
     /** How tall a formation of this one's stands for its width, or null to take the Age's own — `high obelisks`. */
     val tallness: Double? = null,
+    /** Where a lake of this one's stands against the sea, or null to take the Age's own — `high lakes`. */
+    val altitude: Double? = null,
     /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
      * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
@@ -137,6 +139,7 @@ data class Claim(
         val ownHeight = height
         val ownDepth = depth
         val ownTallness = tallness
+        val ownAltitude = altitude
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
@@ -151,6 +154,7 @@ data class Claim(
             ownHeight?.let { add("$HEIGHT$SETS${Rung.spelled(it)}") }
             ownDepth?.let { add("$DEPTH$SETS${Rung.spelled(it)}") }
             ownTallness?.let { add("$TALLNESS$SETS${Rung.spelled(it)}") }
+            ownAltitude?.let { add("$ALTITUDE$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
             territory?.let { add("$ON$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
@@ -182,6 +186,7 @@ data class Claim(
         const val HEIGHT = "height"
         const val DEPTH = "depth"
         const val TALLNESS = "tallness"
+        const val ALTITUDE = "altitude"
         const val FOR = "for"
 
         /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
@@ -219,6 +224,7 @@ data class Claim(
                 height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
                 depth = valueOf(parts, DEPTH)?.toDoubleOrNull(),
                 tallness = valueOf(parts, TALLNESS)?.toDoubleOrNull(),
+                altitude = valueOf(parts, ALTITUDE)?.toDoubleOrNull(),
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
                 territory = valueOf(parts, ON)?.toIntOrNull(),
             )

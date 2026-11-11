@@ -7,7 +7,7 @@
     "",
     "`low sea` stands the water down, `low sky` hangs the clouds in it, `low structures` are sunk partway into the",
     "ground, `low gravity` pulls lightly, `low grass` stays short and `low obelisks` (spikes, pyramids, arches,",
-    "pedestals, piles) stand half as tall. A low sun or moon keeps to the horizon."
+    "pedestals, piles) stand half as tall; `low lakes` lie down by the sea. A low sun or moon keeps to the horizon."
   ],
   "meanings": [
     {
@@ -80,6 +80,22 @@
     {
       "sets": {
         "features.tallness": "-1.0..-1.0"
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "altitude": "-1.0..-0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "lakes"
+      ]
+    },
+    {
+      "sets": {
+        "features.altitude": "-1.0..-0.5"
       },
       "chance_to_apply": 0.0,
       "unaimed_chance_to_apply": 0.33

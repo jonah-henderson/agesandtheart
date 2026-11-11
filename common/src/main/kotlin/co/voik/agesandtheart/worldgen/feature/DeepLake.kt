@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.feature
 
+import java.util.Optional
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -33,6 +34,8 @@ data class DeepLake(
     val canReplaceWithAirOrFluid: BlockPredicate,
     val canReplaceWithBarrier: BlockPredicate,
     val waterLayers: Int,
+    /** Where it may stand against the sea — `high lakes` only up high, `low lakes` only near it — or null for anywhere. */
+    val altitude: Double? = null,
 ) : Feature {
 
     override fun codec(): MapCodec<out Feature> = CODEC
@@ -42,10 +45,20 @@ data class DeepLake(
 
     private fun index(x: Int, z: Int, y: Int) = (x * WIDTH + z) * height + y
 
+    /**
+     * Whether a lake standing [aboveTheSea] blocks over the sea may stand there: anywhere without an [altitude]; above it,
+     * at least that share of [HIGHEST_GROUND] up; below it, no further up than what is left of [LOW_GROUND].
+     */
+    private fun standsAtItsAltitude(aboveTheSea: Int): Boolean {
+        val asked = altitude ?: return true
+        return if (asked >= 0.0) aboveTheSea >= asked * HIGHEST_GROUND else aboveTheSea <= (1.0 + asked) * LOW_GROUND
+    }
+
     // `liquid` and `isSolid` are deprecated, and vanilla's own lake still asks them.
     @Suppress("DEPRECATION")
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
         if (origin.y <= level.minY + waterline) return false
+        if (!standsAtItsAltitude(origin.y - generator.seaLevel)) return false
         val corner = origin.offset(-WIDTH / 2, -waterline, -WIDTH / 2)
         val bowl = bowl(vanillaBowl(random), waterLayers)
         val fluidState = fluid.value().getState(level, random, corner)
@@ -122,18 +135,22 @@ data class DeepLake(
                 BlockPredicate.CODEC.fieldOf("can_replace_with_air_or_fluid").forGetter(DeepLake::canReplaceWithAirOrFluid),
                 BlockPredicate.CODEC.fieldOf("can_replace_with_barrier").forGetter(DeepLake::canReplaceWithBarrier),
                 Codec.INT.fieldOf("water_layers").forGetter(DeepLake::waterLayers),
-            ).apply(instance, ::DeepLake)
+                Codec.DOUBLE.optionalFieldOf("altitude").forGetter { Optional.ofNullable(it.altitude) },
+            ).apply(instance) { fluid, barrier, canPlace, canReplace, canBarrier, layers, altitude ->
+                DeepLake(fluid, barrier, canPlace, canReplace, canBarrier, layers, altitude.orElse(null))
+            }
         }
 
-        /** [lake] holding its water [waterLayers] deep. */
+        /** [lake] holding its water [waterLayers] deep, standing at [altitude] where one is given. */
         @Suppress("DEPRECATION")
-        fun of(lake: LakeFeature, waterLayers: Int) = DeepLake(
+        fun of(lake: LakeFeature, waterLayers: Int, altitude: Double? = null) = DeepLake(
             lake.fluid(),
             lake.barrier(),
             lake.canPlaceFeature(),
             lake.canReplaceWithAirOrFluid(),
             lake.canReplaceWithBarrier(),
             waterLayers,
+            altitude,
         )
 
         /** How many layers deep the water stands at [depth]: vanilla's three unsaid, one to [DEEPEST] at the ends. */
@@ -180,6 +197,12 @@ data class DeepLake(
             }
             return grid
         }
+
+        /** How far over the sea a lake at an altitude of one must stand at the least. */
+        private const val HIGHEST_GROUND = 48
+
+        /** How far over the sea a lake at an altitude of nought may stand at the most, before it is pulled lower. */
+        private const val LOW_GROUND = 32
 
         private const val WIDTH = 16
         private const val VANILLA_HEIGHT = 8
