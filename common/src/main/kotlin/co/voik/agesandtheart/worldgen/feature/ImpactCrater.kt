@@ -90,86 +90,25 @@ class ImpactCrater(
         val struck = Struck.drawnBy(random, reach, roomAround(middle, origin))
         val out = struck.carriesTo()
         if (landsOnASurfaceStructure(level, origin, middle, out)) return false
-        val sea = seaOverTheCut(level, middle, struck)
-        for (awayX in -out..out) {
-            for (awayZ in -out..out) {
-                reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ), sea)
-            }
-        }
-        dropWhatIsLeftHanging(level, middle, struck)
-        scatterEjecta(level, middle, struck)
-        seedWithAstrite(level, random, middle, reach)
+        carve(level, middle, struck, Generated)
+        seedWithAstrite(level, random, middle, reach, holdsShards, mostShards, Generated)
         return true
     }
 
-    /**
-     * Clear anything the carve left standing on nothing — **asked of the footprint, not of the column being
-     * cut**.
-     *
-     * Clearing what stands on a column as it is carved is right and is not enough: at `teeming` density two
-     * craters land close together and the later one takes the ground from under ground the earlier one had
-     * already had decorated, which is a column this crater never touches and so never looks at. Grass tufts
-     * and snow layers were left hanging in the air over the second hole (Jonah, walked 2026-09-10).
-     *
-     * **Vanilla's own survival rule is the test**, rather than a list of what counts as decoration: every
-     * plant, layer and sapling already knows what it needs under it, so `canSurvive` catches all of them
-     * and stays right when a pack adds another. A margin of one is swept beyond the reach because the
-     * undermined column is by definition the one just outside the cut — except where the reach already
-     * stops at the writable room, since a block past that is a far-chunk write the chunk pyramid drops.
-     */
-    private fun dropWhatIsLeftHanging(level: WorldGenLevel, middle: BlockPos, struck: Struck) {
-        val swept = (struck.carriesTo() + ONE).coerceAtMost(struck.room)
-        val cursor = BlockPos.MutableBlockPos()
-        for (awayX in -swept..swept) {
-            for (awayZ in -swept..swept) {
-                val x = middle.x + awayX
-                val z = middle.z + awayZ
-                val ground = groundAt(level, x, z)
-                // Only the band the carve could have reached, and upward: what is below the ground is rock.
-                for (y in ground..topOf(level, x, z)) {
-                    cursor.set(x, y, z)
-                    val standing = level.getBlockState(cursor)
-                    if (standing.isAir || standing.canSurvive(level, cursor)) continue
-                    level.setBlock(cursor, AIR, Block.UPDATE_CLIENTS)
-                }
-            }
-        }
+    /** How a crater sets the blocks it moves. */
+    interface Carving {
+        /** The update flags a block is set with. */
+        val flags: Int
+
+        fun set(level: WorldGenLevel, at: BlockPos, state: BlockState)
     }
 
-    /**
-     * One column moved by [offset] — cut down into the rock, or built up out of what the column already
-     * had.
-     *
-     * A raised column is filled with the block *under* the surface and capped with the surface block
-     * itself, which is the ejecta being what was thrown out of the hole: the rim of a crater in sand is
-     * sand, and in stone it is stone, with nothing here needing to know which.
-     */
-    private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int, seaOverTheCut: Sea) {
-        if (offset == UNMOVED) return
-        val surface = groundAt(level, x, z)
-        // **Whatever is *standing* on the column as well as the column itself.** The ground heightmap
-        // counts what blocks motion, and grass, bushes and flowers do not — so carving to it took the dirt
-        // out from under a meadow and left it hanging (Jonah, 2026-09-09, walked: "trees, grass, bushes
-        // floating in the air"). Leaves are missed the same way. An impact leaves none of it.
-        val standing = topOf(level, x, z)
-        if (offset < UNMOVED) {
-            // The cut is one hole, so it fills to one waterline — a dry column cut below the sea floods as
-            // the drowned one beside it does, and no air pocket is left waiting for something to notice it.
-            for (y in surface + offset + ONE..maxOf(surface, standing)) {
-                level.setBlock(BlockPos(x, y, z), seaOverTheCut.fillAt(y), Block.UPDATE_CLIENTS)
-            }
-            return
-        }
-        // A raised column puts back only what stood over it, so a dry rim never carries water of its own.
-        val seaOverTheColumn = seaOver(level, x, z, surface)
-        val top = level.getBlockState(BlockPos(x, surface, z))
-        val under = level.getBlockState(BlockPos(x, surface - ONE, z))
-        for (y in surface + ONE..surface + offset) level.setBlock(BlockPos(x, y, z), under, Block.UPDATE_CLIENTS)
-        level.setBlock(BlockPos(x, surface + offset, z), top, Block.UPDATE_CLIENTS)
-        // And nothing left poking out of what was thrown over it: a trunk taller than the rim is buried
-        // to the rim's height and would otherwise stand out of the top of it.
-        for (y in surface + offset + ONE..standing) {
-            level.setBlock(BlockPos(x, y, z), seaOverTheColumn.fillAt(y), Block.UPDATE_CLIENTS)
+    /** As land is generated: quietly, and nothing it moves drops. */
+    private object Generated : Carving {
+        override val flags: Int = Block.UPDATE_CLIENTS
+
+        override fun set(level: WorldGenLevel, at: BlockPos, state: BlockState) {
+            level.setBlock(at, state, flags)
         }
     }
 
@@ -251,96 +190,6 @@ class ImpactCrater(
     }
 
     /**
-     * The highest sea standing over any column the crater cuts down, which the whole cut fills to.
-     *
-     * Read before anything is cut, since cutting a column changes what stands over it. Only the columns the
-     * cut lowers are asked: the rim opens nothing, and the ejecta's reach may cross water the hole never meets.
-     * The fluid is read rather than named, so a crater in an Age whose sea is lava fills with lava.
-     */
-    private fun seaOverTheCut(level: WorldGenLevel, middle: BlockPos, struck: Struck): Sea {
-        val out = struck.carriesTo()
-        val everyOffset = (-out..out).flatMap { awayX -> (-out..out).map { awayZ -> awayX to awayZ } }
-        fun seaOverColumn(x: Int, z: Int) = seaOver(level, x, z, groundAt(level, x, z))
-        return everyOffset
-            .filter { (awayX, awayZ) -> struck.offsetAt(awayX, awayZ) < UNMOVED }
-            .map { (awayX, awayZ) -> seaOverColumn(middle.x + awayX, middle.z + awayZ) }
-            .maxByOrNull { it.reaches } ?: Sea.NONE
-    }
-
-    /**
-     * What is standing over this column, read rather than assumed.
-     *
-     * **The fluid is taken from the world instead of named**, so a crater cut into an Age whose sea is lava
-     * floods with lava. Walked up from the ground rather than asked of the level's own sea level, because a
-     * landform may carry water of its own above the waterline (`SeaFill.wet`) and the cut has to put back
-     * exactly what it opened.
-     */
-    private fun seaOver(level: WorldGenLevel, x: Int, z: Int, surface: Int): Sea {
-        val first = BlockPos(x, surface + ONE, z)
-        val standing = level.getFluidState(first)
-        if (standing.isEmpty) return Sea.NONE
-        var top = surface + ONE
-        while (top - surface < DEEPEST_SEA_CUT && !level.getFluidState(BlockPos(x, top + ONE, z)).isEmpty) top++
-        return Sea(standing.createLegacyBlock(), top)
-    }
-
-    /**
-     * The debris thrown clear of the rim: single blocks and pairs, thinning outward into ordinary country.
-     *
-     * **This is the strongest cue that a crater is not a formula**, and it is the one a ruined portal makes
-     * too — vanilla scatters netherrack round a portal's base for exactly this reason. A rim that simply
-     * stops has an edge; a rim that frays into scattered rock does not.
-     */
-    private fun scatterEjecta(level: WorldGenLevel, middle: BlockPos, struck: Struck) {
-        val out = struck.carriesTo()
-        for (awayX in -out..out) {
-            for (awayZ in -out..out) {
-                val away = sqrt((awayX * awayX + awayZ * awayZ).toDouble())
-                val beyond = struck.beyondTheRim(awayX, awayZ, away) ?: continue
-                if (hashedAt(awayX, awayZ, struck.grain) > struck.ejecta * beyond) continue
-                val x = middle.x + awayX
-                val z = middle.z + awayZ
-                if (submerged(level, x, z)) continue
-                // **Laid as the column's own surface block, with what was under it buried** — see
-                // [LaidGround]. This took the block *under* the surface and dropped it on top, which is
-                // where the dirt standing on grass came from, and left the grass it covered still grass.
-                LaidGround.layOn(level, BlockPos(x, groundAt(level, x, z), z), Block.UPDATE_CLIENTS)
-            }
-        }
-    }
-
-    /**
-     * The shards a crater kept, clustered rather than scattered.
-     *
-     * **Well inside the lip**, because that is where the carve has certainly cut past the soil into rock —
-     * out at the shallow edge it may have taken only the turf, and a shard standing in dirt is the one
-     * thing this was asked not to look like.
-     */
-    private fun seedWithAstrite(
-        level: WorldGenLevel,
-        random: RandomSource,
-        middle: BlockPos,
-        reach: Int,
-    ) {
-        // Rarity first, amount second. One roll decides whether this crater kept anything at all, and only
-        // then is there a count, which is never nought.
-        if (random.nextFloat() >= holdsShards) return
-        val kept = ONE + random.nextInt(mostShards)
-        val inner = (reach * SHARDS_WITHIN).roundToInt().coerceAtLeast(ONE)
-        val about = BlockPos(middle.x + spread(random, inner), middle.y, middle.z + spread(random, inner))
-        repeat(kept) {
-            val x = about.x + spread(random, TOGETHER)
-            val z = about.z + spread(random, TOGETHER)
-            if (submerged(level, x, z)) return@repeat
-            val standing = BlockPos(x, groundAt(level, x, z) + ONE, z)
-            val shard = AgeContent.ASTRITE_SHARD_BLOCK.defaultBlockState()
-                .setValue(BlockStateProperties.FACING, Direction.UP)
-            if (!shard.canSurvive(level, standing)) return@repeat
-            level.setBlock(standing, shard, Block.UPDATE_CLIENTS)
-        }
-    }
-
-    /**
      * Where the crater sits, which is where it was asked for unless it is too big to fit there.
      *
      * Pinning costs a little scatter and buys seven blocks of reach; only the sizes that cannot be placed
@@ -371,46 +220,6 @@ class ImpactCrater(
             (chunkZ + CHUNK + CHUNK - ONE) - middle.z,
         )
     }
-
-    /**
-     * The top solid block of a column as it stands now, which is one below where the heightmap stops.
-     *
-     * **A final heightmap, never a worldgen one.** While features are placed, a chunk updates only the four
-     * final maps, so `OCEAN_FLOOR_WG` still answers with the ground from before any feature ran. Read through
-     * it, a crater could not see another crater: it raised its rim from ground already dug out, and cut
-     * under the rim another had thrown up, leaving both hanging.
-     */
-    private fun groundAt(level: WorldGenLevel, x: Int, z: Int): Int =
-        level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE
-
-    /**
-     * And the top of *anything at all* in the column, plants, snow and leaves included — final for the same
-     * reason as [groundAt], since grass and snow placed after the terrain are exactly what a worldgen map
-     * cannot see.
-     *
-     * The difference between this and [groundAt] is exactly what a meadow standing on the ground is, which
-     * is what the carve has to take with it.
-     */
-    private fun topOf(level: WorldGenLevel, x: Int, z: Int): Int =
-        level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - ONE
-
-    /**
-     * Whether this column stands under water.
-     *
-     * **The carve no longer asks**, [reshape] putting the sea back into whatever it opened, so a crater by
-     * the shore floods rather than stopping at the waterline. What still asks are the things that want dry
-     * land under them: where the ejecta may land and where a shard may stand.
-     *
-     * **A fluid read rather than two heightmaps**, which is what this used and what made it wrong. The
-     * old test was that the surface heightmap stood above the ground one, on the reasoning that only water
-     * could be between them — and a blade of grass is between them too, so every decorated column on land
-     * read as submerged and would have been skipped outright the moment anything else asked about what was
-     * standing on it. Asking whether the block above the ground holds fluid is the question that was meant.
-     */
-    private fun submerged(level: WorldGenLevel, x: Int, z: Int): Boolean =
-        !level.getFluidState(BlockPos(x, groundAt(level, x, z) + ONE, z)).isEmpty
-
-    private fun spread(random: RandomSource, within: Int): Int = random.nextInt(within * TWICE + ONE) - within
 
     /**
      * A number in nought to one for this offset and this crater, the same every time it is asked.
@@ -657,6 +466,267 @@ class ImpactCrater(
 
         private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double =
             unitDouble(mix64(mix64(mix64(grain) + awayX) + awayZ))
+
+        /**
+         * A crater of [reach] struck now at [middle], shaped as the land's own craters are, each block it moves set
+         * through [carving], and keeping one astrite shard on its floor at a chance of [keepsAShard]. Nothing is
+         * moved in a chunk that is not loaded.
+         */
+        fun strike(
+            level: WorldGenLevel,
+            random: RandomSource,
+            middle: BlockPos,
+            reach: Int,
+            keepsAShard: Float,
+            carving: Carving,
+        ) {
+            val wanted = ceil(reach * WHOLE_CRATER * EJECTA_CARRIES).toInt() + ONE
+            val struck = Struck.drawnBy(random, reach, roomLoadedAround(level, middle, wanted))
+            carve(level, middle, struck, carving)
+            seedWithAstrite(level, random, middle, reach, keepsAShard, ONE, carving)
+        }
+
+        private fun carve(level: WorldGenLevel, middle: BlockPos, struck: Struck, carving: Carving) {
+            val out = struck.carriesTo()
+            val sea = seaOverTheCut(level, middle, struck)
+            for (awayX in -out..out) {
+                for (awayZ in -out..out) {
+                    reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ), sea, carving)
+                }
+            }
+            dropWhatIsLeftHanging(level, middle, struck, carving)
+            scatterEjecta(level, middle, struck, carving)
+        }
+
+        /** How far out from [middle], up to [wanted], every chunk is loaded. */
+        private fun roomLoadedAround(level: WorldGenLevel, middle: BlockPos, wanted: Int): Int {
+            fun distanceAlong(at: Int, chunk: Int): Int {
+                val west = chunk shl CHUNK_BITS
+                val east = west + CHUNK - ONE
+                return when {
+                    at < west -> west - at
+                    at > east -> at - east
+                    else -> NONE
+                }
+            }
+            val westernmost = (middle.x - wanted) shr CHUNK_BITS
+            val easternmost = (middle.x + wanted) shr CHUNK_BITS
+            val northernmost = (middle.z - wanted) shr CHUNK_BITS
+            val southernmost = (middle.z + wanted) shr CHUNK_BITS
+            var room = wanted
+            for (chunkX in westernmost..easternmost) {
+                for (chunkZ in northernmost..southernmost) {
+                    if (level.hasChunk(chunkX, chunkZ)) continue
+                    val away = max(distanceAlong(middle.x, chunkX), distanceAlong(middle.z, chunkZ))
+                    room = minOf(room, away - ONE)
+                }
+            }
+            return room.coerceAtLeast(NONE)
+        }
+
+        /**
+         * Clear anything the carve left standing on nothing — **asked of the footprint, not of the column being
+         * cut**.
+         *
+         * Clearing what stands on a column as it is carved is right and is not enough: at `teeming` density two
+         * craters land close together and the later one takes the ground from under ground the earlier one had
+         * already had decorated, which is a column this crater never touches and so never looks at. Grass tufts
+         * and snow layers were left hanging in the air over the second hole (Jonah, walked 2026-09-10).
+         *
+         * **Vanilla's own survival rule is the test**, rather than a list of what counts as decoration: every
+         * plant, layer and sapling already knows what it needs under it, so `canSurvive` catches all of them
+         * and stays right when a pack adds another. A margin of one is swept beyond the reach because the
+         * undermined column is by definition the one just outside the cut — except where the reach already
+         * stops at the writable room, since a block past that is a far-chunk write the chunk pyramid drops.
+         */
+        private fun dropWhatIsLeftHanging(level: WorldGenLevel, middle: BlockPos, struck: Struck, carving: Carving) {
+            val swept = (struck.carriesTo() + ONE).coerceAtMost(struck.room)
+            val cursor = BlockPos.MutableBlockPos()
+            for (awayX in -swept..swept) {
+                for (awayZ in -swept..swept) {
+                    val x = middle.x + awayX
+                    val z = middle.z + awayZ
+                    val ground = groundAt(level, x, z)
+                    // Only the band the carve could have reached, and upward: what is below the ground is rock.
+                    for (y in ground..topOf(level, x, z)) {
+                        cursor.set(x, y, z)
+                        val standing = level.getBlockState(cursor)
+                        if (standing.isAir || standing.canSurvive(level, cursor)) continue
+                        carving.set(level, cursor.immutable(), AIR)
+                    }
+                }
+            }
+        }
+
+        /**
+         * One column moved by [offset] — cut down into the rock, or built up out of what the column already
+         * had.
+         *
+         * A raised column is filled with the block *under* the surface and capped with the surface block
+         * itself, which is the ejecta being what was thrown out of the hole: the rim of a crater in sand is
+         * sand, and in stone it is stone, with nothing here needing to know which.
+         */
+        private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int, seaOverTheCut: Sea, carving: Carving) {
+            if (offset == UNMOVED) return
+            val surface = groundAt(level, x, z)
+            // **Whatever is *standing* on the column as well as the column itself.** The ground heightmap
+            // counts what blocks motion, and grass, bushes and flowers do not — so carving to it took the dirt
+            // out from under a meadow and left it hanging (Jonah, 2026-09-09, walked: "trees, grass, bushes
+            // floating in the air"). Leaves are missed the same way. An impact leaves none of it.
+            val standing = topOf(level, x, z)
+            if (offset < UNMOVED) {
+                // The cut is one hole, so it fills to one waterline — a dry column cut below the sea floods as
+                // the drowned one beside it does, and no air pocket is left waiting for something to notice it.
+                for (y in surface + offset + ONE..maxOf(surface, standing)) {
+                    carving.set(level, BlockPos(x, y, z), seaOverTheCut.fillAt(y))
+                }
+                return
+            }
+            // A raised column puts back only what stood over it, so a dry rim never carries water of its own.
+            val seaOverTheColumn = seaOver(level, x, z, surface)
+            val top = level.getBlockState(BlockPos(x, surface, z))
+            val under = level.getBlockState(BlockPos(x, surface - ONE, z))
+            for (y in surface + ONE..<surface + offset) carving.set(level, BlockPos(x, y, z), under)
+            carving.set(level, BlockPos(x, surface + offset, z), top)
+            // And nothing left poking out of what was thrown over it: a trunk taller than the rim is buried
+            // to the rim's height and would otherwise stand out of the top of it.
+            for (y in surface + offset + ONE..standing) {
+                carving.set(level, BlockPos(x, y, z), seaOverTheColumn.fillAt(y))
+            }
+        }
+
+        /**
+         * The highest sea standing over any column the crater cuts down, which the whole cut fills to.
+         *
+         * Read before anything is cut, since cutting a column changes what stands over it. Only the columns the
+         * cut lowers are asked: the rim opens nothing, and the ejecta's reach may cross water the hole never meets.
+         * The fluid is read rather than named, so a crater in an Age whose sea is lava fills with lava.
+         */
+        private fun seaOverTheCut(level: WorldGenLevel, middle: BlockPos, struck: Struck): Sea {
+            val out = struck.carriesTo()
+            val everyOffset = (-out..out).flatMap { awayX -> (-out..out).map { awayZ -> awayX to awayZ } }
+            fun seaOverColumn(x: Int, z: Int) = seaOver(level, x, z, groundAt(level, x, z))
+            return everyOffset
+                .filter { (awayX, awayZ) -> struck.offsetAt(awayX, awayZ) < UNMOVED }
+                .map { (awayX, awayZ) -> seaOverColumn(middle.x + awayX, middle.z + awayZ) }
+                .maxByOrNull { it.reaches } ?: Sea.NONE
+        }
+
+        /**
+         * What is standing over this column, read rather than assumed.
+         *
+         * **The fluid is taken from the world instead of named**, so a crater cut into an Age whose sea is lava
+         * floods with lava. Walked up from the ground rather than asked of the level's own sea level, because a
+         * landform may carry water of its own above the waterline (`SeaFill.wet`) and the cut has to put back
+         * exactly what it opened.
+         */
+        private fun seaOver(level: WorldGenLevel, x: Int, z: Int, surface: Int): Sea {
+            val first = BlockPos(x, surface + ONE, z)
+            val standing = level.getFluidState(first)
+            if (standing.isEmpty) return Sea.NONE
+            var top = surface + ONE
+            while (top - surface < DEEPEST_SEA_CUT && !level.getFluidState(BlockPos(x, top + ONE, z)).isEmpty) top++
+            return Sea(standing.createLegacyBlock(), top)
+        }
+
+        /**
+         * The debris thrown clear of the rim: single blocks and pairs, thinning outward into ordinary country.
+         *
+         * **This is the strongest cue that a crater is not a formula**, and it is the one a ruined portal makes
+         * too — vanilla scatters netherrack round a portal's base for exactly this reason. A rim that simply
+         * stops has an edge; a rim that frays into scattered rock does not.
+         */
+        private fun scatterEjecta(level: WorldGenLevel, middle: BlockPos, struck: Struck, carving: Carving) {
+            val out = struck.carriesTo()
+            for (awayX in -out..out) {
+                for (awayZ in -out..out) {
+                    val away = sqrt((awayX * awayX + awayZ * awayZ).toDouble())
+                    val beyond = struck.beyondTheRim(awayX, awayZ, away) ?: continue
+                    if (hashedAt(awayX, awayZ, struck.grain) > struck.ejecta * beyond) continue
+                    val x = middle.x + awayX
+                    val z = middle.z + awayZ
+                    if (submerged(level, x, z)) continue
+                    // **Laid as the column's own surface block, with what was under it buried** — see
+                    // [LaidGround]. This took the block *under* the surface and dropped it on top, which is
+                    // where the dirt standing on grass came from, and left the grass it covered still grass.
+                    LaidGround.layOn(level, BlockPos(x, groundAt(level, x, z), z), carving.flags)
+                }
+            }
+        }
+
+        /**
+         * The shards a crater kept, clustered rather than scattered.
+         *
+         * **Well inside the lip**, because that is where the carve has certainly cut past the soil into rock —
+         * out at the shallow edge it may have taken only the turf, and a shard standing in dirt is the one
+         * thing this was asked not to look like.
+         */
+        private fun seedWithAstrite(
+            level: WorldGenLevel,
+            random: RandomSource,
+            middle: BlockPos,
+            reach: Int,
+            holdsShards: Float,
+            mostShards: Int,
+            carving: Carving,
+        ) {
+            // Rarity first, amount second. One roll decides whether this crater kept anything at all, and only
+            // then is there a count, which is never nought.
+            if (random.nextFloat() >= holdsShards) return
+            val kept = ONE + random.nextInt(mostShards)
+            val inner = (reach * SHARDS_WITHIN).roundToInt().coerceAtLeast(ONE)
+            val about = BlockPos(middle.x + spread(random, inner), middle.y, middle.z + spread(random, inner))
+            repeat(kept) {
+                val x = about.x + spread(random, TOGETHER)
+                val z = about.z + spread(random, TOGETHER)
+                if (submerged(level, x, z)) return@repeat
+                val standing = BlockPos(x, groundAt(level, x, z) + ONE, z)
+                val shard = AgeContent.ASTRITE_SHARD_BLOCK.defaultBlockState()
+                    .setValue(BlockStateProperties.FACING, Direction.UP)
+                if (!shard.canSurvive(level, standing)) return@repeat
+                carving.set(level, standing, shard)
+            }
+        }
+
+        /**
+         * The top solid block of a column as it stands now, which is one below where the heightmap stops.
+         *
+         * **A final heightmap, never a worldgen one.** While features are placed, a chunk updates only the four
+         * final maps, so `OCEAN_FLOOR_WG` still answers with the ground from before any feature ran. Read through
+         * it, a crater could not see another crater: it raised its rim from ground already dug out, and cut
+         * under the rim another had thrown up, leaving both hanging.
+         */
+        private fun groundAt(level: WorldGenLevel, x: Int, z: Int): Int =
+            level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE
+
+        /**
+         * And the top of *anything at all* in the column, plants, snow and leaves included — final for the same
+         * reason as [groundAt], since grass and snow placed after the terrain are exactly what a worldgen map
+         * cannot see.
+         *
+         * The difference between this and [groundAt] is exactly what a meadow standing on the ground is, which
+         * is what the carve has to take with it.
+         */
+        private fun topOf(level: WorldGenLevel, x: Int, z: Int): Int =
+            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - ONE
+
+        /**
+         * Whether this column stands under water.
+         *
+         * **The carve no longer asks**, [reshape] putting the sea back into whatever it opened, so a crater by
+         * the shore floods rather than stopping at the waterline. What still asks are the things that want dry
+         * land under them: where the ejecta may land and where a shard may stand.
+         *
+         * **A fluid read rather than two heightmaps**, which is what this used and what made it wrong. The
+         * old test was that the surface heightmap stood above the ground one, on the reasoning that only water
+         * could be between them — and a blade of grass is between them too, so every decorated column on land
+         * read as submerged and would have been skipped outright the moment anything else asked about what was
+         * standing on it. Asking whether the block above the ground holds fluid is the question that was meant.
+         */
+        private fun submerged(level: WorldGenLevel, x: Int, z: Int): Boolean =
+            !level.getFluidState(BlockPos(x, groundAt(level, x, z) + ONE, z)).isEmpty
+
+        private fun spread(random: RandomSource, within: Int): Int = random.nextInt(within * TWICE + ONE) - within
 
         val CODEC: MapCodec<ImpactCrater> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(

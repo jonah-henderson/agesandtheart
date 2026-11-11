@@ -2,6 +2,10 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
+import kotlin.math.sqrt
+import kotlin.math.roundToInt
+import net.minecraft.world.level.block.BaseFireBlock
+import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import kotlin.math.abs
 import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.DustParticleOptions
@@ -376,13 +380,37 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         return at.y + fluid.getHeight(level(), at).toDouble()
     }
 
+    /**
+     * A blast that hurts and throws what is near but breaks nothing, and a crater cut where it struck, shaped as the
+     * land's own are. Everything the crater breaks drops on its floor, which is what makes a lured storm over bare rock
+     * a mining rig rather than a hole (design §7.1.2).
+     */
     private fun shatter(level: ServerLevel) {
-        // Never `MOB` or `BLOCK`. `MOB` respects `mobGriefing`, and a server with the rule off would get a
-        // meteor storm that leaves no craters at all — an Age was written with this in it, so it is not a
-        // setting. Both also resolve through a drop-decay rule that defaults *on*, where `TNT`'s defaults
-        // off: this drops everything it breaks, which is what makes a lured storm over bare rock a mining
-        // rig rather than a hole (design §7.1.2).
-        level.explode(this, x, y, z, blast, true, Level.ExplosionInteraction.TNT)
+        level.explode(this, x, y, z, blast, false, Level.ExplosionInteraction.NONE)
+        val middle = blockPosition()
+        val reach = (blast * CRATER_PER_BLAST).roundToInt().coerceIn(SMALLEST_CRATER, LARGEST_CRATER)
+        val carving = MeteorCarving(level, blast)
+        ImpactCrater.strike(level, level.random, middle, reach, KEEPS_A_SHARD, carving)
+        val floor = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, middle)
+        carving.letFall(floor)
+        setFiresAbout(level, middle, reach)
+    }
+
+    /** Fires on the bowl's floor, as a blast lights them, but none near its middle, where what it broke lies. */
+    private fun setFiresAbout(level: ServerLevel, middle: BlockPos, reach: Int) {
+        val nearest = reach * CLEAR_OF_FIRE
+        for (awayX in -reach..reach) {
+            for (awayZ in -reach..reach) {
+                val away = sqrt((awayX * awayX + awayZ * awayZ).toDouble())
+                val isOnTheFloorAwayFromTheMiddle = away in nearest..reach.toDouble()
+                if (!isOnTheFloorAwayFromTheMiddle || level.random.nextInt(LIGHTS_ONE_IN) != 0) continue
+                val column = BlockPos(middle.x + awayX, middle.y, middle.z + awayZ)
+                if (!level.isLoaded(column)) continue
+                val above = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, column)
+                val canBurnThere = level.getBlockState(above).isAir && level.getBlockState(above.below()).isSolidRender
+                if (canBurnThere) level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
+            }
+        }
     }
 
     /**
@@ -632,6 +660,18 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private const val STRUCK = 6.0f
         /** Twice TNT — see [MeteorStorm]. Only ever used by a body somebody summoned without a storm. */
         private const val TWICE_TNT = 8.0f
+
+        /** How far a crater reaches for each degree of blast, and the least and most it may. */
+        private const val CRATER_PER_BLAST = 0.7f
+        private const val SMALLEST_CRATER = 2
+        private const val LARGEST_CRATER = 12
+
+        /** One in this many craters keeps a shard on its floor: catching them is how astrite is got. */
+        private const val KEEPS_A_SHARD = 1.0f / 128.0f
+
+        /** How much of a bowl's middle no fire is lit in, as a share of its reach, and how often one is lit beyond it. */
+        private const val CLEAR_OF_FIRE = 0.5
+        private const val LIGHTS_ONE_IN = 3
 
         /**
          * A violet mote, which is the one particle in the game that takes a colour it is told.
