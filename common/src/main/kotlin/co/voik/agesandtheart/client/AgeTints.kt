@@ -78,7 +78,7 @@ object AgeTints {
         registrar(listOf(bark, bark), PalmWood.WOOD)
         val sawnThroughout = listOf(
             PalmWood.STRIPPED_LOG, PalmWood.STRIPPED_WOOD, PalmWood.PLANKS, PalmWood.STAIRS, PalmWood.SLAB,
-            PalmWood.FENCE, PalmWood.FENCE_GATE, PalmWood.DOOR, PalmWood.TRAPDOOR, PalmWood.PRESSURE_PLATE,
+            PalmWood.FENCE, PalmWood.FENCE_GATE, PalmWood.TRAPDOOR, PalmWood.PRESSURE_PLATE,
             PalmWood.BUTTON, PalmWood.SHELF,
             // A 26.3 sign's board is a block model, so it takes the tint like the rest; only its text is drawn
             // by the block entity. Left off this list, the walk found them plain birch.

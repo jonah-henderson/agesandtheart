@@ -321,16 +321,16 @@ object PalmWood {
      * The colours the palm is drawn in until the asset pass, over birch's textures and a fern's — see
      * `AgeTints` for why a tint. Chosen against the eleven woods already in the game, measured 2026-09-30:
      *
-     * - **[PLANKS_TINT]**, over birch planks (192, 175, 121), comes out about (191, 133, 74): a warm caramel
-     *   at hue 30, lighter and more saturated than oak and jungle, more orange than birch and bamboo, less red
-     *   than acacia. Coconut timber's own colour, and the one gap in the palette near it.
+     * - **[PLANKS_TINT]**, over birch planks (192, 175, 121), comes out about (192, 137, 74): the average of the
+     *   wood on Jonah's palm door (211, 137, 74), as near as a tint can bring birch, which can only darken. A warm
+     *   caramel, lighter and more saturated than oak and jungle, more orange than birch, less red than acacia.
      * - **[BARK_TINT]**, over birch bark (216, 215, 210), comes out a light grey-tan, about (165, 145, 120):
      *   a palm's trunk, with birch's dark horizontal marks reading as the rings a palm's fallen fronds leave.
      * - **[FRONDS_TINT]**, over jungle leaves' greys, a bright yellow-green lighter than any foliage the game
      *   tints — the colour a frond is with the sun through it.
      * - **[COCONUT_TINT]** darkens cocoa's orange pod to a husk.
      */
-    const val PLANKS_TINT = 0xFDC29C
+    const val PLANKS_TINT = 0xFFC89C
     const val BARK_TINT = 0xC3AC92
     const val FRONDS_TINT = 0xB4F05A
     const val COCONUT_TINT = 0xC8A878
