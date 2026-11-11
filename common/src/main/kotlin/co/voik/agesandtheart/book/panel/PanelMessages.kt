@@ -200,3 +200,103 @@ class PanelChunkPayload(
         )
     }
 }
+
+/** *"This server shows no panels."* — the answer to an open when `AgeConfig.panelView` is OFF. */
+object PanelDeclined : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelDeclined> = TYPE
+
+    val TYPE: CustomPacketPayload.Type<PanelDeclined> = CustomPacketPayload.Type("panel_declined".location())
+
+    val STREAM_CODEC: StreamCodec<ByteBuf, PanelDeclined> = StreamCodec.unit(PanelDeclined)
+}
+
+/**
+ * *"Map that book."* — asked for every open book in reach when `AgeConfig.panelView` is MAP, since a map costs the
+ * server one read of each chunk and holds nothing afterwards, so any number of books may show one at once.
+ *
+ * [ask] numbers the request, so a client can tell an answer to it from one to an earlier request for the same
+ * book. [positions] names the chunks still missing, or is empty for the whole map.
+ */
+data class PanelMapRequest(val book: BookBeingRead, val ask: Int, val positions: List<ChunkPos>) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelMapRequest> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<PanelMapRequest> = CustomPacketPayload.Type("panel_map_request".location())
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelMapRequest> = StreamCodec.composite(
+            BookBeingRead.STREAM_CODEC, PanelMapRequest::book,
+            ByteBufCodecs.VAR_INT, PanelMapRequest::ask,
+            ChunkPos.STREAM_CODEC.apply(ByteBufCodecs.list<ByteBuf, ChunkPos>(PanelRing.COUNT)), PanelMapRequest::positions,
+            ::PanelMapRequest,
+        )
+    }
+}
+
+/**
+ * A map's opening, sent before its columns: where [book] would put you, which the map is centred on and marks,
+ * and how many chunks of columns are coming.
+ */
+data class PanelMapPayload(val book: BookBeingRead, val ask: Int, val around: BlockPos, val chunksComing: Int) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelMapPayload> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<PanelMapPayload> = CustomPacketPayload.Type("panel_map".location())
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelMapPayload> = StreamCodec.composite(
+            BookBeingRead.STREAM_CODEC, PanelMapPayload::book,
+            ByteBufCodecs.VAR_INT, PanelMapPayload::ask,
+            BlockPos.STREAM_CODEC, PanelMapPayload::around,
+            ByteBufCodecs.VAR_INT, PanelMapPayload::chunksComing,
+            ::PanelMapPayload,
+        )
+    }
+}
+
+/**
+ * One chunk of [book]'s map: each column's top as a map colour, the height it stands at, and how deep the liquid
+ * over it is — in `x + z * 16` order. The shading is the client's, since a column is shaded against its northern
+ * neighbour, which may be in a chunk not yet sent.
+ */
+class PanelMapChunkPayload(
+    val book: BookBeingRead,
+    val ask: Int,
+    val x: Int,
+    val z: Int,
+    val colours: ByteArray,
+    val heights: ShortArray,
+    val depths: ByteArray,
+) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelMapChunkPayload> = TYPE
+
+    companion object {
+        const val COLUMNS = 16 * 16
+
+        val TYPE: CustomPacketPayload.Type<PanelMapChunkPayload> = CustomPacketPayload.Type("panel_map_chunk".location())
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelMapChunkPayload> = StreamCodec.of(
+            { buffer, value ->
+                BookBeingRead.STREAM_CODEC.encode(buffer, value.book)
+                ByteBufCodecs.VAR_INT.encode(buffer, value.ask)
+                buffer.writeInt(value.x)
+                buffer.writeInt(value.z)
+                buffer.writeBytes(value.colours)
+                value.heights.forEach { buffer.writeShort(it.toInt()) }
+                buffer.writeBytes(value.depths)
+            },
+            { buffer ->
+                val book = BookBeingRead.STREAM_CODEC.decode(buffer)
+                val ask = ByteBufCodecs.VAR_INT.decode(buffer)
+                val x = buffer.readInt()
+                val z = buffer.readInt()
+                val colours = ByteArray(COLUMNS).also(buffer::readBytes)
+                val heights = ShortArray(COLUMNS) { buffer.readShort() }
+                val depths = ByteArray(COLUMNS).also(buffer::readBytes)
+                PanelMapChunkPayload(book, ask, x, z, colours, heights, depths)
+            },
+        )
+    }
+}

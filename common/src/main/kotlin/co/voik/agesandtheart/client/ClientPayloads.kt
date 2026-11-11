@@ -12,7 +12,11 @@ import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.LinkEnded
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelDeclined
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.book.panel.PanelMapChunkPayload
+import co.voik.agesandtheart.book.panel.PanelMapPayload
+import co.voik.agesandtheart.client.panel.BookMaps
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.desk.ArchivePricesPayload
 import co.voik.agesandtheart.desk.ArchiveStockPayload
@@ -58,6 +62,9 @@ object ClientPayloads {
         Receiver(FallResumedPayload.TYPE) { Minecraft.getInstance().player?.noPhysics = true },
         Receiver(PanelLevelPayload.TYPE) { LinkingPanel.accept(it) },
         Receiver(PanelChunkPayload.TYPE) { LinkingPanel.accept(it) },
+        Receiver(PanelMapPayload.TYPE) { BookMaps.accept(it) },
+        Receiver(PanelMapChunkPayload.TYPE) { BookMaps.accept(it) },
+        Receiver(PanelDeclined.TYPE) { LinkingPanel.declined() },
         Receiver(LinkEnded.TYPE) { LinkTransit.ended() },
         Receiver(MachineCatalogPayload.TYPE) { KnownMachineRecipes.remember(it) },
         Receiver(TemptationsHerePayload.TYPE) { TemptationsHere.heard(it) },

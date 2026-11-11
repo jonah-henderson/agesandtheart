@@ -74,7 +74,7 @@ class CrystalViewerScreen(menu: CrystalViewerMenu, inventory: Inventory, title: 
         val height = (PanelPicture.HEIGHT * panelScale).toInt()
         val frame = PanelPicture.FRAME_WIDTH
         val picture = if (asked) {
-            PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
+            PanelComposite.composeLive(LinkingPanel.source, Minecraft.getInstance().deltaTracker)
         } else {
             PanelComposite.composeMisted()
         }

@@ -65,6 +65,9 @@ object AgeConfig {
      */
     val warmAgesWhen: ModConfigSpec.EnumValue<WarmAgesWhen>
 
+    /** What a bound book's panel shows: the Age live, a map of where it would put you, or nothing. */
+    val panelView: ModConfigSpec.EnumValue<PanelView>
+
     /**
      * Whether the fusion-compounder makes what nothing else in the game can — one switch a recipe, named by
      * the recipe's `allowed_by` (design §7.1.2). Read live by the recipe, so turning one off takes effect at
@@ -151,6 +154,16 @@ object AgeConfig {
             )
             .translation(translationOf("warm_ages_when"))
             .defineEnum("warmAgesWhen", WarmAgesWhen.BOUND)
+        panelView = builder
+            .comment(
+                "What a bound book's panel shows. LIVE is the Age itself, moving, streamed to the player",
+                "who opens it. MAP is a map of the ground around where the book would put you, read once",
+                "from the Age and sent as colours, which spares the player's machine a second world and",
+                "the server the chunks it would send. OFF shows the panel misted over.",
+                "The Age is still made for a MAP panel; warmAgesWhen still decides when.",
+            )
+            .translation(translationOf("panel_view"))
+            .defineEnum("panelView", PanelView.LIVE)
         builder.pop()
         builder.comment("Compounding").push(COMPOUNDING)
         compoundsBedrock = builder
@@ -279,4 +292,16 @@ enum class WarmAgesWhen {
 
     /** Not until the panel asks, which is where the whole cost lands on the person who opened it. */
     OPENED,
+}
+
+/** What a bound book's panel shows. */
+enum class PanelView {
+    /** The Age itself, moving, as a second world on the client. */
+    LIVE,
+
+    /** A map of the ground around the arrival, read off the Age's chunks on the server. */
+    MAP,
+
+    /** Nothing but the mist. */
+    OFF,
 }

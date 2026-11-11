@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.book.panel
 
+import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.PanelView
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.BookBeingRead
@@ -47,16 +49,18 @@ object PanelViews {
     /** One player's open panel: what it is looking at, and everything owed to it. */
     private class Watch(
         val dimension: ResourceKey<Level>,
-        val centre: ChunkPos,
+        val around: BlockPos,
         /** The book lying open, on a lectern or fallen, or null for one a screen holds — which closes it. */
         val lyingOpen: LyingOpen?,
-    )
+    ) {
+        val centre: ChunkPos get() = PanelRing.centreOf(around)
+    }
 
     /** A book lying open, and the world it lies in. */
     private class LyingOpen(val book: BookBeingRead, val world: ResourceKey<Level>)
 
     /** What a panel looks at: the world a book leads to, and the point in it a visitor would arrive at. */
-    private class Destination(val level: ServerLevel, val around: BlockPos)
+    class Destination(val level: ServerLevel, val around: BlockPos)
 
     private val watching = mutableMapOf<UUID, Watch>()
 
@@ -87,13 +91,25 @@ object PanelViews {
     private fun openAdmitted(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
         closeWatchOf(server, player.uuid)
 
+        // A map is asked for book by book with `PanelMapRequest` (`PanelMapViews`), never as the one live panel.
+        when (AgeConfig.panelView.get()) {
+            PanelView.LIVE -> Unit
+            PanelView.MAP -> return
+            PanelView.OFF -> {
+                Services.NETWORK.sendToPlayer(player, PanelDeclined)
+                return
+            }
+        }
         val destination = destinationFor(server, player, book) ?: return
-
-        val level = destination.level
-        val around = destination.around
-        val centre = PanelRing.centreOf(around)
         val lyingOpen = LyingOpen(book, player.level().dimension()).takeIf { isLyingOpen(book) }
-        watching[player.uuid] = Watch(level.dimension(), centre, lyingOpen)
+        val watch = Watch(destination.level.dimension(), destination.around, lyingOpen)
+        watching[player.uuid] = watch
+        openLive(server, player, destination.level, watch)
+    }
+
+    private fun openLive(server: MinecraftServer, player: ServerPlayer, level: ServerLevel, watch: Watch) {
+        val around = watch.around
+        val centre = watch.centre
         hold(level, centre)
 
         val instability = instabilityOf(level)
@@ -120,7 +136,7 @@ object PanelViews {
         // So asking for a ring there generated the whole of it in one blocking run — the game frozen for
         // its duration, and the panel shown nothing until the end of it.
         Util.backgroundExecutor().execute {
-            PanelRing.around(centre).forEach { send(server, player, level, centre, it) }
+            PanelRing.around(watch.centre).forEach { send(server, player, level, watch, it) }
         }
     }
 
@@ -145,7 +161,7 @@ object PanelViews {
             "Panel: {} asked again for {} of {}'s chunks",
             player.name.string, wanted.size, watch.dimension.identifier(),
         )
-        wanted.forEach { send(server, player, level, watch.centre, it) }
+        wanted.forEach { send(server, player, level, watch, it) }
     }
 
     /**
@@ -234,7 +250,7 @@ object PanelViews {
      * A crystal viewer's is the Age its screen was opened onto ([PreviewedAges]), and only while that screen
      * is open: the menu is the proof the writer is standing at one.
      */
-    private fun destinationFor(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead): Destination? {
+    fun destinationFor(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead): Destination? {
         if (book == BookBeingRead.AtACrystalViewer) {
             // The menu's own finding, so a viewer opened onto an unwritable sentence cannot show the last
             // preview the writer made.
@@ -300,7 +316,7 @@ object PanelViews {
         server: MinecraftServer,
         player: ServerPlayer,
         level: ServerLevel,
-        centre: ChunkPos,
+        sentFor: Watch,
         position: ChunkPos,
     ) {
         level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
@@ -318,7 +334,7 @@ object PanelViews {
                 // sharing a centre chunk is ordinary, and a stale future would stream one Age's terrain
                 // into the other's panel — the payload carries only x and z.
                 val watch = watching[player.uuid]
-                val stillWatchingThisRing = watch != null && watch.centre == centre && watch.dimension == level.dimension()
+                val stillWatchingThisRing = watch != null && watch.centre == sentFor.centre && watch.dimension == level.dimension()
                 if (!stillWatchingThisRing) return@thenAcceptAsync
                 Services.NETWORK.sendToPlayer(
                     player,

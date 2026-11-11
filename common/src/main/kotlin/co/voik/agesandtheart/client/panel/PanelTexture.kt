@@ -38,13 +38,19 @@ class PanelTexture private constructor(path: String, private val current: () -> 
 
         val MISTED = PanelTexture("linking_panel/misted") { PanelComposite.mistedView() }
 
+        /** Each [BookMaps] slot's map, and its finished picture. */
+        val MAPS = List(BookMaps.SLOTS) { slot -> PanelTexture("linking_panel/map_$slot") { BookMaps.mapView(slot) } }
+        val MAP_PICTURES = List(BookMaps.SLOTS) { slot ->
+            PanelTexture("linking_panel/map_picture_$slot") { BookMaps.pictureView(slot) }
+        }
+
         /**
          * Makes the names good. On every composite rather than once: registering what is already registered is
          * a map write that changes nothing, and it outlasts anything that ever empties the manager.
          */
         fun registerAll() {
             val manager = Minecraft.getInstance().textureManager
-            for (texture in listOf(NEWEST_FIELD, OLDER_FIELD, LIVE, MISTED)) manager.register(texture.location, texture)
+            for (texture in listOf(NEWEST_FIELD, OLDER_FIELD, LIVE, MISTED) + MAPS + MAP_PICTURES) manager.register(texture.location, texture)
         }
     }
 }

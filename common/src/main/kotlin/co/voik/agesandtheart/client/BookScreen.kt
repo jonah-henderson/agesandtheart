@@ -140,7 +140,7 @@ class BookScreen(
     private fun drawPanel(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
         val x = left + panelAcrossTheBook()
         val y = top + PANEL_Y
-        val picture = PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
+        val picture = PanelComposite.composeLive(LinkingPanel.source, Minecraft.getInstance().deltaTracker)
         val frame = PanelPicture.FRAME_WIDTH
         // V backwards: a render target's origin is at its bottom.
         graphics.blit(

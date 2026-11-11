@@ -10,7 +10,12 @@ import net.minecraft.world.level.ChunkPos
  * A transfer rather than a world, which is why it is not part of [PreviewLevel]: what is owed, what has
  * come, and whether enough time has passed to say so.
  */
-class RingLoad(private val arrival: BlockPos, private val expected: Int) {
+class RingLoad(
+    private val arrival: BlockPos,
+    private val expected: Int,
+    /** The ring this load is of, around its centre: the streamed one, or a map's shown one. */
+    private val ring: (ChunkPos) -> List<ChunkPos> = PanelRing::around,
+) {
 
     /** Positions rather than a count, so a hole in the picture can be named and re-requested. */
     private val arrived = mutableSetOf<Long>()
@@ -59,7 +64,7 @@ class RingLoad(private val arrival: BlockPos, private val expected: Int) {
 
     /** Derived rather than remembered: the ring is a pure function of the arrival, which both sides know. */
     private fun missing(): List<ChunkPos> =
-        PanelRing.around(PanelRing.centreOf(arrival))
+        ring(PanelRing.centreOf(arrival))
             .filterNot { ChunkPos.pack(it.x, it.z) in arrived }
 
     companion object {

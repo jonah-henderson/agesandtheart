@@ -4,7 +4,9 @@ import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
+import co.voik.agesandtheart.client.panel.BookMaps
 import co.voik.agesandtheart.client.panel.OpenBookPanels
+import net.minecraft.client.renderer.rendertype.RenderType
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
 import net.minecraft.client.Minecraft
@@ -26,6 +28,9 @@ class BookRenderState : EntityRenderState() {
 
     /** Whether this is the book whose panel the client is showing — the one that may show its Age. */
     var isTheShownOne: Boolean = false
+
+    /** Where panels are maps, this book's own map ([BookMaps]), or null while it has none to show. */
+    var mapPicture: RenderType? = null
 }
 
 /**
@@ -47,7 +52,13 @@ class BookEntityRenderer(context: EntityRendererProvider.Context) :
         // Only a book in the player's own world may show the Age, as only a lectern there may.
         val inThePlayersWorld = entity.level() === Minecraft.getInstance().level
         state.isTheShownOne = inThePlayersWorld && OpenBookPanels.shown == BookBeingRead.OnTheGround(entity.id)
+        state.mapPicture = null
         if (state.panelPage == null) return
+        if (BookMaps.isOn) {
+            state.mapPicture = if (inThePlayersWorld) BookMaps.pictureOnAPage(BookBeingRead.OnTheGround(entity.id)) else null
+            if (state.mapPicture == null) OpenBookPanels.sawAMistedBook()
+            return
+        }
         if (state.isTheShownOne) OpenBookPanels.sawTheShownBook() else OpenBookPanels.sawAMistedBook()
     }
 
@@ -66,7 +77,7 @@ class BookEntityRenderer(context: EntityRendererProvider.Context) :
         state.look?.let { look ->
             rendering.submit(look, FLAT, poseStack, collector, state.lightCoords)
             val model = rendering.modelFor(look.binding)
-            state.panelPage?.let { PanelOnThePage.submit(it, state.isTheShownOne, model, FLAT, poseStack, collector) }
+            state.panelPage?.let { PanelOnThePage.submit(it, state.isTheShownOne, state.mapPicture, model, FLAT, poseStack, collector) }
         }
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)

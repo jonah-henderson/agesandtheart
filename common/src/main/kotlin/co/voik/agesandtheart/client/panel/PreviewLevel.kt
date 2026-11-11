@@ -43,13 +43,12 @@ class PreviewLevel private constructor(
     /** How far the Age is at odds with itself as the panel shows it, `0..1` (design §7.3). */
     val unsettled: Float,
     private val around: BlockPos,
-    val load: RingLoad,
-) : AutoCloseable {
+    override val load: RingLoad,
+) : PanelSource, AutoCloseable {
 
     private var redirtiedOnce = false
 
-    /** When it was opened, which the mist clears from ([PanelComposite.composeLive]). */
-    val openedAtNanos: Long = System.nanoTime()
+    override val openedAtNanos: Long = System.nanoTime()
 
     /**
      * Takes one chunk of the ring, as `ClientPacketListener.handleLevelChunkWithLight` would.

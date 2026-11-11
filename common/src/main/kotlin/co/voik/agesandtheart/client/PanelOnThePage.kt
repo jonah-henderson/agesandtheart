@@ -19,18 +19,19 @@ import net.minecraft.client.renderer.rendertype.RenderType
 object PanelOnThePage {
 
     /**
-     * The panel on [page] of [model] posed at [state]: the live picture where [isTheShownOne] and it has been laid
-     * down, and the misted one otherwise.
+     * The panel on [page] of [model] posed at [state]: the book's own [mapPicture] where panels are maps and it has
+     * one, the live picture where [isTheShownOne] and it has been laid down, and the misted one otherwise.
      */
     fun submit(
         page: BookPage,
         isTheShownOne: Boolean,
+        mapPicture: RenderType?,
         model: AgeBookModel,
         state: AgeBookModel.State,
         poseStack: PoseStack,
         collector: SubmitNodeCollector,
     ) {
-        val picture = pictureFor(isTheShownOne) ?: return
+        val picture = mapPicture ?: pictureFor(isTheShownOne) ?: return
         val framed = framed(LecternBookPlane.panelOn(page))
         poseStack.pushPose()
         model.setupAnim(state)

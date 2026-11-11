@@ -6,7 +6,9 @@ import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBookPlane
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LecternOpening
+import co.voik.agesandtheart.client.panel.BookMaps
 import co.voik.agesandtheart.client.panel.OpenBookPanels
+import net.minecraft.client.renderer.rendertype.RenderType
 import co.voik.agesandtheart.client.panel.PanelComposite
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
@@ -34,6 +36,9 @@ class LecternBookRenderState : LecternRenderState() {
 
     /** Whether this is the lectern whose panel the client is showing — the one that may show its Age. */
     var isTheShownOne: Boolean = false
+
+    /** Where panels are maps, this book's own map ([BookMaps]), or null while it has none to show. */
+    var mapPicture: RenderType? = null
 }
 
 /**
@@ -70,11 +75,19 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         state.panelPage = LecternBooks.panelPageOf(lectern.book)
         state.look = BookLook.of(lectern.book)
         state.isTheShownOne = false
+        state.mapPicture = null
         if (state.panelPage == null) return
         val isOpen = LecternOpening.isOpen(lectern.blockState)
         val swing = swingOf(lectern, isOpen, partialTicks)
         state.openness = eased(swing.progress)
         val thisBook = BookBeingRead.OnALectern(lectern.blockPos)
+        if (BookMaps.isOn) {
+            // Every book its own map, kept through the swing shut; one inside an Age being shown wears the mist.
+            val inThePlayersWorld = lectern.level === Minecraft.getInstance().level
+            state.mapPicture = if (inThePlayersWorld) BookMaps.pictureOnAPage(thisBook) else null
+            if (state.mapPicture == null && state.openness > 0.0f) OpenBookPanels.sawAMistedBook()
+            return
+        }
         if (!isOpen) {
             // Still swinging shut: a book that was showing its Age keeps the last of it, unless another book has
             // been shown since and the picture is that one's now; any other wears the mist.
@@ -131,7 +144,7 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
             rendering.submit(look, pose, poseStack, collector, ours.lightCoords)
             val model = rendering.modelFor(look.binding)
             val isOpenAtAll = ours.openness > 0.0f
-            if (isOpenAtAll) ours.panelPage?.let { PanelOnThePage.submit(it, ours.isTheShownOne, model, pose, poseStack, collector) }
+            if (isOpenAtAll) ours.panelPage?.let { PanelOnThePage.submit(it, ours.isTheShownOne, ours.mapPicture, model, pose, poseStack, collector) }
         }
         poseStack.popPose()
     }

@@ -56,6 +56,8 @@ object OpenBookPanels {
         }
 
     fun tick(minecraft: Minecraft) {
+        // Where panels are maps, every book shows its own and there is nothing to choose ([BookMaps]).
+        if (BookMaps.isOn) return
         val level = minecraft.level ?: return
         val player = minecraft.player ?: return
         // An open book screen owns the panel and ticks it; the choice resumes from its lectern once it closes.
@@ -141,8 +143,9 @@ object OpenBookPanels {
         val shownIsSeen = shownSeenThisFrame
         shownSeenThisFrame = false
         if (book != null && shownIsSeen && !isComposedByItsScreen(book)) {
-            PanelComposite.composeLive(LinkingPanel.preview, delta, fadesIn = true, fadingOut = handOverMist())
+            PanelComposite.composeLive(LinkingPanel.source, delta, fadesIn = true, fadingOut = handOverMist())
         }
+        BookMaps.drawFrame()
         // After the live picture, whose Age may itself have had a book of ours in view.
         if (mistedSeenThisFrame) PanelComposite.composeMisted()
         mistedSeenThisFrame = false
@@ -158,7 +161,7 @@ object OpenBookPanels {
     private const val HAND_OVER_NANOS = 750_000_000L
 
     /** Every open book of ours near enough to [viewer] to be chosen. */
-    private fun openBooksNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> =
+    fun openBooksNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> =
         openLecternsNear(level, viewer) + fallenBooksNear(level, viewer)
 
     private fun openLecternsNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> {

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.client.light.TintedLights
+import co.voik.agesandtheart.client.panel.BookMaps
 import co.voik.agesandtheart.client.panel.OpenBookPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import net.minecraft.client.Minecraft
@@ -38,6 +39,8 @@ object ClientSetup {
         LureLooks.pulse(minecraft)
         // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
         OpenBookPanels.tick(minecraft)
+        // Or where panels are maps, every open book's map at once.
+        BookMaps.tick(minecraft)
         // And a link in transit, which ends once the player has arrived.
         LinkTransit.tick(minecraft)
         // Whether a tear is being fallen through, settled once here rather than per fissure per frame.
@@ -99,6 +102,7 @@ object ClientSetup {
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them.
         LinkingPanel.forget()
+        BookMaps.forget()
         LinkTransit.forget()
         Storms.forget()
         Fogs.forget()

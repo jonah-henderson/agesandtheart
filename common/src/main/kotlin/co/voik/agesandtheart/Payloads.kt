@@ -15,7 +15,12 @@ import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
+import co.voik.agesandtheart.book.panel.PanelDeclined
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.book.panel.PanelMapChunkPayload
+import co.voik.agesandtheart.book.panel.PanelMapPayload
+import co.voik.agesandtheart.book.panel.PanelMapRequest
+import co.voik.agesandtheart.book.panel.PanelMapViews
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.desk.ArchiveCommands
@@ -109,6 +114,9 @@ object Payloads {
         // buffer, carrying vanilla's own chunk and light data straight through.
         Clientbound(PanelLevelPayload.TYPE, PanelLevelPayload.STREAM_CODEC),
         Clientbound(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC),
+        Clientbound(PanelMapPayload.TYPE, PanelMapPayload.STREAM_CODEC),
+        Clientbound(PanelMapChunkPayload.TYPE, PanelMapChunkPayload.STREAM_CODEC),
+        Clientbound(PanelDeclined.TYPE, PanelDeclined.STREAM_CODEC),
         Serverbound(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { player, request ->
             PanelViews.open(player.level().server, player, request.book)
         },
@@ -117,6 +125,9 @@ object Payloads {
         },
         Serverbound(PanelChunksWanted.TYPE, PanelChunksWanted.STREAM_CODEC) { player, wanted ->
             PanelViews.resend(player.level().server, player, wanted.positions)
+        },
+        Serverbound(PanelMapRequest.TYPE, PanelMapRequest.STREAM_CODEC) { player, request ->
+            PanelMapViews.request(player.level().server, player, request)
         },
     )
 }

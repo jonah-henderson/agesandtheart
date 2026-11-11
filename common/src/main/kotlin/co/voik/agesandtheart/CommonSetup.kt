@@ -26,6 +26,7 @@ import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.page.PageLearning
+import co.voik.agesandtheart.book.panel.PanelMapViews
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.AgeContent
@@ -237,6 +238,7 @@ object CommonSetup {
      */
     fun playerLeft(server: MinecraftServer, player: ServerPlayer) {
         PanelViews.forget(server, player)
+        PanelMapViews.forget(player)
     }
 
     /** Vanilla's own odds for TNT, which fire takes almost at once. */

@@ -4,6 +4,8 @@ import co.voik.agesandtheart.client.AgeRenderTypes.MATRICES_AND_PROJECTION
 import co.voik.agesandtheart.compat.ONLY_VERTEX_BINDING
 import co.voik.agesandtheart.location
 import com.mojang.renderpearl.api.GpuFormat
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.renderpearl.api.textures.FilterMode
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology
 import com.mojang.renderpearl.api.pipeline.BindGroupLayout
 import com.mojang.renderpearl.api.pipeline.BlendFunction
@@ -96,10 +98,22 @@ object PanelRenderTypes {
     private val newestField: RenderType = fieldFrom(PanelTexture.NEWEST_FIELD)
     private val olderField: RenderType = fieldFrom(PanelTexture.OLDER_FIELD)
 
+    /** Each [BookMaps] slot's map, sampled nearest so its blocks stay square as vanilla's map's do. */
+    private val mapFields: List<RenderType> = PanelTexture.MAPS.mapIndexed { slot, texture ->
+        RenderType.create(
+            "age_linking_panel_map_$slot",
+            RenderSetup.builder(FIELD_PIPELINE)
+                .withTexture("Sampler0", texture.location) { RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST) }
+                .createRenderSetup(),
+        )
+    }
+
     fun field(which: PanelField): RenderType = when (which) {
         PanelField.NEWEST -> newestField
         PanelField.OLDER -> olderField
     }
+
+    fun mapField(slot: Int): RenderType = mapFields[slot]
 
     /** The mist, measured in the page-pixels the picture is laid down in. */
     val mist: RenderType = RenderType.create(
@@ -144,6 +158,9 @@ object PanelRenderTypes {
 
     val livePicture: RenderType = onAPage("live", PanelTexture.LIVE)
     val mistedPicture: RenderType = onAPage("misted", PanelTexture.MISTED)
+
+    /** Each [BookMaps] slot's finished picture, on its book. */
+    val mapPictures: List<RenderType> = PanelTexture.MAP_PICTURES.mapIndexed { slot, texture -> onAPage("map_$slot", texture) }
 
     private fun fieldFrom(texture: PanelTexture): RenderType = RenderType.create(
         "age_linking_panel_${texture.location.path.substringAfterLast('/')}",

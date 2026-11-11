@@ -35,7 +35,16 @@ object PanelRing {
 
     val COUNT: Int get() = SIDE * SIDE
 
+    /** The side of the shown ring, which is all a map needs: it meshes nothing, so it has no spare edge. */
+    val SHOWN_SIDE: Int get() = SHOWN_RADIUS_CHUNKS * 2 + 1
+
+    val SHOWN_COUNT: Int get() = SHOWN_SIDE * SHOWN_SIDE
+
     fun centreOf(arrival: BlockPos): ChunkPos = ChunkPos.containing(arrival)
+
+    /** The shown ring around [centre], nearest first, as [around] orders the streamed one. */
+    fun shownAround(centre: ChunkPos): List<ChunkPos> =
+        ChunkPos.rangeClosed(centre, SHOWN_RADIUS_CHUNKS).toList().sortedBy { centre.getChessboardDistance(it) }
 
     /**
      * Every chunk of the ring around [centre], nearest first, so the picture assembles outwards from the

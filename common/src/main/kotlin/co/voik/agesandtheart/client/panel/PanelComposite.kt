@@ -98,22 +98,26 @@ object PanelComposite {
     private val projections by lazy { ProjectionMatrixBuffer("ages linking panel composite") }
 
     /**
-     * Renders [preview]'s Age for this frame and lays the live picture down from it — mist alone until there is
-     * something to show, thinning as the ring arrives, and as far into it as [fadingOut], for a panel being given
-     * up. A book lying open [fadesIn]: its mist clears no faster than [MIST_CLEARS_NANOS] from when the preview
-     * opened, so an Age whose ring comes at once still fades in; a screen opening is transition enough.
+     * Lays the live picture down from [source] — rendering a preview's Age for this frame, or a map as it stands —
+     * mist alone until there is something to show, thinning as the ring arrives, and as far into it as
+     * [fadingOut], for a panel being given up. A book lying open [fadesIn]: its mist clears no faster than
+     * [MIST_CLEARS_NANOS] from when the source opened, so an Age whose ring comes at once still fades in; a screen
+     * opening is transition enough.
      */
     fun composeLive(
-        preview: PreviewLevel?,
+        source: PanelSource?,
         delta: DeltaTracker,
         fadesIn: Boolean = false,
         fadingOut: Float = 0.0f,
     ): GpuTextureView {
-        val age = preview?.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of)
-        val ringStillMissing = 1.0f - (preview?.load?.wholeness ?: 0.0f)
-        val clearing = if (fadesIn) stillClearing(preview) else 0.0f
+        val ringStillMissing = 1.0f - (source?.load?.wholeness ?: 0.0f)
+        val clearing = if (fadesIn) stillClearing(source) else 0.0f
         val stillMissing = maxOf(ringStillMissing, clearing, fadingOut)
-        lastLive = PanelPicture.strokes(age, stillMissing)
+        lastLive = when (source) {
+            is PreviewLevel -> PanelPicture.strokes(source.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of), stillMissing)
+            is PanelMap -> PanelPicture.strokesOfMap(source.inView, stillMissing)
+            null -> PanelPicture.strokes(age = null, mist = stillMissing)
+        }
         val target = live ?: newTarget("live", LIVE_TEXELS_PER_PAGE_PIXEL).also { live = it }
         return compose(target, lastLive)
     }
@@ -127,12 +131,25 @@ object PanelComposite {
         return compose(target, lastLive)
     }
 
-    /** How much of the mist the time since [preview] opened has yet to clear, `1..0`. */
-    private fun stillClearing(preview: PreviewLevel?): Float {
-        preview ?: return 1.0f
-        val cleared = (System.nanoTime() - preview.openedAtNanos).toFloat() / MIST_CLEARS_NANOS
+    /** How much of the mist the time since [source] opened has yet to clear, `1..0`. */
+    private fun stillClearing(source: PanelSource?): Float {
+        source ?: return 1.0f
+        val cleared = (System.nanoTime() - source.openedAtNanos).toFloat() / MIST_CLEARS_NANOS
         return 1.0f - cleared.coerceIn(0.0f, 1.0f)
     }
+
+    /**
+     * Lays [map]'s picture down into [target] — a [BookMaps] slot's own — the mist only as thick as the map is
+     * still missing. Wholly misted where there is no map yet.
+     */
+    fun composeMap(map: PanelMap?, target: RenderTarget): GpuTextureView {
+        val stillMissing = 1.0f - (map?.load?.wholeness ?: 0.0f)
+        val strokes = map?.let { PanelPicture.strokesOfMap(it.inView, stillMissing) } ?: PanelPicture.strokes(null, WHOLLY_MISTED)
+        return compose(target, strokes)
+    }
+
+    /** A target for one [BookMaps] slot's picture, at a book's sharpness. */
+    fun newMapTarget(slot: Int): RenderTarget = newTarget("map $slot", TEXELS_PER_PAGE_PIXEL)
 
     /** Lays the misted picture down: the one every panel wears that is not showing an Age. */
     fun composeMisted(): GpuTextureView {
@@ -231,12 +248,13 @@ object PanelComposite {
     private fun renderTypeOf(stroke: PanelStroke): RenderType = when (stroke) {
         is PanelStroke.Fill -> PanelRenderTypes.fill
         is PanelStroke.Field -> PanelRenderTypes.field(stroke.field)
+        is PanelStroke.Map -> PanelRenderTypes.mapField(stroke.slot)
         is PanelStroke.Mist -> PanelRenderTypes.mist
     }
 
     private fun formatOf(stroke: PanelStroke): VertexFormat = when (stroke) {
         is PanelStroke.Fill, is PanelStroke.Mist -> DefaultVertexFormat.POSITION_COLOR
-        is PanelStroke.Field -> DefaultVertexFormat.POSITION_TEX_COLOR
+        is PanelStroke.Field, is PanelStroke.Map -> DefaultVertexFormat.POSITION_TEX_COLOR
     }
 
     /** One run staged and ready to draw: all the buffer work behind it already done. */
@@ -285,6 +303,12 @@ object PanelComposite {
                 builder.addVertex(right, top, 0.0f).setColor(stroke.colour)
             }
             is PanelStroke.Field -> {
+                builder.addVertex(left, top, 0.0f).setUv(stroke.u0, stroke.v0).setColor(UNTINTED)
+                builder.addVertex(left, bottom, 0.0f).setUv(stroke.u0, stroke.v1).setColor(UNTINTED)
+                builder.addVertex(right, bottom, 0.0f).setUv(stroke.u1, stroke.v1).setColor(UNTINTED)
+                builder.addVertex(right, top, 0.0f).setUv(stroke.u1, stroke.v0).setColor(UNTINTED)
+            }
+            is PanelStroke.Map -> {
                 builder.addVertex(left, top, 0.0f).setUv(stroke.u0, stroke.v0).setColor(UNTINTED)
                 builder.addVertex(left, bottom, 0.0f).setUv(stroke.u0, stroke.v1).setColor(UNTINTED)
                 builder.addVertex(right, bottom, 0.0f).setUv(stroke.u1, stroke.v1).setColor(UNTINTED)

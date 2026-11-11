@@ -29,6 +29,16 @@ sealed interface PanelStroke {
         val v1: Float,
     ) : PanelStroke
 
+    /** A piece of the map in [BookMaps] slot [slot], as [Field] takes a piece of a field, `v` running down. */
+    data class Map(
+        override val rect: PanelRect,
+        val slot: Int,
+        val u0: Float,
+        val u1: Float,
+        val v0: Float,
+        val v1: Float,
+    ) : PanelStroke
+
     /** The mist, at [strength] from nothing to opaque. */
     data class Mist(override val rect: PanelRect, val strength: Float) : PanelStroke
 }
@@ -74,19 +84,38 @@ object PanelPicture {
      * Everything a panel shows, back to front: the frame, the black, the Age where there is a picture of it
      * this frame ([age]), and the mist at [mist] — the strength the ring is still missing.
      */
-    fun strokes(age: AgeInView?, mist: Float): List<PanelStroke> = buildList {
-        add(PanelStroke.Fill(FRAMED, FRAME))
-        // Under everything, so a mist that thins never shows the page through it.
-        add(PanelStroke.Fill(WHOLE, BLACK))
+    fun strokes(age: AgeInView?, mist: Float): List<PanelStroke> = framedAndMisted(mist) {
         if (age != null) {
             // A level render leaves its background transparent rather than coloured, so everything the Age
             // does not cover — the band under the horizon and past the ring — needs the haze behind it.
             add(PanelStroke.Fill(WHOLE, age.haze))
             addAll(PanelDistortion.strokes(age))
         }
+    }
+
+    /** The same for a map panel: the map's window over the whole panel, and the arrival marked on it. */
+    fun strokesOfMap(map: MapInView, mist: Float): List<PanelStroke> = framedAndMisted(mist) {
+        add(PanelStroke.Map(WHOLE, map.slot, map.u0, map.u1, map.v0, map.v1))
+        val markEdge = PanelRect(map.markX - MARK_EDGE, map.markY - MARK_EDGE, map.markX + MARK_EDGE, map.markY + MARK_EDGE)
+        val markHeart = PanelRect(map.markX - MARK_HEART, map.markY - MARK_HEART, map.markX + MARK_HEART, map.markY + MARK_HEART)
+        add(PanelStroke.Fill(markEdge, FRAME))
+        add(PanelStroke.Fill(markHeart, MARK))
+    }
+
+    /** The frame and the black under [picture], and the mist at [mist] over it. */
+    private fun framedAndMisted(mist: Float, picture: MutableList<PanelStroke>.() -> Unit): List<PanelStroke> = buildList {
+        add(PanelStroke.Fill(FRAMED, FRAME))
+        // Under everything, so a mist that thins never shows the page through it.
+        add(PanelStroke.Fill(WHOLE, BLACK))
+        picture()
         // Over the Age rather than behind it: the fade *is* the load (design §7.8.1), so the Age comes through
         // the mist as it arrives rather than replacing it.
         val strength = mist.coerceIn(0.0f, 1.0f)
         if (strength > 0.0f) add(PanelStroke.Mist(WHOLE, strength))
     }
+
+    /** Where a map puts you: a pale point in the frame's ink, in page-pixels either side of its centre. */
+    private const val MARK_EDGE = 2
+    private const val MARK_HEART = 1
+    private val MARK = 0xFFF4ECD8.toInt()
 }

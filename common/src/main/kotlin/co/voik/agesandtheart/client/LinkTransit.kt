@@ -81,7 +81,7 @@ object LinkTransit {
 
     /** The transit's own picture, live: laid down this frame from the panel's preview. */
     fun drawLive(graphics: GuiGraphicsExtractor, width: Int, height: Int) {
-        PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
+        PanelComposite.composeLive(LinkingPanel.source, Minecraft.getInstance().deltaTracker)
         draw(graphics, PanelTexture.LIVE.location, width, height)
     }
 

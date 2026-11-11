@@ -19,6 +19,9 @@ import co.voik.agesandtheart.client.sendToServer
 object LinkingPanel {
 
     private var showing: PreviewLevel? = null
+
+    /** Whether the server shows no panels (`AgeConfig.panelView` OFF), so the panel stays misted and stops asking. */
+    private var isDeclined = false
     private var asked = false
 
     /** Kept so an unanswered request can be repeated verbatim. */
@@ -29,8 +32,14 @@ object LinkingPanel {
     private var askedAt = 0L
     private var asksSoFar = 0
 
-    /** What is being shown, or null while nothing is or the first chunks are still coming. */
+    /** The live Age being shown, or null while nothing is, the first chunks are still coming, or it is a map. */
     val preview: PreviewLevel? get() = showing
+
+    /**
+     * Whatever is being shown: the live Age, or where panels are maps, the book's map ([BookMaps]), which
+     * this then only pins for as long as it is asked for.
+     */
+    val source: PanelSource? get() = showing ?: BookMaps.mapOf(showingFor)
 
     /**
      * Whether there is still something to wait for, which is what the screen says out loud.
@@ -40,7 +49,9 @@ object LinkingPanel {
      */
     val isWaiting: Boolean
         get() {
-            val load = showing?.load ?: return asked && asksSoFar < MOST_ASKS
+            if (isDeclined) return false
+            if (BookMaps.isOn) return asked && BookMaps.isWaiting(askedFor)
+            val load = source?.load ?: return asked && asksSoFar < MOST_ASKS
             return !load.hasAnything
         }
 
@@ -58,7 +69,7 @@ object LinkingPanel {
         askedFor = book
         askedAt = System.nanoTime()
         asksSoFar = 0
-        sendToServer(PanelOpenRequest(book))
+        if (BookMaps.isOn) BookMaps.pin(book) else sendToServer(PanelOpenRequest(book))
     }
 
     /**
@@ -82,7 +93,7 @@ object LinkingPanel {
      * the null preview this leaves in place.
      */
     private fun retryIfUnanswered() {
-        if (!asked || showing != null) return
+        if (!asked || source != null || isDeclined || BookMaps.isOn) return
         if (asksSoFar >= MOST_ASKS) return
         val now = System.nanoTime()
         if (now - askedAt < BEFORE_ASKING_AGAIN_NANOS) return
@@ -116,6 +127,11 @@ object LinkingPanel {
         showing?.accept(payload)
     }
 
+    /** Called when the server shows no panels: the one asked for stays misted, and is not asked after again. */
+    fun declined() {
+        if (asked) isDeclined = true
+    }
+
     /**
      * Asks the server again for whatever the ring is still missing, if it is time to.
      *
@@ -138,7 +154,8 @@ object LinkingPanel {
      * hold a server-side ring for as long as the client ran.
      */
     fun release() {
-        if (drop()) sendToServer(PanelCloseRequest)
+        val isLive = !BookMaps.isOn
+        if (drop() && isLive) sendToServer(PanelCloseRequest)
     }
 
     /** Dropped without telling the server, for a disconnect — where there is nobody left to tell. */
@@ -151,6 +168,8 @@ object LinkingPanel {
         val had = showing != null || asked
         showing?.close()
         showing = null
+        askedFor?.let(BookMaps::unpin)
+        isDeclined = false
         asked = false
         askedFor = null
         asksSoFar = 0
