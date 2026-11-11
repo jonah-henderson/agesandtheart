@@ -163,8 +163,23 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
             return InteractionResult.CONSUME
         }
         val entity = level.getBlockEntity(pos) as? CompounderBlockEntity ?: return InteractionResult.FAIL
+        (player as? ServerPlayer)?.let { teachWhatItStandsReadyFor(it, state) }
         player.openMenu(entity)
         return InteractionResult.CONSUME
+    }
+
+    /**
+     * Teaches [player] every recipe that needs more than power whose needs all stand beside this compounder — nara's,
+     * today. Setting a machine up with heat and cold beside its power is reaching for what they are for, and the book
+     * should answer, alongside the unlock for holding the recipe's inputs.
+     */
+    private fun teachWhatItStandsReadyFor(player: ServerPlayer, state: BlockState) {
+        val met = NEEDS.filter { (_, property) -> state.getValue(property) }.keys
+        fun standsReadyFor(recipe: CompoundingRecipe) =
+            recipe.alsoNeeds.isNotEmpty() && (recipe.alsoNeeds + CompounderNeed.POWER).all { it in met }
+        val ready = player.level().server.recipeManager.getRecipes()
+            .filter { holder -> (holder.value() as? CompoundingRecipe)?.let(::standsReadyFor) == true }
+        if (ready.isNotEmpty()) player.awardRecipes(ready)
     }
 
     override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
