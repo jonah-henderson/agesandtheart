@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.ruins
 
 import co.voik.agesandtheart.content.AdvancedAnalysisMachine
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.PageItem
 import co.voik.agesandtheart.location
@@ -95,13 +96,16 @@ class CavernRuinsDevicePiece : StructurePiece {
 
     /**
      * A chest beside the compounder holding the page for plasma, which is what its repair wants (design
-     * §7.1.2) — a STAND-IN until Jonah's own structures teach the word near the machine.
+     * §7.1.2) — a STAND-IN until Jonah's own structures teach the word near the machine — and the one rare page
+     * every city holds (Jonah, 2026-11-11), its word drawn from the rare bucket for whoever takes it.
      */
     private fun leaveTheWordForPlasma(level: WorldGenLevel, chest: BlockPos, within: BoundingBox) {
         if (!within.isInside(chest)) return
         val facing = if (front.axis.isHorizontal) front else Direction.NORTH
         level.setBlock(chest, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, facing), UPDATE_FLAGS)
-        (level.getBlockEntity(chest) as? ChestBlockEntity)?.setItem(0, plasmaPage(level))
+        val left = level.getBlockEntity(chest) as? ChestBlockEntity ?: return
+        left.setItem(PLASMA_SLOT, plasmaPage(level))
+        left.setItem(RARE_SLOT, ItemStack(AgeContent.PAGE).also { it.set(AgeComponents.PAGE_DRAWN_FOR, setOf(RARE)) })
     }
 
     private fun plasmaPage(level: WorldGenLevel): ItemStack {
@@ -112,6 +116,11 @@ class CavernRuinsDevicePiece : StructurePiece {
 
     private companion object {
         val PLASMA_WORD = "plasma".location()
+
+        /** The bucket the city's one guaranteed page is drawn from (`art/rarity/rare.json`). */
+        const val RARE = "rare"
+        const val PLASMA_SLOT = 0
+        const val RARE_SLOT = 1
 
         /** Along the frame, at a right angle to the front. */
         fun besideOf(front: Direction): Direction = if (front.axis.isHorizontal) front.clockWise else Direction.EAST
