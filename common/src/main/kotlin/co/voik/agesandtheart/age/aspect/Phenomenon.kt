@@ -252,7 +252,8 @@ enum class Phenomenon(
      * is put new roots down near the players. **It can be won**: fire halts a root and burns its thorns, and
      * the ground inside a held clearing grows crops faster than any ordinary Age's.
      *
-     * Insists on no weather, and is written only: nothing instability buys is an overgrowth yet.
+     * Insists on no weather, and is written only: instability buys the patches that spread (overgrown ground), never
+     * roots appearing out of nowhere.
      */
     OVERGROWTH("overgrowth", countsInSpace = true),
 

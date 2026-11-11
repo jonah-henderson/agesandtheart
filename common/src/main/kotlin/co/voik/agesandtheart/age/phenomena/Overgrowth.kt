@@ -17,6 +17,9 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BlockTags
 import net.minecraft.tags.FluidTags
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.material.Fluids
+import net.minecraft.world.level.material.Fluid
 import net.minecraft.tags.TagKey
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.BlockItem
@@ -86,6 +89,9 @@ object Overgrowth {
 
     /** What the overgrowth will not eat, beyond whatever cannot be broken at all. */
     val IMMUNE: TagKey<Block> = TagKey.create(Registries.BLOCK, "immune_to_overgrowth".location())
+
+    /** The fluids a root will not grow into, lava's; it grows through any other, holding water and draining the rest. */
+    val STOPS_AT: TagKey<Fluid> = TagKey.create(Registries.FLUID, "overgrowth_stops_at".location())
 
     val MUSHROOMS: TagKey<Block> = TagKey.create(Registries.BLOCK, "overgrowth_mushrooms".location())
 
@@ -185,8 +191,8 @@ object Overgrowth {
         val isUnbreakable = state.getDestroySpeed(level, at) < 0
         val isItsOwn = state.`is`(BLOCK) || state.`is`(THORNS)
         val isImmune = state.`is`(IMMUNE)
-        val isMolten = state.fluidState.`is`(FluidTags.LAVA)
-        return !(isNothing || isUnbreakable || isItsOwn || isImmune || isMolten)
+        val holdsAFluidItStopsAt = state.fluidState.`is`(STOPS_AT)
+        return !(isNothing || isUnbreakable || isItsOwn || isImmune || holdsAFluidItStopsAt)
     }
 
     /**
@@ -252,9 +258,14 @@ object Overgrowth {
     private fun eatBesides(level: ServerLevel, root: BlockPos, random: RandomSource) {
         val target = root.relative(Direction.getRandom(random))
         if (!level.hasChunkAtColumn(target)) return
-        if (!isEdible(level, target, level.getBlockState(target))) return
-        level.setBlock(target, BLOCK.defaultBlockState(), Block.UPDATE_ALL)
+        val eaten = level.getBlockState(target)
+        if (!isEdible(level, target, eaten)) return
+        level.setBlock(target, rootIn(eaten), Block.UPDATE_ALL)
     }
+
+    /** A root grown where [eaten] stood: holding the water it grew into, and dry where it drained any other fluid. */
+    private fun rootIn(eaten: BlockState): BlockState =
+        BLOCK.defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, eaten.fluidState.isSourceOfType(Fluids.WATER))
 
     /** The growth stage of a crop, berry bush or stem; null for a plant that has none. */
     private fun ageOf(plant: BlockState): IntegerProperty? =

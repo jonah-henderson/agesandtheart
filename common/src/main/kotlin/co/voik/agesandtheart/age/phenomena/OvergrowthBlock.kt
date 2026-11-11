@@ -9,12 +9,29 @@ import net.minecraft.world.level.ScheduledTickAccess
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.SimpleWaterloggedBlock
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED
+import net.minecraft.world.level.material.FluidState
+import net.minecraft.world.level.material.Fluids
 
 /**
  * The root of an overgrowth: it eats what it touches, raises plants and thorns, and grows what stands on
- * it very fast. A fire near it stops it spreading and raising, and never removes it (design §5.2.2).
+ * it very fast. A fire near it stops it spreading and raising, and never removes it (design §5.2.2). It holds the
+ * water it grows into, as a waterlogged block does.
  */
-class OvergrowthBlock(properties: BlockBehaviour.Properties) : Block(properties) {
+class OvergrowthBlock(properties: BlockBehaviour.Properties) : Block(properties), SimpleWaterloggedBlock {
+
+    init {
+        registerDefaultState(stateDefinition.any().setValue(WATERLOGGED, false))
+    }
+
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(WATERLOGGED)
+    }
+
+    override fun getFluidState(state: BlockState): FluidState =
+        if (state.getValue(WATERLOGGED)) Fluids.WATER.getSource(false) else super.getFluidState(state)
 
     override fun updateShape(
         state: BlockState,
@@ -26,6 +43,7 @@ class OvergrowthBlock(properties: BlockBehaviour.Properties) : Block(properties)
         neighbourState: BlockState,
         random: RandomSource,
     ): BlockState {
+        if (state.getValue(WATERLOGGED)) ticks.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level))
         if (directionToNeighbour == Direction.UP) {
             Overgrowth.growthDelay(level, neighbourPos, neighbourState)?.let { ticks.scheduleTick(pos, this, it) }
         }

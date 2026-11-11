@@ -73,6 +73,26 @@ class OvergrowthOnServerCheck : FunSpec({
         check(isAt(20, y + 1, 20, "minecraft:wheat[age=7]")) { "the wheat had not ripened" }
     }
 
+    test("a root grows into water holding it, and into ink draining it") {
+        val y = freshGround()
+        /** A root walled in barrier, which nothing eats, with only [fluid] beside it to grow into. */
+        fun walledBeside(x: Int, z: Int, fluid: String) {
+            inWorld("fill ${x - 1} $y ${z - 1} ${x + 2} ${y + 2} ${z + 1} minecraft:barrier")
+            inWorld("setblock $x ${y + 1} $z $OVERGROWTH")
+            inWorld("setblock ${x + 1} ${y + 1} $z $fluid")
+        }
+        walledBeside(4, 4, "minecraft:water")
+        walledBeside(20, 20, "agesandtheart:ink")
+        inWorld("gamerule random_tick_speed $QUICK_TICKS")
+        try {
+            sprint(SPREAD_TICKS)
+        } finally {
+            inWorld("gamerule random_tick_speed $VANILLA_TICKS")
+        }
+        check(isAt(5, y + 1, 4, "$OVERGROWTH[waterlogged=true]")) { "a root did not grow into the water, holding it" }
+        check(isAt(21, y + 1, 20, "$OVERGROWTH[waterlogged=false]")) { "a root did not grow into the ink and drain it" }
+    }
+
     test("an overgrowth drops nothing, with silk touch or without") {
         val y = freshGround()
         inWorld("setblock 24 $y 24 $OVERGROWTH")
@@ -89,5 +109,8 @@ class OvergrowthOnServerCheck : FunSpec({
         const val SETTLE_TICKS = 40
         const val RIPEN_TICKS = 460
         const val CLEARED_HEIGHT = 16
+        const val SPREAD_TICKS = 100
+        const val QUICK_TICKS = 4096
+        const val VANILLA_TICKS = 3
     }
 }

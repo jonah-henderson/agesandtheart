@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "The fluids an overgrowth's roots will not grow into. They grow through every other: water, which a root holds",
+    "as it grows, and anything else, which it drains. A pack adds its own fluids here to keep the roots out of them."
+  ],
+  "replace": false,
+  "values": [
+    "#minecraft:lava"
+  ]
+}
