@@ -1,0 +1,8 @@
+[feature] new word, "high". applies to geography, not inhabitants
+[feature] new meanings for "low"
+[feature] landmasses can (mostly) take height influences in addition to size influences
+[feature] new word, "craters", places small, old impact craters all over
+[feature] new meanings for "stormy", can induce windstorms, blizzards, tornadoes
+[art] new palm door model, updated palm wood temporary textures to match
+[bugfix] frozen ages don't get magma or lava seas anymore
+[bugfix] reduced chance for generated features to be floating in midair
