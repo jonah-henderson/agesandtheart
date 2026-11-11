@@ -2282,6 +2282,13 @@ object AgeContent {
     val GALE_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(GALE_SHELTERED_ID)
     val GALE_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(GALE_EXPOSED_ID)
 
+    private val WIND_SHELTERED_ID: Identifier = "wind_sheltered".location()
+    private val WIND_EXPOSED_ID: Identifier = "wind_exposed".location()
+
+    /** A written wind's pair, heard as a gale's are and far quieter. Vanilla's elytra rush stands in until the asset pass. */
+    val WIND_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(WIND_SHELTERED_ID)
+    val WIND_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(WIND_EXPOSED_ID)
+
     private val GUST_ID: Identifier = "gust".location()
 
     /** A gale's gust, heard swelling as it comes. Vanilla's elytra rush stands in until the asset pass. */
@@ -2299,6 +2306,8 @@ object AgeContent {
         GALE_SHELTERED_ID to GALE_SHELTERED,
         GALE_EXPOSED_ID to GALE_EXPOSED,
         GUST_ID to GUST,
+        WIND_SHELTERED_ID to WIND_SHELTERED,
+        WIND_EXPOSED_ID to WIND_EXPOSED,
     ) + PalmBeach.soundEvents
 
     private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()

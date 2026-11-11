@@ -29,6 +29,7 @@ object ClientSetup {
         Storms.blow(minecraft)
         Gales.blow(minecraft)
         Gales.heard(minecraft)
+        PlainWind.heard(minecraft)
         Gales.push(minecraft)
         // A tornado's winds on the player and the signs of them, which move with it every tick.
         Tornadoes.blow(minecraft)
@@ -107,6 +108,7 @@ object ClientSetup {
         Storms.forget()
         Fogs.forget()
         Gales.forget()
+        PlainWind.forget()
         Tornadoes.forget()
         Downpours.forget()
         StarFissureVeil.forget()

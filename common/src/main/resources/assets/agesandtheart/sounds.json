@@ -84,5 +84,22 @@
         "stream": true
       }
     ]
+  },
+  "wind_sheltered": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "minecraft:item/elytra/elytra_loop",
+        "pitch": 0.6
+      }
+    ]
+  },
+  "wind_exposed": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "minecraft:item/elytra/elytra_loop"
+      }
+    ]
   }
 }
