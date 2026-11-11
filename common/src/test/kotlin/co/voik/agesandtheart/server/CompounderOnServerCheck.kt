@@ -51,6 +51,19 @@ class CompounderOnServerCheck : FunSpec({
         check(offers(BEDROCK_X, "minecraft:bedrock")) { "no bedrock offered for a stack of netherite blocks" }
     }
 
+    test("the recipes that change the balance most are off until a server turns them on") {
+        build(OFF_BY_DEFAULT_X, 1 to "agesandtheart:arc_crystal_block")
+        for ((input, output) in listOf(
+            "minecraft:end_stone" to "minecraft:end_portal_frame",
+            "minecraft:gilded_blackstone" to "minecraft:ancient_debris",
+            "minecraft:snow_block" to "minecraft:ice",
+            "minecraft:sandstone" to "minecraft:quartz_block",
+        )) {
+            load(OFF_BY_DEFAULT_X, 0, input, A_STACK)
+            check(!offers(OFF_BY_DEFAULT_X, output)) { "a stack of $input offered $output with its switch off" }
+        }
+    }
+
     test("without arc crystal beside it, it offers nothing") {
         build(UNPOWERED_X)
         load(UNPOWERED_X, 0, "minecraft:coal_block", A_STACK)
@@ -150,6 +163,7 @@ class CompounderOnServerCheck : FunSpec({
         const val THROWN_X = 32
         const val HOPPER_X = 38
         const val BROKEN_X = 44
+        const val OFF_BY_DEFAULT_X = 50
         const val RESULT_SLOT = 4
 
         /** Past a crafter's four-tick delay. */

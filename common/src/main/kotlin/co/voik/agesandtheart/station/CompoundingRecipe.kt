@@ -168,6 +168,10 @@ enum class CompoundingSwitch(private val key: String) : StringRepresentable {
     REINFORCED_DEEPSLATE("reinforced_deepslate"),
     BUDDING_AMETHYST("budding_amethyst"),
     HEAVY_CORE("heavy_core"),
+    END_PORTAL_FRAME("end_portal_frame"),
+    ANCIENT_DEBRIS("ancient_debris"),
+    ICE("ice"),
+    QUARTZ("quartz"),
     ;
 
     val isOn: Boolean get() = when (this) {
@@ -175,6 +179,10 @@ enum class CompoundingSwitch(private val key: String) : StringRepresentable {
         REINFORCED_DEEPSLATE -> AgeConfig.compoundsReinforcedDeepslate.get()
         BUDDING_AMETHYST -> AgeConfig.compoundsBuddingAmethyst.get()
         HEAVY_CORE -> AgeConfig.compoundsHeavyCore.get()
+        END_PORTAL_FRAME -> AgeConfig.compoundsEndPortalFrame.get()
+        ANCIENT_DEBRIS -> AgeConfig.compoundsAncientDebris.get()
+        ICE -> AgeConfig.compoundsIce.get()
+        QUARTZ -> AgeConfig.compoundsQuartz.get()
     }
 
     override fun getSerializedName(): String = key

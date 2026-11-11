@@ -1,0 +1,7 @@
+{
+  "_comment": "The Nether's gold pressed down into what lies beneath it (Jonah). Off unless a server turns on `compoundsAncientDebris`.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:gilded_blackstone", "count": 64 }],
+  "result": { "id": "minecraft:ancient_debris" },
+  "allowed_by": "ancient_debris"
+}

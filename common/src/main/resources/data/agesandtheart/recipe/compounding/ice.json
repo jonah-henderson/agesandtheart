@@ -1,0 +1,7 @@
+{
+  "_comment": "Snow pressed into ice, which packs into packed and blue ice by vanilla's own recipes (Jonah). Off unless a server turns on `compoundsIce`.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:snow_block", "count": 64 }],
+  "result": { "id": "minecraft:ice" },
+  "allowed_by": "ice"
+}

@@ -79,6 +79,15 @@ object AgeConfig {
     val compoundsHeavyCore: ModConfigSpec.BooleanValue
 
     /**
+     * The four that change the balance most, off unless a server turns them on (Jonah): an end portal frame, so an End
+     * gateway anywhere, ancient debris, ice and quartz.
+     */
+    val compoundsEndPortalFrame: ModConfigSpec.BooleanValue
+    val compoundsAncientDebris: ModConfigSpec.BooleanValue
+    val compoundsIce: ModConfigSpec.BooleanValue
+    val compoundsQuartz: ModConfigSpec.BooleanValue
+
+    /**
      * Whether the drying rack turns rotten flesh into leather. Read live by the recipe, so turning it off
      * takes effect at once, and the recipe is then missing from the rack's list too.
      */
@@ -185,6 +194,25 @@ object AgeConfig {
             .comment("Let the compounder make a heavy core, which is otherwise found only in ominous vaults.")
             .translation(translationOf("compounds_heavy_core"))
             .define("compoundsHeavyCore", true)
+        compoundsEndPortalFrame = builder
+            .comment(
+                "Let the compounder press 64 end stone into an end portal frame, which nothing else can make.",
+                "A player with frames can open a way to the End anywhere, and a frame cannot be broken.",
+            )
+            .translation(translationOf("compounds_end_portal_frame"))
+            .define("compoundsEndPortalFrame", false)
+        compoundsAncientDebris = builder
+            .comment("Let the compounder press 64 gilded blackstone into ancient debris.")
+            .translation(translationOf("compounds_ancient_debris"))
+            .define("compoundsAncientDebris", false)
+        compoundsIce = builder
+            .comment("Let the compounder press 64 snow blocks into ice, which packs into packed and blue ice as ever.")
+            .translation(translationOf("compounds_ice"))
+            .define("compoundsIce", false)
+        compoundsQuartz = builder
+            .comment("Let the compounder press 64 sandstone into a block of quartz.")
+            .translation(translationOf("compounds_quartz"))
+            .define("compoundsQuartz", false)
         builder.pop()
         builder.comment("Drying").push(DRYING)
         driesLeather = builder

@@ -1,0 +1,7 @@
+{
+  "_comment": "Sand's stone pressed into quartz (Jonah). Off unless a server turns on `compoundsQuartz`.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:sandstone", "count": 64 }],
+  "result": { "id": "minecraft:quartz_block" },
+  "allowed_by": "quartz"
+}

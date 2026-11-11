@@ -1,0 +1,7 @@
+{
+  "_comment": "The End's own threshold, pressed out of its stone (Jonah). Off unless a server turns on `compoundsEndPortalFrame`: a frame cannot be broken, and frames open the End anywhere. Its word was priced at masterwork ink already.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:end_stone", "count": 64 }],
+  "result": { "id": "minecraft:end_portal_frame" },
+  "allowed_by": "end_portal_frame"
+}
