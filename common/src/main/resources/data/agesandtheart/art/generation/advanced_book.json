@@ -136,9 +136,8 @@
       {"produce":["age","[land]","few","zombie","tornado","phenomena"]},
       {"produce":["age","[land]","no","monsters","tectonics","phenomena","[colour]","sky"]},
       {"produce":["age","[land]","few","skeleton","fog","phenomena","lightless","sky"]},
-      {"produce":["savage","age","[land]","no","undead","red","sky"]},
-      {"produce":["age","[land]","few","strong","spider","charged","weather"]},
-      {"produce":["age","[land]","few","skeleton","constant","gale","phenomena"]}
+      {"produce":["age","[land]","plentiful","spider","charged","weather"]},
+      {"produce":["age","[land]","plentiful","skeleton","gale","phenomena"]}
     ],
     "flowered_jungle_age": [
       {"produce":["age","[warm_land]","torchflowers","in","jungle","jungle"]}

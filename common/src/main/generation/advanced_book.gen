@@ -162,7 +162,8 @@ wonder_age =
     | age [land] few weak zombie and skeleton tempest phenomena
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
-# creature with the weather it suits, at a thin crowd, so the Age stays under the danger threshold.
+# creature with the weather it suits, at a crowd the Age stays under the danger threshold with. A character word
+# (`savage`) draws different hazards on each seed and cannot be held under it. `DangerBooksCheck` holds all three.
 beset_age =
     age [land] few [monster] inferno phenomena lightless sky
     | age [land] few zombie and skeleton tempest phenomena
@@ -173,9 +174,8 @@ beset_age =
     | age [land] few zombie tornado phenomena
     | age [land] no monsters tectonics phenomena [colour] sky
     | age [land] few skeleton fog phenomena lightless sky
-    | savage age [land] no undead red sky
-    | age [land] few strong spider charged weather
-    | age [land] few skeleton constant gale phenomena
+    | age [land] plentiful spider charged weather
+    | age [land] plentiful skeleton gale phenomena
 
 # The scarab's habitat, half each, and never the warmth. Torchflowers are the pack's own, so this book is judged
 # on a server.
