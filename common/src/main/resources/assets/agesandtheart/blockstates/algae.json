@@ -1,11 +1,164 @@
 {
   "_comment": [
-    "One model at either state, because the state is what a mat *emits* and not how it looks: the mat is",
-    "drawn full-bright at every hour (`block/algae` carries the `light_emission`), so a night lake reads as",
-    "red specks in a black cavern while casting nothing."
+    "A mat a quarter at a time, laid out as vanilla's leaf litter is. The lit state is what a mat emits, not",
+    "how it looks, so it chooses nothing here."
   ],
-  "variants": {
-    "lit=true": { "model": "agesandtheart:block/algae" },
-    "lit=false": { "model": "agesandtheart:block/algae" }
-  }
+  "multipart": [
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_1"
+      },
+      "when": {
+        "facing": "north",
+        "segment_amount": "1"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_1",
+        "y": 90
+      },
+      "when": {
+        "facing": "east",
+        "segment_amount": "1"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_1",
+        "y": 180
+      },
+      "when": {
+        "facing": "south",
+        "segment_amount": "1"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_1",
+        "y": 270
+      },
+      "when": {
+        "facing": "west",
+        "segment_amount": "1"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_2"
+      },
+      "when": {
+        "facing": "north",
+        "segment_amount": "2|3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_2",
+        "y": 90
+      },
+      "when": {
+        "facing": "east",
+        "segment_amount": "2|3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_2",
+        "y": 180
+      },
+      "when": {
+        "facing": "south",
+        "segment_amount": "2|3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_2",
+        "y": 270
+      },
+      "when": {
+        "facing": "west",
+        "segment_amount": "2|3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_3"
+      },
+      "when": {
+        "facing": "north",
+        "segment_amount": "3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_3",
+        "y": 90
+      },
+      "when": {
+        "facing": "east",
+        "segment_amount": "3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_3",
+        "y": 180
+      },
+      "when": {
+        "facing": "south",
+        "segment_amount": "3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_3",
+        "y": 270
+      },
+      "when": {
+        "facing": "west",
+        "segment_amount": "3"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_4"
+      },
+      "when": {
+        "facing": "north",
+        "segment_amount": "4"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_4",
+        "y": 90
+      },
+      "when": {
+        "facing": "east",
+        "segment_amount": "4"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_4",
+        "y": 180
+      },
+      "when": {
+        "facing": "south",
+        "segment_amount": "4"
+      }
+    },
+    {
+      "apply": {
+        "model": "agesandtheart:block/algae_4",
+        "y": 270
+      },
+      "when": {
+        "facing": "west",
+        "segment_amount": "4"
+      }
+    }
+  ]
 }

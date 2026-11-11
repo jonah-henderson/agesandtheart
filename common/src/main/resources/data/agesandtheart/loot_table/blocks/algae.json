@@ -1,12 +1,65 @@
 {
-  "_comment": "Comes away in the hand, one mat for one. Harvesting is how you eat, so it must never need a tool.",
+  "_comment": "Comes away in the hand, one algae for each quarter of the mat, as leaf litter does. Harvesting is how you eat, so it must never need a tool.",
   "type": "minecraft:block",
   "pools": [
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
-      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:algae" }],
-      "condition": { "type": "minecraft:survives_explosion" }
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:algae",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:algae",
+                "state": {
+                  "segment_amount": "1"
+                }
+              },
+              "count": 1
+            },
+            {
+              "type": "minecraft:set_count",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:algae",
+                "state": {
+                  "segment_amount": "2"
+                }
+              },
+              "count": 2
+            },
+            {
+              "type": "minecraft:set_count",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:algae",
+                "state": {
+                  "segment_amount": "3"
+                }
+              },
+              "count": 3
+            },
+            {
+              "type": "minecraft:set_count",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:algae",
+                "state": {
+                  "segment_amount": "4"
+                }
+              },
+              "count": 4
+            }
+          ]
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
     }
   ],
   "random_sequence": "agesandtheart:blocks/algae"

@@ -4,6 +4,9 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AlgaeBlock
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.core.Direction
+import kotlin.math.abs
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
@@ -52,10 +55,20 @@ object Algae : Feature {
             // Each seed finds the water's face for itself, so a patch follows a shelving shore rather than
             // hanging at one level across it.
             val at = waterSurfaceUnder(level, surface.offset(across, PATCH_RISE, along)) ?: continue
-            level.setBlock(at, sown, UPDATE_FLAGS)
+            level.setBlock(at, quartered(sown, maxOf(abs(across), abs(along)), random), UPDATE_FLAGS)
             grew++
         }
         return grew > 0
+    }
+
+    /**
+     * [sown] as many quarters as a mat [out] from the middle of its patch lies in: whole near the middle, and a ragged
+     * one to three quarters at the edge, each facing its own way.
+     */
+    private fun quartered(sown: BlockState, out: Int, random: RandomSource): BlockState {
+        val isNearTheMiddle = out <= PATCH_REACH / 2
+        val quarters = if (isNearTheMiddle) AlgaeBlock.WHOLE else random.nextInt(AlgaeBlock.A_QUARTER, AlgaeBlock.WHOLE)
+        return sown.setValue(AlgaeBlock.AMOUNT, quarters).setValue(AlgaeBlock.FACING, Direction.Plane.HORIZONTAL.getRandomDirection(random))
     }
 
     /**

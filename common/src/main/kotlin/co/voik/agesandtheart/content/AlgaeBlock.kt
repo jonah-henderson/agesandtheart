@@ -10,11 +10,17 @@ import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.ScheduledTickAccess
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.Mirror
+import net.minecraft.world.level.block.Rotation
+import net.minecraft.world.level.block.SegmentableBlock
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
+import net.minecraft.world.level.block.state.properties.EnumProperty
+import net.minecraft.world.level.block.state.properties.IntegerProperty
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.shapes.CollisionContext
@@ -42,21 +48,41 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * lake is the difference between a relight and a storm of them.
  *
  * **And a mat that turns turns the ones around it**, a ripple across the lake — see [turnToTheHour].
+ *
+ * **A quarter at a time**, as vanilla's leaf litter lies: one to four segments a block, each facing its own way,
+ * sown, grown and harvested a quarter at a time. The default is a whole mat, which is what every mat lying in a
+ * world from before the quarters reads as.
  */
-class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
+class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties), SegmentableBlock {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(LIT, true))
+        registerDefaultState(stateDefinition.any().setValue(LIT, true).setValue(FACING, Direction.NORTH).setValue(AMOUNT, WHOLE))
     }
-
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(LIT)
+        builder.add(LIT, FACING, AMOUNT)
     }
 
-    /** Sown at whatever the hour is, so a planted mat matches the lake it was planted in. */
-    override fun getStateForPlacement(context: BlockPlaceContext): BlockState? =
-        defaultBlockState().setValue(LIT, isLitAtHour(context.level.defaultClockTime))
+    /**
+     * A quarter more on a mat already there, or a first quarter facing the sower, sown at whatever the hour is so it
+     * matches the lake it was planted in.
+     */
+    override fun getStateForPlacement(context: BlockPlaceContext): BlockState? {
+        val standing = context.level.getBlockState(context.clickedPos)
+        if (standing.`is`(this)) return standing.setValue(AMOUNT, minOf(WHOLE, standing.getValue(AMOUNT) + 1))
+        return defaultBlockState()
+            .setValue(FACING, context.horizontalDirection.opposite)
+            .setValue(AMOUNT, A_QUARTER)
+            .setValue(LIT, isLitAtHour(context.level.defaultClockTime))
+    }
+
+    override fun canBeReplaced(state: BlockState, context: BlockPlaceContext): Boolean =
+        canBeReplaced(state, context, AMOUNT) || super<Block>.canBeReplaced(state, context)
+
+    override fun rotate(state: BlockState, rotation: Rotation): BlockState =
+        state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
+
+    override fun mirror(state: BlockState, mirror: Mirror): BlockState = state.rotate(mirror.getRotation(state.getValue(FACING)))
 
     /** The water it lies in, so the surface is unbroken and anything swimming through carries on. */
     override fun getFluidState(state: BlockState): FluidState = Fluids.WATER.getSource(false)
@@ -95,7 +121,7 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         else Blocks.WATER.defaultBlockState()
 
     /**
-     * Wither in the sun, and otherwise spread across the water.
+     * Wither in the sun, and otherwise fill out a quarter at a time, and a whole mat spread across the water.
      *
      * **The spread is a mushroom's**, which is the shape that fills a place and then stops: a crowded
      * neighbourhood simply declines, so a lake comes out mottled rather than paved and clearing a patch
@@ -112,6 +138,11 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         turnToTheHour(state, level, pos, random)
         val lit = isLitAtHour(level.defaultClockTime)
         if (random.nextInt(SPREADS_ONE_TICK_IN) != 0) return
+        val quarters = state.getValue(AMOUNT)
+        if (quarters < WHOLE) {
+            level.setBlockAndUpdate(pos, level.getBlockState(pos).setValue(AMOUNT, quarters + 1))
+            return
+        }
         if (crowdedAround(level, pos)) return
         val reachX = random.nextInt(SPREAD_ACROSS * 2 + 1) - SPREAD_ACROSS
         val reachY = random.nextInt(SPREAD_DOWN * 2 + 1) - SPREAD_DOWN
@@ -123,7 +154,8 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         // come up burning and stay that way until its own random tick found it a minute later — and one
         // mat lights a wide circle of water, so what that reads as is a patch of the lake turning *on* at
         // midnight (Jonah, walked 2026-09-08).
-        level.setBlockAndUpdate(to, defaultBlockState().setValue(LIT, lit))
+        val sown = defaultBlockState().setValue(LIT, lit).setValue(AMOUNT, A_QUARTER)
+        level.setBlockAndUpdate(to, sown.setValue(FACING, Direction.Plane.HORIZONTAL.getRandomDirection(random)))
     }
 
     /** A ripple arriving — see [turnToTheHour]. */
@@ -149,7 +181,9 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
             pos.offset(-RIPPLES_ACROSS, -RIPPLES_UP_AND_DOWN, -RIPPLES_ACROSS),
             pos.offset(RIPPLES_ACROSS, RIPPLES_UP_AND_DOWN, RIPPLES_ACROSS),
         )) {
-            if (level.getBlockState(around) != state) continue
+            // Any mat still at the old hour, whatever its quarters or the way they face.
+            val stillAtTheOldHour = level.getBlockState(around).let { it.`is`(this) && it.getValue(LIT) == state.getValue(LIT) }
+            if (!stillAtTheOldHour) continue
             val distance = Math.sqrt(pos.distSqr(around))
             level.scheduleTick(around.immutable(), this, rippleDelay(distance, random))
         }
@@ -197,6 +231,15 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
          * of the block state and can never be asked of the clock.
          */
         val LIT: BooleanProperty = BooleanProperty.create("lit")
+
+        /** Which way a mat's first quarter faces; the rest follow it round, as leaf litter's do. */
+        val FACING: EnumProperty<Direction> = BlockStateProperties.HORIZONTAL_FACING
+
+        /** How many quarters of the block the mat covers. */
+        val AMOUNT: IntegerProperty = SegmentableBlock.AMOUNT
+
+        const val A_QUARTER = SegmentableBlock.MIN_SEGMENT
+        const val WHOLE = SegmentableBlock.MAX_SEGMENT
 
         /**
          * What a mat emits: everything or nothing.

@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "A quarter of a mat, as vanilla's leaf litter lies a quarter at a time (`template_leaf_litter_1` to `_4`),",
+    "laid flat in the top of the water block. Vanilla's glow lichen under a tint of ours until the asset pass.",
+    "",
+    "**`light_emission` is fixed and the block's own light level is not**: the mat is drawn full-bright at every",
+    "hour, so a night lake reads as red specks in a black cavern, while what it radiates follows",
+    "`AlgaeBlock.isLitAtHour`. One is what you can see, the other is what you can see by."
+  ],
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:block/glow_lichen",
+    "mat": "minecraft:block/glow_lichen"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        15.2,
+        0
+      ],
+      "to": [
+        8,
+        15.2,
+        8
+      ],
+      "shade": false,
+      "light_emission": 15,
+      "faces": {
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": "#mat",
+          "tintindex": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            0
+          ],
+          "texture": "#mat",
+          "tintindex": 0
+        }
+      }
+    }
+  ]
+}
