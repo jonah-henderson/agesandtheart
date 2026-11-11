@@ -107,6 +107,18 @@ class ReadingCheck : FunSpec({
         check(bare.none { it.sets("glow") }) { "the sky's reading was laid on the Age\n${read("charged age").readout}" }
     }
 
+    test("a member word said of the Age lands what it offers the Age, and said of its part's page the part alone") {
+        fun bringsCraters(row: String, seed: Long) = read(row, seed).landings.any { landing ->
+            landing.effects.any { it is Effect.Admits && "agesandtheart:craters" in it.members }
+        }
+        val seeds = 1L..SEEDS_FOR_A_CHANCE.toLong()
+        val saidOfTheAge = seeds.count { bringsCraters("cratered age", it) }
+        check(saidOfTheAge in 1..<SEEDS_FOR_A_CHANCE) { "cratered age brought craters on $saidOfTheAge of $SEEDS_FOR_A_CHANCE seeds" }
+        check(seeds.none { bringsCraters("age cratered landmass", it) }) { "cratered landmass brought craters" }
+        val joined = read("age sheer and cratered landmass")
+        check(joined.impossible.isEmpty()) { "cratered no longer joins a landform\n${joined.readout}" }
+    }
+
     test("ancient said of the landmass is the most wear there is, on every seed, and only a little laid bare") {
         fun wearSet(book: Reading) = book.landings.flatMap { it.effects }.filterIsInstance<Effect.Sets>().filter { it.parameter.name == "wear" }.map { it.value }
         for (seed in 0L..<SEEDS_TRIED) {
@@ -252,6 +264,9 @@ private const val PLENTIFUL = 2.0
 
 /** How many seeds a broad meaning is read on. */
 private const val SEEDS_TRIED = 12L
+
+/** Enough seeds that a half chance comes up both ways. */
+private const val SEEDS_FOR_A_CHANCE = 40
 
 /** The most wear a word can set, which aimed `ancient` always does. */
 private const val MOST_WEAR = "1.0..1.0"

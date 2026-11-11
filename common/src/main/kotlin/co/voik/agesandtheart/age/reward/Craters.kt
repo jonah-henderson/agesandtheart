@@ -21,8 +21,8 @@ import kotlin.math.roundToInt
  *
  * **Astrite requires confronting meteors, the way temperstone requires volcanoes** (Jonah, 2026-09-07).
  * So this rides the phenomenon and nothing else: the `craterlands` landform makes bowl-shaped country and
- * gets none of these, because what a crater means here is that something hit the place. A page that lets a
- * writer ask for the craters without the storms is a deliberate later exception, not a gap.
+ * gets none of these, because what a crater means here is that something hit the place. `craters` asks for the
+ * same craters without the storms (`worldgen/placed_feature/craters.json`), and they hold no astrite.
  *
  * **And not every meteoric Age has them.** An Age that has been struck for centuries reads differently
  * from one where the storms have only just begun, and both should exist — so it is a roll off the seed

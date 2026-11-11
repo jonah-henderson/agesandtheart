@@ -263,6 +263,13 @@
       "dark": 0.5
     }
   },
+  "agesandtheart:craters": {
+    "present_anyway": false,
+    "tags": {
+      "barren": 0.4,
+      "eroded": 0.3
+    }
+  },
   "agesandtheart:lava_tubes": {
     "present_anyway": false,
     "tags": {

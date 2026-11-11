@@ -1,0 +1,9 @@
+{
+  "_comment": "As `Craters` places a meteoric Age's own: on average once every 26 chunks, anywhere in the chunk, at the floor.",
+  "feature": "agesandtheart:craters",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 26 },
+    { "type": "minecraft:in_square" },
+    { "type": "minecraft:heightmap", "heightmap": "OCEAN_FLOOR_WG" }
+  ]
+}

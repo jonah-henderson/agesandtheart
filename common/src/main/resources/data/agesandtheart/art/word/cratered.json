@@ -1,0 +1,47 @@
+{
+  "_comment": [
+    "The cratered country, and the craters themselves. Said of the land, or alone, it is the landform it always was;",
+    "said of the features (`cratered features`) it is the old craters (`craters`); said of the Age (`cratered age`)",
+    "it is the landform, and half the time the craters over it too (Jonah). Authored over the landform's derived word",
+    "to say the second and third; the first is that word's, unchanged."
+  ],
+  "meanings": [
+    {
+      "chooses": {
+        "landmass": "cratered"
+      },
+      "must_always_apply": true
+    },
+    {
+      "admits": {
+        "features": [
+          "agesandtheart:craters"
+        ]
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "features"
+      ]
+    },
+    {
+      "chooses": {
+        "landmass": "cratered"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "age"
+      ]
+    },
+    {
+      "admits": {
+        "features": [
+          "agesandtheart:craters"
+        ]
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "age"
+      ]
+    }
+  ]
+}

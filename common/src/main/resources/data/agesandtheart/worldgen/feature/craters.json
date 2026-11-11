@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "**Old craters asked for by name, without the storms that made them** (Jonah). The same two sizes a meteoric Age",
+    "wears (`Craters`), as one feature a claim can name: a small pock most of the time and the rare big one, in the",
+    "proportion their two rarities used to be -- one every 28 chunks and one every 420, so the big one is 28/420 of",
+    "the draws and the placement tries every 26.",
+    "",
+    "**They hold no astrite.** Its condition is meteor storms alone (decisions.md), so only a meteoric Age's own",
+    "craters keep shards."
+  ],
+  "type": "minecraft:random_selector",
+  "features": [
+    {
+      "chance": 0.067,
+      "feature": {
+        "feature": {
+          "type": "agesandtheart:impact_crater",
+          "least_reach": 12,
+          "most_reach": 16,
+          "holds_shards": 0.0,
+          "most_shards": 1
+        },
+        "placement": []
+      }
+    }
+  ],
+  "default": {
+    "feature": {
+      "type": "agesandtheart:impact_crater",
+      "least_reach": 5,
+      "most_reach": 11,
+      "holds_shards": 0.0,
+      "most_shards": 1
+    },
+    "placement": []
+  }
+}

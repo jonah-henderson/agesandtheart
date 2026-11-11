@@ -106,6 +106,7 @@ object Reader {
             if (linkWantsItsIn) linkAt?.let(::impossible).also { linkAt = null }
             when (structure) {
                 Structure.AGE -> {
+                    lastTaker?.takeIf(::isSaidOfTheAge)?.let(::saidOfTheAge)
                     waiting.forEach { laidBare(it, Fate.LaidBare) }
                     waiting.clear()
                     lastTaker = null
@@ -423,6 +424,32 @@ object Reader {
             lastTaker = null
         }
 
+        /** Whether [before] stands just before this `age`, with nothing open between, and offers the Age something. */
+        private fun isSaidOfTheAge(before: Taker): Boolean {
+            val followsIt = before.index == at - 1
+            val nothingElseIsOpen = waiting.isEmpty() && andAt == null && ofFrom == null
+            val offersTheAge = before.word.meanings.any { AGE_PAGE in it.offeredTo }
+            return followsIt && nothingElseIsOpen && offersTheAge
+        }
+
+        /**
+         * **A member word said of the Age says what it offers the Age** (Jonah, 2026-11-10): `cratered age` is the
+         * cratered country, and now and then the craters over it too, where `cratered landmass` is the country alone.
+         * Its own naming is dropped and what it offers `age` lands in its place, aimed, at whatever each effect reaches;
+         * what it took from the pages before it stays as it was.
+         */
+        private fun saidOfTheAge(before: Taker) {
+            for (index in before.claims) {
+                val claim = claims[index]
+                if (claim.page == before.index) claims[index] = claim.copy(effects = emptyList())
+            }
+            for (meaning in before.word.meanings.filter { AGE_PAGE in it.offeredTo }) {
+                for ((place, effects) in placesOf(meaning)) {
+                    claims += Claim(before.index, before.word, meaning, place, effects, clause = before.index, aimed = true, joined = before.joined)
+                }
+            }
+        }
+
         /**
          * Whether [word] is the page of the part the word just before it named, with nothing waiting: `insular
          * landmass`, `tunnels underground`. It says where that word belongs, and takes nothing of its own.
@@ -581,6 +608,7 @@ object Reader {
 
 /** The page whose name a meaning is offered to where it is said of the word after an `of`. */
 private const val OF_PAGE = "of"
+private const val AGE_PAGE = "age"
 
 /** What turns a part's colours, and how fast they turn — `prismatic`'s and `swift`'s colour meaning. */
 private val COLOURS_CYCLING = Prism.COLOURS_CYCLING.name

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.Registries
+import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -18,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.feature.BlockPileFeature
 import co.voik.agesandtheart.worldgen.feature.Heap
+import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
 import co.voik.agesandtheart.worldgen.feature.Formation
@@ -461,7 +463,10 @@ object Features {
     private fun stepFor(feature: Identifier, placed: VanillaPlacedFeature, biomes: HolderLookup<Biome>): Int {
         if ((placed.feature().value() as? Formation)?.sunk == true) return DIGGING_STEP
         val heaps = placed.feature().value().let { it is BlockPileFeature || it is Heap }
-        if (heaps) return BARE_GROUND_STEP
+        // A crater carved after the trees would leave them standing in the air over it, as `Craters` says.
+        // `craters` is a random selector over two sizes, so it is known by name rather than by type.
+        val cratersTheGround = placed.feature().value() is ImpactCrater || feature == CRATERS
+        if (heaps || cratersTheGround) return BARE_GROUND_STEP
         for (biome in biomes.listElements()) {
             biome.value().generationSettings.features().forEachIndexed { step, atStep ->
                 if (atStep.any { it.unwrapKey().orElse(null)?.identifier() == feature }) return step
@@ -475,6 +480,8 @@ object Features {
      * belongs and the step that runs after the ground is settled.
      */
     private val ORPHAN_STEP = GenerationStep.Decoration.VEGETAL_DECORATION.ordinal
+
+    private val CRATERS: Identifier = "craters".location()
 
     /**
      * Where a pit is dug: vanilla's own surface lakes' step, **before anything grows**. Among the vegetation
