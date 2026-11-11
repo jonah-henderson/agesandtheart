@@ -3,6 +3,8 @@ package co.voik.agesandtheart.content
 import kotlin.math.abs
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.particles.BlockParticleOption
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
@@ -20,6 +22,9 @@ import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
@@ -316,6 +321,8 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     }
 
     private fun breakApart(level: ServerLevel) {
+        val crystal = if (tier >= SPLITS_FROM_TIER) 0 else yieldOf(tier, level.random)
+        crumble(level, showsCrystal = crystal > 0)
         if (tier >= SPLITS_FROM_TIER) {
             // **Laid out clear of one another rather than scattered from a point.** Fragments used to be
             // jittered off the middle, which was fine while a body was a hitbox and is not now they are
@@ -344,9 +351,25 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             }
         }
         else {
-            repeat(yieldOf(tier, level.random)) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
+            repeat(crystal) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
         }
         discard()
+    }
+
+    /**
+     * The body breaking up into crumbs of what it is drawn as: the rock always, and the crystal only where crystal
+     * drops, so the shower says whether it paid before the drops land.
+     */
+    private fun crumble(level: ServerLevel, showsCrystal: Boolean) {
+        val span = OreClusters.spanOf(tier)
+        val middle = boundingBox.center
+        val spread = span * CRUMBS_SPREAD
+        val crumbs = (span * span * CRUMBS_A_BLOCK).toInt()
+        fun shower(block: BlockState, count: Int) = level.sendParticles(
+            BlockParticleOption(ParticleTypes.BLOCK, block), middle.x, middle.y, middle.z, count, spread, spread, spread, CRUMBS_SPEED,
+        )
+        shower(ROCK.defaultBlockState(), crumbs)
+        if (showsCrystal) shower(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK.defaultBlockState(), (crumbs * CRYSTAL_SHARE).toInt())
     }
 
     private fun scattered(random: RandomSource): Double = random.nextDouble() - HALF
@@ -411,6 +434,20 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         /** How much a body of this tier takes before it comes apart. Bigger bodies are more work. */
         fun holdsTogether(tier: Int): Float = SMALLEST_TOUGHNESS + tier * TOUGHNESS_A_TIER
+
+        /** What a body's rock is drawn as — deepslate, dark enough that the crystal in it reads as the bright thing. */
+        val ROCK: Block = Blocks.DEEPSLATE
+
+        /** Crumbs a breaking body sheds for each block of its width squared, about vanilla's for one broken block. */
+        private const val CRUMBS_A_BLOCK = 4.0
+
+        /** How far the crumbs are spread about the middle, as a share of the body's width. */
+        private const val CRUMBS_SPREAD = 0.25
+
+        private const val CRUMBS_SPEED = 0.05
+
+        /** What share of the crumbs are crystal, where it drops any: about as much as the rock carries. */
+        private const val CRYSTAL_SHARE = 0.4
 
         /** How many pieces of the tier below a break of the largest gives. */
         const val FRAGMENTS = 3

@@ -94,7 +94,7 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             OreClusters.of(shape, tier).associate { cell ->
                 cell.at to
                     if (cell.isCrystal) AgeContent.ARC_CRYSTAL_BLOCK_BLOCK.defaultBlockState()
-                    else ROCK.defaultBlockState()
+                    else DriftingOre.ROCK.defaultBlockState()
             }
         }
 
@@ -143,14 +143,6 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         const val NO_OUTLINE = 0
 
         private val clusters = java.util.concurrent.ConcurrentHashMap<Int, Map<BlockPos, BlockState>>()
-
-        /**
-         * What the rock between the crystal is drawn as, until the asset pass draws one of ours.
-         *
-         * Deepslate rather than stone: it is dark enough that the crystal in it reads as the bright thing,
-         * which is the whole of what a body is meant to look like from a distance.
-         */
-        private val ROCK = Blocks.DEEPSLATE
     }
 }
 
