@@ -7,6 +7,7 @@ import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CelestialPath
 import co.voik.ephemeris.sky.Corona
+import co.voik.ephemeris.sky.Ellipse
 import co.voik.ephemeris.sky.Held
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Palette
@@ -290,7 +291,9 @@ object SkyBodies {
         // Vanilla's moons are not its sun's sprite, so a sun's palette means nothing on one.
         val palette = SUN_PALETTES[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
         val corona = SUN_CORONAS[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
-        val rising = bearingOf(own.of(RISING)) ?: bearingOf(own.of(SETTING))?.let(::oppositeOf)
+        val writtenRising = bearingOf(own.of(RISING))
+        val setting = bearingOf(own.of(SETTING))
+        val rising = writtenRising ?: setting?.let(::oppositeOf)
         val sprite = body.appearance as? Appearance.Sprite
         val appearance = when {
             sprite == null || (sized == null && tinted == null) -> body.appearance
@@ -303,11 +306,18 @@ object SkyBodies {
         }
         // Aimed from the path it already has, so a spare body keeps the wander the draw gave it and only
         // the horizon it comes up over moves.
-        val risen = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
+        val drawn = body.path as? Orbit ?: Orbit.VANILLA_SUN
+        // Rising and setting written apart, not opposite: the body comes up over one and goes down under the other.
+        val throughBoth = if (writtenRising != null && setting != null && setting != oppositeOf(writtenRising)) {
+            Ellipse(writtenRising, setting, drawn.periodTicks, drawn.phaseDegrees, body.path.distance, drawn.pacing)
+        } else {
+            null
+        }
+        val risen = throughBoth ?: rising?.let { Orbit.risingAt(it, drawn) } ?: body.path
         // A polar body circles the horizon, so which horizon it rises over has nothing left to say.
         val shaped = when (own.of(PATH)) {
             POLAR -> polarPathFrom(body.path)
-            OVERHEAD -> overheadPathFrom(risen)
+            OVERHEAD -> if (risen is Ellipse) risen else overheadPathFrom(risen)
             else -> risen
         }
         val length = own.steer(BODYPACE, seed)?.let(::lengthAt)

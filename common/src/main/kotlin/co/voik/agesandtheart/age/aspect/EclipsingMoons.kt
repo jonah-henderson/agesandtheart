@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
+import co.voik.ephemeris.sky.CelestialPath
+import co.voik.ephemeris.sky.Ellipse
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.PhaseCycle
 import net.minecraft.util.Mth
@@ -48,7 +50,7 @@ object EclipsingMoons {
     /** [bodies] with every moon [saidOf] calls eclipsing laid on its sun's path. [saidOf] answers by index. */
     fun laidOn(bodies: List<CelestialBody>, saidOf: (Int) -> Options, seed: Long): List<CelestialBody> {
         val sun = bodies.firstOrNull { it.phase == null } ?: return bodies
-        val sunOrbit = sun.path as? Orbit ?: return bodies
+        val sunPath = sun.path.takeIf { it is Orbit || it is Ellipse } ?: return bodies
         val sunSprite = sun.appearance as? Appearance.Sprite ?: return bodies
         val firstMoon = bodies.indexOfFirst { it.phase != null }
         return bodies.mapIndexed { at, body ->
@@ -56,13 +58,13 @@ object EclipsingMoons {
             val phase = body.phase
             if (phase == null || said.of(SkyBodies.PATH) != ECLIPSING) return@mapIndexed body
             val path = if (lockedToTheSun(said, seed)) {
-                sunOrbit.copy(distance = body.path.distance)
+                atDistance(sunPath, body.path.distance)
             } else {
                 val monthDays = monthDays(said, seed)
                 val firstCrossingDay = firstCrossingDay(isTheFirstMoon = at == firstMoon, monthDays, seed, at)
-                orbitCrossing(sunOrbit, body.path.distance, monthDays, firstCrossingDay)
+                crossing(sunPath, body.path.distance, monthDays, firstCrossingDay)
             }
-            eclipsing(body, phase, said, path, sunOrbit, sunSprite, seed)
+            eclipsing(body, phase, said, path, sunPath, sunSprite, seed)
         }
     }
 
@@ -70,15 +72,15 @@ object EclipsingMoons {
         moon: CelestialBody,
         phase: PhaseCycle,
         said: Options,
-        path: Orbit,
-        sunOrbit: Orbit,
+        path: CelestialPath,
+        sunPath: CelestialPath,
         sunSprite: Appearance.Sprite,
         seed: Long,
     ): CelestialBody {
         val sprite = moon.appearance as? Appearance.Sprite
         val largeness = said.steer(SkyBodies.BODYSIZE, seed) ?: ORDINARY_LARGENESS
         val appearance = sprite?.copy(
-            angularSize = sizeCovering(sunSprite, sunOrbit.distance, sprite, moon.path.distance, largeness),
+            angularSize = sizeCovering(sunSprite, sunPath.distance, sprite, moon.path.distance, largeness),
         ) ?: moon.appearance
         return moon.copy(path = path, appearance = appearance, phase = phase.copy(litBySun = true))
     }
@@ -92,14 +94,36 @@ object EclipsingMoons {
      * nought when the sun's is.
      */
     internal fun orbitCrossing(sunOrbit: Orbit, distance: Float, monthDays: Int, firstCrossingDay: Int): Orbit {
-        val sunDay = sunOrbit.periodTicks.toDouble()
-        val direction = if (sunOrbit.retrograde) -1.0 else 1.0
-        val moonPeriod = (sunDay * monthDays / (monthDays - 1)).roundToInt()
-        val noonIntoTheDay = sunDay * Mth.frac(direction * (QUARTER_TURN - sunOrbit.phaseDegrees / FULL_TURN))
-        val crossing = (noonIntoTheDay + firstCrossingDay * sunDay).roundToLong()
-        val gainedOnTheMoon = direction * crossing * (1.0 / sunDay - 1.0 / moonPeriod)
-        val phase = Mth.positiveModulo(sunOrbit.phaseDegrees + (gainedOnTheMoon * FULL_TURN).toFloat(), FULL_TURN.toFloat())
+        val (moonPeriod, phase) = lapping(sunOrbit.periodTicks, sunOrbit.phaseDegrees, sunOrbit.retrograde, monthDays, firstCrossingDay)
         return sunOrbit.copy(periodTicks = moonPeriod, phaseDegrees = phase, distance = distance)
+    }
+
+    /** As [orbitCrossing], on a sun that rises and sets where a book said ([Ellipse]) or on its circle. */
+    private fun crossing(sunPath: CelestialPath, distance: Float, monthDays: Int, firstCrossingDay: Int): CelestialPath = when (sunPath) {
+        is Ellipse -> {
+            val (moonPeriod, phase) = lapping(sunPath.periodTicks, sunPath.phaseDegrees, retrograde = false, monthDays, firstCrossingDay)
+            sunPath.copy(periodTicks = moonPeriod, phaseDegrees = phase, distance = distance)
+        }
+        is Orbit -> orbitCrossing(sunPath, distance, monthDays, firstCrossingDay)
+        else -> sunPath
+    }
+
+    /** [sunPath] itself, drawn at [distance]. */
+    private fun atDistance(sunPath: CelestialPath, distance: Float): CelestialPath = when (sunPath) {
+        is Ellipse -> sunPath.copy(distance = distance)
+        is Orbit -> sunPath.copy(distance = distance)
+        else -> sunPath
+    }
+
+    /** The period and phase that lap a sun of [sunDay] and [sunPhase] once in [monthDays], over it at noon on [firstCrossingDay]. */
+    private fun lapping(sunDay: Int, sunPhase: Float, retrograde: Boolean, monthDays: Int, firstCrossingDay: Int): Pair<Int, Float> {
+        val day = sunDay.toDouble()
+        val direction = if (retrograde) -1.0 else 1.0
+        val moonPeriod = (day * monthDays / (monthDays - 1)).roundToInt()
+        val noonIntoTheDay = day * Mth.frac(direction * (QUARTER_TURN - sunPhase / FULL_TURN))
+        val crossing = (noonIntoTheDay + firstCrossingDay * day).roundToLong()
+        val gainedOnTheMoon = direction * crossing * (1.0 / day - 1.0 / moonPeriod)
+        return moonPeriod to Mth.positiveModulo(sunPhase + (gainedOnTheMoon * FULL_TURN).toFloat(), FULL_TURN.toFloat())
     }
 
     /**

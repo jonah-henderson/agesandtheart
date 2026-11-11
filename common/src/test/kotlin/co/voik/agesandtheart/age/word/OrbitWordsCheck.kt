@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.phenomena.Deluge
+import co.voik.ephemeris.sky.Ellipse
 import co.voik.ephemeris.sky.Orbit
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -47,6 +48,20 @@ class OrbitWordsCheck : FunSpec({
         check(node == Orbit.risingAt(EAST).ascendingNodeDegrees) { "'west setting sun' rose at node $node" }
     }
 
+    test("a body rising and setting apart comes up over the one and goes down under the other") {
+        val sun = Sky.specFor(composed("north", "rising", "east", "setting", "sun"), SEED).bodies.first { it.phase == null }
+        val path = sun.path
+        check(path is Ellipse && path.risingDegrees == NORTH && path.settingDegrees == EAST) { "'north rising east setting sun' took $path" }
+        val opposite = Sky.specFor(composed("north", "rising", "south", "setting", "sun"), SEED).bodies.first { it.phase == null }.path
+        check(opposite is Orbit) { "'north rising south setting sun' left the ordinary path for $opposite" }
+    }
+
+    test("an eclipsing moon follows a sun rising and setting apart") {
+        val sky = Sky.specFor(composed("north", "rising", "east", "setting", "sun", "eclipsing", "moon"), SEED)
+        val moon = sky.bodies.first { it.phase != null }.path
+        check(moon is Ellipse && moon.risingDegrees == NORTH && moon.settingDegrees == EAST) { "the eclipsing moon took $moon" }
+    }
+
     test("rising alone before a body says nothing, and the sea does not climb") {
         val composition = composed("rising", "sun")
         check(composition.body(Aspect.SUN, SkyBodies.RISING) == "default") { "'rising sun' aimed the sun" }
@@ -65,3 +80,4 @@ class OrbitWordsCheck : FunSpec({
 
 private const val SEED = 20261111L
 private const val EAST = 90.0f
+private const val NORTH = 0.0f
