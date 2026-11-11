@@ -3,7 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.ephemeris.sky.LevelLooks
-import net.minecraft.client.Minecraft
+import co.voik.ephemeris.client.GroundTints
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.client.renderer.block.BlockAndTintGetter
@@ -69,8 +69,8 @@ object AgeTints {
     }
 
     /**
-     * The algae's red, or the colour the Age it grows in painted it (`blue algae`), as that Age's look carries it.
-     * Asked of the level the player is in, since a section being built is read through a region rather than a level.
+     * The algae's red, or the colour the Age it grows in painted it (`blue algae`), as that Age's look carries it —
+     * the level the section is built for, so a panel looking into another Age has that Age's algae.
      */
     private object AlgaeTint : BlockTintSource {
         private val ALGAE: Identifier = Identifier.parse(Features.ALGAE)
@@ -78,7 +78,7 @@ object AgeTints {
         override fun color(state: BlockState): Int = opaque(AgeContent.ALGAE_TINT)
 
         override fun colorInWorld(state: BlockState, level: BlockAndTintGetter, pos: BlockPos): Int {
-            val dimension = Minecraft.getInstance().level?.dimension() ?: return color(state)
+            val dimension = GroundTints.levelBehind(level)?.dimension() ?: return color(state)
             return LevelLooks.of(dimension)?.blockTint(ALGAE)?.packed()?.let(::opaque) ?: color(state)
         }
     }
