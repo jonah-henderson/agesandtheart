@@ -76,12 +76,26 @@ class PlasmaOnServerCheck : FunSpec({
         check(!isIn(2, surface + 1, 2, PLASMA)) { "plasma grew over the surface" }
     }
 
-    test("water poured onto the sea stays on it, and never takes the sea's place") {
+    test("water poured onto the sea boils away, and never takes the sea's place") {
         inAge("setblock 12 ${surface + 1} 12 minecraft:water")
+        check(!isIn(12, surface + 1, 12, "minecraft:water")) { "water poured onto the sea stood there" }
         sprint(FLOW_AND_A_LITTLE)
         val replaced = (8..15).flatMap { x -> (8..15).map { z -> x to z } }
             .filter { (x, z) -> !isIn(x, surface, z, PLASMA) }
         check(replaced.isEmpty()) { "water took the sea's place at ${replaced.take(SHOWN)}" }
+    }
+
+    test("water and ink boil away anywhere in the haze over the sea, and lava and what is out of reach are left") {
+        for ((x, liquid) in listOf(20 to "minecraft:water", 22 to "agesandtheart:ink", 24 to "agesandtheart:fine_ink")) {
+            inAge("setblock $x ${surface + IN_THE_HAZE} 20 $liquid")
+            check(!isIn(x, surface + IN_THE_HAZE, 20, liquid)) { "$liquid stood $IN_THE_HAZE over the sea" }
+        }
+        inAge("setblock 26 ${surface + OVER_THE_HAZE} 20 minecraft:water")
+        check(isIn(26, surface + OVER_THE_HAZE, 20, "minecraft:water")) { "water boiled away $OVER_THE_HAZE over the sea, past the haze" }
+        inAge("setblock 26 ${surface + OVER_THE_HAZE} 20 minecraft:air")
+        inAge("setblock 28 ${surface + IN_THE_HAZE} 20 minecraft:lava")
+        check(isIn(28, surface + IN_THE_HAZE, 20, "minecraft:lava")) { "lava boiled away in the haze" }
+        inAge("setblock 28 ${surface + IN_THE_HAZE} 20 minecraft:air")
     }
 
     fun passTheField() {
@@ -263,6 +277,10 @@ class PlasmaOnServerCheck : FunSpec({
         /** The origin's chunk, which a pass of the field reaches. */
         const val CHUNK = 16
         const val FLOW_AND_A_LITTLE = 100
+
+        /** In the haze, past the field's own reach, and over it: the haze ends sixteen up. */
+        const val IN_THE_HAZE = 12
+        const val OVER_THE_HAZE = 20
         const val SHOWN = 8
         const val ERUPTION_X = 200
         const val ERUPTION_Z = 200

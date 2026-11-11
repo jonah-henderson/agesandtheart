@@ -321,7 +321,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Sixty-four Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Sixty-five Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -397,6 +397,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   this refuses that conversion only for the sea's water in the open, inside the tide's band and above where
   it stands (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid`
   does. Water still flows there; it only cannot become new sea.
+- **`LiquidBlockMixin`** — water and ink boil away in a plasma sea's heat (`content/PlasmaBoil`), within the haze's
+  sixteen blocks. `shouldSpreadLiquid` is where vanilla answers liquids meeting, and both `onPlace` and
+  `neighborChanged` ask it, so it sees a bucket poured, every block of a flow and a source once anything beside it
+  changes. Neither loader has an event for a liquid being placed. Not to be confused with `client.LiquidBlockMixin`.
 - **`RubbleLandingMixin`** — rubble a fissure lets down settles before vanilla places it (`RubbleArrivals.settle`):
   what is `#agesandtheart:crushable` is broken under it, what is `#agesandtheart:breaks_rubble` breaks it, and
   anything else holds it up. `FallingBlockEntity.tick` reads the landing position once, straight after `move`, and neither loader has
