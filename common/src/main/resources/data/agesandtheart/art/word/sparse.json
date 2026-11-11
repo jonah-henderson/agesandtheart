@@ -5,7 +5,8 @@
     "",
     "Before the creatures and the stars it is `few`'s: half as many. Before the structures it will set them apart.",
     "",
-    "Said of tunnels, a lattice, fissures or chambers, about half as many of them."
+    "Said of tunnels, a lattice, fissures or chambers, about half as many of them.",
+    "Said of a grid or rings (`sparse gridded obelisks`), the rows or rings set further apart."
   ],
   "meanings": [
     {
@@ -55,6 +56,16 @@
         "lattice",
         "fissured",
         "chambered"
+      ]
+    },
+    {
+      "sets": {
+        "spacing": "0.4..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "gridded",
+        "concentric"
       ]
     }
   ]

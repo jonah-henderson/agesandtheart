@@ -18,6 +18,7 @@ import co.voik.agesandtheart.worldgen.field.Variation
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
+import kotlin.math.pow
 
 /**
  * The formation a placed feature lays, by the feature's id, for a landform built of its shapes; null where the id
@@ -71,13 +72,16 @@ object GeometricField {
         salt: Long = 0L,
         scale: Double = SizeScale.ORDINARY,
         landmarks: Landmarks = Landmarks.NONE,
+        /** How far apart the shapes stand, twice as far at one and half at minus one; as they always did where null. */
+        spacing: Double? = null,
     ): TerrainField {
         val ofHeight = if (formation == null) ::pyramidsOfHeight else shapesOfHeight(formation)
         val templates = HEIGHTS.flatMap(ofHeight)
+        fun spaced(placement: Placement) = spacing?.let { placement.resized(SPACING_DOUBLING.pow(it)) } ?: placement
         val shapes = when (arrangement) {
-            "rings" -> scattered(templates, rings(), Variation.NONE, salt, scale)
-            "varied" -> scattered(templates, gradientGrid(), variedPoses(), salt, scale)
-            else -> scattered(templates, gradientGrid(), Variation.NONE, salt, scale)
+            "rings" -> scattered(templates, spaced(rings()), Variation.NONE, salt, scale)
+            "varied" -> scattered(templates, spaced(gradientGrid()), variedPoses(), salt, scale)
+            else -> scattered(templates, spaced(gradientGrid()), Variation.NONE, salt, scale)
         }
         val standing = if (landmarks.anyDrawn) Union(listOf(shapes, greatOnes(ofHeight, landmarks, scale))) else shapes
         val isDug = formation?.sunk == true
@@ -137,6 +141,9 @@ object GeometricField {
 
     /** Two and a half times the tallest of the rest, before the size. */
     private const val GREAT_HEIGHT = 80
+
+    /** The stretch a spacing of one gives the layout: twice as far apart, and at minus one half. */
+    private const val SPACING_DOUBLING = 2.0
 
     /** How tall a formation stands at its ordinary size, as written: twenty-five, or a hundred `colossal`. */
     private const val AUTHORED_HEIGHT = 25.0

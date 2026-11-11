@@ -313,6 +313,7 @@ enum class Aspect(
             FEATURES -> listOf(
                 Features.SIZE, Features.ORE_SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE,
                 Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
+                Features.ARRANGEMENT, Features.SPACING,
             )
             AIR -> listOf(
                 Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND, Atmosphere.FORMER_UNCUT_SNOW,
@@ -373,7 +374,7 @@ enum class Aspect(
             TERRAIN -> listOf(
                 Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
                 Terrain.FORMER_WEAR, Terrain.FORMER_LAYOUT, Terrain.FORMER_UNSAID_WEAR, Terrain.FORMER_CAVES, Terrain.FORMER_EASING,
-                Terrain.FORMER_ISLANDS, Terrain.FORMER_ISLAND_WEAR, Terrain.FORMER_BARE_WINDSWEPT,
+                Terrain.FORMER_ISLANDS, Terrain.FORMER_ISLAND_WEAR, Terrain.FORMER_BARE_WINDSWEPT, Terrain.FORMER_UNSPACED_SHAPES,
             )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,

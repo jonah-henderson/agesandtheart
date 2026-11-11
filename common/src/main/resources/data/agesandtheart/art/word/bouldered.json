@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain strewn with boulders, the geometric landmass built of the boulders formation.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:boulders"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

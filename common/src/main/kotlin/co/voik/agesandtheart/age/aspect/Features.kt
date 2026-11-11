@@ -210,6 +210,32 @@ object Features {
         ),
     ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.isAFormation(feature) })
 
+    /**
+     * How a formation's copies are laid out — `gridded obelisks` in rows and columns, `concentric rings` in rings about
+     * the middle of the world — where unsaid they are scattered.
+     */
+    val ARRANGEMENT = Parameter(
+        "arrangement",
+        listOf(FeatureShape.SCATTERED, FeatureShape.GRID, FeatureShape.RINGS),
+        help = "How a formation's copies are laid out.",
+        optionHelp = mapOf(
+            FeatureShape.SCATTERED to "Strewn about, as they always are.",
+            FeatureShape.GRID to "Evenly spaced, in rows and columns.",
+            FeatureShape.RINGS to "In concentric rings about the middle of the world.",
+        ),
+    ).perMember(honouredWhere { feature, _ -> FeatureShape.isAFormation(feature) })
+
+    /** How far apart a formation's copies stand — `sparse gridded obelisks` a wider grid, `dense` a tighter one. */
+    val SPACING = Parameter.ranged(
+        "spacing",
+        help = "How far apart a formation's copies stand.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "half as far apart"),
+            Parameter.Landmark(0.0, "as they are laid"),
+            Parameter.Landmark(1.0, "twice as far apart"),
+        ),
+    ).perMember(honouredWhere { feature, _ -> FeatureShape.isAFormation(feature) })
+
     /** Where a lake stands against the sea — `high lakes` up on the high ground, `low lakes` down near the sea. */
     val ALTITUDE = Parameter.ranged(
         "altitude",
@@ -327,7 +353,7 @@ object Features {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE).none { it.name in options.chosen }
+                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE, ARRANGEMENT, SPACING).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
@@ -359,6 +385,11 @@ object Features {
 
         fun altitudeOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(ALTITUDE, salt, member = keyOf(feature))
 
+        fun arrangementOf(feature: Holder<VanillaPlacedFeature>): String? =
+            options.of(ARRANGEMENT, member = keyOf(feature)).takeUnless { it == ARRANGEMENT.default }
+
+        fun spacingOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(SPACING, salt, member = keyOf(feature))
+
         private fun keyOf(feature: Holder<VanillaPlacedFeature>): String? = idOf(feature)?.toString()
 
         private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
@@ -368,7 +399,8 @@ object Features {
                 feature
             } else {
                 rebuilt.computeIfAbsent(feature) {
-                    FeatureShape.reshaped(it, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
+                    val arranged = FeatureShape.arranged(it, arrangementOf(it), spacingOf(it))
+                    FeatureShape.reshaped(arranged, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
                         .let { reshaped -> FeatureShape.heightened(reshaped, tallnessOf(it)) }
                         .let { reshaped -> FeatureShape.deepened(reshaped, depth = null, altitude = altitudeOf(it)) }
                 }
@@ -424,7 +456,8 @@ object Features {
                 // A tag names a small pool the pattern is made of when the clause said nothing; a bare id
                 // is one answer. Drawn against the Age's own salt, so a world rebuilds identically.
                 val substances = claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) }
-                val shaped = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
+                val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
+                val shaped = FeatureShape.arranged(minted, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
                 // **Shaped before the amount**, so what is scaled is the shape and not the placement the
                 // amount prepends to.
                 val reshaped = FeatureShape.reshaped(

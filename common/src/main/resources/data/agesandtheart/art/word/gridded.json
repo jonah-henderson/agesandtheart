@@ -1,0 +1,33 @@
+{
+  "_comment": [
+    "Laid out in rows and columns: `gridded pyramidal landmass` the pyramids in a grid, `gridded obelisks` the obelisks.",
+    "Offered to the words for shapes alone, so it says nothing of anything else. `sparse` and `dense` reach the grid",
+    "through it (`sparse gridded obelisks`)."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "arrangement": "grid"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "pyramidal",
+        "spiked",
+        "arched",
+        "ringed",
+        "pitted",
+        "bouldered",
+        "spired",
+        "hoodooed",
+        "pyramids",
+        "obelisks",
+        "arches",
+        "rings",
+        "spikes",
+        "boulders",
+        "pits",
+        "pedestals"
+      ]
+    }
+  ]
+}

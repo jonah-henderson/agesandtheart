@@ -109,5 +109,23 @@ class FormationOnServerCheck : FunSpec({
         }
         check(missed.isEmpty()) { "these shapes are words the Art cannot grow: $missed" }
     }
+
+    /**
+     * **`gridded gold_block obelisks` stands in rows**: walked along the row through the origin, the obelisks it meets
+     * stand at even gaps, which a scatter never does. Over flat land, so nothing the ground does can hide one.
+     */
+    test("gridded obelisks stand in rows and columns") {
+        server.run("age write griddedgold 4242 age flat landmass gridded gold_block obelisks")
+        val gold = (0..ROW_WALKED).filter { x -> "gold_block" in server.run("age probe griddedgold $x 0") }
+        val obelisks = gold.fold(listOf<List<Int>>()) { runs, x ->
+            if (runs.isNotEmpty() && runs.last().last() == x - 1) runs.dropLast(1) + listOf(runs.last() + x) else runs + listOf(listOf(x))
+        }
+        val middles = obelisks.map { it.average() }
+        val gaps = middles.zipWithNext { one, next -> next - one }
+        check(middles.size >= LEAST_IN_A_ROW) { "only ${middles.size} obelisks stood along the row: $obelisks" }
+        check(gaps.max() - gaps.min() <= 1.0) { "the obelisks stood at uneven gaps along the row: $gaps" }
+    }
 })
 
+private const val ROW_WALKED = 200
+private const val LEAST_IN_A_ROW = 3

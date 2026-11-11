@@ -327,13 +327,16 @@ object Reader {
             val from = claims.size
             saidOf?.let { saidOfThisPage(it, word, acceptance, place) }
             fun isOfferedHere(meaning: Meaning) = isOfferedTo(meaning, word, acceptance)
+            // `sparse gridded pyramids`: what a page offers a word taken beside it lands where that word's offering does.
+            val offeringHere = taking.filter { page -> page.word.meanings.any(::isOfferedHere) }.map { it.word.name }.toSet()
+            fun isOfferedThrough(page: Waiting, meaning: Meaning) = meaning.offeredTo.any { it in offeringHere && it != page.word.name }
             for (page in taking) {
                 val meanings = page.word.meanings.filter { keptByOrder(page, it, taking) }
                 // A meaning that only ever applies laid bare is never the taking word's to land.
                 val taken = meanings.filter { !it.isOffered && it.appliesWhereAimed }.mapNotNull { meaning ->
                     takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
-                val offered = meanings.filter(::isOfferedHere)
+                val offered = meanings.filter { isOfferedHere(it) || isOfferedThrough(page, it) }
                 // A page the word before `and` took stays taken where this one takes none of it.
                 if (taken.isEmpty() && offered.isEmpty()) {
                     if (!borrowsTheLeftsPages) fell(page)

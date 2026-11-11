@@ -216,16 +216,20 @@ object Verdict {
 
         /**
          * A preset has one page that means it; an aspect's page announcing its own phenomenon is not counted, nor a
-         * choice made only by chance, which brings the preset now and then without meaning it (`stormy`'s gale).
+         * choice made only by chance, which brings the preset now and then without meaning it (`stormy`'s gale). A
+         * preset set differently in the meaning that chooses it is another configuration of it, and has a page of its
+         * own: `pyramidal` and `spired` both choose the geometric landform, in two shapes.
          */
         fun duplicateChoices(): List<Finding> {
             if (isAnAspectPage) return emptyList()
-            fun choicesMeantBy(meanings: List<Meaning>) =
-                meanings.filter { it.mustAlwaysApply }.flatMap { it.effects }.filterIsInstance<Effect.Chooses>()
+            fun choicesMeantBy(meanings: List<Meaning>) = meanings.filter { it.mustAlwaysApply }.flatMap { meaning ->
+                val configuration = meaning.effects.filterIsInstance<Effect.Sets>().toSet()
+                meaning.effects.filterIsInstance<Effect.Chooses>().map { it to configuration }
+            }
             val mine = choicesMeantBy(word.meanings).toSet()
             if (mine.isEmpty()) return emptyList()
             return vocabulary.words.filter { other -> other.name != word.name && Aspect.byPage(other.name) == null }
-                .flatMap { other -> choicesMeantBy(other.meanings).filter(mine::contains).map { other.name to it } }
+                .flatMap { other -> choicesMeantBy(other.meanings).filter(mine::contains).map { other.name to it.first } }
                 .map { (other, choice) -> refused("'$other' already chooses ${choice.aspect.page} ${choice.member}") }
         }
 

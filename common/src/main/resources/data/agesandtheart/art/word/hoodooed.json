@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain of pedestal rocks, the geometric landmass built of the pedestals formation.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:pedestals"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

@@ -87,6 +87,10 @@ data class Claim(
     val tallness: Double? = null,
     /** Where a lake of this one's stands against the sea, or null to take the Age's own — `high lakes`. */
     val altitude: Double? = null,
+    /** How a formation of this one's is laid out, or null to take the Age's own — `gridded obelisks`. */
+    val arrangement: String? = null,
+    /** How far apart a formation of this one's stands, or null to take the Age's own — `sparse gridded obelisks`. */
+    val spacing: Double? = null,
     /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
      * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
@@ -140,6 +144,8 @@ data class Claim(
         val ownDepth = depth
         val ownTallness = tallness
         val ownAltitude = altitude
+        val ownArrangement = arrangement
+        val ownSpacing = spacing
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
@@ -155,6 +161,8 @@ data class Claim(
             ownDepth?.let { add("$DEPTH$SETS${Rung.spelled(it)}") }
             ownTallness?.let { add("$TALLNESS$SETS${Rung.spelled(it)}") }
             ownAltitude?.let { add("$ALTITUDE$SETS${Rung.spelled(it)}") }
+            ownArrangement?.let { add("$ARRANGEMENT$SETS$it") }
+            ownSpacing?.let { add("$SPACING$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
             territory?.let { add("$ON$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
@@ -187,6 +195,8 @@ data class Claim(
         const val DEPTH = "depth"
         const val TALLNESS = "tallness"
         const val ALTITUDE = "altitude"
+        const val ARRANGEMENT = "arrangement"
+        const val SPACING = "spacing"
         const val FOR = "for"
 
         /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
@@ -225,6 +235,8 @@ data class Claim(
                 depth = valueOf(parts, DEPTH)?.toDoubleOrNull(),
                 tallness = valueOf(parts, TALLNESS)?.toDoubleOrNull(),
                 altitude = valueOf(parts, ALTITUDE)?.toDoubleOrNull(),
+                arrangement = valueOf(parts, ARRANGEMENT),
+                spacing = valueOf(parts, SPACING)?.toDoubleOrNull(),
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
                 territory = valueOf(parts, ON)?.toIntOrNull(),
             )

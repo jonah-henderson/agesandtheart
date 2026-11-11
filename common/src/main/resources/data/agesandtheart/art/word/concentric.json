@@ -1,0 +1,32 @@
+{
+  "_comment": [
+    "Laid out in rings about the middle of the world: `concentric pyramidal landmass`, `concentric obelisks`.",
+    "Offered to the words for shapes alone; `sparse` and `dense` reach the rings through it."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "arrangement": "rings"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "pyramidal",
+        "spiked",
+        "arched",
+        "ringed",
+        "pitted",
+        "bouldered",
+        "spired",
+        "hoodooed",
+        "pyramids",
+        "obelisks",
+        "arches",
+        "rings",
+        "spikes",
+        "boulders",
+        "pits",
+        "pedestals"
+      ]
+    }
+  ]
+}

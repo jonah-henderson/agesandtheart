@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain of leaning stone rings, the geometric landmass built of the rings formation.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:rings"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

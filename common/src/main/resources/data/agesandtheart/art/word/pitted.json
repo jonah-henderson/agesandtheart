@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain dug with pits, the geometric landmass built of the pits formation, which is cut into the ground rather than stood on it.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:pits"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

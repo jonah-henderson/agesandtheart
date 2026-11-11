@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain of standing arches, the geometric landmass built of the arches formation.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:arches"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

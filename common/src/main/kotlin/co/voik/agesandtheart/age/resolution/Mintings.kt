@@ -47,7 +47,7 @@ private fun Resolving.mintings(): List<Minting> = said.mapNotNull { landing ->
 /**
  * [composition] with every feature what landed minted added to what the Age places — `ink springs`, `gold_block
  * obelisks` (world model §2). Each is made of the substances laid in its clause, joined ones mingling and the firmest
- * leading the rest, or of the pattern's own where none was; and takes its clause's size, height, depth and abundance.
+ * leading the rest, or of the pattern's own where none was; and takes its clause's size, height, depth, arrangement, spacing and abundance.
  */
 internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeComposition {
     val mintings = mintings()
@@ -63,6 +63,8 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             depth = asked(minting.clause, DEPTH),
             tallness = asked(minting.clause, TALLNESS),
             altitude = asked(minting.clause, ALTITUDE),
+            arrangement = minting.clause.firstNotNullOfOrNull { it.settings[ARRANGEMENT] },
+            spacing = asked(minting.clause, SPACING),
         )
     }
     for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)
@@ -120,3 +122,5 @@ private const val HEIGHT = "height"
 private const val DEPTH = "depth"
 private const val TALLNESS = "tallness"
 private const val ALTITUDE = "altitude"
+private const val ARRANGEMENT = "arrangement"
+private const val SPACING = "spacing"

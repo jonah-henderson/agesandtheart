@@ -5,6 +5,8 @@ import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Slab
+import co.voik.agesandtheart.worldgen.field.Radial
+import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Variation
 import io.kotest.core.annotation.Tags
@@ -186,6 +188,18 @@ class FormationCheck : FunSpec({
         val cliff: (Int, Int) -> Int = { x, _ -> SEA_LEVEL + x.coerceAtLeast(0) }
         val (laid, cleared) = dugAcross(pit(), cliff)
         check(laid.isEmpty() && cleared.isEmpty()) { "a pit against a cliff laid ${laid.size} and cut ${cleared.size}" }
+    }
+
+    test("a formation arranged in a grid keeps every copy, half its cell apart, and spaced takes twice that") {
+        val scattered = Holder.direct(PlacedFeature(Holder.direct(configured(wideSlab()).copy(placement = Scatter(128.0, 0, 1, Density.uniform()))), emptyList()))
+        fun placementOf(feature: Holder<PlacedFeature>) = (feature.value().feature().value() as Formation).placement
+        check(FeatureShape.arranged(scattered, arrangement = null, spacing = null) === scattered) { "nothing asked, and the formation was rebuilt" }
+        check(placementOf(FeatureShape.arranged(scattered, FeatureShape.GRID, spacing = null)) == Grid(64.0, 0.0, Density.uniform())) {
+            "a grid was laid ${placementOf(FeatureShape.arranged(scattered, FeatureShape.GRID, spacing = null))}"
+        }
+        val spaced = placementOf(FeatureShape.arranged(scattered, FeatureShape.GRID, spacing = 1.0)) as Grid
+        check(spaced.spacing == 128.0) { "a grid spaced at one was ${spaced.spacing} apart" }
+        check(placementOf(FeatureShape.arranged(scattered, FeatureShape.RINGS, spacing = null)) is Radial) { "rings were not laid in rings" }
     }
 }) {
     private companion object {

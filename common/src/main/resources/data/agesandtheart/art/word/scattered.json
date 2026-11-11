@@ -2,7 +2,8 @@
   "_comment": [
     "Broken into pieces and strewn: a landmass in scattered parts, every part leaning scattered, and whatever",
     "stands set further apart.",
-    "`scattered clouds`: less of the sky in cloud, and that in small bits."
+    "`scattered clouds`: less of the sky in cloud, and that in small bits.",
+    "`scattered pyramidal landmass`: the shapes strewn, turned and sized every way rather than in rows."
   ],
   "meanings": [
     {
@@ -41,6 +42,22 @@
       "must_always_apply": true,
       "offered_to": [
         "clouds"
+      ]
+    },
+    {
+      "sets": {
+        "landmass.arrangement": "varied"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "pyramidal",
+        "spiked",
+        "arched",
+        "ringed",
+        "pitted",
+        "bouldered",
+        "spired",
+        "hoodooed"
       ]
     }
   ]

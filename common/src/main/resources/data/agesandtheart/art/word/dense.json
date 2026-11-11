@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "Many things, thickly: what grows thickened, what stands set close together, every part leaning lush and away",
+    "from the barren and the scattered. `sparse` mirrored.",
+    "",
+    "Before the clouds, the creatures and the stars, twice as many. Said of tunnels, a lattice, fissures or chambers,",
+    "more of them. Said of a grid or rings (`dense gridded obelisks`), the rows or rings set closer."
+  ],
+  "meanings": [
+    {
+      "bends": {
+        "landmass.spacing": "-1.0..-0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "structures.spacing": "-1.0..-0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "bends": {
+        "thickness": "0.3..0.8"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#lush": 0.8,
+          "#barren": -0.5,
+          "#scattered": -0.6
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "abundance": 2.0,
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds",
+        "inhabitants",
+        "stars"
+      ]
+    },
+    {
+      "sets": {
+        "underground.density": "0.4..0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "tunnels",
+        "lattice",
+        "fissured",
+        "chambered"
+      ]
+    },
+    {
+      "sets": {
+        "spacing": "-1.0..-0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "gridded",
+        "concentric"
+      ]
+    }
+  ]
+}

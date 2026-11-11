@@ -44,7 +44,12 @@ import net.minecraft.world.level.levelgen.heightproviders.UniformHeight
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
+import co.voik.agesandtheart.worldgen.field.Density
+import co.voik.agesandtheart.worldgen.field.Grid
+import co.voik.agesandtheart.worldgen.field.Placement
+import co.voik.agesandtheart.worldgen.field.Radial
 import co.voik.agesandtheart.worldgen.field.Relieved
+import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Spans
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -299,6 +304,32 @@ object FeatureShape {
         val factor = TALLNESS_DOUBLING.pow(tallness)
         val stood = formation.copy(shapes = formation.shapes.map { Relieved(it, STANDING_ON_THE_GROUND, factor, Spans.HIGHEST_Y) })
         return Holder.direct(PlacedFeature(Holder.direct(stood), placed.placement()))
+    }
+
+    /**
+     * [feature] laid out as [arrangement] and spaced by [spacing], where it is a formation: in rows and columns or in
+     * rings about the middle of the world, every copy kept, half its own cell apart; then everything twice as far apart
+     * at a spacing of one and half as far at minus one. Unarranged, it keeps its own scatter.
+     */
+    fun arranged(feature: Holder<PlacedFeature>, arrangement: String?, spacing: Double?): Holder<PlacedFeature> {
+        if (arrangement == null && spacing == null) return feature
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return feature
+        val apart = cellOf(formation.placement) * LATTICE_SHARE_OF_A_CELL
+        val laid = when (arrangement) {
+            GRID -> Grid(spacing = apart, jitter = 0.0, density = Density.uniform())
+            RINGS -> Radial(ringSpacing = apart, arcSpacing = apart, jitter = 0.0, density = Density.uniform())
+            else -> formation.placement
+        }
+        val spaced = spacing?.let { laid.resized(SPACING_DOUBLING.pow(it)) } ?: laid
+        return Holder.direct(PlacedFeature(Holder.direct(formation.copy(placement = spaced)), placed.placement()))
+    }
+
+    /** How far apart a layout sets its copies, near enough: a scatter's cell, a grid's spacing, a ring's. */
+    private fun cellOf(placement: Placement): Double = when (placement) {
+        is Scatter -> placement.cellSize
+        is Grid -> placement.spacing
+        is Radial -> placement.ringSpacing
     }
 
     /** Whether [feature] grows a tree, itself or among what it chooses between — what a bare tree is made of. */
@@ -580,6 +611,20 @@ object FeatureShape {
 
     /** A formation is authored with its base at the origin, and the ground is where it is put. */
     private const val STANDING_ON_THE_GROUND = 0
+
+    /** How a formation is laid out: [SCATTERED] as it always is, or in a [GRID] or [RINGS]. */
+    const val SCATTERED = "scattered"
+    const val GRID = "grid"
+    const val RINGS = "rings"
+
+    /**
+     * How far apart an arranged formation's copies stand, as a share of its own scatter's cell: every copy kept where a
+     * scatter keeps about half, so a grid of them reads as one from the ground.
+     */
+    private const val LATTICE_SHARE_OF_A_CELL = 0.5
+
+    /** The stretch a spacing of one gives a formation's layout: twice as far apart, and at minus one half. */
+    private const val SPACING_DOUBLING = 2.0
 
     /** The stretch a tallness of one gives a formation: twice its height, and at minus one half. */
     private const val TALLNESS_DOUBLING = 2.0

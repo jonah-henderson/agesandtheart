@@ -277,9 +277,10 @@ enum class Terrain(
         waterline = null,
         build = { options, salt, _, formations ->
             val scale = scaleOf(options, salt)
-            GeometricField.world(options.of(ARRANGEMENT), shapeOf(options, formations), salt, scale, landmarksOf(options, salt, scale))
+            val spacing = if (options.isTrue(FORMER_UNSPACED_SHAPES)) null else options.steer(SPACING, salt)
+            GeometricField.world(options.of(ARRANGEMENT), shapeOf(options, formations), salt, scale, landmarksOf(options, salt, scale), spacing)
         },
-        axes = { listOf(ARRANGEMENT, SIZE, SHAPE) },
+        axes = { listOf(ARRANGEMENT, SPACING, SIZE, SHAPE) },
         page = null,
     ),
 
@@ -1215,6 +1216,11 @@ enum class Terrain(
         val FORMER_BARE_WINDSWEPT = Parameter.flag(
             "former_bare_windswept",
             help = "Whether windswept land stands bare, as it did before it brought its pedestal rocks.",
+        )
+
+        val FORMER_UNSPACED_SHAPES = Parameter.flag(
+            "former_unspaced_shapes",
+            help = "Whether a geometric landform's shapes stand as far apart as they always did, whatever its spacing.",
         )
 
         val FORMER_LAYOUT = Parameter.flag(

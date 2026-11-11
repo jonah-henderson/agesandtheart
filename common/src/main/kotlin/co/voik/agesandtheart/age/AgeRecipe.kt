@@ -166,7 +166,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 26
+        const val CURRENT_GENERATOR_VERSION = 27
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -216,7 +216,11 @@ data class AgeRecipe(
                             if (version <= FormerBareWindswept.LAST_GENERATOR_OF_BARE_WINDSWEPT_LAND) FormerBareWindswept.carriedOver(it)
                             else it
                         }
-                        .let { if (version <= FormerUncutSnow.LAST_GENERATOR_OF_UNCUT_SNOW) FormerUncutSnow.carriedOver(it) else it },
+                        .let { if (version <= FormerUncutSnow.LAST_GENERATOR_OF_UNCUT_SNOW) FormerUncutSnow.carriedOver(it) else it }
+                        .let {
+                            if (version <= FormerUnspacedShapes.LAST_GENERATOR_OF_UNSPACED_SHAPES) FormerUnspacedShapes.carriedOver(it)
+                            else it
+                        },
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,

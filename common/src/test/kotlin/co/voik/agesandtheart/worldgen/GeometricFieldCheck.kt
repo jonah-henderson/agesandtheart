@@ -38,6 +38,14 @@ class GeometricFieldCheck : FunSpec({
         check(tops.count { it < PLAIN_TOP } > 0) { "nothing was dug" }
     }
 
+    test("spaced, the shapes stand further apart, and unspaced they stand as they did") {
+        fun standing(field: TerrainField) = topsOf(field).count { it > PLAIN_TOP }
+        val ordinary = standing(GeometricField.world("grid"))
+        check(standing(GeometricField.world("grid", spacing = 0.0)) == ordinary) { "a spacing of nothing moved the pyramids" }
+        check(standing(GeometricField.world("grid", spacing = 1.0)) < ordinary) { "spaced further apart, as many stood" }
+        check(standing(GeometricField.world("grid", spacing = -1.0)) > ordinary) { "spaced closer, no more stood" }
+    }
+
     test("a great one stands where a landmark is drawn") {
         val landmarks = LandVariety.landmarksFor(strength = 2.0, landScale = SizeScale.ORDINARY, salt = 7L)
         val withLandmarks = GeometricField.world("grid", shipped("obelisks"), salt = 7L, landmarks = landmarks)

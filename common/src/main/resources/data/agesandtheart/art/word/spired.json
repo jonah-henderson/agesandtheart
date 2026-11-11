@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A plain of obelisks, the geometric landmass built of the obelisks formation.",
+    "Chooses the landmass and sets the formation it is built of, as `pyramidal` does."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:obelisks"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}
