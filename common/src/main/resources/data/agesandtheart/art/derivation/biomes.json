@@ -72,7 +72,7 @@
       "watery": 0.9
     },
     "#minecraft:is_nether": {
-      "molten": 0.8,
+      "hot": 0.8,
       "hostile": 0.9,
       "dry": 0.8
     },
@@ -123,7 +123,7 @@
       "dark": 0.5
     },
     "#c:is_nether": {
-      "molten": 0.8,
+      "hot": 0.8,
       "hostile": 0.9,
       "dry": 0.8
     },

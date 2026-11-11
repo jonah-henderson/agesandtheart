@@ -18,6 +18,7 @@
     "readiness": 0.2,
     "tags": {
       "molten": 1.0,
+      "hot": 1.0,
       "hostile": 0.95,
       "glowing": 0.9,
       "bright": 0.4,
@@ -25,7 +26,10 @@
     }
   },
   "minecraft:magma_block": {
-    "readiness": 0.2
+    "readiness": 0.2,
+    "tags": {
+      "hot": 1.0
+    }
   },
   "minecraft:ice": {
     "readiness": 0.3,

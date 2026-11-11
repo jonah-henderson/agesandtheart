@@ -31,7 +31,7 @@ something lands, delete the narrative of building it; a choice between genuinely
   screens. **Author words with `scripts/scrivener.sh`**, whose `Verdict` is what a valid word is.
 - **`notes/the-art-implementation-plan.md`** — where things stand: the phases done, Phase 7 mostly built, Phase 8
   tabled, Phase 9 under way. Everything open is in `remaining-work.md`.
-- **`notes/the-tag-layer.md`** — the fifty-three tags (forty-one properties and the twelve colours), where each
+- **`notes/the-tag-layer.md`** — the fifty-four tags (forty-two properties and the twelve colours), where each
   is derived from, and why three separate things are called rarity. **Built**; what is left is the hand-tuning
   its §7 step 4 describes, done through Scrivener's tag screen (`/age tags` answers the same question against a
   running server). Read it before touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.

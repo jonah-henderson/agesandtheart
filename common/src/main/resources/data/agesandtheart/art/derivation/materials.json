@@ -26,7 +26,7 @@
     "#minecraft:nylium": { "fungal": 1.0 },
     "#minecraft:wart_blocks": { "fungal": 1.0, "colourful": 0.4 },
     "#minecraft:coral_blocks": { "aquatic": 1.0, "colourful": 0.9 },
-    "#agesandtheart:molten": { "molten": 1.0, "hostile": 0.6 }
+    "#agesandtheart:molten": { "molten": 1.0, "hot": 1.0, "hostile": 0.6 }
   },
   "by_kind": {
     "lit": { "glowing": 1.0 }

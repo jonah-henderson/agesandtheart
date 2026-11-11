@@ -7,8 +7,9 @@
     }
   },
   "inferno": {
-    "_comment": "Fire as the world's condition rather than an event in it, so `molten` carries the whole of what it is and `hostile` is what that comes to for anybody standing in it. `dry` because the Age it wants is one the rain has left -- which is a fact about the phenomenon and not the weather it happens to arrive with.",
+    "_comment": "Fire as the world's condition rather than an event in it, so `hot` carries the whole of what it is and `hostile` is what that comes to for anybody standing in it; `molten` is dropped, since nothing in it is liquid. `dry` because the Age it wants is one the rain has left -- which is a fact about the phenomenon and not the weather it happens to arrive with.",
     "tags": {
+      "hot": 1.0,
       "hostile": 0.8
     },
     "drop": [
@@ -48,7 +49,7 @@
     }
   },
   "meteors": {
-    "_comment": "Burning rock arriving from outside the world, so `molten` is what it is made of and what it leaves in the crater, and `hostile` is the highest here -- a sandfall buries you slowly and this goes off on you. `bright` because a shower is genuinely a thing worth watching, which is what keeps it within reach of `beautiful` as well as of `savage`.",
+    "_comment": "Burning rock arriving from outside the world. Neither `molten` nor `hot`, though both are true of it: a word asking for heat means a world that is hot, not one things fall burning into. `hostile` is the highest here -- a sandfall buries you slowly and this goes off on you. `bright` because a shower is genuinely a thing worth watching, which is what keeps it within reach of `beautiful` as well as of `savage`.",
     "tags": {
       "hostile": 0.9,
       "bright": 0.5

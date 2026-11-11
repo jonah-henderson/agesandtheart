@@ -23,7 +23,7 @@
           "#lush": 0.8,
           "#flowering": 0.6,
           "#frozen": -1.0,
-          "#molten": -1.0
+          "#hot": -0.2
         }
       },
       "must_always_apply": true
