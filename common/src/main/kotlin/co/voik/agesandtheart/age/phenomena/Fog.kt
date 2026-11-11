@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.location
@@ -61,7 +62,7 @@ object Fog {
         } else {
             FogPayload(age, lyingAt(level, recurrence, dials), thicknessAt(dials.thickness))
         }
-        for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
+        for (player in PanelViews.audienceOf(level)) Services.NETWORK.sendToPlayer(player, telling)
     }
 
     /** Two minutes: long enough to be caught out in, short enough that a bank lifts while you wait. */

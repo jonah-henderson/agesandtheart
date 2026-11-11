@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.phenomena.FogPayload
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.resources.Identifier
 import net.minecraft.util.ARGB
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
@@ -17,16 +18,17 @@ import kotlin.math.exp
  */
 object Fogs {
 
-    private var told: FogPayload? = null
+    /** What each Age's fog was last told as — the one stood in, and any a panel looks into. */
+    private val told = mutableMapOf<Identifier, FogPayload>()
 
     fun remember(payload: FogPayload) {
-        told = payload
+        told[payload.age] = payload
     }
 
     /** For a client leaving a server, whose Age ids mean nothing on the next. */
     fun forget() {
-        told = null
-        lying = Float.NaN
+        told.clear()
+        eased.clear()
     }
 
     /**
@@ -57,26 +59,29 @@ object Fogs {
     private fun closedIn(was: Float, level: ClientLevel): Float {
         val lying = lyingIn(level)
         if (lying <= NONE) return was
-        val thickness = told?.thickness ?: Rung.ORDINARY
+        val thickness = told[level.dimension().identifier()]?.thickness ?: Rung.ORDINARY
         val inTheBank = (ORDINARY_BANK_BLOCKS / thickness).toFloat().coerceAtMost(was)
         return was + (inTheBank - was) * lying
     }
 
     /** How much of a bank lies over [level], eased towards what the server last said. */
     private fun lyingIn(level: ClientLevel): Float {
-        val heard = told?.takeIf { it.age == level.dimension().identifier() }
-        val target = heard?.lying?.toFloat() ?: NONE
+        val age = level.dimension().identifier()
+        val target = told[age]?.lying?.toFloat() ?: NONE
         val now = System.nanoTime()
-        lying = if (lying.isNaN()) target else {
-            val elapsed = (now - easedAt) / NANOS_PER_SECOND
-            lying + (target - lying) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
+        val was = eased[age]
+        val lying = if (was == null) target else {
+            val elapsed = (now - was.at) / NANOS_PER_SECOND
+            was.lying + (target - was.lying) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
         }
-        easedAt = now
+        eased[age] = Eased(lying, now)
         return lying
     }
 
-    private var lying = Float.NaN
-    private var easedAt = 0L
+    /** How much of a bank was lying over an Age when it was last eased, and when — each Age's own. */
+    private data class Eased(val lying: Float, val at: Long)
+
+    private val eased = mutableMapOf<Identifier, Eased>()
 
     /** How far you can see in an ordinary bank: a couple of dozen blocks, and half that bought in full. */
     private const val ORDINARY_BANK_BLOCKS = 24.0

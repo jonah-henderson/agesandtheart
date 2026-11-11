@@ -47,14 +47,7 @@ object Happenings {
         // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
         // written claims — so asking the weather from those alone left instability unable to drive the
         // one register it buys.
-        val befalls = befalling(happening, spending, asWrittenIn(composition, seed)).toMutableMap().apply {
-            // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
-            // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
-            // fierceness nothing reads.
-            if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Befalling.ORDINARY)
-            // And a deluge likewise — see [Deluge.force].
-            if (Deluge.isForcedIn(level)) putIfAbsent(Phenomenon.DELUGE, Befalling.ORDINARY)
-        }
+        val befalls = befallingNow(level, composition, happening, spending, seed)
         AgeWeather.steer(level, wanted(composition, befalls, spending))
         Deluge.pours(level, Phenomenon.DELUGE in befalls)
         PhenomenaCeiling.holdTheWeather(level, befalls.keys)
@@ -69,13 +62,49 @@ object Happenings {
         // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
         // rather than on change, because "changed" would need a memory per player and the message is
         // a dozen bytes.
-        if (level.server.tickCount % TELLING_THE_CLIENT == 0) {
-            Blizzard.tellTheClients(level, befalls, spending)
-            Deluge.tellTheClients(level, befalls[Phenomenon.DELUGE]?.let { Deluge.risingOf(it.recurrence, spending, it.strength) })
-            val fog = befalls[Phenomenon.FOG]
-            Fog.tellTheClients(level, fog?.recurrence, FogDials.of(spending, fog?.strength ?: UNSAID_STRENGTH))
-            Gale.tellTheClients(level, blowing, gusts)
-        }
+        if (level.server.tickCount % TELLING_THE_CLIENT == 0) tellTheClients(level, befalls, spending, blowing, gusts)
+    }
+
+    /**
+     * What is showing over [level] told to whoever watches it on a panel, where nobody stands in it: the same
+     * messages, on the same beat, and nothing befalls it.
+     */
+    fun tellThePanels(level: ServerLevel, composition: AgeComposition, happening: List<Claim>, spending: Spending, seed: Long) {
+        if (level.server.tickCount % TELLING_THE_CLIENT != 0) return
+        val befalls = befallingNow(level, composition, happening, spending, seed)
+        val gale = befalls[Phenomenon.GALE]
+        val blowing = Gale.blowingOver(level, gale, befalls[Phenomenon.BLIZZARD], spending)
+        tellTheClients(level, befalls, spending, blowing, Gale.gustsOver(level, gale, spending))
+    }
+
+    /** What befalls [level] now: what was written and what instability inflicts, and what was forced by hand. */
+    private fun befallingNow(
+        level: ServerLevel,
+        composition: AgeComposition,
+        happening: List<Claim>,
+        spending: Spending,
+        seed: Long,
+    ): Map<Phenomenon, Befalling> = befalling(happening, spending, asWrittenIn(composition, seed)).toMutableMap().apply {
+        // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
+        // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
+        // fierceness nothing reads.
+        if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Befalling.ORDINARY)
+        // And a deluge likewise — see [Deluge.force].
+        if (Deluge.isForcedIn(level)) putIfAbsent(Phenomenon.DELUGE, Befalling.ORDINARY)
+    }
+
+    private fun tellTheClients(
+        level: ServerLevel,
+        befalls: Map<Phenomenon, Befalling>,
+        spending: Spending,
+        blowing: Gale.Blowing?,
+        gusts: Gusts,
+    ) {
+        Blizzard.tellTheClients(level, befalls, spending)
+        Deluge.tellTheClients(level, befalls[Phenomenon.DELUGE]?.let { Deluge.risingOf(it.recurrence, spending, it.strength) })
+        val fog = befalls[Phenomenon.FOG]
+        Fog.tellTheClients(level, fog?.recurrence, FogDials.of(spending, fog?.strength ?: UNSAID_STRENGTH))
+        Gale.tellTheClients(level, blowing, gusts)
     }
 
     /**

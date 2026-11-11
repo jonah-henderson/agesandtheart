@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.resources.Identifier
 import net.minecraft.client.renderer.WeatherEffectRenderer
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -29,12 +30,12 @@ import net.minecraft.world.phys.Vec3
  */
 object Downpours {
 
-    private var told: DelugePayload? = null
+    /** What each Age's deluge was last told as — the one stood in, and any a panel looks into. */
+    private val told = mutableMapOf<Identifier, DelugePayload>()
 
     /** How heavy the deluge falling in [level] is, nought to one, or null where no deluge is falling. */
     fun heavinessIn(level: ClientLevel): Double? {
-        val heard = told ?: return null
-        if (heard.age != level.dimension().identifier()) return null
+        val heard = told[level.dimension().identifier()] ?: return null
         if (!heard.pouring || !level.isRaining) return null
         return heard.heaviness
     }
@@ -54,12 +55,12 @@ object Downpours {
     private fun rainsAt(level: ClientLevel, at: BlockPos): Boolean = level.getPrecipitationAt(at) == Biome.Precipitation.RAIN
 
     fun remember(payload: DelugePayload) {
-        told = payload
+        told[payload.age] = payload
     }
 
     /** For a client leaving a server, whose Age ids mean nothing on the next. */
     fun forget() {
-        told = null
+        told.clear()
     }
 
     /**

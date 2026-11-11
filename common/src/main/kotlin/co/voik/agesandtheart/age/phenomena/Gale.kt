@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Recurrence
@@ -199,7 +200,7 @@ object Gale {
         val age = level.dimension().identifier()
         val telling = if (blowing == null) GalePayload.noneIn(age)
         else GalePayload(age, blowing.lying, blowing.bearingDegrees, blowing.fury, gusts)
-        for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
+        for (player in PanelViews.audienceOf(level)) Services.NETWORK.sendToPlayer(player, telling)
     }
 
     private fun isWindy(seed: Long, spell: Long, share: Double): Boolean =

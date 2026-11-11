@@ -15,6 +15,7 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.resources.Identifier
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
 import org.joml.Vector3fc
@@ -29,23 +30,23 @@ import org.joml.Vector3fc
  */
 object Storms {
 
-    private var told: BlizzardPayload? = null
+    /** What each Age's storm was last told as — the one stood in, and any a panel looks into. */
+    private val told = mutableMapOf<Identifier, BlizzardPayload>()
 
     /** What is blowing in [level], or nothing — including where the last word was about another Age. */
     fun blowingIn(level: ClientLevel): BlizzardPayload? {
-        val heard = told ?: return null
-        if (heard.age != level.dimension().identifier()) return null
+        val heard = told[level.dimension().identifier()] ?: return null
         if (!heard.blowing || !level.isRaining) return null
         return heard
     }
 
     fun remember(payload: BlizzardPayload) {
-        told = payload
+        told[payload.age] = payload
     }
 
     /** For a client leaving a server, whose Age ids mean nothing on the next. */
     fun forget() {
-        told = null
+        told.clear()
         inTheWind = ConeExposure.Remembered()
         seen = Easing()
     }

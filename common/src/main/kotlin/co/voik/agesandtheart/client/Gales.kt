@@ -12,6 +12,7 @@ import co.voik.ephemeris.sky.LevelWind
 import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.resources.Identifier
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
 import net.minecraft.core.BlockPos
 import net.minecraft.sounds.SoundEvent
@@ -29,7 +30,8 @@ import kotlin.math.sin
  */
 object Gales {
 
-    private var told: GalePayload? = null
+    /** What each Age's gale was last told as — the one stood in, and any a panel looks into. */
+    private val told = mutableMapOf<Identifier, GalePayload>()
 
     /** The gale over [level] now, or null — including where the last word was about another Age. */
     fun blowingIn(level: ClientLevel): Gale.Blowing? = toldAbout(level)?.blowing
@@ -41,17 +43,17 @@ object Gales {
         return heard.gusts.at(level.gameTime)
     }
 
-    private fun toldAbout(level: ClientLevel): GalePayload? = told?.takeIf { it.age == level.dimension().identifier() }
+    private fun toldAbout(level: ClientLevel): GalePayload? = told[level.dimension().identifier()]
 
     private fun gustsIn(level: ClientLevel): Gusts = toldAbout(level)?.gusts ?: Gusts.NONE
 
     fun remember(payload: GalePayload) {
-        told = payload
+        told[payload.age] = payload
     }
 
     /** For a client leaving a server, whose Age ids mean nothing on the next. */
     fun forget() {
-        told = null
+        told.clear()
         inTheWind = ConeExposure.Remembered()
         felt = Easing()
         heard = Easing()

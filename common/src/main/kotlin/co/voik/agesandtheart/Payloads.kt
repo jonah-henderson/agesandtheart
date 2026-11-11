@@ -13,6 +13,7 @@ import co.voik.agesandtheart.book.LinkEnded
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelWeatherPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelDeclined
@@ -116,6 +117,7 @@ object Payloads {
         // buffer, carrying vanilla's own chunk and light data straight through.
         Clientbound(PanelLevelPayload.TYPE, PanelLevelPayload.STREAM_CODEC),
         Clientbound(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC),
+        Clientbound(PanelWeatherPayload.TYPE, PanelWeatherPayload.STREAM_CODEC),
         Clientbound(PanelMapPayload.TYPE, PanelMapPayload.STREAM_CODEC),
         Clientbound(PanelMapChunkPayload.TYPE, PanelMapChunkPayload.STREAM_CODEC),
         Clientbound(PanelDeclined.TYPE, PanelDeclined.STREAM_CODEC),

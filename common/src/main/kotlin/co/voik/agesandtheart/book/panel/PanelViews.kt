@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.book.panel
 
+import co.voik.ephemeris.LevelClocks
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.PanelView
@@ -78,6 +79,12 @@ object PanelViews {
     /** Re-requests are cheaper than an open but still ask the chunk source for work. */
     private const val TICKS_BETWEEN_CHASES = 20L
 
+    /** How often a watched Age's weather is told again: vanilla's own beat for the time. */
+    private const val TELLING_THE_WEATHER = 20
+
+    /** A level's weather read whole, with no tick between two of its steps. */
+    private const val WHOLE_TICK = 1.0f
+
     /**
      * Opens a panel onto [book] — in [player]'s hand, or lying open where they are standing — streaming the ring
      * around where it would put them.
@@ -128,8 +135,12 @@ object PanelViews {
                 chunksComing = PanelRing.COUNT,
                 gameTime = level.gameTime,
                 instability = instability,
+                rain = level.getRainLevel(WHOLE_TICK),
+                thunder = level.getThunderLevel(WHOLE_TICK),
             ),
         )
+        // The Age's hour at once, rather than the overworld's until Ephemeris' next beat tells everyone.
+        LevelClocks.tell(player, level)
         // **Asked from anywhere but the server thread, and that is the whole of why.**
         // `ServerChunkCache.getChunkFuture` only returns a future when it is called from another thread;
         // on the server thread it runs `managedBlock` and does not come back until the chunk is generated.
@@ -192,11 +203,35 @@ object PanelViews {
             server.playerList.getPlayer(viewer)?.let { openAdmitted(server, it, book) }
         }
         if (watching.isEmpty()) return
+        if (server.tickCount % TELLING_THE_WEATHER == 0) tellTheWeather(server)
         val leftBehind = watching.filter { (viewer, watch) -> isLeftBehind(server, viewer, watch) }.keys.toList()
         for (viewer in leftBehind) {
             Constants.LOG.info("Panel: an open book's panel was still held by {} after they left it", viewer)
             closeWatchOf(server, viewer)
         }
+    }
+
+    /** The weather over each Age being watched, to whoever is watching it. */
+    private fun tellTheWeather(server: MinecraftServer) {
+        for ((viewer, watch) in watching) {
+            val player = server.playerList.getPlayer(viewer) ?: continue
+            val level = server.getLevel(watch.dimension) ?: continue
+            val weather = PanelWeatherPayload(watch.dimension, level.getRainLevel(WHOLE_TICK), level.getThunderLevel(WHOLE_TICK))
+            Services.NETWORK.sendToPlayer(player, weather)
+        }
+    }
+
+    /** Whether anybody is watching [level] on a panel. */
+    fun isWatched(level: ServerLevel): Boolean = watching.values.any { it.dimension == level.dimension() }
+
+    /**
+     * Who should hear what is happening in [level]: whoever stands in it, and whoever is watching it on a panel,
+     * so a phenomenon showing there shows on the panel too.
+     */
+    fun audienceOf(level: ServerLevel): List<ServerPlayer> {
+        val watchers = watching.filterValues { it.dimension == level.dimension() }.keys
+            .mapNotNull(level.server.playerList::getPlayer)
+        return (level.players() + watchers).distinct()
     }
 
     private fun isLeftBehind(server: MinecraftServer, viewer: UUID, watch: Watch): Boolean {

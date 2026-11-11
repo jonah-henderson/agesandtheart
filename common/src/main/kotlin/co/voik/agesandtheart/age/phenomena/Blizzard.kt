@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Recurrence
@@ -209,7 +210,7 @@ object Blizzard {
             BlizzardPayload(age, thickness)
         }
         // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.
-        for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
+        for (player in PanelViews.audienceOf(level)) Services.NETWORK.sendToPlayer(player, telling)
     }
 
     /**

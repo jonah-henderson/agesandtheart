@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.book.panel.PanelViews
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.block.Block
@@ -198,7 +199,7 @@ object Deluge {
     fun tellTheClients(level: ServerLevel, rising: Rising?) {
         val age = level.dimension().identifier()
         val payload = if (rising == null) DelugePayload.noneIn(age) else DelugePayload(age, rising.heaviness)
-        for (player in level.players()) Services.NETWORK.sendToPlayer(player, payload)
+        for (player in PanelViews.audienceOf(level)) Services.NETWORK.sendToPlayer(player, payload)
     }
 
     /**

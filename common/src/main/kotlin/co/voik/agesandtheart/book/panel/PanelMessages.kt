@@ -123,6 +123,9 @@ data class PanelLevelPayload(
      * the desk still owns diagnosis.
      */
     val instability: Int,
+    /** How hard it is raining in the Age and how hard it storms, as an arriving player's level is told them. */
+    val rain: Float,
+    val thunder: Float,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelLevelPayload> = TYPE
@@ -141,6 +144,8 @@ data class PanelLevelPayload(
                 ByteBufCodecs.VAR_INT.encode(buffer, value.chunksComing)
                 ByteBufCodecs.VAR_LONG.encode(buffer, value.gameTime)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.instability)
+                ByteBufCodecs.FLOAT.encode(buffer, value.rain)
+                ByteBufCodecs.FLOAT.encode(buffer, value.thunder)
             },
             { buffer ->
                 val dimension = Identifier.parse(ByteBufCodecs.STRING_UTF8.decode(buffer))
@@ -153,6 +158,8 @@ data class PanelLevelPayload(
                     chunksComing = ByteBufCodecs.VAR_INT.decode(buffer),
                     gameTime = ByteBufCodecs.VAR_LONG.decode(buffer),
                     instability = ByteBufCodecs.VAR_INT.decode(buffer),
+                    rain = ByteBufCodecs.FLOAT.decode(buffer),
+                    thunder = ByteBufCodecs.FLOAT.decode(buffer),
                 )
             },
         )
@@ -297,6 +304,23 @@ class PanelMapChunkPayload(
                 val depths = ByteArray(COLUMNS).also(buffer::readBytes)
                 PanelMapChunkPayload(book, ask, x, z, colours, heights, depths)
             },
+        )
+    }
+}
+
+/** The weather over the Age a panel shows, while it is shown, on the same beat an arriving player's level hears it. */
+data class PanelWeatherPayload(val dimension: ResourceKey<Level>, val rain: Float, val thunder: Float) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelWeatherPayload> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<PanelWeatherPayload> = CustomPacketPayload.Type("panel_weather".location())
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelWeatherPayload> = StreamCodec.composite(
+            ResourceKey.streamCodec(net.minecraft.core.registries.Registries.DIMENSION), PanelWeatherPayload::dimension,
+            ByteBufCodecs.FLOAT, PanelWeatherPayload::rain,
+            ByteBufCodecs.FLOAT, PanelWeatherPayload::thunder,
+            ::PanelWeatherPayload,
         )
     }
 }

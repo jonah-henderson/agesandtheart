@@ -3,6 +3,7 @@ package co.voik.agesandtheart.client.panel
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelWeatherPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
@@ -120,6 +121,13 @@ object LinkingPanel {
             )
             sendToServer(PanelCloseRequest)
         }
+    }
+
+    /** The weather over the Age shown, where it is still the one shown. */
+    fun accept(payload: PanelWeatherPayload) {
+        val level = showing?.level?.takeIf { it.dimension() == payload.dimension } ?: return
+        level.setRainLevel(payload.rain)
+        level.setThunderLevel(payload.thunder)
     }
 
     /** Called for each chunk of the ring. Chunks for a panel we have closed are dropped. */

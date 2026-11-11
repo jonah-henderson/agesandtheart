@@ -232,6 +232,8 @@ class PreviewLevel private constructor(
             // Nothing ticks a level outside `minecraft.level`, so the Age's clock is set once from the
             // server's; the panel is a glance rather than a window, and does not need it to run.
             level.setTimeFromServer(payload.gameTime)
+            level.setRainLevel(payload.rain)
+            level.setThunderLevel(payload.thunder)
             val centre = PanelRing.centreOf(payload.around)
             level.chunkSource.updateViewCenter(centre.x, centre.z)
 

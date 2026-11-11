@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.Hostility
@@ -57,7 +58,11 @@ object AgeTick {
             StrangeGravity.keep(level, recipe, spending)
             // And a warden's brain ticks wherever its chunk does, watched or not — see [Wardens].
             Wardens.keepAboveGround(level)
-            if (Sampling.watchers(level).isEmpty()) continue
+            if (Sampling.watchers(level).isEmpty()) {
+                // Nobody here, but somebody may be looking in on a panel: tell them what is showing, and do nothing.
+                if (PanelViews.isWatched(level)) Happenings.tellThePanels(level, composition, happening, spending, recipe.seed)
+                continue
+            }
             if (rising != null && (level.isRaining || !rising.onlyInTheRain)) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending, recipe.seed)
             // A sea rising with no deluge to raise it: the deluge's block work, without its rain pooling.
