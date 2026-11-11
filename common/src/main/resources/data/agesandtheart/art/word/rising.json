@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "The sea climbing, as a deluge's does, with none of its rain: `rising sea`. Before it, a point of",
+    "the compass says where a sun or a moon comes up: `north rising sun`. Alone before a body it says nothing, since a",
+    "sun already rises."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "sea.climbing": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sea",
+        "waters"
+      ]
+    }
+  ]
+}

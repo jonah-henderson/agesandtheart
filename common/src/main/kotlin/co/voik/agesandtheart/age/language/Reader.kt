@@ -31,9 +31,26 @@ object Reader {
     /** The book [pages] spell, read against [lexicon] and drawn at [seed], or null where it has no `age` page. */
     fun read(lexicon: Lexicon, pages: List<String>, seed: Long): Reading? {
         if (pages.none { lexicon.structure(it) == Structure.AGE }) return null
-        val pass = Pass(lexicon, pages).read()
-        val read = pages.mapIndexed { index, written -> PageRead(index, written, pass.fates[index] ?: Fate.Unread) }
-        return Draw.of(pass.claims, read, pass.templates.values.firstOrNull(), seed)
+        // An old page retired into several words is read as them, and what they came to is said of the page.
+        val spoken = pages.withIndex().flatMap { (index, page) -> (lexicon.phrase(page) ?: listOf(page)).map { index to it } }
+        val pass = Pass(lexicon, spoken.map { (_, word) -> word }).read()
+        val writtenAt = spoken.map { (index, _) -> index }
+        // A phrase came to what its first word did, which its carrier only took there.
+        val firstSpokenOf = writtenAt.withIndex().reversed().associate { (spokenAt, index) -> index to spokenAt }
+        val read = pages.mapIndexed { index, written ->
+            val fate = pass.fates[firstSpokenOf.getValue(index)]?.writtenAs(writtenAt) ?: Fate.Unread
+            PageRead(index, written, fate)
+        }
+        val claims = pass.claims.map { claim -> claim.copy(page = writtenAt[claim.page], clause = claim.clause?.let(writtenAt::get)) }
+        return Draw.of(claims, read, pass.templates.values.firstOrNull(), seed)
+    }
+
+    /** This fate with the pages it names counted as written rather than as read, where a page was read as several. */
+    private fun Fate.writtenAs(writtenAt: List<Int>): Fate = when (this) {
+        is Fate.TakenBy -> Fate.TakenBy(writtenAt[taker])
+        is Fate.Names -> Fate.Names(writtenAt[member])
+        is Fate.Carries -> Fate.Carries(writtenAt[carried])
+        else -> this
     }
 
 
@@ -305,12 +322,16 @@ object Reader {
          * nothing else, as it would where the word took it — unless that word passes an offering of its own on to the
          * word taking them both ([besides]), as `gridded` does in `sparse gridded pyramids`. Whether it did.
          */
+        /** Pages that carried the page before them onto the Age laid bare: `north rising` with no body after it. */
+        private val carriedBare = mutableSetOf<Int>()
+
         private fun landedOnTheNext(page: Waiting, pages: List<Waiting>, besides: Set<String> = emptySet()): Boolean {
             val next = pages.firstOrNull { it.index == page.index + 1 } ?: return false
             if (next.word.name in besides) return false
             val offered = page.word.meanings.filter { next.word.name in it.offeredTo }
             if (offered.isEmpty()) return false
             fates[page.index] = Fate.TakenBy(next.index)
+            carriedBare += next.index
             for (meaning in offered) {
                 for ((place, effects) in placesOf(meaning)) {
                     claims += Claim(page.index, page.word, meaning, place, effects, clause = page.index, aimed = true, joined = page.joined)
@@ -349,17 +370,30 @@ object Reader {
             // `sparse gridded pyramids`: what a page offers a word taken beside it lands where that word's offering does.
             val offeringHere = taking.filter { page -> page.word.meanings.any(::isOfferedHere) }.map { it.word.name }.toSet()
             fun isOfferedThrough(page: Waiting, meaning: Meaning) = meaning.offeredTo.any { it in offeringHere && it != page.word.name }
+            // `north rising sun`: what a page offers the word after it, where that word passes nothing on itself, this
+            // word takes as though offered it, and the word between is taken for carrying it.
+            fun carriedThroughTheNext(page: Waiting): List<Pair<Meaning, List<Pair<Place, List<Effect>>>>> {
+                val next = taking.firstOrNull { it.index == page.index + 1 } ?: return emptyList()
+                if (next.word.name in offeringHere) return emptyList()
+                return page.word.meanings.filter { next.word.name in it.offeredTo }.mapNotNull { meaning ->
+                    takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
+                }
+            }
+            val carried = if (borrowsTheLeftsPages) emptyMap() else taking.associate { it.index to carriedThroughTheNext(it) }.filterValues { it.isNotEmpty() }
+            val carriers = carried.keys.map { it + 1 }.toSet()
             for (page in taking) {
-                if (!borrowsTheLeftsPages && landedOnTheNext(page, taking, besides = offeringHere)) continue
+                val carriedHere = carried[page.index].orEmpty()
+                if (carriedHere.isEmpty() && !borrowsTheLeftsPages && landedOnTheNext(page, taking, besides = offeringHere)) continue
                 val meanings = page.word.meanings.filter { keptByOrder(page, it, taking) }
                 // A meaning that only ever applies laid bare is never the taking word's to land.
-                val taken = meanings.filter { !it.isOffered && it.appliesWhereAimed }.mapNotNull { meaning ->
+                val taken = carriedHere + meanings.filter { !it.isOffered && it.appliesWhereAimed }.mapNotNull { meaning ->
                     takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
                 val offered = meanings.filter { isOfferedHere(it) || isOfferedThrough(page, it) }
                 // A page the word before `and` took stays taken where this one takes none of it.
                 if (taken.isEmpty() && offered.isEmpty()) {
-                    if (!borrowsTheLeftsPages) fell(page)
+                    if (page.index in carriers) fates[page.index] = Fate.Carries(page.index - 1)
+                    else if (!borrowsTheLeftsPages) fell(page)
                     continue
                 }
                 if (!borrowsTheLeftsPages) fates[page.index] = Fate.TakenBy(at)
@@ -592,6 +626,11 @@ object Reader {
         private fun laidBare(page: Waiting, fate: Fate) {
             val landing = page.word.meanings.filter(Meaning::appliesUnaimed)
             val couldLand = landing.any { meaning -> placesOf(meaning).isNotEmpty() || meaning.effects.any { it is Effect.Template } }
+            if (!couldLand && page.index in carriedBare) {
+                fates[page.index] = Fate.Carries(page.index - 1)
+                fates[page.index - 1] = Fate.LaidBare
+                return
+            }
             if (!couldLand) return impossible(page.index)
             fates[page.index] = fate
             for (meaning in landing) {

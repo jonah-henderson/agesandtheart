@@ -292,6 +292,7 @@ sky =
     | overcast clouds
     | [cloud_shape] clouds@2
     | windy sky
+    | [compass] wind
     | calm air
     | unfading [sky_colour] sky
     | low clouds
@@ -312,7 +313,9 @@ cloud_shape = few | scattered | patchy
 # climate's word as much as the weather's, so it is left to the climates.
 weather = drenched weather | stormy weather | rainless weather
 
-rising = rising_east | rising_north | rising_northeast | rising_northwest | rising_south | rising_southeast | rising_southwest | rising_west
+# Where a body comes up, goes down, or both; the point a wind blows from.
+rising = [compass] rising@3 | [compass] setting | [compass] rising [compass] setting
+compass = north | northeast | east | southeast | south | southwest | west | northwest
 
 # A curtain is had by describing it. Never both frequent and bright here, which with a tempest drawn in
 # by a mood would be the arc crystal's gate.

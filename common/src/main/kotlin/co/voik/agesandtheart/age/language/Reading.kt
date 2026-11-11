@@ -34,10 +34,16 @@ data class Reading(
      * What the book was read as, page by page — every hop a page made, and what it said where it landed. A page naming
      * the part the word before it is of is said with that word: `insular landmass`.
      */
-    val readout: String get() = pages.filter { it.fate !is Fate.Names }.joinToString("\n") { page -> "${writtenWithItsPart(page)}: ${saidOf(page)}" }
+    val readout: String get() = pages.filter { it.fate !is Fate.Names && it.fate !is Fate.Carries }
+        .joinToString("\n") { page -> "${writtenWithItsPart(page)}: ${saidOf(page)}" }
 
     private fun writtenWithItsPart(page: PageRead): String {
-        val part = pages.firstOrNull { (it.fate as? Fate.Names)?.member == page.index }
+        fun isSaidWith(other: PageRead) = when (val fate = other.fate) {
+            is Fate.Names -> fate.member == page.index
+            is Fate.Carries -> fate.carried == page.index
+            else -> false
+        }
+        val part = pages.firstOrNull(::isSaidWith)
         return if (part == null) page.written else "${page.written} ${part.written}"
     }
 
@@ -59,6 +65,7 @@ data class Reading(
             Fate.Anchors -> "where a link into the Age arrives: $placed"
             Fate.Sited -> "the biome the last word was sited in"
             is Fate.Names -> "the part ${pages[fate.member].written} is of"
+            is Fate.Carries -> "carries ${pages[fate.carried].written}"
         }
     }
 
@@ -141,4 +148,7 @@ sealed interface Fate {
 
     /** The page of the part the word at [member] named, said after it: `landmass` in `insular landmass`. */
     data class Names(val member: Int) : Fate
+
+    /** A word that took nothing of its own and carried the page at [carried] to where it landed: `rising` in `north rising sun`. */
+    data class Carries(val carried: Int) : Fate
 }

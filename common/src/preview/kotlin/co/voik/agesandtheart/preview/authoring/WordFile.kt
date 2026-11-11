@@ -126,7 +126,7 @@ object WordFile {
      * already keeps it.
      *
      * `WordNames.readable` reads `word.<namespace>.<path>` and falls back to the id with its underscores
-     * opened out, so `rising_east` shows as "Rising East" until somebody says otherwise. Everything a
+     * opened out, so `paper_tree_log` shows as "Paper Tree Log" until somebody says otherwise. Everything a
      * player sees goes through it already: the page, the desk, the toast, the book's title, the readout.
      *
      * **So the display name is not a field on the word**, and should not become one: a second copy in the

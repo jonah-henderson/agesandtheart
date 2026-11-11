@@ -50,6 +50,10 @@ class ProseCheck : FunSpec({
             "age no features" to "An Age. Nothing grows in it.",
             "age no structures gentle landmass" to "An Age. Nothing is built in it. Its landmass is gentle.",
             "age no inhabitants" to "An Age. Nothing dwells in it.",
+            "age north rising east setting sun" to "An Age. Its sun is rising in the north and setting in the east.",
+            "age rising_north sun" to "An Age. Its sun is rising in the north.",
+            "age north wind" to "An Age. Its air is from the north and windy.",
+            "age rising sea" to "An Age. Its sea is rising.",
         )
     }
 }

@@ -37,6 +37,15 @@ class DelugeSeaOnServerCheck : FunSpec({
         check(atTheLine > 0) { "a fresh chunk over the ocean at $x, $z has no water at y=$standing, where the sea stands" }
     }
 
+    test("a rising sea climbs as a deluge's does, with no deluge written") {
+        server.run("age write risingsea 7 age rising sea")
+        server.run("age instability risingsea rained $RAINED_FOR")
+        server.sprint(TICKS_FOR_THE_SEA_TO_STAND)
+        val report = seaOf("risingsea")
+        val standing = report.get("seaStanding")
+        check(standing != null && !standing.isJsonNull && standing.asInt > report.get("seaWritten").asInt) { "the sea has not risen: $report" }
+    }
+
     test("a deluge on a landform of ours still has its sea") {
         server.run("age write islanddeluge 7 age insular landmass deluge phenomena")
         val report = seaOf("islanddeluge")

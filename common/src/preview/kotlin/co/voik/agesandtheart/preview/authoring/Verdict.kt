@@ -98,7 +98,9 @@ object Verdict {
         val isAnAspectPage = Aspect.byPage(word.name) != null
 
         fun meaningFaults(): List<Finding> = buildList {
-            if (word.meanings.isEmpty() && !isAnAspectPage) add(refused("it means nothing at all"))
+            // `setting` means nothing alone, and is what a point of the compass speaks through in `east setting sun`.
+            val isOfferedSomething = vocabulary.words.any { other -> other.meanings.any { word.name in it.offeredTo } }
+            if (word.meanings.isEmpty() && !isAnAspectPage && !isOfferedSomething) add(refused("it means nothing at all"))
             for ((at, meaning) in word.meanings.withIndex()) {
                 if (meaning.effects.isEmpty()) add(refused("meaning ${at + 1} says nothing"))
                 val alwaysAndSometimes = meaning.mustAlwaysApply &&

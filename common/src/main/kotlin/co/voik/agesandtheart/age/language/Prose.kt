@@ -298,8 +298,21 @@ object Prose {
         }
 
         private fun termOf(page: PageRead): ProseTerm? {
+            if (lexicon.phrase(page.written) != null) return phraseTerm(page.written)
             val word = wordOf(page) ?: return null
-            return ProseTerm(word.id, word.partOfSpeech, nameKey = nameKeyOf(word), plain = plainNameOf(word))
+            // `north rising sun` is said as "rising in the north", by the carrier and the point together, and `north
+            // wind` as "from the north", by the word that took it.
+            val carrier = reading.pages.firstOrNull { (it.fate as? Fate.Carries)?.carried == page.index }
+            val taker = reading.pages.getOrNull(page.index + 1)?.takeIf { page.fate == Fate.TakenBy(it.index) }
+            val carriedKey = (carrier ?: taker)?.let { "prose.${Constants.MOD_ID}.${it.written}_${page.written}" }
+            val plain = carrier?.let { "${page.written} ${it.written}" } ?: plainNameOf(word)
+            return ProseTerm(word.id, word.partOfSpeech, nameKey = carriedKey ?: nameKeyOf(word), plain = plain)
+        }
+
+        /** An old page retired into a phrase, said by its own name, as the books it was written in already say it. */
+        private fun phraseTerm(written: String): ProseTerm {
+            val name = written.removePrefix("${Constants.MOD_ID}:")
+            return ProseTerm(Identifier.fromNamespaceAndPath(Constants.MOD_ID, name), Speech.ADJECTIVE, plain = name.replace('_', ' '))
         }
     }
 

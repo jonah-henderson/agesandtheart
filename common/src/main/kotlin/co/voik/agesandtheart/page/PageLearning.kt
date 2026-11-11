@@ -92,7 +92,7 @@ object PageLearning {
     fun teach(player: ServerPlayer, words: Collection<Identifier>, by: LearnedBy = LearnedBy.READING): List<Identifier> {
         val vocabulary = Vocabulary.of(player.level().server)
         val stillWords = words.filter(vocabulary::stillNames)
-        val learned = stillWords.map { vocabulary.successorId(it) ?: it }.distinct().filter(player.learnedWords::learn)
+        val learned = stillWords.flatMap { vocabulary.successorIds(it) ?: listOf(it) }.distinct().filter(player.learnedWords::learn)
         if (learned.isNotEmpty()) Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
         for (word in learned) AgeTriggers.LEARNED_WORD.trigger(player, word, by)
         return learned
@@ -117,7 +117,7 @@ object PageLearning {
      */
     fun tellEverything(player: ServerPlayer) {
         val vocabulary = Vocabulary.of(player.level().server)
-        player.learnedWords.migrate(vocabulary::successorId)
+        player.learnedWords.migrate(vocabulary::successorIds)
         player.learnedWords.forgetGone(vocabulary::stillNames)
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(player.learnedWords.words))
     }

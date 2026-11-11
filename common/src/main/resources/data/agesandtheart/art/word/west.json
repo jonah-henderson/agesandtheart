@@ -22,6 +22,24 @@
         "tornado",
         "blizzard"
       ]
+    },
+    {
+      "sets": {
+        "rising": "west"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rising"
+      ]
+    },
+    {
+      "sets": {
+        "setting": "west"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "setting"
+      ]
     }
   ]
 }

@@ -12,7 +12,9 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Recurrence
+import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.generation.AgeChunkGenerator
@@ -117,6 +119,8 @@ object Deluge {
         val rainShare: Double,
         /** How heavy the rain looks, nought to one — what a client is told to draw. */
         val heaviness: Double,
+        /** Whether the sea climbs only while it rains, as a deluge's does, or whenever somebody is there (`rising sea`). */
+        val onlyInTheRain: Boolean = true,
     )
 
     /**
@@ -125,6 +129,16 @@ object Deluge {
      */
     fun risingIn(composition: AgeComposition, seed: Long, spending: Spending): Rising? =
         Happenings.befallingIn(composition, seed, spending)[Phenomenon.DELUGE]?.let { risingOf(it.recurrence, spending, it.strength) }
+            ?: climbingIn(composition, spending)
+
+    /**
+     * A `rising sea`: an unwritten deluge's rise with none of its rain, climbing whenever somebody is there. Where a
+     * deluge is written too, the sea rises as the deluge's does instead.
+     */
+    private fun climbingIn(composition: AgeComposition, spending: Spending): Rising? {
+        if (!composition.anyMemberSays(Aspect.SEA, Sea.CLIMBING)) return null
+        return risingOf(Recurrence.ORDINARY, spending).copy(rainShare = NO_RAIN, heaviness = NO_RAIN, onlyInTheRain = false)
+    }
 
     /**
      * What a deluge written to come this [recurrence] and this hard ([written], -1 to 1, which moves how fast
@@ -538,6 +552,7 @@ object Deluge {
     /** The most of the time any deluge can ask to be raining: dry spells of well under a minute. */
     private const val ALMOST_CONSTANT = 0.98
     private const val ALWAYS = 1.0
+    private const val NO_RAIN = 0.0
     private const val UNSAID_STRENGTH = 0.0
 
     /**

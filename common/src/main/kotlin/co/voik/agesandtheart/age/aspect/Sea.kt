@@ -132,6 +132,12 @@ data class Sea(override val id: Identifier) : RegistryReference {
         )
 
         /**
+         * Whether the sea climbs while somebody is in the Age, as a deluge's does, with none of the deluge's rain:
+         * `rising sea`. It climbs as far and as fast as an unwritten deluge's, and is the deluge's where both are written.
+         */
+        val CLIMBING = Parameter.flag("climbing", help = "Whether the sea climbs, without the rain a deluge brings.")
+
+        /**
          * How far the ends of the range reach — see [depthShift] for why this is not the whole story.
          *
          * **96 rather than the 12 this used to be**, because design §7.1.2's deep sea needs a water column

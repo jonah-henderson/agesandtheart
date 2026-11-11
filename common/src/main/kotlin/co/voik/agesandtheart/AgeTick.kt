@@ -58,8 +58,10 @@ object AgeTick {
             // And a warden's brain ticks wherever its chunk does, watched or not — see [Wardens].
             Wardens.keepAboveGround(level)
             if (Sampling.watchers(level).isEmpty()) continue
-            if (rising != null && level.isRaining) saved.spendATickIn(age)
+            if (rising != null && (level.isRaining || !rising.onlyInTheRain)) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending, recipe.seed)
+            // A sea rising with no deluge to raise it: the deluge's block work, without its rain pooling.
+            if (rising?.onlyInTheRain == false) Deluge.raise(level)
             // Not a phenomenon: motes no air should hold, which the clients draw — see [UncannyMotes].
             UncannyMotes.tellTheClients(level, recipe, spending)
             // Nor this: tears in the sky, which the clients lay out and draw — see [TornSky].

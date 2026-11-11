@@ -52,7 +52,7 @@ data class LexiconPayload(
             val headingAt = headings.withIndex().associate { (at, heading) -> heading to at }
             return LexiconPayload(
                 vocabulary.script,
-                vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) },
+                vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) } + vocabulary.phrases,
                 materials = vocabulary.words.filter { it.block != null }.map { it.id }.toSet(),
                 shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
                 rarity = vocabulary.words.associate { it.id to WordHeadings.rarityOf(vocabulary, it) },

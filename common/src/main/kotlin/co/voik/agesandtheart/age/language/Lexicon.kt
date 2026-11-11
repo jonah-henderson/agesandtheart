@@ -20,6 +20,7 @@ class Lexicon(
     private val structureNamed: (String) -> Structure?,
     private val tags: MemberTags,
     private val registries: HolderLookup.Provider?,
+    private val phraseNamed: (String) -> List<String>? = { null },
 ) {
     private val acceptances = ConcurrentHashMap<Identifier, Optional<Acceptance>>()
 
@@ -27,6 +28,9 @@ class Lexicon(
     fun word(page: String): Word? = if (structureNamed(page) != null) null else wordNamed(page)
 
     fun structure(page: String): Structure? = structureNamed(page)
+
+    /** The words [page] is read as where it is an old word retired into several, `rising_north` into `north rising`. */
+    fun phrase(page: String): List<String>? = phraseNamed(page)
 
     /** What [word] takes from the pages waiting before it, or null where it takes nothing. */
     fun acceptance(word: Word): Acceptance? =

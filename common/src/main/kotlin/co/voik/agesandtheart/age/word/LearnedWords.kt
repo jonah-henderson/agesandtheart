@@ -47,12 +47,13 @@ class LearnedWords {
     }
 
     /**
-     * Swaps each word [successorOf] names for what it became, keeping its place and dropping a repeat.
+     * Swaps each word [successorsOf] names for what it became, one word or several, keeping its place and dropping a
+     * repeat.
      *
      * @return whether anything changed.
      */
-    fun migrate(successorOf: (Identifier) -> Identifier?): Boolean {
-        val migrated = known.map { successorOf(it) ?: it }.toCollection(LinkedHashSet())
+    fun migrate(successorsOf: (Identifier) -> List<Identifier>?): Boolean {
+        val migrated = known.flatMap { successorsOf(it) ?: listOf(it) }.toCollection(LinkedHashSet())
         val changed = migrated != known
         known.clear()
         known += migrated

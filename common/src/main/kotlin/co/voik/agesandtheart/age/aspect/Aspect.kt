@@ -322,11 +322,11 @@ enum class Aspect(
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
-                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
+                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.SETTING, SkyBodies.PATH,
                 SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.BODYLIGHT, Parameter.cast(), Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
             MOON -> listOf(
-                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
+                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.SETTING, SkyBodies.PATH, SkyBodies.PULL,
                 SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.UNLIT, SkyBodies.BODYLIGHT, EclipsingMoons.FREQUENCY, Parameter.cast(),
                 Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
@@ -369,7 +369,7 @@ enum class Aspect(
                 Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
             )
             GRAVITY -> listOf(Gravity.PULL)
-            SEA -> listOf(Sea.DEPTH)
+            SEA -> listOf(Sea.DEPTH, Sea.CLIMBING)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(
                 Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,

@@ -177,6 +177,9 @@ object SkyBodies {
     /** What colour the moons shine — `red moon` — or [Parameter.DEFAULT] for vanilla's white. */
     val MOONCOLOUR = Sky.colour("colour", "The colour the moons shine.")
 
+    /** The bearing across the sky from [bearing]: where a body setting there rose. */
+    private fun oppositeOf(bearing: Float): Float = (bearing + HALF_TURN_DEGREES) % FULL_TURN_DEGREES
+
     /** The bearing [named] rises at, or null where nobody said — which leaves the path as it was. */
     fun bearingOf(named: String): Float? = Compass.bearingOf(named)
 
@@ -195,6 +198,13 @@ object SkyBodies {
         "rising",
         listOf(Parameter.DEFAULT) + Compass.POINTS.keys,
         help = "Which horizon this body rises over.",
+    )
+
+    /** Which horizon this body sets under, said as [RISING] is: `west setting sun`, `north rising east setting moon`. */
+    val SETTING = Parameter(
+        "setting",
+        listOf(Parameter.DEFAULT) + Compass.POINTS.keys,
+        help = "Which horizon this body sets under.",
     )
 
     /**
@@ -280,7 +290,7 @@ object SkyBodies {
         // Vanilla's moons are not its sun's sprite, so a sun's palette means nothing on one.
         val palette = SUN_PALETTES[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
         val corona = SUN_CORONAS[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
-        val rising = bearingOf(own.of(RISING))
+        val rising = bearingOf(own.of(RISING)) ?: bearingOf(own.of(SETTING))?.let(::oppositeOf)
         val sprite = body.appearance as? Appearance.Sprite
         val appearance = when {
             sprite == null || (sized == null && tinted == null) -> body.appearance
@@ -338,6 +348,8 @@ object SkyBodies {
         return drawn.copy(inclinationDegrees = THROUGH_THE_ZENITH, liftDegrees = ON_THE_GREAT_CIRCLE)
     }
 
+    private const val HALF_TURN_DEGREES = 180.0f
+    private const val FULL_TURN_DEGREES = 360.0f
     private const val POLAR = "polar"
     private const val OVERHEAD = "overhead"
 

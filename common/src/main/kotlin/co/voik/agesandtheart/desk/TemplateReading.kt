@@ -54,8 +54,8 @@ data class ReadWord(val start: Int, val end: Int, val word: Identifier?, val sta
  * Every name a writer may type, and the word each one means.
  *
  * A word answers to its id's path with the underscores as spaces — `waxed weathered copper stairs` — and
- * to the name the word list shows it by, where a translation gives it another (`East Rising` for
- * `rising_east`). Lower case throughout, so recognition ignores case.
+ * to the name the word list shows it by, where a translation gives it another (`Yema Log` for
+ * `paper_tree_log`). Lower case throughout, so recognition ignores case.
  */
 class TemplateNames(private val byName: Map<String, Identifier>) {
 

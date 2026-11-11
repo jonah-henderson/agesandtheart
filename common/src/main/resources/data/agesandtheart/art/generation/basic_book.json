@@ -382,6 +382,7 @@
       {"produce":["overcast","clouds"]},
       {"weight":2.0,"produce":["[cloud_shape]","clouds"]},
       {"produce":["windy","sky"]},
+      {"produce":["[compass]","wind"]},
       {"produce":["calm","air"]},
       {"produce":["unfading","[sky_colour]","sky"]},
       {"produce":["low","clouds"]},
@@ -411,14 +412,19 @@
       {"produce":["rainless","weather"]}
     ],
     "rising": [
-      {"produce":["rising_east"]},
-      {"produce":["rising_north"]},
-      {"produce":["rising_northeast"]},
-      {"produce":["rising_northwest"]},
-      {"produce":["rising_south"]},
-      {"produce":["rising_southeast"]},
-      {"produce":["rising_southwest"]},
-      {"produce":["rising_west"]}
+      {"weight":3.0,"produce":["[compass]","rising"]},
+      {"produce":["[compass]","setting"]},
+      {"produce":["[compass]","rising","[compass]","setting"]}
+    ],
+    "compass": [
+      {"produce":["north"]},
+      {"produce":["northeast"]},
+      {"produce":["east"]},
+      {"produce":["southeast"]},
+      {"produce":["south"]},
+      {"produce":["southwest"]},
+      {"produce":["west"]},
+      {"produce":["northwest"]}
     ],
     "aurora": [
       {"weight":3.0,"produce":["[aurora_colour]","aurora"]},

@@ -138,7 +138,7 @@ data class Vocabulary(
      * Whether [id] still names something a page, a book or a learned set may carry: a word, a structure page, or one
      * retired into a word. What does not is gone, and is cleared out wherever it is found.
      */
-    fun stillNames(id: Identifier): Boolean = word(id) != null || structural[id.path]?.id == id
+    fun stillNames(id: Identifier): Boolean = word(id) != null || structural[id.path]?.id == id || successorIds(id) != null
 
     /** Every retired id of ours that leads to a word now, and the word's id. */
     val renamed: Map<Identifier, Identifier> by lazy {
@@ -183,7 +183,25 @@ data class Vocabulary(
     fun structurePage(name: String): Structure.Page? = structural[name]
 
     /** Every word, every structure page and what each word takes, as the reading reads a book against them. */
-    val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries) }
+    val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries, ::phraseOf) }
+
+    /** The words [name] is read as where it is a page of ours retired into several, or null. */
+    fun phraseOf(name: String): List<String>? = if (name in byName) null else retired.phraseOf(name)
+
+    /** The ids [id] has become: one where it was renamed, several where it was retired into a phrase, null where neither. */
+    fun successorIds(id: Identifier): List<Identifier>? {
+        successorId(id)?.let { return listOf(it) }
+        if (id.namespace != Constants.MOD_ID) return null
+        return phraseOf(id.path)?.mapNotNull { byName[it]?.id }?.takeIf { it.isNotEmpty() }
+    }
+
+    /** Every page of ours retired into a phrase, and the parts of the world its words reach, as a client is told. */
+    val phrases: Map<Identifier, Set<Aspect>> by lazy {
+        retired.phraseNames.mapNotNull { name ->
+            val words = phraseOf(name)?.mapNotNull(byName::get)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, name) to words.flatMap(lexicon::placesFor).toSet()
+        }.toMap()
+    }
 
     /**
      * The names of every word with something [head] takes, worked out once per head: the writer's desk asks it of every
