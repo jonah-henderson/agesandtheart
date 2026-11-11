@@ -21,6 +21,24 @@
       "lush": 0.7
     }
   },
+  "minecraft:patch_tall_grass": {
+    "tags": {
+      "undergrowth": 1.0,
+      "lush": 0.5
+    }
+  },
+  "minecraft:patch_tall_grass_2": {
+    "tags": {
+      "undergrowth": 1.0,
+      "lush": 0.5
+    }
+  },
+  "minecraft:patch_large_fern": {
+    "tags": {
+      "undergrowth": 1.0,
+      "lush": 0.5
+    }
+  },
   "minecraft:flower_default": {
     "tags": {
       "grown": 1.0,

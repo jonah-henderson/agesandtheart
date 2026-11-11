@@ -1,10 +1,12 @@
 {
   "_comment": [
-    "Down where people walk . `low clouds` brings the cloud deck down to a few",
+    "Down where people walk, `high`'s antonym. `low clouds` brings the cloud deck down to a few",
     "blocks over the sea, so on most land you stand inside it -- the low-clouds step, written on purpose -- and",
-    "`low landmass` takes the height out of the land. A low Age does both.",
+    "`low landmass` takes the height out of the land. A low Age does both, and now and then has a low sea or short",
+    "grass too.",
     "",
-    "`low sea` stands the water down."
+    "`low sea` stands the water down, `low sky` hangs the clouds in it, `low structures` are sunk partway into the",
+    "ground, `low gravity` pulls lightly and `low grass` stays short. A low sun or moon keeps to the horizon."
   ],
   "meanings": [
     {
@@ -21,6 +23,15 @@
     },
     {
       "sets": {
+        "clouds.ceiling": "-1.0..-0.85"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
         "path": "polar"
       },
       "must_always_apply": true,
@@ -33,11 +44,56 @@
       "sets": {
         "sea.depth": "-0.7..-0.3"
       },
+      "unaimed_chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "structures.height": "-0.3..-0.1"
+      },
       "must_always_apply": true,
       "offered_to": [
-        "sea",
-        "waters"
+        "structures"
       ]
+    },
+    {
+      "sets": {
+        "structures.height": "-0.3..-0.1"
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "gravity.pull": "-1.0..-0.25"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "gravity"
+      ]
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:patch_tall_grass": -1.0,
+          "minecraft:patch_tall_grass_2": -1.0,
+          "minecraft:patch_large_fern": -1.0
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "grass"
+      ]
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:patch_tall_grass": -1.0,
+          "minecraft:patch_tall_grass_2": -1.0,
+          "minecraft:patch_large_fern": -1.0
+        }
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.33
     }
   ]
 }
