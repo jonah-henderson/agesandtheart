@@ -214,13 +214,18 @@ object Verdict {
             else listOf(refused("it hides the page minted for ${lost.joinToString { "${it.aspect.page} ${it.member}" }}"))
         }
 
-        /** A preset has one page that means it; an aspect's page announcing its own phenomenon is not counted. */
+        /**
+         * A preset has one page that means it; an aspect's page announcing its own phenomenon is not counted, nor a
+         * choice made only by chance, which brings the preset now and then without meaning it (`stormy`'s gale).
+         */
         fun duplicateChoices(): List<Finding> {
             if (isAnAspectPage) return emptyList()
-            val mine = effects.filterIsInstance<Effect.Chooses>().toSet()
+            fun choicesMeantBy(meanings: List<Meaning>) =
+                meanings.filter { it.mustAlwaysApply }.flatMap { it.effects }.filterIsInstance<Effect.Chooses>()
+            val mine = choicesMeantBy(word.meanings).toSet()
             if (mine.isEmpty()) return emptyList()
             return vocabulary.words.filter { other -> other.name != word.name && Aspect.byPage(other.name) == null }
-                .flatMap { other -> other.effects.filterIsInstance<Effect.Chooses>().filter(mine::contains).map { other.name to it } }
+                .flatMap { other -> choicesMeantBy(other.meanings).filter(mine::contains).map { other.name to it } }
                 .map { (other, choice) -> refused("'$other' already chooses ${choice.aspect.page} ${choice.member}") }
         }
 

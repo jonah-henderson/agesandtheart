@@ -1,7 +1,8 @@
 {
   "_comment": [
-    "Rain most of the time and thunder in most of it, under low grey cloud. A tempest is the",
-    "phenomenon, and asking for this does not bring one."
+    "Rain most of the time and thunder in most of it, under low grey cloud. Said of the phenomena, or laid on the",
+    "whole Age, it may bring a storm too -- a gale, a tempest, a blizzard or, more rarely, a tornado (Jonah); said of the sky, the sea or the",
+    "waters it is the weather alone."
   ],
   "meanings": [
     {
@@ -27,6 +28,34 @@
         "clouds.colour": "grey"
       },
       "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "phenomena": "gale"
+      },
+      "chance_to_apply": 0.4,
+      "unaimed_chance_to_apply": 0.25
+    },
+    {
+      "chooses": {
+        "phenomena": "tempest"
+      },
+      "chance_to_apply": 0.4,
+      "unaimed_chance_to_apply": 0.25
+    },
+    {
+      "chooses": {
+        "phenomena": "blizzard"
+      },
+      "chance_to_apply": 0.4,
+      "unaimed_chance_to_apply": 0.25
+    },
+    {
+      "chooses": {
+        "phenomena": "tornado"
+      },
+      "chance_to_apply": 0.3,
+      "unaimed_chance_to_apply": 0.15
     },
     {
       "sets": {

@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "The windswept country, the yardangs. Said of the land, or alone, it is the landform it always was; said of the",
+    "Age (`windswept age`) it is the landform, and now and then the wind that carved it still blowing -- a gale, or",
+    "more rarely a blizzard or a tornado (Jonah). Authored over the landform's derived word to say the second; the first is that",
+    "word's, unchanged."
+  ],
+  "meanings": [
+    {
+      "chooses": {
+        "landmass": "windswept"
+      },
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "landmass": "windswept"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "age"
+      ]
+    },
+    {
+      "chooses": {
+        "phenomena": "gale"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "age"
+      ]
+    },
+    {
+      "chooses": {
+        "phenomena": "blizzard"
+      },
+      "chance_to_apply": 0.15,
+      "offered_to": [
+        "age"
+      ]
+    },
+    {
+      "chooses": {
+        "phenomena": "tornado"
+      },
+      "chance_to_apply": 0.15,
+      "offered_to": [
+        "age"
+      ]
+    }
+  ]
+}
