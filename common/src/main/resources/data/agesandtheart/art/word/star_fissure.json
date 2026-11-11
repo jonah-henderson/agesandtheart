@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The tears every Age is given to leave by (design 7.8), as one of what is built there: `no star_fissure` seals",
+    "the Age, the deliberate trap, and a rung says how often they open -- `teeming star_fissure`. Nothing but",
+    "naming them reaches them: `only villages` and `no structures` leave them be."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "chooses": {
+        "structures": "agesandtheart:star_fissure"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

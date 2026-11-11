@@ -53,6 +53,18 @@ class StructureDensityCheck : FunSpec({
         }
     }
 
+    /** Every Age has its star fissures however its structures were written, and only `no star_fissure` seals it. */
+    test("only no star_fissure seals an Age") {
+        for ((name, sentence) in listOf("fissuresopen" to "no structures age", "fissuresonly" to "only villages age")) {
+            server.run("age write $name 3 $sentence")
+            val found = server.run("execute in agesandtheart:$name run locate structure agesandtheart:star_fissure")
+            check(found.contains("nearest", ignoreCase = true)) { "'$sentence' closed the fissures: $found" }
+        }
+        server.run("age write fissuressealed 3 no star_fissure age")
+        val sealed = server.run("execute in agesandtheart:fissuressealed run locate structure agesandtheart:star_fissure")
+        check(!sealed.contains("nearest", ignoreCase = true)) { "'no star_fissure' left a fissure: $sealed" }
+    }
+
     /** Sprawling or shrunk, a village's pieces are still laid ([co.voik.agesandtheart.generation.JigsawSizes]). */
     test("villages sized colossal or minuscule are still built") {
         for (size in listOf("colossal", "minuscule")) {

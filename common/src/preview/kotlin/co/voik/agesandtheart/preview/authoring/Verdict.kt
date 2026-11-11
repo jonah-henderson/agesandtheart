@@ -197,11 +197,16 @@ object Verdict {
             .filter { query -> vocabulary.materials.carriersOf(query.removePrefix(Materials.QUERY_MARK)).isEmpty() }
             .map { query -> refused("no block a world can be made of answers $query", heldBy = "MaterialQueryCheck") }
 
-        /** An authored word that only names registry entries says nothing the derived word for them does not. */
+        /**
+         * An authored word that only names registry entries says nothing the derived word for them does not — where one
+         * is derived: `star_fissure` names the fissures, which no registry gives a word.
+         */
         fun synonymFaults(): List<Finding> {
+            fun hasADerivedWord(named: String) =
+                namesARegistryEntry(named) && vocabulary.word(named)?.let { it.name != word.name && vocabulary.isDerived(it) } == true
             fun namesAReferent(effect: Effect) = when (effect) {
-                is Effect.Chooses -> namesARegistryEntry(effect.member)
-                is Effect.Sets -> namesARegistryEntry(effect.value)
+                is Effect.Chooses -> hasADerivedWord(effect.member)
+                is Effect.Sets -> hasADerivedWord(effect.value)
                 else -> false
             }
             val onlyNamesReferents = effects.isNotEmpty() && effects.all(::namesAReferent)

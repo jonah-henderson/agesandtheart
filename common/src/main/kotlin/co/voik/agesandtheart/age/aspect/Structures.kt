@@ -211,6 +211,7 @@ object Structures {
         }
         for (claim in asked.wanted) {
             val named = claim.id ?: continue
+            if (named == STAR_FISSURE) continue
             // **A description only reweighs what is built here already** — see [Claim.onlyWhereItGrows].
             if (claim.onlyWhereItGrows && named !in seated) continue
             val found = sets.get(ResourceKey.create(Registries.STRUCTURE_SET, named)).orElse(null)
@@ -232,7 +233,9 @@ object Structures {
             val apart = options.steer(SPACING, salt, member = id.toString()) ?: continue
             seated[id] = StructureDensity.spaced(server, set, apart)
         }
-        return seated.values.toList() + escapeHatch(server)
+        val isSealed = STAR_FISSURE.toString() in asked.struck
+        val fissures = asked.wanted.firstOrNull { it.id == STAR_FISSURE }?.density
+        return seated.values.toList() + if (isSealed) emptyList() else escapeHatch(server, fissures)
     }
 
     /**
@@ -243,9 +246,10 @@ object Structures {
      * was describing. An escape hatch a writer can accidentally close is not an escape hatch, and closing it
      * *deliberately* is a late-game word rather than a side effect of saying something about villages.
      *
-     * Not `seated`, so a claim naming it cannot double it or strike it either.
+     * Not `seated`: only `star_fissure` reaches it, a late-game word (Jonah, 2026-11-11). `no star_fissure` seals the
+     * Age, and a rung on it (`teeming star_fissure`) makes them [density] times as common, as on any set.
      */
-    private fun escapeHatch(server: MinecraftServer): List<Holder<VanillaStructureSet>> {
+    private fun escapeHatch(server: MinecraftServer, density: Double?): List<Holder<VanillaStructureSet>> {
         val structures = server.registryAccess().lookupOrThrow(Registries.STRUCTURE)
         val key = ResourceKey.create(Registries.STRUCTURE, STAR_FISSURE)
         val tear = structures.get(key).orElse(null)
@@ -253,7 +257,8 @@ object Structures {
             Constants.LOG.error("The pack ships no '{}', so this Age has no way out of it", STAR_FISSURE)
             return emptyList()
         }
-        return listOf(Holder.direct(VanillaStructureSet(tear, FISSURE_PLACEMENT)))
+        val hatch = Holder.direct(VanillaStructureSet(tear, FISSURE_PLACEMENT))
+        return listOf(density?.let { StructureDensity.applied(server, hatch, it) } ?: hatch)
     }
 
     /**
