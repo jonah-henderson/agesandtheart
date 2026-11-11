@@ -1,8 +1,9 @@
 {
   "_comment": [
-    "What chills what stands beside it: the compounder's cold for nara (design 7.1.2). Rime, for now; a",
-    "placeholder (Jonah, 2026-10-01), as ice of any kind is probably too easy for nara's gate."
+    "What chills what stands beside it: the compounder's cold for nara (design 7.1.2). Rime, and blue ice (Jonah,",
+    "2026-11-10): gathering either takes about as much, blue ice a silk-touch pickaxe or a crafting run of packed",
+    "ice. Ice and packed ice stay out, as too easy for nara's gate."
   ],
   "replace": false,
-  "values": ["#agesandtheart:rime_crystals"]
+  "values": ["#agesandtheart:rime_crystals", "minecraft:blue_ice"]
 }
