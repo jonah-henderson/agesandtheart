@@ -280,7 +280,7 @@ object SkyBodies {
 
     val PATH = Parameter(
         "path",
-        listOf(Parameter.DEFAULT, POLAR, EclipsingMoons.ECLIPSING),
+        listOf(Parameter.DEFAULT, POLAR, OVERHEAD, EclipsingMoons.ECLIPSING),
         help = "The shape of this body's path across the sky.",
     )
 
@@ -313,7 +313,11 @@ object SkyBodies {
         // the horizon it comes up over moves.
         val risen = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
         // A polar body circles the horizon, so which horizon it rises over has nothing left to say.
-        val shaped = if (own.of(PATH) == POLAR) polarPathFrom(body.path) else risen
+        val shaped = when (own.of(PATH)) {
+            POLAR -> polarPathFrom(body.path)
+            OVERHEAD -> overheadPathFrom(risen)
+            else -> risen
+        }
         val length = own.steer(BODYPACE, seed)?.let(::lengthAt)
         val paced = length?.let(shaped::paced) ?: shaped
         val path = if (own.isTrue(STILL)) Held(paced, dayBeginsAt(seed)) else paced
@@ -343,7 +347,23 @@ object SkyBodies {
         return drawn.copy(inclinationDegrees = POLE, liftDegrees = POLAR_LIFT)
     }
 
+    /**
+     * A great circle through the zenith, as vanilla's sun sweeps — `high sun` — keeping the body's own rising, period,
+     * phase and distance, so a spare body the draw tilted climbs overhead after all.
+     */
+    private fun overheadPathFrom(path: CelestialPath): Orbit {
+        val drawn = path as? Orbit ?: Orbit.VANILLA_SUN.copy(distance = path.distance)
+        return drawn.copy(inclinationDegrees = THROUGH_THE_ZENITH, liftDegrees = ON_THE_GREAT_CIRCLE)
+    }
+
     private const val POLAR = "polar"
+    private const val OVERHEAD = "overhead"
+
+    /** An inclination that keeps the circle upright through the zenith, vanilla's own. */
+    private const val THROUGH_THE_ZENITH = 0.0f
+
+    /** No lift: a great circle, half above the horizon and half below. */
+    private const val ON_THE_GREAT_CIRCLE = 0.0f
 
     /** An inclination that stands the circle on the horizon's own plane. */
     private const val POLE = 90.0f
