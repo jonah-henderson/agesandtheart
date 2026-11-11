@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.phenomena.GalePayload
 import co.voik.agesandtheart.age.phenomena.Gust
 import co.voik.agesandtheart.age.phenomena.Gusts
 import co.voik.agesandtheart.age.phenomena.Sampling
+import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.sky.LevelWind
 import net.minecraft.client.Minecraft
@@ -58,6 +59,7 @@ object Gales {
         felt = Easing()
         heard = Easing()
         blewIn = null
+        blewOverThePanel = null
     }
 
     private var inTheWind = ConeExposure.Remembered()
@@ -94,6 +96,25 @@ object Gales {
         if (gust != null && player != null && !client.isPaused) {
             GustSigns.show(level, player, Gale.drivingDegrees(blowing, gust), gust, blowing.lying)
         }
+    }
+
+    /** The panel's level this client last blew a gale over, so its wind can be lifted when the gale or the panel goes. */
+    private var blewOverThePanel: ClientLevel? = null
+
+    /**
+     * The gale over the Age a panel shows, blown as that level's wind, so its clouds race and its rain leans as the
+     * Age's do. A panel onto the level stood in is [blow]'s already.
+     */
+    fun blowOverThePanel(client: Minecraft) {
+        val shown = LinkingPanel.showingLevel?.takeIf { it.dimension() != client.level?.dimension() }
+        val blowing = shown?.let(::blowingIn)
+        if (shown == null || blowing == null) {
+            blewOverThePanel?.takeIf { it.dimension() != client.level?.dimension() }?.let { LevelWind.blowInstead(it, null) }
+            blewOverThePanel = null
+            return
+        }
+        LevelWind.blowInstead(shown, Gale.windOf(blowing, gustIn(shown)))
+        blewOverThePanel = shown
     }
 
     /**

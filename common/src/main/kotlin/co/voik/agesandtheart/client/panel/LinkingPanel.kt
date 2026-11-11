@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelWeatherPayload
+import net.minecraft.client.multiplayer.ClientLevel
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
@@ -20,6 +21,9 @@ import co.voik.agesandtheart.client.sendToServer
 object LinkingPanel {
 
     private var showing: PreviewLevel? = null
+
+    /** The level the panel is showing, while it shows one. */
+    val showingLevel: ClientLevel? get() = showing?.level
 
     /** Whether the server shows no panels (`AgeConfig.panelView` OFF), so the panel stays misted and stops asking. */
     private var isDeclined = false

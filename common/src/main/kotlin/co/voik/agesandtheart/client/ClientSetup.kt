@@ -28,6 +28,7 @@ object ClientSetup {
         // which of the two winds is heard has to be re-asked as a player walks in and out of shelter.
         Storms.blow(minecraft)
         Gales.blow(minecraft)
+        Gales.blowOverThePanel(minecraft)
         Gales.heard(minecraft)
         PlainWind.heard(minecraft)
         Gales.push(minecraft)
