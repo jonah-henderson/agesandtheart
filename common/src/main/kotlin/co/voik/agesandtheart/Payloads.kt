@@ -37,6 +37,7 @@ import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.desk.DeskTemplatePayload
 import co.voik.agesandtheart.content.NotebookSelectPayload
+import co.voik.agesandtheart.book.LecternBookPayload
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
@@ -98,6 +99,7 @@ object Payloads {
         Serverbound(BookbinderRenamePayload.TYPE, BookbinderRenamePayload.STREAM_CODEC, BookbinderRenamePayload::handle),
         // The page a notebook is scrolled to, as vanilla's bundle tells its own.
         Serverbound(NotebookSelectPayload.TYPE, NotebookSelectPayload.STREAM_CODEC, NotebookSelectPayload::handle),
+        Serverbound(LecternBookPayload.TYPE, LecternBookPayload.STREAM_CODEC, LecternBookPayload::handle),
         Clientbound(ArchiveSyncPayload.TYPE, ArchiveSyncPayload.STREAM_CODEC),
         Clientbound(ArchivePricesPayload.TYPE, ArchivePricesPayload.STREAM_CODEC),
         Clientbound(ArchiveStockPayload.TYPE, ArchiveStockPayload.STREAM_CODEC),

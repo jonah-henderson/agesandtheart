@@ -1,7 +1,6 @@
 package co.voik.agesandtheart
 
 import net.minecraft.world.InteractionResult
-import net.fabricmc.fabric.api.event.player.UseBlockCallback
 import net.fabricmc.fabric.api.event.player.UseEntityCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import net.minecraft.world.entity.LivingEntity
@@ -146,7 +145,6 @@ fun init() {
         CommonSetup.playerChangedLevel(player, to)
     }
     ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
-    UseBlockCallback.EVENT.register { player, level, hand, hit -> CommonSetup.blockUsed(player, level, hand, hit) ?: InteractionResult.PASS }
     UseEntityCallback.EVENT.register { player, level, hand, entity, _ ->
         CommonSetup.entityUsed(player, level, hand, entity) ?: InteractionResult.PASS
     }

@@ -231,6 +231,8 @@
   "block.agesandtheart.wound": "Wound",
   "block.agesandtheart.writers_desk": "Writer's Desk",
   "block.agesandtheart.yellow_rime_crystal": "Yellow Rime Crystal",
+  "book.agesandtheart.close_book": "Close Book",
+  "book.agesandtheart.close_book.shortcut": "%s + %s to close directly",
   "book.agesandtheart.bound": "This book now leads to %s",
   "book.agesandtheart.failed": "Age could not be loaded",
   "book.agesandtheart.linked": "Linked to %s",

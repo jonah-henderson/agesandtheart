@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.language.ProseWriting
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
+import co.voik.agesandtheart.book.LecternBookPayload
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.OpenBookPanels
@@ -17,7 +18,11 @@ import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.Tooltip
+import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.network.chat.CommonComponents
 import net.minecraft.core.BlockPos
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
@@ -81,6 +86,29 @@ class BookScreen(
         // server still teaches authoritatively, and its payload adds nothing when it lands.
         KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(held)
+        if (held is BookBeingRead.OnALectern) addTheLecternsButtons(held.pos)
+    }
+
+    /**
+     * Under a lectern's book, as under vanilla's: **Done**, **Take Book** and **Close Book**, the last telling the
+     * shortcut that shuts it without opening it, in whatever keys the player has bound.
+     */
+    private fun addTheLecternsButtons(pos: BlockPos) {
+        val row = LinearLayout.horizontal().spacing(BUTTON_GAP)
+        Button.builder(CommonComponents.GUI_DONE) { onClose() }.width(BUTTON_WIDTH).build().also(row::addChild)
+        Button.builder(Component.translatable(TAKE_BOOK)) { asked(pos, LecternBooks.Asked.TAKE) }
+            .width(BUTTON_WIDTH).build().also(row::addChild)
+        val shortcut = Component.translatable(CLOSE_BOOK_SHORTCUT, Component.keybind(SNEAK_KEY), Component.keybind(USE_KEY))
+        Button.builder(Component.translatable(CLOSE_BOOK)) { asked(pos, LecternBooks.Asked.CLOSE) }
+            .width(BUTTON_WIDTH).tooltip(Tooltip.create(shortcut)).build().also(row::addChild)
+        row.arrangeElements()
+        row.setPosition((width - row.width) / 2, (height + HEIGHT) / 2 + UNDER_THE_BOOK)
+        row.visitWidgets(::addRenderableWidget)
+    }
+
+    private fun asked(pos: BlockPos, asked: LecternBooks.Asked) {
+        sendToServer(LecternBookPayload(pos, asked))
+        onClose()
     }
 
     /** Whether the panel's spread is the one open, which is when this screen composes the panel's picture. */
@@ -418,6 +446,8 @@ class BookScreen(
             onClose()
             return true
         }
+        // A lectern's buttons stand under the book, so they are asked before a click off it shuts the screen.
+        if (children().any { it.isMouseOver(event.x, event.y) }) return super.mouseClicked(event, doubleClick)
         // **And so does clicking off the book**, which is what a screen with a small object in the middle
         // of it reads as. Everything inside is a page, the panel or the spine, and each is handled below.
         if (!overTheBook(event.x, event.y)) {
@@ -454,6 +484,19 @@ class BookScreen(
 
         const val WIDTH = 256
         const val HEIGHT = 180
+
+        const val BUTTON_WIDTH = 80
+        const val BUTTON_GAP = 4
+
+        /** How far under the book the lectern's buttons stand. */
+        const val UNDER_THE_BOOK = 6
+
+        /** Vanilla's own "Take Book", which its lectern screen says. */
+        const val TAKE_BOOK = "lectern.take_book"
+        const val CLOSE_BOOK = "book.agesandtheart.close_book"
+        const val CLOSE_BOOK_SHORTCUT = "book.agesandtheart.close_book.shortcut"
+        const val SNEAK_KEY = "key.sneak"
+        const val USE_KEY = "key.use"
 
         /** Centred on the leaf, which the writing columns are not: they carry a book's wider outer margin. */
         const val PANEL_X = (WIDTH / 2 - PanelPicture.WIDTH) / 2

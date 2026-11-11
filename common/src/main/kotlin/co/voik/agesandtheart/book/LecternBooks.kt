@@ -62,8 +62,8 @@ object LecternBooks {
     private const val OPEN_SIGNAL = 15
     private const val SHUT_SIGNAL = 1
 
-    /** What a click on an open book is asking for. */
-    private enum class Click { LINK, READ, SHUT }
+    /** What a click on an open book is asking for: its panel links, and anywhere else opens its screen. */
+    private enum class Click { LINK, READ }
 
     fun isOurs(stack: ItemStack): Boolean = panelPageOf(stack) != null
 
@@ -79,11 +79,11 @@ object LecternBooks {
     fun use(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult? {
         val lectern = level.getBlockEntity(pos) as? LecternBlockEntity ?: return null
         val panelPage = panelPageOf(lectern.book) ?: return null
-        // A sneak is vanilla's "Take Book", which we have no screen for: it takes the book, open or shut, and
-        // does nothing else — no link, no reading, no shutting. Where the player may not take it, the click
-        // is an ordinary one.
-        if (player.isSecondaryUseActive && player.mayBuild()) {
-            if (level is ServerLevel) takeBack(state, level, pos, player, lectern)
+        // Sneaking with an empty hand shuts an open book, a shortcut beside the screen's Close Book; the book is taken
+        // back from its screen, as vanilla's is.
+        val shutsIt = player.isSecondaryUseActive && player.mainHandItem.isEmpty && LecternOpening.isOpen(state)
+        if (shutsIt) {
+            shut(state, level, pos)
             return InteractionResult.SUCCESS
         }
         if (!LecternOpening.isOpen(state)) {
@@ -92,10 +92,9 @@ object LecternBooks {
         }
         val facing = state.getValue(LecternBlock.FACING)
         val spot = LecternBookPlane.spotLookedAt(facing, pos, BookBinding.of(lectern.book), player.eyePosition, hit.location)
-        when (clickOn(lectern.book, panelPage, spot)) {
+        when (clickOn(panelPage, spot)) {
             Click.LINK -> linkFrom(level, lectern, player)
             Click.READ -> read(level, lectern, player)
-            Click.SHUT -> shut(state, level, pos)
         }
         return InteractionResult.SUCCESS
     }
@@ -153,13 +152,28 @@ object LecternBooks {
         return if (LecternOpening.isOpen(lectern.blockState)) OPEN_SIGNAL else SHUT_SIGNAL
     }
 
-    private fun clickOn(book: ItemStack, panelPage: BookPage, spot: LecternBookSpot?): Click {
+    private fun clickOn(panelPage: BookPage, spot: LecternBookSpot?): Click {
         val onThePanel = spot != null && spot.page == panelPage && spot.withinThePanel
-        val onTheWriting = spot != null && spot.page != panelPage && book.item === AgeContent.DESCRIPTIVE_BOOK
-        return when {
-            onThePanel -> Click.LINK
-            onTheWriting -> Click.READ
-            else -> Click.SHUT
+        return if (onThePanel) Click.LINK else Click.READ
+    }
+
+    /** What a reader asks of the open book on a lectern from its screen. */
+    enum class Asked { TAKE, CLOSE }
+
+    /**
+     * [asked] of the lectern at [pos] by [player] from its book's screen: the book taken back, where they may build, or
+     * shut. Nothing where they are out of reach or the lectern holds no book of ours, which is every request a client
+     * had no business making.
+     */
+    fun answer(player: ServerPlayer, pos: BlockPos, asked: Asked) {
+        val level = player.level()
+        if (!level.isLoaded(pos) || !player.position().closerThan(Vec3.atCenterOf(pos), PANEL_HELD_WITHIN_BLOCKS)) return
+        val lectern = level.getBlockEntity(pos) as? LecternBlockEntity ?: return
+        if (!isOurs(lectern.book)) return
+        val state = level.getBlockState(pos)
+        when (asked) {
+            Asked.TAKE -> if (player.mayBuild()) takeBack(state, level, pos, player, lectern)
+            Asked.CLOSE -> if (LecternOpening.isOpen(state)) shut(state, level, pos)
         }
     }
 
