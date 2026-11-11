@@ -3,7 +3,7 @@
     "Up where nothing walks, `low`'s antonym. `high clouds` lifts the cloud deck far above, `high landmass` towers,",
     "`high sea` stands the water as high as `deep` does, and `high structures` are built raised over the ground.",
     "`high gravity` pulls harder, `high grass` grows tall, and `high obelisks` (spikes, pyramids, arches, pedestals,",
-    "piles) stand twice as tall; `high lakes` lie up on the high ground. A high Age towers under far clouds, and",
+    "piles) stand twice as tall; `high lakes` lie up on the high ground and a `high aurora` hangs overhead. A high Age towers under far clouds, and",
     "now and then has a high sea, raised structures, tall grass, tall formations or high lakes too; never a",
     "heavier pull, which only an aimed word turns."
   ],
@@ -78,7 +78,8 @@
       },
       "must_always_apply": true,
       "offered_to": [
-        "lakes"
+        "lakes",
+        "aurora"
       ]
     },
     {

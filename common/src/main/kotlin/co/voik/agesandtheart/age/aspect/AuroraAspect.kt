@@ -43,6 +43,20 @@ object AuroraAspect {
         ),
     )
 
+    /**
+     * Where in the sky it hangs — `high aurora` drawn in overhead, `low aurora` lying along the horizon. `altitude`,
+     * the name a lake's height against the sea shares, so one word says both.
+     */
+    val AURORAALTITUDE = Parameter.ranged(
+        "altitude",
+        help = "Where in the sky the aurora hangs.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "low along the horizon"),
+            Parameter.Landmark(0.0, "where a display rides"),
+            Parameter.Landmark(1.0, "overhead"),
+        ),
+    )
+
     /** What share of nights it comes at all. */
     val AURORAFREQUENCY = Parameter.ranged("frequency", help = "What share of nights the aurora comes at all.")
         .onlyWhenAimed()
@@ -111,6 +125,7 @@ object AuroraAspect {
             // see [AURORAWARMTH] for why that coupling was worth loosening.
             warmestGround = warmthAt(own.steer(AURORAWARMTH, seed) ?: WHERE_THE_SNOW_LIES),
             seed = seed,
+            elevation = (own.steer(AURORAALTITUDE, seed) ?: Aurora.ORDINARY_ELEVATION.toDouble()).toFloat(),
         )
     }
 

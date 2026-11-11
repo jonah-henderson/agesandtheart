@@ -339,6 +339,7 @@ enum class Aspect(
                 AuroraAspect.AURORACOLOUR,
                 AuroraAspect.AURORAGLOW,
                 AuroraAspect.AURORASIZE,
+                AuroraAspect.AURORAALTITUDE,
                 AuroraAspect.AURORAFREQUENCY,
                 AuroraAspect.AURORAWARMTH,
                 Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
