@@ -282,6 +282,11 @@ object Reader {
 
         private fun waits(word: Word) {
             val left = leftOfAnd
+            // `gentle and colossal eroded landmass`: the `and` stays open for the word that takes this page.
+            if (andAt != null && left is Taker) {
+                waiting += Waiting(at, word, joined = null)
+                return
+            }
             val joined = if (andAt != null && left is Waiting) {
                 val group = left.joined ?: nextJoin++
                 waiting[waiting.lastIndex] = left.copy(joined = group)
@@ -312,8 +317,11 @@ object Reader {
             }
             andAt = null
             leftOfAnd = null
+            // A word joined to one that took pages takes them again, unless pages of its own wait for it: `colossal
+            // gentle and eroded` is both colossal, `gentle and colossal eroded` only the second.
+            val borrowsTheLeftsPages = joinedTo != null && waiting.isEmpty()
             // A member word said of this one hands over the pages it took, to be taken again here.
-            val taking = joinedTo?.took ?: (saidOf?.took.orEmpty() + waiting)
+            val taking = if (borrowsTheLeftsPages) joinedTo.took else saidOf?.took.orEmpty() + waiting
             waiting.clear()
 
             val from = claims.size
@@ -328,10 +336,10 @@ object Reader {
                 val offered = meanings.filter(::isOfferedHere)
                 // A page the word before `and` took stays taken where this one takes none of it.
                 if (taken.isEmpty() && offered.isEmpty()) {
-                    if (joinedTo == null) fell(page)
+                    if (!borrowsTheLeftsPages) fell(page)
                     continue
                 }
-                if (joinedTo == null) fates[page.index] = Fate.TakenBy(at)
+                if (!borrowsTheLeftsPages) fates[page.index] = Fate.TakenBy(at)
                 val pageJoined = page.joined ?: joined
                 for ((meaning, landed) in taken) {
                     for ((takenAt, effects) in landed) {

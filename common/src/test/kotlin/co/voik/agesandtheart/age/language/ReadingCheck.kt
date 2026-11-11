@@ -119,6 +119,17 @@ class ReadingCheck : FunSpec({
         check(joined.impossible.isEmpty()) { "cratered no longer joins a landform\n${joined.readout}" }
     }
 
+    test("`and` joins a member word to one with its own pages waiting, and only the second takes them") {
+        val own = read("age gentle and colossal eroded landmass")
+        check(own.impossible.isEmpty()) { "the and before colossal was spent\n${own.readout}" }
+        check(own.fateOf(3) == Fate.TakenBy(4)) { "colossal went ${own.fateOf(3)}\n${own.readout}" }
+        val each = read("age colossal gentle and minuscule eroded landmass")
+        check(each.impossible.isEmpty() && each.fateOf(1) == Fate.TakenBy(2) && each.fateOf(4) == Fate.TakenBy(5)) { each.readout }
+        val shared = read("age colossal gentle and eroded landmass")
+        val sizedPlaces = shared.landings.filter { landing -> landing.effects.any { it is Effect.Sets } }.map { it.place }.distinct()
+        check(sizedPlaces.size == 2) { "colossal before two joined landforms sized $sizedPlaces\n${shared.readout}" }
+    }
+
     test("a meaning that only applies laid bare is never taken where the word is aimed") {
         val taller = read("age high obelisks")
         check(taller.fateOf(1) == Fate.TakenBy(2)) { "high obelisks went ${taller.fateOf(1)}\n${taller.readout}" }

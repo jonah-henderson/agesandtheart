@@ -46,6 +46,12 @@ class ReconciledLandCheck : FunSpec({
         }
     }
 
+    test("a landform joined by and keeps its join with a size of its own before it") {
+        val row = "age pyramidal and colossal eroded landmass"
+        check(resolved(row, seed = SEED).composition.membersIn(Aspect.TERRAIN) == 2) { "'$row' did not divide" }
+        check(seamOf(row) == Seam.MERGED) { "'$row' drew ${seamOf(row)}" }
+    }
+
     test("every landform joined by and is seated, however many") {
         val row = "age sheer and cleft and pillared and archipelagic and gentle landmass"
         val seated = resolved(row, seed = SEED).composition.terrains
