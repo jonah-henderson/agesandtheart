@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
+import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -73,6 +74,18 @@ class RecipeCheck : FunSpec({
         check(SkyBodies.starGlowAt(-1.0) < SkyBodies.starGlowAt(null)) { "the faint end is not fainter than vanilla's" }
     }
 
+    test("an Age saved while the geometric landform was called pyramidal reads as the geometric landform") {
+        val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.GEOMETRIC))), seed = SAMPLE_SEED)
+        val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow().toString()
+        check("\"geometric\"" in saved) { "the geometric landform was saved as something else: $saved" }
+        val asItWasSaved = JsonParser.parseString(saved.replace("\"geometric\"", "\"pyramidal\""))
+        val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, asItWasSaved).getOrThrow().composition
+        check(read?.terrains == listOf(Terrain.GEOMETRIC)) { "a saved pyramidal Age read as ${read?.terrains}" }
+        check(AgeComposition.parse("landmass=pyramidal").getOrThrow().terrains == listOf(Terrain.GEOMETRIC)) {
+            "'landmass=pyramidal' no longer names the geometric landform"
+        }
+    }
+
     test("an Age written while noise caves took no size keeps the caves it had") {
         fun heldRead(version: Int): Boolean {
             val composition = AgeComposition(terrains = listOf(Terrain.HILLS), underground = Underground.NOISE_CAVES)
@@ -106,7 +119,7 @@ class RecipeCheck : FunSpec({
      * cleanup, and it has to survive the *write* as well as the read.
      */
     test("options it cannot understand round-trip") {
-        val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
+        val composition = AgeComposition(terrains = listOf(Terrain.GEOMETRIC))
             .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))
             .withOptions(Aspect.TERRAIN, "elevation", listOf("towering"))
         check(composition.unknownOptions == listOf("landmass.elevation")) {
@@ -421,7 +434,7 @@ class RecipeCheck : FunSpec({
     test("compositions are spelled the way they are read") {
         val compositions = everyTaggable().map { preset ->
             AgeComposition(terrains = listOf(Terrain.HILLS)).withPresets(preset.aspect, listOf(preset.key))
-        } + AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
+        } + AgeComposition(terrains = listOf(Terrain.GEOMETRIC))
             .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))
             .withOptions(Aspect.SEA, Sea.DEPTH.name, listOf("deep"))
 

@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "The geometric landmass in its pyramid configuration: a plain strewn with pyramids. The geometric landmass has no",
+    "page of its own; each shape it can be built of is reached by a word like this one, which chooses it and sets the",
+    "formation it is built of."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.shape": "agesandtheart:pyramids"
+      },
+      "chooses": {
+        "landmass": "geometric"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

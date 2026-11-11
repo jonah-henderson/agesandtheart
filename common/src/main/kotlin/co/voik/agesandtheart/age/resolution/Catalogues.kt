@@ -110,9 +110,16 @@ internal fun Resolving.carriersOf(landing: Landing, aspect: Aspect): List<Taggab
     return pool.distinct().filter { landing.accepts(it, world.tagsOf(it)) }
 }
 
-/** Whether [landing] has a steering sense here — something it sets that this aspect turns. */
-private fun Resolving.steersInstead(aspect: Aspect, landing: Landing): Boolean =
-    (landing.settings.keys + landing.bendings.keys).any { world.turnsAParameter(aspect, it) }
+/**
+ * Whether [landing] has a steering sense here — something it sets that this aspect turns — beyond setting the member it
+ * chose outright in its own configuration, as `pyramidal` chooses the geometric landform and sets its shape.
+ */
+private fun Resolving.steersInstead(aspect: Aspect, landing: Landing): Boolean {
+    val turned = (landing.settings.keys + landing.bendings.keys).filter { world.turnsAParameter(aspect, it) }
+    val chosen = landing.choice
+    val configuresItsChoice = chosen != null && turned.all(chosen::honoursParameterNamed)
+    return turned.isNotEmpty() && !configuresItsChoice
+}
 
 /**
  * What an aspect no landing narrowed may be drawn from: the whole [pool], or for one that keeps its readiest

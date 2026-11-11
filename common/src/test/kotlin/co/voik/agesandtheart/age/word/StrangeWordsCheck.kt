@@ -249,7 +249,7 @@ private val SEEDS = 0L..<20L
 private const val HALF_SPEED = 0.55f
 private const val ZOMBIE = "minecraft:zombie"
 private const val COW = "minecraft:cow"
-private val UNIFORM_LANDFORMS = setOf(Terrain.FLATLANDS, Terrain.PILLARS, Terrain.PYRAMIDS)
+private val UNIFORM_LANDFORMS = setOf(Terrain.FLATLANDS, Terrain.PILLARS, Terrain.GEOMETRIC)
 
 /** A few blocks over the sea, where the low-clouds step puts them. */
 private const val AMONG_THE_LAND = 84f

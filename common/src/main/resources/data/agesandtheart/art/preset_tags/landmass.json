@@ -140,7 +140,7 @@
       "scattered": 0.4
     }
   },
-  "pyramidal": {
+  "geometric": {
     "tags": {
       "ordered": 1.0,
       "flat": 0.7,

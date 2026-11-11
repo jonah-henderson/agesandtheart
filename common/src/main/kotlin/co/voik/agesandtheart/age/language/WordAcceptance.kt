@@ -96,13 +96,15 @@ object WordAcceptance {
     /**
      * A word whose every meaning chooses or bars members of one weighted set, or chooses a design of ours, names
      * them — `villages` the one, `trees` everything wooded, `spires` a landform — and takes what any of them
-     * honours. A block chooses a sea, and is a substance rather than a member.
+     * honours. A block chooses a sea, and is a substance rather than a member. A setting fenced to the same aspect
+     * says how the members it names are set, as `pyramidal` sets the shape of the geometric landform it chooses.
      */
     private fun membersNamedBy(word: Word, tags: MemberTags, registries: HolderLookup.Provider?): Acceptance? {
         // A meaning offered elsewhere is not the word's own naming: `herds` offers a herd's size to `of`.
         val effects = word.meanings.filter { !it.isOffered }.flatMap { it.effects }
-        val aspects = effects.map(::aspectNamed).distinct()
-        val aspect = aspects.singleOrNull() ?: return null
+        val aspect = effects.mapNotNull(::aspectNamed).distinct().singleOrNull() ?: return null
+        fun namesOrSetsWhatItNames(effect: Effect) = aspectNamed(effect) == aspect || settingFencedTo(effect) == aspect
+        if (!effects.all(::namesOrSetsWhatItNames)) return null
         val holdsMembers = aspect.holds == Holds.WEIGHTED_SET
         val holdsOurDesigns = aspect.holds == Holds.CATALOGUE && !aspect.open
         if (!holdsMembers && !holdsOurDesigns) return null
@@ -119,6 +121,12 @@ object WordAcceptance {
     private fun aspectNamed(effect: Effect): Aspect? = when (effect) {
         is Effect.Chooses -> effect.aspect
         is Effect.Restricts -> effect.aspect
+        else -> null
+    }
+
+    private fun settingFencedTo(effect: Effect): Aspect? = when (effect) {
+        is Effect.Sets -> effect.parameter.fencedTo
+        is Effect.Bends -> effect.parameter.fencedTo
         else -> null
     }
 

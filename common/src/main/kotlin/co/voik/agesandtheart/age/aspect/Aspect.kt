@@ -499,7 +499,8 @@ enum class Aspect(
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
-        TERRAIN, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE, PHENOMENA,
+        TERRAIN -> Terrain.named(key)
+        CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE, PHENOMENA,
         AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
         -> authored.firstOrNull { it.key == key }
     }

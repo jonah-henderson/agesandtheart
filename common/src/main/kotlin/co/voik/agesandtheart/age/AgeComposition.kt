@@ -352,7 +352,7 @@ data class AgeComposition(
 
         val MAP_CODEC: MapCodec<AgeComposition> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                setOrSingle(enumCodec<Terrain>(), Terrain.OVERWORLD)
+                setOrSingle(Terrain.CODEC, Terrain.OVERWORLD)
                     .fieldOf("terrain").forGetter(AgeComposition::terrains),
                 setOrSingle(presetCodec<Sea>(Aspect.SEA), Sea.NONE)
                     .optionalFieldOf("sea", listOf(Sea.NONE)).forGetter(AgeComposition::seas),

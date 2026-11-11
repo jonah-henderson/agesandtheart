@@ -31,7 +31,7 @@ class BiomeFootingCheck : FunSpec({
      * biome in a world with no water in it is wrong at any percentage.
      */
     test("an Age with no sea grows no ocean biomes") {
-        server.run("age compose sealess 4242 landmass=pyramidal sea=minecraft:air")
+        server.run("age compose sealess 4242 landmass=geometric sea=minecraft:air")
         val oceanic = surfaceBiomes(server, "sealess", radius = 6).filter { "ocean" in it.key }
         check(oceanic.isEmpty()) {
             "an Age with an air sea grew ocean biomes over dry ground: " +

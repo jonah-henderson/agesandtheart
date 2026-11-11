@@ -39,7 +39,7 @@ age compose deepcavern landmass=gentle sea=water sea.depth=0.9..1.0 rock=porous 
 
 # A terrain that stands in open air, told to have a sea anyway. The terrain's contract must win:
 # expect it to be created and to generate dry, not to crash.
-age compose drypyramid landmass=pyramidal landmass.arrangement=rings sea=water
+age compose drypyramid landmass=geometric landmass.arrangement=rings sea=water
 
 # An option no preset understands. Expect it kept, ignored, and reported by /age list below —
 # never silently dropped, because the recipe is the only record of an Age.

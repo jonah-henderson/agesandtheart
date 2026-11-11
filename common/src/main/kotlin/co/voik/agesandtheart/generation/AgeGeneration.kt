@@ -98,6 +98,7 @@ import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.Spread
+import co.voik.agesandtheart.worldgen.FormationLookup
 
 /**
  * Turns an [AgeRecipe] into the generator that builds its world — a pure function of the recipe (plus the
@@ -156,7 +157,7 @@ object AgeGeneration {
         // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
-        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table, sea)
+        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table, sea, FormationLookup.of(server.registryAccess()))
         val merged = landmass.seam == Seam.MERGED
         val territories = Territories(
             ground,
@@ -933,6 +934,7 @@ object AgeGeneration {
         seed: Long,
         table: TerrainTable?,
         sea: Terrain.SeaSetting?,
+        formations: FormationLookup,
     ): List<Terrain.Ground> =
         composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
@@ -943,6 +945,7 @@ object AgeGeneration {
                 saltFor(seed, member),
                 table,
                 sea,
+                formations,
             )
         }
 

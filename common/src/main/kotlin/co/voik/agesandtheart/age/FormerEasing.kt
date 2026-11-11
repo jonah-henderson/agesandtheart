@@ -20,7 +20,7 @@ object FormerEasing {
 
     fun carriedOver(composition: AgeComposition): AgeComposition {
         val standBesideAnother = composition.terrains.size > 1 &&
-            composition.terrains.any { it == Terrain.PILLARS || it == Terrain.PYRAMIDS }
+            composition.terrains.any { it == Terrain.PILLARS || it == Terrain.GEOMETRIC }
         if (!standBesideAnother) return composition
         val members = composition.membersIn(Aspect.TERRAIN)
         val marked = composition.options.expanded(Aspect.TERRAIN, members).map { options ->

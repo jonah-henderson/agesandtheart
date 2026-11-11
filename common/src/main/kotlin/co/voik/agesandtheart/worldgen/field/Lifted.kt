@@ -18,6 +18,13 @@ data class Lift(val datumY: Int, val toY: Int, val squeeze: Double = 1.0) {
     fun heightOf(y: Int): Int =
         if (y < datumY) y + (toY - datumY) else toY + ((y - datumY) * squeeze).roundToInt()
 
+    /** The height of the landform's that stands at [y] once lifted: [heightOf] undone, and the datum where squeezed flat. */
+    fun heightBefore(y: Int): Int = when {
+        y < toY -> y - (toY - datumY)
+        squeeze <= 0.0 -> datumY
+        else -> datumY + ((y - toY) / squeeze).roundToInt()
+    }
+
     /** [field] lifted, with rock lifted off its floor filled back down to it where [keepsFloor]. */
     fun over(field: TerrainField, keepsFloor: Boolean = true): TerrainField = Lifted(field, this, keepsFloor)
 
@@ -62,7 +69,7 @@ data class Lifted(val base: TerrainField, val lift: Lift, val keepsFloor: Boolea
         return if (liftedOffItsFloor) moved.union(Spans.of(floor, lift.heightOf(floor) - 1)) else moved
     }
 
-    override fun resized(factor: Double, pivotY: Int) = copy(base = base.resized(factor, pivotY))
+    override fun resized(factor: Double, pivotY: Int) = copy(base = base.resized(factor, lift.heightBefore(pivotY)))
 
     companion object {
         fun codec(self: Codec<TerrainField>): MapCodec<Lifted> = RecordCodecBuilder.mapCodec { instance ->

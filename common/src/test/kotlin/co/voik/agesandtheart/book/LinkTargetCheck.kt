@@ -26,7 +26,7 @@ import net.minecraft.world.phys.Vec3
 @Tags(NEEDS_REGISTRIES)
 class LinkTargetCheck : FunSpec({
     test("a link target round-trips with the Age behind it") {
-        val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
+        val composition = AgeComposition(terrains = listOf(Terrain.GEOMETRIC))
             .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:blackstone"))
         val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED)
         val target = LinkTarget(

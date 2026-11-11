@@ -14,7 +14,8 @@ import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
-import co.voik.agesandtheart.worldgen.PyramidField
+import co.voik.agesandtheart.worldgen.FormationLookup
+import co.voik.agesandtheart.worldgen.GeometricField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.LandSize
@@ -41,7 +42,11 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Relieved
 import kotlin.math.pow
 import co.voik.agesandtheart.worldgen.field.TerrainTable
+import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
+import co.voik.agesandtheart.worldgen.feature.Formation
 import net.minecraft.server.level.ColumnPos
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.state.BlockState
@@ -68,6 +73,19 @@ private const val ISLAND_POND_RATE = 8.0
 /** Windswept land's pedestal rocks, in sandstone where nothing else made them. */
 /** Made of what the ground they stand on suggests, rather than of anything named (`Formation.byGround`). */
 private fun windsweptPedestalsOn(territory: Int): String = Claim("agesandtheart:pedestals", territory = territory).spelled()
+
+/** The formation a geometric landform is built of unless another is asked: the pyramids it was built of before it took any. */
+private const val PYRAMIDS_SHAPE = "agesandtheart:pyramids"
+
+/**
+ * The formation [Terrain.SHAPE] names, or null for the pyramids a geometric landform is built of in code — asked for,
+ * unset, or named where no formation answers.
+ */
+private fun shapeOf(options: Options, formations: FormationLookup): Formation? {
+    val named = options.of(Terrain.SHAPE)
+    if (named == PYRAMIDS_SHAPE) return null
+    return Identifier.tryParse(named)?.let(formations::formation)
+}
 
 /** A slab whose top is under its bottom, which holds no rock in any column at any size. */
 private val NOTHING_SOLID = Slab(lowY = 1, highY = 0)
@@ -174,7 +192,7 @@ private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
 enum class Terrain(
     override val key: String,
     val waterline: Int?,
-    private val build: (Options, Long, TerrainTable?) -> TerrainField,
+    private val build: (Options, Long, TerrainTable?, FormationLookup) -> TerrainField,
     /**
      * Where the sea stands if the book names one, for a landform that has none of its own: islands in the
      * void are sealess unless asked, and then hang over a sea far below (Jonah, 2026-10-06).
@@ -195,7 +213,7 @@ enum class Terrain(
     SPIRE_ISLANDS(
         "spire_islands",
         waterline = SpireField.SEA_LEVEL,
-        build = { options, salt, _ -> SpireField.world(salt, scaleAsWritten(options, salt)) },
+        build = { options, salt, _, _ -> SpireField.world(salt, scaleAsWritten(options, salt)) },
         axes = { listOf(SIZE) },
         // The Spire's own rock, reached by its preset and never by a writer.
         page = null,
@@ -208,7 +226,7 @@ enum class Terrain(
     SKYLANDS(
         "skyborne",
         waterline = null,
-        build = { options, salt, _ -> SkylandsField.world(salt, scaleAsWritten(options, salt)) },
+        build = { options, salt, _, _ -> SkylandsField.world(salt, scaleAsWritten(options, salt)) },
         waterlineWhenASeaIsNamed = SkylandsField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
@@ -217,28 +235,28 @@ enum class Terrain(
      * No rock anywhere: an Age wearing it alone is open air above and below, and a link into it arrives on a small
      * platform ([co.voik.agesandtheart.generation.Ages.openUpArrival]).
      */
-    VOID("void", waterline = null, build = { _, _, _ -> NOTHING_SOLID }),
+    VOID("void", waterline = null, build = { _, _, _, _ -> NOTHING_SOLID }),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS(
         "gentle",
         waterline = ORDINARY_SEA_LEVEL,
-        build = { options, salt, _ -> NoiseField.hills(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> NoiseField.hills(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
     /**
      * A level plain to the horizon and no relief anywhere in it — Minecraft's own superflat. Its waterline
-     * is null for the same reason [PYRAMIDS]' is: ground this even has nowhere to hold a sea, and a
+     * is null for the same reason [GEOMETRIC]'s is: ground this even has nowhere to hold a sea, and a
      * phantom level under it would file the whole world as coast (see [Grounding.hasSea]).
      */
-    FLATLANDS("flat", waterline = null, build = { _, _, _ -> FlatlandsField.world() }),
+    FLATLANDS("flat", waterline = null, build = { _, _, _, _ -> FlatlandsField.world() }),
 
     /** Weathered rock country rising out of the sea: sheer-walled buttes, arches and overhangs. */
     ERODED(
         "eroded",
         waterline = ORDINARY_SEA_LEVEL,
-        build = { options, salt, _ -> ErodedField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> ErodedField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -246,19 +264,23 @@ enum class Terrain(
     PILLARS(
         "pillared",
         waterline = ORDINARY_SEA_LEVEL,
-        build = { options, salt, table -> PillarField.world(salt, scaleOf(options, salt), featureWear(options, salt, table)) },
+        build = { options, salt, table, _ -> PillarField.world(salt, scaleOf(options, salt), featureWear(options, salt, table)) },
         axes = { listOf(SIZE) },
     ),
 
-    /** Instanced pyramids on a plain, in the [ARRANGEMENT] asked for. */
-    PYRAMIDS(
-        "pyramidal",
+    /**
+     * Instanced shapes on a plain, in the [ARRANGEMENT] asked for: the [SHAPE] formation's, or pyramids. Reached by the
+     * words for its shapes (`pyramidal`) rather than by a page of its own.
+     */
+    GEOMETRIC(
+        "geometric",
         waterline = null,
-        build = { options, salt, _ ->
+        build = { options, salt, _, formations ->
             val scale = scaleOf(options, salt)
-            PyramidField.world(options.of(ARRANGEMENT), salt, scale, landmarksOf(options, salt, scale))
+            GeometricField.world(options.of(ARRANGEMENT), shapeOf(options, formations), salt, scale, landmarksOf(options, salt, scale))
         },
-        axes = { listOf(ARRANGEMENT, SIZE) },
+        axes = { listOf(ARRANGEMENT, SIZE, SHAPE) },
+        page = null,
     ),
 
     /**
@@ -268,7 +290,7 @@ enum class Terrain(
     YARDANGS(
         "windswept",
         waterline = null,
-        build = { options, salt, table ->
+        build = { options, salt, table, _ ->
             YardangsField.world(salt, scaleOf(options, salt), varietyOf(options, salt), table?.windBearingDegrees ?: bearingOffThe(salt))
         },
         axes = { listOf(SIZE, VARIETY) },
@@ -282,7 +304,7 @@ enum class Terrain(
     CANYON(
         "cleft",
         waterline = CanyonField.RIVER_LEVEL,
-        build = { options, salt, _ ->
+        build = { options, salt, _, _ ->
             val scale = scaleOf(options, salt)
             CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt, scale, landmarksOf(options, salt, scale))
         },
@@ -295,7 +317,7 @@ enum class Terrain(
     CLIFFS(
         "sheer",
         waterline = CliffField.SEA_LEVEL,
-        build = { options, salt, _ ->
+        build = { options, salt, _, _ ->
             CliffField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
         },
         axes = { listOf(BEARING, SIZE) },
@@ -305,7 +327,7 @@ enum class Terrain(
     CANYONLANDS(
         "canyoned",
         waterline = CanyonlandsField.RIVER_LEVEL,
-        build = { options, salt, _ -> CanyonlandsField.world(salt, scaleOf(options, salt), varietyOf(options, salt)) },
+        build = { options, salt, _, _ -> CanyonlandsField.world(salt, scaleOf(options, salt), varietyOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -316,7 +338,7 @@ enum class Terrain(
     SHATTERED(
         "shattered",
         waterline = ShatteredField.RIVER_LEVEL,
-        build = { options, salt, _ -> ShatteredField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> ShatteredField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -327,7 +349,7 @@ enum class Terrain(
     RIVERLANDS(
         "riverine",
         waterline = RiverlandsField.WATERLINE,
-        build = { options, salt, _ -> RiverlandsField.world(salt, scaleOf(options, salt), isFormer(options)) },
+        build = { options, salt, _, _ -> RiverlandsField.world(salt, scaleOf(options, salt), isFormer(options)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -339,7 +361,7 @@ enum class Terrain(
     ISLANDS(
         "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, table ->
+        build = { options, salt, table, _ ->
             IslandsField.world(sizeOf(options, salt), salt, islandWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
         },
         axes = { listOf(SIZE) },
@@ -355,7 +377,7 @@ enum class Terrain(
     ISLE(
         "insular",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, table ->
+        build = { options, salt, table, _ ->
             IslandsField.lone(sizeOf(options, salt), salt, islandWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
         },
         axes = { listOf(SIZE) },
@@ -368,7 +390,7 @@ enum class Terrain(
     ARBOREAL(
         "arboreal",
         waterline = HollowTreesField.SEA_LEVEL,
-        build = { options, salt, _ -> HollowTreesField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> HollowTreesField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -380,7 +402,7 @@ enum class Terrain(
     MOUNTAINOUS(
         "mountainous",
         waterline = MountainousField.WATERLINE,
-        build = { options, salt, _ -> MountainousField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> MountainousField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -392,7 +414,7 @@ enum class Terrain(
     CRATERLANDS(
         "cratered",
         waterline = CraterlandsField.WATERLINE,
-        build = { options, salt, table ->
+        build = { options, salt, table, _ ->
             CraterlandsField.world(
                 craterSteer(options, salt),
                 salt,
@@ -411,7 +433,7 @@ enum class Terrain(
     INVERSE_CAVES(
         "tangled",
         waterline = null,
-        build = { options, salt, _ ->
+        build = { options, salt, _, _ ->
             val scale = scaleAsWritten(options, salt)
             InverseCavesField.world(salt, scale, landmarksOf(options, salt, scale), gridded = !options.isTrue(FORMER_CAVES))
         },
@@ -427,7 +449,7 @@ enum class Terrain(
     CONTINENTS(
         "continental",
         waterline = OverworldField.WATERLINE,
-        build = { options, salt, _ -> OverworldField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _, _ -> OverworldField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -442,7 +464,7 @@ enum class Terrain(
     SOLID(
         "subterranean",
         waterline = SolidField.WATERLINE,
-        build = { _, _, _ -> SolidField.world() },
+        build = { _, _, _, _ -> SolidField.world() },
     ),
 
     /**
@@ -459,9 +481,9 @@ enum class Terrain(
      * `AgeGeneration.ourGround` is the only caller of [ground], and it is entered only where none of these
      * is in the composition. The throw records the invariant rather than guarding a live path.
      */
-    OVERWORLD("overworld", waterline = null, build = { _, _, _ -> error(NO_FIELD_OF_OURS) }),
-    NETHER("nether", waterline = null, build = { _, _, _ -> error(NO_FIELD_OF_OURS) }),
-    END("end", waterline = null, build = { _, _, _ -> error(NO_FIELD_OF_OURS) }),
+    OVERWORLD("overworld", waterline = null, build = { _, _, _, _ -> error(NO_FIELD_OF_OURS) }),
+    NETHER("nether", waterline = null, build = { _, _, _, _ -> error(NO_FIELD_OF_OURS) }),
+    END("end", waterline = null, build = { _, _, _, _ -> error(NO_FIELD_OF_OURS) }),
     ;
 
     /** Whether this is vanilla's own rock rather than a shape of ours — see [OVERWORLD]. */
@@ -558,7 +580,7 @@ enum class Terrain(
         HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SOLID ->
             ownWaterlineAt(options, salt)?.let(::Footing)
         // A plain standing just over vanilla's sea.
-        FLATLANDS, PYRAMIDS, YARDANGS -> Footing(ORDINARY_SEA_LEVEL)
+        FLATLANDS, GEOMETRIC, YARDANGS -> Footing(ORDINARY_SEA_LEVEL)
         CANYON -> scaleOf(options, salt).let { scale -> Footing(CanyonField.riverLevel(scale), topY = CanyonField.plateauY(scale)) }
         // The tallest trees reach the top of the world already.
         ARBOREAL -> Footing(HollowTreesField.SEA_LEVEL, topY = VerticalWindow.HIGHEST_BLOCK_Y)
@@ -653,7 +675,7 @@ enum class Terrain(
         // Its seabed is the band's foot, which a larger country carries deeper.
         ERODED -> ErodedField.seabedY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF
         // A plain with no sea, so the only thing overhead is the plain itself.
-        PYRAMIDS, YARDANGS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
+        GEOMETRIC, YARDANGS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
         // **The most room of anything here, and for once nothing is being cleared.** There is no surface
         // for an underground to open into, so this is bounded by the bedrock roof alone.
         SOLID -> SolidField.UNDERGROUND_CEILING
@@ -684,8 +706,10 @@ enum class Terrain(
         table: TerrainTable? = null,
         /** The sea this landform is set at, or null where it keeps its own heights. */
         sea: SeaSetting? = null,
+        /** Where a [GEOMETRIC] landform finds the formation its [SHAPE] names. */
+        formations: FormationLookup = FormationLookup.NONE,
     ): Ground {
-        val built = relieved(build(options, salt, table), options, salt).let { field -> liftTo(options, salt, sea)?.over(field) ?: field }
+        val built = relieved(build(options, salt, table, formations), options, salt).let { field -> liftTo(options, salt, sea)?.over(field) ?: field }
         val uncut = varied(built, options, salt, isRock = true, table, sea)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
@@ -702,7 +726,7 @@ enum class Terrain(
     fun seenFromNextDoor(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? {
         val beneath = when (this) {
             PILLARS -> PillarField.seabed()
-            PYRAMIDS -> PyramidField.plain()
+            GEOMETRIC -> GeometricField.plain()
             else -> return null
         }
         val lifted = liftTo(options, salt, sea)?.over(beneath) ?: beneath
@@ -934,7 +958,7 @@ enum class Terrain(
         PILLARS -> TerrainTable.Home(uplift = -0.5, age = -0.2, wetness = 0.5)
         ISLE -> TerrainTable.Home(uplift = -0.6, age = -0.3, wetness = 0.4)
         ISLANDS -> TerrainTable.Home(uplift = -0.7, age = 0.0, wetness = 0.6)
-        PYRAMIDS, ARBOREAL, SKYLANDS, VOID, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
+        GEOMETRIC, ARBOREAL, SKYLANDS, VOID, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
     }
 
     /** The height this landform's drift stretches from: its waterline, or for the skylands the plane they float at. */
@@ -1022,6 +1046,18 @@ enum class Terrain(
     fun fillBlocks(options: Options): List<BlockState> = options.materialsOf(STONE)
 
     companion object {
+        /** Keys a landform was written under before it was renamed, which a saved Age or a command may still name. */
+        private val FORMER_KEYS by lazy { mapOf("pyramidal" to GEOMETRIC) }
+
+        /** The landform [key] names, or was renamed from; null for none. */
+        fun named(key: String): Terrain? = entries.firstOrNull { it.key == key } ?: FORMER_KEYS[key]
+
+        /** A landform by its key, reading the keys it had before a rename too. */
+        val CODEC: Codec<Terrain> = Codec.STRING.comapFlatMap(
+            { key -> named(key)?.let { DataResult.success(it) } ?: DataResult.error { "No landform '$key'" } },
+            Terrain::key,
+        )
+
         /** The landforms with nothing beneath their land — see [hasGroundBeneath]. */
         private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, VOID, INVERSE_CAVES, END) }
 
@@ -1043,7 +1079,7 @@ enum class Terrain(
 
         private val RECONCILES by lazy {
             setOf(
-                HILLS, FLATLANDS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE,
+                HILLS, FLATLANDS, ERODED, PILLARS, GEOMETRIC, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE,
                 MOUNTAINOUS, CRATERLANDS, CONTINENTS,
             )
         }
@@ -1055,7 +1091,7 @@ enum class Terrain(
          */
         private val WORN by lazy {
             setOf(
-                HILLS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS,
+                HILLS, ERODED, PILLARS, GEOMETRIC, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS,
                 CRATERLANDS, CONTINENTS, SKYLANDS,
             )
         }
@@ -1064,10 +1100,10 @@ enum class Terrain(
          * The worn landforms left unterraced: the mountains, whose slopes are too steep for steps to read as strata;
          * the cleft, whose walls are benched already; and the pyramids, which are built in courses.
          */
-        private val UNTERRACED by lazy { setOf(MOUNTAINOUS, CANYON, PYRAMIDS) }
+        private val UNTERRACED by lazy { setOf(MOUNTAINOUS, CANYON, GEOMETRIC) }
 
         /** The landforms that were made rather than weathered, which stay unworn unless a word wears them. */
-        private val MADE by lazy { setOf(PYRAMIDS) }
+        private val MADE by lazy { setOf(GEOMETRIC) }
 
         /** The landforms whose outlines bend. Not the made shapes — pillars and pyramids — nor the Spire's islands. */
         private val BENDS by lazy {
@@ -1271,6 +1307,17 @@ enum class Terrain(
                 "rings" to "In concentric rings about a centre.",
                 "varied" to "Scattered, with no pattern to it.",
             ),
+        )
+
+        /**
+         * The formation a [GEOMETRIC] landform is built of, by the placed feature that lays it: its shapes, at landform
+         * sizes, stood on the plain or dug into it as the formation is. Pyramids unless something else is asked.
+         */
+        val SHAPE = Parameter(
+            "shape",
+            listOf(PYRAMIDS_SHAPE),
+            open = true,
+            help = "The formation whose shapes the landform is built of, as the placed feature that lays it.",
         )
 
         /**

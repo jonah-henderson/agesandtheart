@@ -77,7 +77,7 @@ age compose pdivided 4242 landmass=eroded[stone=minecraft:tuff],pillared[stone=m
 age bench pdivided 4
 
 # A VOID sea, whose `level` is Int.MIN_VALUE — the sentinel that reaches getSeaLevel and the world floor.
-age compose pvoid 4242 landmass=pyramidal sea=void rock=solid
+age compose pvoid 4242 landmass=geometric sea=void rock=solid
 age bench pvoid 4
 
 # The control that is not a composed Age at all: a bespoke Tier-B generator, which must never move.

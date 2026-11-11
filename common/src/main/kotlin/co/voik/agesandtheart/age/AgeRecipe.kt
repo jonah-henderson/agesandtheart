@@ -532,7 +532,7 @@ data class AgeRecipe(
         private val SPIRE_ROCKS = listOf("minecraft:basalt", "minecraft:blackstone", "minecraft:gravel")
 
         private fun pyramids(arrangement: String) = AgeComposition(
-            terrains = listOf(Terrain.PYRAMIDS),
+            terrains = listOf(Terrain.GEOMETRIC),
             options = AspectOptions().with(
                 Aspect.TERRAIN,
                 listOf(Options(mapOf(Terrain.ARRANGEMENT.name to listOf(arrangement)))),
