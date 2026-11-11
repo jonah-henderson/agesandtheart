@@ -40,6 +40,13 @@ class GeometricWordsCheck : FunSpec({
         }
     }
 
+    test("two shape words joined by and build one plain of both shapes") {
+        val composition = composed("pyramidal", "and", "spired", "landmass")
+        check(composition.terrains == listOf(Terrain.GEOMETRIC)) { "'pyramidal and spired landmass' seated ${composition.terrains}" }
+        val shapes = composition.optionsFor(Aspect.TERRAIN, 0).allOf(Terrain.SHAPE).toSet()
+        check(shapes == setOf("agesandtheart:pyramids", "agesandtheart:obelisks")) { "'pyramidal and spired landmass' set $shapes" }
+    }
+
     test("the geometric landform has no word of its own") {
         check(Terrain.GEOMETRIC.writtenWordFor == null) { "the geometric landform has a page of its own" }
     }

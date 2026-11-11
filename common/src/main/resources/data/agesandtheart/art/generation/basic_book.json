@@ -198,7 +198,7 @@
       {"weight":3.0,"produce":["[open_landmass]"]},
       {"weight":3.0,"produce":["cratered"]},
       {"produce":["flat"]},
-      {"produce":["pyramidal"]}
+      {"produce":["[geometric_landmass]"]}
     ],
     "night": [
       {"produce":["bright","stars"]},
@@ -232,9 +232,19 @@
     "exotic_landmasses": [
       {"produce":["end"]},
       {"produce":["flat"]},
-      {"produce":["pyramidal"]},
+      {"produce":["[geometric_landmass]"]},
       {"produce":["skyborne"]},
       {"produce":["tangled"]}
+    ],
+    "geometric_landmass": [
+      {"produce":["pyramidal"]},
+      {"produce":["spiked"]},
+      {"produce":["arched"]},
+      {"produce":["ringed"]},
+      {"produce":["pitted"]},
+      {"produce":["bouldered"]},
+      {"produce":["spired"]},
+      {"produce":["hoodooed"]}
     ],
     "sized_landmass": [
       {"weight":10.0,"produce":["[standard_sized_landmasses]"]},
@@ -259,7 +269,7 @@
       {"produce":["sheer"]}
     ],
     "exotic_sized_landmasses": [
-      {"produce":["pyramidal"]},
+      {"produce":["[geometric_landmass]"]},
       {"produce":["skyborne"]},
       {"produce":["tangled"]}
     ],
@@ -270,7 +280,7 @@
       {"weight":2.0,"produce":["pillared"]},
       {"weight":2.0,"produce":["shattered"]},
       {"weight":2.0,"produce":["sheer"]},
-      {"produce":["pyramidal"]},
+      {"produce":["[geometric_landmass]"]},
       {"produce":["skyborne"]},
       {"produce":["tangled"]}
     ],
@@ -298,7 +308,7 @@
       {"weight":2.0,"produce":["sheer"]},
       {"produce":["end"]},
       {"produce":["flat"]},
-      {"produce":["pyramidal"]},
+      {"produce":["[geometric_landmass]"]},
       {"produce":["skyborne"]},
       {"produce":["tangled"]}
     ],

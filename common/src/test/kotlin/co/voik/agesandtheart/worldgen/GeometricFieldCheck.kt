@@ -26,16 +26,25 @@ class GeometricFieldCheck : FunSpec({
         (-200..200 step 2).flatMap { x -> (-200..200 step 2).map { z -> field.columnSpans(x, z).highestSolidY ?: Int.MIN_VALUE } }
 
     test("obelisks stand on the plain, as tall as the tallest of the pyramids") {
-        val tops = topsOf(GeometricField.world("grid", shipped("obelisks")))
+        val tops = topsOf(GeometricField.world("grid", listOf(shipped("obelisks"))))
         check(tops.all { it >= PLAIN_TOP }) { "the plain was cut into: ${tops.min()}" }
         check(tops.count { it > PLAIN_TOP } > 0) { "nothing stood on the plain" }
         check(tops.max() in PLAIN_TOP + 28..PLAIN_TOP + 40) { "the tallest obelisk stood ${tops.max() - PLAIN_TOP} over the plain" }
     }
 
     test("pits are dug into the plain, and nothing stands on it") {
-        val tops = topsOf(GeometricField.world("grid", shipped("pits")))
+        val tops = topsOf(GeometricField.world("grid", listOf(shipped("pits"))))
         check(tops.all { it <= PLAIN_TOP }) { "something stood on the plain: ${tops.max()}" }
         check(tops.count { it < PLAIN_TOP } > 0) { "nothing was dug" }
+    }
+
+    test("two formations share one plain, each as likely, what is dug cut into it beside what stands") {
+        val tops = topsOf(GeometricField.world("grid", listOf(shipped("obelisks"), shipped("pits"))))
+        check(tops.count { it > PLAIN_TOP } > 0) { "no obelisk stood beside the pits" }
+        check(tops.count { it < PLAIN_TOP } > 0) { "no pit was dug beside the obelisks" }
+        val alone = topsOf(GeometricField.world("grid", listOf(shipped("obelisks")))).count { it > PLAIN_TOP }
+        val shared = tops.count { it > PLAIN_TOP }
+        check(shared < alone) { "sharing the plain with pits, as many obelisks stood: $shared against $alone" }
     }
 
     test("spaced, the shapes stand further apart, and unspaced they stand as they did") {
@@ -48,8 +57,8 @@ class GeometricFieldCheck : FunSpec({
 
     test("a great one stands where a landmark is drawn") {
         val landmarks = LandVariety.landmarksFor(strength = 2.0, landScale = SizeScale.ORDINARY, salt = 7L)
-        val withLandmarks = GeometricField.world("grid", shipped("obelisks"), salt = 7L, landmarks = landmarks)
-        val plain = topsOf(GeometricField.world("grid", shipped("obelisks"), salt = 7L))
+        val withLandmarks = GeometricField.world("grid", listOf(shipped("obelisks")), salt = 7L, landmarks = landmarks)
+        val plain = topsOf(GeometricField.world("grid", listOf(shipped("obelisks")), salt = 7L))
         val marked = topsOf(withLandmarks)
         val wideTops = (-1500..1500 step 8).flatMap { x ->
             (-1500..1500 step 8).map { z -> withLandmarks.columnSpans(x, z).highestSolidY ?: Int.MIN_VALUE }

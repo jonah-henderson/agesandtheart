@@ -176,7 +176,7 @@ astrite_age =
     | moonless age [astrite_landmasses] landmass meteors phenomena
     | age [astrite_landmasses] landmass meteors phenomena [flavour]@2
 
-astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | pyramidal
+astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | [geometric_landmass]
 
 night = bright stars | [sky_colour] sky
 
@@ -207,9 +207,12 @@ uncommon_landmasses =
 exotic_landmasses =
     end
     | flat
-    | pyramidal
+    | [geometric_landmass]
     | skyborne
     | tangled
+
+# The geometric landform, in each of its shapes.
+geometric_landmass = pyramidal | spiked | arched | ringed | pitted | bouldered | spired | hoodooed
 
 # The landforms that honour a size: every one but vanilla's own and the flat.
 sized_landmass = [standard_sized_landmasses]@10 | [uncommon_sized_landmasses]@5 | [exotic_sized_landmasses]
@@ -218,9 +221,9 @@ standard_sized_landmasses = continental | archipelagic | canyoned | eroded | gen
 
 uncommon_sized_landmasses = cleft | cratered | pillared | shattered | sheer
 
-exotic_sized_landmasses = pyramidal | skyborne | tangled
+exotic_sized_landmasses = [geometric_landmass] | skyborne | tangled
 
-open_sized_landmass = [standard_sized_landmasses]@10 | cleft@2 | cratered@2 | pillared@2 | shattered@2 | sheer@2 | pyramidal | skyborne | tangled
+open_sized_landmass = [standard_sized_landmasses]@10 | cleft@2 | cratered@2 | pillared@2 | shattered@2 | sheer@2 | [geometric_landmass] | skyborne | tangled
 
 # A sea to be poured: nothing hanging in the void, nothing with no waterline, and none of vanilla's own
 # rock, which brings its own sea and would not take ours.
@@ -249,7 +252,7 @@ open_landmass =
     | sheer@2
     | end
     | flat
-    | pyramidal
+    | [geometric_landmass]
     | skyborne
     | tangled
 

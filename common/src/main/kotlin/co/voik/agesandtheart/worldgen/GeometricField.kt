@@ -63,29 +63,57 @@ object GeometricField {
     )
 
     /**
-     * The shapes of [formation], or pyramids where it is null, arranged as asked. Where [landmarks] are drawn a great
-     * one stands, in whatever arrangement the rest keep.
+     * The shapes of [formations], pyramids for each that is null, arranged as asked: one formation as likely as the
+     * next wherever a copy stands, those that are dug cut into the plain and the rest stood on it. Where [landmarks] are
+     * drawn a great one of the first stands, in whatever arrangement the rest keep.
      */
     fun world(
         arrangement: String,
-        formation: Formation? = null,
+        formations: List<Formation?> = PYRAMIDS_ALONE,
         salt: Long = 0L,
         scale: Double = SizeScale.ORDINARY,
         landmarks: Landmarks = Landmarks.NONE,
         /** How far apart the shapes stand, twice as far at one and half at minus one; as they always did where null. */
         spacing: Double? = null,
     ): TerrainField {
-        val ofHeight = if (formation == null) ::pyramidsOfHeight else shapesOfHeight(formation)
-        val templates = HEIGHTS.flatMap(ofHeight)
+        val kinds = formations.ifEmpty { PYRAMIDS_ALONE }
+        val ofHeights = kinds.map { kind -> if (kind == null) ::pyramidsOfHeight else shapesOfHeight(kind) }
+        val each = balanced(ofHeights.map { ofHeight -> HEIGHTS.flatMap(ofHeight) })
+        val isDug = kinds.zip(each).flatMap { (kind, templates) -> templates.map { kind?.sunk == true } }
+        val templates = each.flatten()
+        // Laid twice over one layout, so a copy draws the same template in both and stands in one or is dug in the other.
+        val standingTemplates = templates.mapIndexed { at, template -> if (isDug[at]) NOTHING else template }
+        val dugTemplates = templates.mapIndexed { at, template -> if (isDug[at]) template else NOTHING }
         fun spaced(placement: Placement) = spacing?.let { placement.resized(SPACING_DOUBLING.pow(it)) } ?: placement
-        val shapes = when (arrangement) {
+        fun laid(templates: List<TerrainField>) = when (arrangement) {
             "rings" -> scattered(templates, spaced(rings()), Variation.NONE, salt, scale)
             "varied" -> scattered(templates, spaced(gradientGrid()), variedPoses(), salt, scale)
             else -> scattered(templates, spaced(gradientGrid()), Variation.NONE, salt, scale)
         }
-        val standing = if (landmarks.anyDrawn) Union(listOf(shapes, greatOnes(ofHeight, landmarks, scale))) else shapes
-        val isDug = formation?.sunk == true
-        return if (isDug) Subtract(plain(), standing) else Union(listOf(plain(), standing))
+        val firstIsDug = kinds.first()?.sunk == true
+        fun withTheGreat(shapes: TerrainField, isItsKind: Boolean): TerrainField =
+            if (landmarks.anyDrawn && isItsKind) Union(listOf(shapes, greatOnes(ofHeights.first(), landmarks, scale))) else shapes
+        val anyStand = isDug.any { !it }
+        val anyDug = isDug.any { it }
+        val standing = if (anyStand) withTheGreat(laid(standingTemplates), isItsKind = !firstIsDug) else null
+        val dug = if (anyDug) withTheGreat(laid(dugTemplates), isItsKind = firstIsDug) else null
+        val stoodOn = standing?.let { Union(listOf(plain(), it)) } ?: plain()
+        return dug?.let { Subtract(stoodOn, it) } ?: stoodOn
+    }
+
+    /**
+     * [lists] each repeated until all are as long, so drawing one template among them all draws each list alike: rings'
+     * five leans as likely between them as a pyramid alone.
+     */
+    private fun balanced(lists: List<List<TerrainField>>): List<List<TerrainField>> {
+        if (lists.size <= 1) return lists
+        val longest = lists.fold(1) { common, list -> leastCommonMultiple(common, list.size) }
+        return lists.map { list -> List(longest / list.size) { list }.flatten() }
+    }
+
+    private fun leastCommonMultiple(one: Int, other: Int): Int {
+        tailrec fun greatestCommonDivisor(a: Int, b: Int): Int = if (b == 0) a else greatestCommonDivisor(b, a % b)
+        return one / greatestCommonDivisor(one, other) * other
     }
 
     /** A pyramid as wide as it is tall, standing on the plain. */
@@ -135,6 +163,12 @@ object GeometricField {
     ): TerrainField = Instanced(templates, placement, variation, seed = SCATTER_SEED xor salt).resized(scale, GROUND_TOP + 1)
 
     private val HEIGHTS = listOf(8, 16, 24, 32)
+
+    /** The pyramids built in code, which is what a geometric landform asked for nothing else is built of. */
+    private val PYRAMIDS_ALONE: List<Formation?> = listOf(null)
+
+    /** A template with nothing in it, where a copy is laid on the other side of the plain. */
+    private val NOTHING: TerrainField = Union(emptyList())
 
     /** The plain the shapes stand on, without them: how a territory beside them reads their ground. */
     fun plain(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = GROUND_TOP)

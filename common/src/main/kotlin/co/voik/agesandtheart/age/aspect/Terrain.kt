@@ -78,13 +78,13 @@ private fun windsweptPedestalsOn(territory: Int): String = Claim("agesandtheart:
 private const val PYRAMIDS_SHAPE = "agesandtheart:pyramids"
 
 /**
- * The formation [Terrain.SHAPE] names, or null for the pyramids a geometric landform is built of in code — asked for,
- * unset, or named where no formation answers.
+ * The formations [Terrain.SHAPE] names, each null for the pyramids a geometric landform is built of in code — asked
+ * for, unset, or named where no formation answers. Several where joined words named several (`pyramidal and spired`).
  */
-private fun shapeOf(options: Options, formations: FormationLookup): Formation? {
-    val named = options.of(Terrain.SHAPE)
-    if (named == PYRAMIDS_SHAPE) return null
-    return Identifier.tryParse(named)?.let(formations::formation)
+private fun shapesOf(options: Options, formations: FormationLookup): List<Formation?> {
+    fun formationNamed(named: String): Formation? =
+        if (named == PYRAMIDS_SHAPE) null else Identifier.tryParse(named)?.let(formations::formation)
+    return options.allOf(Terrain.SHAPE).ifEmpty { listOf(PYRAMIDS_SHAPE) }.map(::formationNamed).distinct()
 }
 
 /** A slab whose top is under its bottom, which holds no rock in any column at any size. */
@@ -278,7 +278,7 @@ enum class Terrain(
         build = { options, salt, _, formations ->
             val scale = scaleOf(options, salt)
             val spacing = if (options.isTrue(FORMER_UNSPACED_SHAPES)) null else options.steer(SPACING, salt)
-            GeometricField.world(options.of(ARRANGEMENT), shapeOf(options, formations), salt, scale, landmarksOf(options, salt, scale), spacing)
+            GeometricField.world(options.of(ARRANGEMENT), shapesOf(options, formations), salt, scale, landmarksOf(options, salt, scale), spacing)
         },
         axes = { listOf(ARRANGEMENT, SPACING, SIZE, SHAPE) },
         page = null,
