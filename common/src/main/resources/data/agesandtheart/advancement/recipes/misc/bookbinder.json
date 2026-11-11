@@ -1,20 +1,11 @@
 {
   "_comment": [
-    "Learned on first holding a book of ours, which is all a bookbinder is for, or a wooden slab, the board it",
-    "stands on (Jonah), so a player meets it before their first book."
+    "Learned on first holding a book of ours, which is all a bookbinder is for — or, for a player who had one",
+    "before this unlock existed and keeps it on a lectern, on the game's own record of having used or picked one",
+    "up, which the location trigger asks about once a second until the recipe is learned."
   ],
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_wooden_slab": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "items": [
-          {
-            "items": "#minecraft:wooden_slabs"
-          }
-        ]
-      }
-    },
     "has_descriptive_book": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
@@ -35,6 +26,94 @@
         ]
       }
     },
+    "has_used_a_descriptive_book": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:type_specific/player": {
+              "stats": [
+                {
+                  "type": "minecraft:used",
+                  "stat": "agesandtheart:descriptive_book",
+                  "value": {
+                    "min": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "has_used_a_linking_book": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:type_specific/player": {
+              "stats": [
+                {
+                  "type": "minecraft:used",
+                  "stat": "agesandtheart:linking_book",
+                  "value": {
+                    "min": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "has_picked_up_a_descriptive_book": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:type_specific/player": {
+              "stats": [
+                {
+                  "type": "minecraft:picked_up",
+                  "stat": "agesandtheart:descriptive_book",
+                  "value": {
+                    "min": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "has_picked_up_a_linking_book": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:type_specific/player": {
+              "stats": [
+                {
+                  "type": "minecraft:picked_up",
+                  "stat": "agesandtheart:linking_book",
+                  "value": {
+                    "min": 1
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
@@ -44,9 +123,12 @@
   },
   "requirements": [
     [
-      "has_wooden_slab",
       "has_descriptive_book",
       "has_linking_book",
+      "has_used_a_descriptive_book",
+      "has_used_a_linking_book",
+      "has_picked_up_a_descriptive_book",
+      "has_picked_up_a_linking_book",
       "has_the_recipe"
     ]
   ],
