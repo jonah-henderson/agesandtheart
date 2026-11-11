@@ -6,7 +6,8 @@
     "grass too.",
     "",
     "`low sea` stands the water down, `low sky` hangs the clouds in it, `low structures` are sunk partway into the",
-    "ground, `low gravity` pulls lightly and `low grass` stays short. A low sun or moon keeps to the horizon."
+    "ground, `low gravity` pulls lightly, `low grass` stays short and `low obelisks` (spikes, pyramids, arches,",
+    "pedestals, piles) stand half as tall. A low sun or moon keeps to the horizon."
   ],
   "meanings": [
     {
@@ -58,6 +59,27 @@
     {
       "sets": {
         "structures.height": "-0.3..-0.1"
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "tallness": "-1.0..-1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "obelisks",
+        "spikes",
+        "pyramids",
+        "arches",
+        "pedestals",
+        "piles"
+      ]
+    },
+    {
+      "sets": {
+        "features.tallness": "-1.0..-1.0"
       },
       "chance_to_apply": 0.0,
       "unaimed_chance_to_apply": 0.33

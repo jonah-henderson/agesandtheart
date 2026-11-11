@@ -2,8 +2,9 @@
   "_comment": [
     "Up where nothing walks, `low`'s antonym. `high clouds` lifts the cloud deck far above, `high landmass` towers,",
     "`high sea` stands the water as high as `deep` does, and `high structures` are built raised over the ground.",
-    "`high gravity` pulls harder and `high grass` grows tall. A high Age towers under far clouds, and now and then",
-    "has a high sea or tall grass too; never a heavier pull, which only an aimed word turns."
+    "`high gravity` pulls harder, `high grass` grows tall, and `high obelisks` (spikes, pyramids, arches, pedestals,",
+    "piles) stand twice as tall. A high Age towers under far clouds, and now and then has a high sea, raised",
+    "structures, tall grass or tall formations too; never a heavier pull, which only an aimed word turns."
   ],
   "meanings": [
     {
@@ -45,6 +46,27 @@
     {
       "sets": {
         "structures.height": "0.3..0.7"
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "tallness": "1.0..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "obelisks",
+        "spikes",
+        "pyramids",
+        "arches",
+        "pedestals",
+        "piles"
+      ]
+    },
+    {
+      "sets": {
+        "features.tallness": "1.0..1.0"
       },
       "chance_to_apply": 0.0,
       "unaimed_chance_to_apply": 0.33

@@ -34,6 +34,9 @@ data class Meaning(
 
     val narrows: Boolean get() = effects.any(Effect::narrows)
 
+    /** Whether this can apply where the word is aimed at all, rather than only laid bare. */
+    val appliesWhereAimed: Boolean get() = mustAlwaysApply || chanceToApply > NEVER
+
     /** Whether laying the word bare can apply this at all; an offered meaning never can. */
     val appliesUnaimed: Boolean get() = !isOffered && (mustAlwaysApply || unaimedChanceToApply != NEVER)
 

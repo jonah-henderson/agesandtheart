@@ -321,7 +321,8 @@ object Reader {
             fun isOfferedHere(meaning: Meaning) = isOfferedTo(meaning, word, acceptance)
             for (page in taking) {
                 val meanings = page.word.meanings.filter { keptByOrder(page, it, taking) }
-                val taken = meanings.filter { !it.isOffered }.mapNotNull { meaning ->
+                // A meaning that only ever applies laid bare is never the taking word's to land.
+                val taken = meanings.filter { !it.isOffered && it.appliesWhereAimed }.mapNotNull { meaning ->
                     takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
                 val offered = meanings.filter(::isOfferedHere)

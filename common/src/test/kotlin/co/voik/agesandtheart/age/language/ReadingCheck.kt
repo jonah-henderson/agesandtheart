@@ -119,6 +119,13 @@ class ReadingCheck : FunSpec({
         check(joined.impossible.isEmpty()) { "cratered no longer joins a landform\n${joined.readout}" }
     }
 
+    test("a meaning that only applies laid bare is never taken where the word is aimed") {
+        val taller = read("age high obelisks")
+        check(taller.fateOf(1) == Fate.TakenBy(2)) { "high obelisks went ${taller.fateOf(1)}\n${taller.readout}" }
+        val rings = read("age high rings")
+        check(rings.fateOf(1) == Fate.Moved) { "high rings took what high only says laid bare\n${rings.readout}" }
+    }
+
     test("ancient said of the landmass is the most wear there is, on every seed, and only a little laid bare") {
         fun wearSet(book: Reading) = book.landings.flatMap { it.effects }.filterIsInstance<Effect.Sets>().filter { it.parameter.name == "wear" }.map { it.value }
         for (seed in 0L..<SEEDS_TRIED) {

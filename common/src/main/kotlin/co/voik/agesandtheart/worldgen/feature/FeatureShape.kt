@@ -44,6 +44,8 @@ import net.minecraft.world.level.levelgen.heightproviders.UniformHeight
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
+import co.voik.agesandtheart.worldgen.field.Relieved
+import co.voik.agesandtheart.worldgen.field.Spans
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -280,6 +282,19 @@ object FeatureShape {
         val lake = placed.feature().value() as? LakeFeature ?: return feature
         val deepened = DeepLake.of(lake, DeepLake.waterLayersAt(depth))
         return Holder.direct(PlacedFeature(Holder.direct(deepened), placed.placement()))
+    }
+
+    /**
+     * [feature] stood taller or squatter by [tallness], where it is a formation: each shape stretched above the ground
+     * it stands on, twice as tall at one and half at minus one. Its width and its spacing stay as they were.
+     */
+    fun heightened(feature: Holder<PlacedFeature>, tallness: Double?): Holder<PlacedFeature> {
+        if (tallness == null) return feature
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return feature
+        val factor = TALLNESS_DOUBLING.pow(tallness)
+        val stood = formation.copy(shapes = formation.shapes.map { Relieved(it, STANDING_ON_THE_GROUND, factor, Spans.HIGHEST_Y) })
+        return Holder.direct(PlacedFeature(Holder.direct(stood), placed.placement()))
     }
 
     /** Whether [feature] grows a tree, itself or among what it chooses between — what a bare tree is made of. */
@@ -561,6 +576,9 @@ object FeatureShape {
 
     /** A formation is authored with its base at the origin, and the ground is where it is put. */
     private const val STANDING_ON_THE_GROUND = 0
+
+    /** The stretch a tallness of one gives a formation: twice its height, and at minus one half. */
+    private const val TALLNESS_DOUBLING = 2.0
 
     /** A dial at the top of its axis, which every feature that has the dial at all is changed by. */
     private const val A_TURNED_DIAL = 1.0
