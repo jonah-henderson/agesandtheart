@@ -49,7 +49,7 @@ object Gale {
     data class Blowing(val lying: Double, val bearingDegrees: Double, val fury: Double)
 
     /** The gale over an Age of [seed] at [gameTime], blowing this often and this hard, or null where none does. */
-    fun blowingAt(seed: Long, gameTime: Long, recurrence: Recurrence, dials: GaleDials): Blowing? {
+    fun blowingAt(seed: Long, gameTime: Long, recurrence: Recurrence, dials: GaleDials, written: Double? = null): Blowing? {
         val spell = gameTime / SPELL_TICKS
         val intoIt = gameTime % SPELL_TICKS
         val share = shareOfTheTime(recurrence, dials.often)
@@ -60,9 +60,9 @@ object Gale {
         val lying = Mth.lerp(turning, if (blowsNow) WHOLLY else NONE, if (blowsNext) WHOLLY else NONE)
         if (lying <= NONE) return null
         val bearing = when {
-            blowsNow && blowsNext -> turnedTowards(bearingOf(seed, spell), bearingOf(seed, spell + 1), turning)
-            blowsNow -> bearingOf(seed, spell)
-            else -> bearingOf(seed, spell + 1)
+            blowsNow && blowsNext -> turnedTowards(bearingOf(seed, spell, written), bearingOf(seed, spell + 1, written), turning)
+            blowsNow -> bearingOf(seed, spell, written)
+            else -> bearingOf(seed, spell + 1, written)
         }
         return Blowing(lying, bearing, furyOf(dials.push))
     }
@@ -121,7 +121,8 @@ object Gale {
      * storm's bearing holds, since its drifts are laid along it, and the gale adds half its fury to the storm's.
      */
     fun blowingOver(level: ServerLevel, gale: Befalling?, blizzard: Befalling?, spending: Spending): Blowing? {
-        val own = gale?.let { blowingAt(level.seed, level.gameTime, it.recurrence, GaleDials.of(spending, it.strength)) }
+        val written = PrevailingWind.writtenIn(level)
+        val own = gale?.let { blowingAt(level.seed, level.gameTime, it.recurrence, GaleDials.of(spending, it.strength), written) }
         val storm = blizzard?.let { Blizzard.windIn(level, BlizzardDials.of(spending, it.strength)) }
         return together(own, storm)
     }
@@ -204,8 +205,9 @@ object Gale {
     private fun isWindy(seed: Long, spell: Long, share: Double): Boolean =
         XoroshiroRandomSource(seed xor WINDY_SALT xor spell).nextDouble() < share
 
-    private fun bearingOf(seed: Long, spell: Long): Double =
-        XoroshiroRandomSource(seed xor BEARING_SALT xor spell).nextDouble() * FULL_TURN
+    /** A spell's bearing: anywhere, or about the bearing a book [written] for the Age's wind. */
+    private fun bearingOf(seed: Long, spell: Long, written: Double?): Double =
+        PrevailingWind.drawnAbout(written, XoroshiroRandomSource(seed xor BEARING_SALT xor spell).nextDouble())
 
     /**
      * How hard the wind leans on whatever is out in it, added to its motion each tick along the bearing, at
@@ -275,7 +277,6 @@ object Gale {
     private const val ORDINARY_FRICTION_CUBED = 0.21600002
     private const val UNSAID = 0.0
 
-    private const val FULL_TURN = 360.0
     private const val NONE = 0.0
     private const val WHOLLY = 1.0
     private const val WINDY_SALT = 0x6A1E_5B10_3C27_9D4FL

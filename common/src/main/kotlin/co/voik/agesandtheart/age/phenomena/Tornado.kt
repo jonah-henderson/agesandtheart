@@ -1,8 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.generation.Ages
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
@@ -446,7 +444,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
             val tornado = AgeContent.TORNADO.create(level, EntitySpawnReason.EVENT) ?: return null
             val share = size.coerceIn(0.0, 1.0)
             tornado.setPos(atX, ground, atZ)
-            tornado.windYaw = Mth.wrapDegrees(windBearingIn(level).toFloat() + YAW_OF_EAST)
+            tornado.windYaw = Mth.wrapDegrees(PrevailingWind.bearingIn(level).toFloat() + YAW_OF_EAST)
             tornado.yRot = tornado.windYaw
             tornado.speed = (SLOWEST_SPEED + level.random.nextDouble() * (FASTEST_SPEED - SLOWEST_SPEED)) * pace
             tornado.footHalfWidth = Mth.lerp(share, NARROWEST_FOOT, WIDEST_FOOT).toFloat()
@@ -456,9 +454,5 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
             level.addFreshEntity(tornado)
             return tornado
         }
-
-        /** The way an Age's wind blows, from its seed, whether or not a book wrote one; the level's own elsewhere. */
-        private fun windBearingIn(level: ServerLevel): Double =
-            Atmosphere.prevailingBearingDegrees(Ages.recipeOf(level)?.seed ?: level.seed).toDouble()
     }
 }

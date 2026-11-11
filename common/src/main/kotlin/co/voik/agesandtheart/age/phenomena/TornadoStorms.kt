@@ -1,8 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.generation.Ages
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.level.entity.EntityTypeTest
@@ -47,7 +45,7 @@ object TornadoStorms {
         val random = level.random
         val live = (level.server.playerList.simulationDistance - CHUNKS_SHORT_OF_THE_EDGE) * CHUNK_WIDTH
         val furthest = minOf(FURTHEST, live.toDouble()).coerceAtLeast(NEAREST)
-        val bearing = Atmosphere.prevailingBearingDegrees(Ages.recipeOf(level)?.seed ?: level.seed) * Mth.DEG_TO_RAD
+        val bearing = PrevailingWind.bearingIn(level) * Mth.DEG_TO_RAD
         val downwindX = cos(bearing)
         val downwindZ = sin(bearing)
         repeat(PLACES_TRIED) {

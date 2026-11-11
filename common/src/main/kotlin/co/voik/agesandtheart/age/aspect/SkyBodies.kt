@@ -177,26 +177,8 @@ object SkyBodies {
     /** What colour the moons shine — `red moon` — or [Parameter.DEFAULT] for vanilla's white. */
     val MOONCOLOUR = Sky.colour("colour", "The colour the moons shine.")
 
-    /**
-     * The compass, in the bearings `Orbit.risingAt` reads — due east is 90, which is where vanilla's
-     * own sun comes up.
-     *
-     * Eight points and no more: the four cardinals and the four between them are what a person points
-     * at, and a writer who wants a sun at 22.5° is asking a question §3.2 keeps away from them.
-     */
-    private val BEARINGS: Map<String, Float> = linkedMapOf(
-        "north" to 0.0f,
-        "northeast" to 45.0f,
-        "east" to 90.0f,
-        "southeast" to 135.0f,
-        "south" to 180.0f,
-        "southwest" to 225.0f,
-        "west" to 270.0f,
-        "northwest" to 315.0f,
-    )
-
     /** The bearing [named] rises at, or null where nobody said — which leaves the path as it was. */
-    fun bearingOf(named: String): Float? = BEARINGS[named]
+    fun bearingOf(named: String): Float? = Compass.bearingOf(named)
 
     /**
      * Which horizon a body comes up over — the eight points of the compass, and the one thing about a
@@ -211,7 +193,7 @@ object SkyBodies {
      */
     val RISING = Parameter(
         "rising",
-        listOf(Parameter.DEFAULT) + BEARINGS.keys,
+        listOf(Parameter.DEFAULT) + Compass.POINTS.keys,
         help = "Which horizon this body rises over.",
     )
 

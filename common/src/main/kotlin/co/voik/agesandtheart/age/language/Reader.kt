@@ -90,7 +90,7 @@ object Reader {
                     }
                 }
             }
-            waiting.forEach(::fell)
+            waiting.forEach { page -> if (!landedOnTheNext(page, waiting)) fell(page) }
             waiting.clear()
             andAt?.let(::impossible)
             polarityAt?.let(::impossible)
@@ -107,7 +107,7 @@ object Reader {
             when (structure) {
                 Structure.AGE -> {
                     lastTaker?.takeIf(::isSaidOfTheAge)?.let(::saidOfTheAge)
-                    waiting.forEach { laidBare(it, Fate.LaidBare) }
+                    waiting.forEach { page -> if (!landedOnTheNext(page, waiting)) laidBare(page, Fate.LaidBare) }
                     waiting.clear()
                     lastTaker = null
                     // An `and` with nothing but the Age after it joins nothing, as one at the end of the book does.
@@ -300,6 +300,25 @@ object Reader {
             waiting += Waiting(at, word, joined)
         }
 
+        /**
+         * `north blizzard`: a page waiting just before a word that takes nothing lands what it offers that word and
+         * nothing else, as it would where the word took it — unless that word passes an offering of its own on to the
+         * word taking them both ([besides]), as `gridded` does in `sparse gridded pyramids`. Whether it did.
+         */
+        private fun landedOnTheNext(page: Waiting, pages: List<Waiting>, besides: Set<String> = emptySet()): Boolean {
+            val next = pages.firstOrNull { it.index == page.index + 1 } ?: return false
+            if (next.word.name in besides) return false
+            val offered = page.word.meanings.filter { next.word.name in it.offeredTo }
+            if (offered.isEmpty()) return false
+            fates[page.index] = Fate.TakenBy(next.index)
+            for (meaning in offered) {
+                for ((place, effects) in placesOf(meaning)) {
+                    claims += Claim(page.index, page.word, meaning, place, effects, clause = page.index, aimed = true, joined = page.joined)
+                }
+            }
+            return true
+        }
+
         private fun takes(word: Word, acceptance: Acceptance) {
             val named = lastTaker?.takeIf { namesThePartOf(word, it) }
             if (named != null) {
@@ -331,6 +350,7 @@ object Reader {
             val offeringHere = taking.filter { page -> page.word.meanings.any(::isOfferedHere) }.map { it.word.name }.toSet()
             fun isOfferedThrough(page: Waiting, meaning: Meaning) = meaning.offeredTo.any { it in offeringHere && it != page.word.name }
             for (page in taking) {
+                if (!borrowsTheLeftsPages && landedOnTheNext(page, taking, besides = offeringHere)) continue
                 val meanings = page.word.meanings.filter { keptByOrder(page, it, taking) }
                 // A meaning that only ever applies laid bare is never the taking word's to land.
                 val taken = meanings.filter { !it.isOffered && it.appliesWhereAimed }.mapNotNull { meaning ->

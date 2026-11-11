@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "The air moving, as `windy` says it. Read as the air's own page, so a point of the compass before it",
+    "says where the wind blows from and nothing else: `north wind`."
+  ],
+  "speech": "noun",
+  "meanings": [
+    {
+      "sets": {
+        "wind": "-0.2..0.6"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

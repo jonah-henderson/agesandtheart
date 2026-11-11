@@ -1,0 +1,27 @@
+{
+  "meanings": [
+    {
+      "sets": {
+        "landmass.bearing": "-0.5..-0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.from": "southeast"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.from": "southeast"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "gale",
+        "tornado",
+        "blizzard"
+      ]
+    }
+  ]
+}

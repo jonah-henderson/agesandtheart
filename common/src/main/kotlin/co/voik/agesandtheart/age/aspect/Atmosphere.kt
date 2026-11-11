@@ -77,19 +77,33 @@ object Atmosphere {
         ),
     )
 
-    /** The wind [parts] asked for, on a bearing drawn from [seed], or still air where nothing asked. */
+    /** Which way the wind blows from, as a point of the [Compass], or the Age's own bearing off its seed where unsaid. */
+    val FROM = Parameter(
+        "from",
+        listOf(Parameter.DEFAULT) + Compass.POINTS.keys,
+        help = "Which way the wind blows from.",
+    )
+
+    /** The wind [parts] asked for, on the bearing they asked for or one drawn from [seed], or still air where nothing asked. */
     fun windIn(parts: AgeParts, seed: Long): Wind {
         val asked = parts.optionsFor(Aspect.AIR).steer(WIND, seed) ?: return Wind.STILL
         val strength = Span.NATURAL.fractionOf(asked).toFloat()
         if (strength <= 0.0f) return Wind.STILL
-        return Wind(bearingDegrees = prevailingBearingDegrees(seed), strength = strength, seed = seed)
+        return Wind(bearingDegrees = prevailingBearingDegrees(parts, seed), strength = strength, seed = seed)
     }
 
     /**
      * The way the Age's wind blows towards, in degrees from east turning to south, whether or not a book wrote one —
-     * so the land the wind carves lies along the wind that blows over it.
+     * so the land the wind carves lies along the wind that blows over it. A wind from north blows towards the south.
      */
-    fun prevailingBearingDegrees(seed: Long): Float = Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES
+    fun prevailingBearingDegrees(parts: AgeParts, seed: Long): Float =
+        writtenBearingDegrees(parts) ?: (Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES)
+
+    /** The way [parts] said the wind blows towards, in the same terms, or null where nobody said where it comes from. */
+    fun writtenBearingDegrees(parts: AgeParts): Float? {
+        val from = Compass.bearingOf(parts.optionsFor(Aspect.AIR).of(FROM)) ?: return null
+        return (from + COMPASS_TO_DOWNWIND_DEGREES).mod(FULL_TURN_DEGREES)
+    }
 
     /** Whether the snow lies uncut by the wind, as before generator 25. Set on every Age with a wind written before then. */
     val FORMER_UNCUT_SNOW = Parameter.flag(
@@ -99,6 +113,12 @@ object Atmosphere {
 
     private const val WIND_SALT = 0x57494E44L
     private const val FULL_TURN_DEGREES = 360.0f
+
+    /**
+     * From a compass bearing the wind comes from to the way it blows towards in [Wind]'s terms: half a turn to face
+     * downwind, less the quarter between north and [Wind]'s east.
+     */
+    private const val COMPASS_TO_DOWNWIND_DEGREES = 90.0f
 
     /**
      * How much of the time it rains, and how much of *that* is thunder.

@@ -49,11 +49,14 @@ object WordAcceptance {
 
     private fun pageOf(word: Word, tags: MemberTags): Acceptance? {
         val isOurs = word.id.namespace == Constants.MOD_ID
-        val aspect = Aspect.byPage(word.name)?.takeIf { isOurs } ?: return null
+        val aspect = (Aspect.byPage(word.name) ?: OTHER_PAGES[word.name])?.takeIf { isOurs } ?: return null
         val life = LIVES_IN[aspect]?.let { tag -> whatLivesIn(tag, tags) }
         val synonym = SYNONYMS[aspect]?.let { Acceptance.ofAspect(it).copy(companion = life) }
         return Acceptance.ofAspect(aspect).copy(companion = synonym ?: life)
     }
+
+    /** Words a part of the world takes pages as though it were its own: `north wind` is said of the air. */
+    private val OTHER_PAGES = mapOf("wind" to Aspect.AIR)
 
     /** Pages that mean one thing to a writer though the world keeps them apart: the sea and its waters. */
     private val SYNONYMS = mapOf(Aspect.SEA to Aspect.WATERS, Aspect.WATERS to Aspect.SEA)

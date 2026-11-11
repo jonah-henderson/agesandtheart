@@ -1,0 +1,32 @@
+{
+  "_comment": [
+    "A point of the compass: which way a canyon or a cliff runs, and where the wind blows from -- the",
+    "Age's one wind, which a gale, a tornado and a blizzard blow along too. A line has no direction, so a north",
+    "canyon and a south one are the same canyon."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "landmass.bearing": "-1.0..-1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.from": "north"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.from": "north"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "gale",
+        "tornado",
+        "blizzard"
+      ]
+    }
+  ]
+}

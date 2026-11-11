@@ -73,7 +73,7 @@ object Blizzard {
         // decide is what it does while it lasts — how thick it blows, and how fast it bites.
         val thickness = visibilityIn(level, dials.visibility)
         val biting = frostbiteIn(level, dials.frostbite)
-        val bearing = bearingDegreesAt(level.seed, level.gameTime)
+        val bearing = bearingDegreesAt(level.seed, level.gameTime, PrevailingWind.writtenIn(level))
         val drifting = driftingAlong(bearing)
         val cursor = BlockPos.MutableBlockPos()
         for (player in Sampling.watchers(level)) {
@@ -279,7 +279,7 @@ object Blizzard {
         val lying = level.getRainLevel(1.0f).toDouble()
         if (lying <= 0.0) return null
         val fury = (visibilityIn(level, dials.visibility) / HARDEST_EARNED).coerceIn(0.0, ALWAYS)
-        return Gale.Blowing(lying, bearingDegreesAt(level.seed, level.gameTime), fury)
+        return Gale.Blowing(lying, bearingDegreesAt(level.seed, level.gameTime, PrevailingWind.writtenIn(level)), fury)
     }
 
     /**
@@ -287,15 +287,15 @@ object Blizzard {
      * from nothing written down. Keyed on the Age's seed and its day, so a storm has a direction that holds while
      * it blows and the next one does not inherit it; it turns to the next day's over the last [TURNING_TICKS].
      */
-    fun bearingDegreesAt(seed: Long, gameTime: Long): Double {
+    fun bearingDegreesAt(seed: Long, gameTime: Long, written: Double? = null): Double {
         val day = Math.floorDiv(gameTime, TICKS_PER_DAY)
         val intoTheTurn = (gameTime - day * TICKS_PER_DAY - (TICKS_PER_DAY - TURNING_TICKS)).toFloat() / TURNING_TICKS
         val turning = Mth.smoothstep(intoTheTurn.coerceIn(0.0f, 1.0f)).toDouble()
-        return Gale.turnedTowards(bearingOn(seed, day), bearingOn(seed, day + 1), turning)
+        return Gale.turnedTowards(bearingOn(seed, day, written), bearingOn(seed, day + 1, written), turning)
     }
 
-    private fun bearingOn(seed: Long, day: Long): Double =
-        XoroshiroRandomSource(seed xor WIND_SALT xor day).nextDouble() * FULL_TURN
+    private fun bearingOn(seed: Long, day: Long, written: Double?): Double =
+        PrevailingWind.drawnAbout(written, XoroshiroRandomSource(seed xor WIND_SALT xor day).nextDouble())
 
     /** The one of the four ways a drift lies nearest [drivingDegrees], since a drift is laid block by block. */
     fun driftingAlong(drivingDegrees: Double): Direction {
@@ -647,7 +647,6 @@ object Blizzard {
 
     /** Half a minute to turn from one day's bearing to the next. */
     private const val TURNING_TICKS = 600L
-    private const val FULL_TURN = 360.0
 
     /** So the wind is decorrelated from everything else the seed drives. */
     private const val WIND_SALT = 0xB112_2A2DL

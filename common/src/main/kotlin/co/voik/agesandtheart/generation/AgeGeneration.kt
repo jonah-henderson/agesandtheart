@@ -954,7 +954,7 @@ object AgeGeneration {
      * was one ([Terrain.FORMER_LAND]), whose land and biomes stay as they were.
      */
     private fun terrainTableOf(composition: AgeComposition, seed: Long): TerrainTable? =
-        if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_LAND)) null else TerrainTable(seed xor TABLE_SALT, Atmosphere.prevailingBearingDegrees(seed).toDouble())
+        if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_LAND)) null else TerrainTable(seed xor TABLE_SALT, Atmosphere.prevailingBearingDegrees(composition, seed).toDouble())
 
     /**
      * The terrain's territories laid out by [table], each landform where the land suits it — unless the Age asked for
