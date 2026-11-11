@@ -100,6 +100,11 @@ class TempestCheck : FunSpec({
      * is live once a strike in it destroys something.
      */
     fun waitUntilStriking() {
+        // Ticking before striking: on a server busy generating for the other specs, a forced chunk can take longer
+        // to start ticking than the five tries below take to run.
+        server.waitUntil("$stormy's chunk ticking") {
+            server.run("execute in $stormy if loaded 0 $WARM_UP_Y 0").startsWith("Test passed")
+        }
         repeat(WARM_UP_TRIES) {
             set(stormy, WARM_UP_Y, 0 to glass)
             strike(stormy, 0, WARM_UP_Y)
