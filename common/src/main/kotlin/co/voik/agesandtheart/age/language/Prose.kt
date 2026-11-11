@@ -249,6 +249,15 @@ object Prose {
             )
             fun said(page: PageRead) = termOf(page)?.copy(share = shareOf(page.index, taker.index))
             val isTheAspectsPage = word.id.namespace == Constants.MOD_ID && Aspect.byPage(word.name) == place.aspect
+            // `rainbow`, `aurora phenomena`: a part's page that brings its phenomenon and is described by nothing is
+            // said as that phenomenon, as a word naming it would be.
+            val announces = reading.landings.any { landing ->
+                landing.page == taker.index && landing.place.aspect == Aspect.PHENOMENA &&
+                    landing.effects.any { it is Effect.Chooses } && landing.at !in resolution.cameToNothing
+            }
+            if (isTheAspectsPage && announces && taken.isEmpty()) {
+                return ProseClause(Aspect.PHENOMENA, listOfNotNull(counted?.copy(speech = Speech.NOUN)), confinedTo, everywhere)
+            }
             if (isTheAspectsPage) {
                 // `no features`: the page itself, struck, which the writing says as the part holding nothing.
                 val emptied = landed.any { landing ->

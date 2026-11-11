@@ -122,8 +122,8 @@ enum class Phenomenon(
      * **The one phenomenon here that insists on rain, and the one for which a floor is the right shape.**
      * An inferno wants a dry Age and a curtain a clear one, so neither could ask [insistsOn] for anything;
      * a bow is sunlight bent through falling water and wants exactly what a floor can give. It cannot be
-     * said in `art/word/rainbows.json` either — a rainfall bound there is a second aspect, and the pricing
-     * rule above would take the word away from phenomena altogether.
+     * said on the `rainbow` page either — a rainfall bound there is a second aspect, and the pricing rule above
+     * would take the page away from phenomena altogether.
      *
      * **Showery rather than streaming.** A bow needs the rain to *stop*, or at least to thin: the light has
      * to reach the drops. An Age held at a downpour would have the wettest sky and no bows in it.

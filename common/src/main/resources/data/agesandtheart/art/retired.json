@@ -15,7 +15,8 @@
     "battered": "worn",
     "spawns": "inhabitants",
     "infernal": "nether",
-    "dark_void": "end"
+    "dark_void": "end",
+    "rainbows": "rainbow"
   },
   "phrases": {
     "rising_north": "north rising",

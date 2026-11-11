@@ -22,7 +22,7 @@ class RainbowCommandCheck : FunSpec({
     val bare = "bowless"
 
     beforeSpec {
-        server.run("age write $bowed 7 rainbows age")
+        server.run("age write $bowed 7 rainbow age")
         server.run("age compose $bare 5 landmass=gentle sea=minecraft:water")
         // A bow needs its light up, and an Age keeps a day of its own that starts wherever its seed says.
         server.run("execute in agesandtheart:$bowed run time set noon")
@@ -31,7 +31,7 @@ class RainbowCommandCheck : FunSpec({
     test("an Age with no bow says so, and says how to get one") {
         val report = server.run("execute in agesandtheart:$bare run age showing rainbow")
         check("Nothing writes a bow" in report) { "An Age with no bow did not say so:\n$report" }
-        check("rainbows" in report) { "It did not say which word writes one:\n$report" }
+        check("rainbow" in report) { "It did not say which word writes one:\n$report" }
     }
 
     test("an Age with one reports every factor rather than a single verdict") {

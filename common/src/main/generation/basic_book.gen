@@ -327,9 +327,9 @@ aurora =
     | colossal [aurora_colour] aurora
     | large [aurora_colour] aurora
 
-# The bow's own page brings one, so describing it is enough.
+# The bow's own page brings one, so naming it or describing it is enough.
 rainbow =
-    rainbows@2
+    rainbow phenomena@2
     | [colour] rainbow
     | colossal rainbow
     | large rainbow

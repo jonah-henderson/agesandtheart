@@ -54,6 +54,12 @@ class ProseCheck : FunSpec({
             "age rising_north sun" to "An Age. Its sun is rising in the north.",
             "age north wind" to "An Age. Its air is from the north and windy.",
             "age rising sea" to "An Age. Its sea is rising.",
+            "age rainbow phenomena" to "An Age. Its phenomena include rainbows.",
+            "age rainbow sky" to "An Age. Its sky is rainbow.",
+            "age rainbow" to "An Age. Its phenomena include rainbows.",
+            "age aurora" to "An Age. Its phenomena include auroras.",
+            "age red and yellow rainbow" to "An Age. Its rainbows are red and yellow.",
+            "age red aurora phenomena" to "An Age. Its aurora is red.",
         )
     }
 }

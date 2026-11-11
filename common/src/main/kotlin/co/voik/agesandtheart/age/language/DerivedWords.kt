@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.language
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Prism
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Structures
@@ -136,7 +138,22 @@ object DerivedWords {
     fun aspectPages(): List<Word> = Aspect.entries.map { aspect ->
         val phenomenon = ANNOUNCED[aspect]
         val announces = phenomenon?.let { listOf(Meaning(listOf(Effect.Chooses(Aspect.PHENOMENA, it)), mustAlwaysApply = true, asserts = true)) }
-        Word(aspect.page.location(), announces.orEmpty())
+        val cycles = if (aspect == Aspect.RAINBOW) listOf(rainbowColoured()) else emptyList()
+        Word(aspect.page.location(), announces.orEmpty() + cycles)
+    }
+
+    /**
+     * `rainbow sky`, `rainbow aurora`: the rainbow's page said of anything whose colours may turn means them turning,
+     * as `prismatic` does there, and brings no bows.
+     */
+    private fun rainbowColoured(): Meaning {
+        val cycling = Prism.COLOURS_CYCLING.name
+        val turning = Aspect.entries.filter { it != Aspect.RAINBOW && it.understood.any { parameter -> parameter.name == cycling } }
+        return Meaning(
+            listOf(Effect.Sets(ParameterKey(cycling), Parameter.TRUE)),
+            mustAlwaysApply = true,
+            offeredTo = turning.map { it.page }.toSet(),
+        )
     }
 
     private val ANNOUNCED = mapOf(Aspect.AURORA to "aurora", Aspect.RAINBOW to "rainbow")

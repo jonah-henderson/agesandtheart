@@ -435,7 +435,7 @@
       {"produce":["large","[aurora_colour]","aurora"]}
     ],
     "rainbow": [
-      {"weight":2.0,"produce":["rainbows"]},
+      {"weight":2.0,"produce":["rainbow","phenomena"]},
       {"produce":["[colour]","rainbow"]},
       {"produce":["colossal","rainbow"]},
       {"produce":["large","rainbow"]},

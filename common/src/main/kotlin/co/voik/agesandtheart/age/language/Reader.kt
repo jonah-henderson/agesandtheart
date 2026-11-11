@@ -460,7 +460,11 @@ object Reader {
             val onlyPagesWaitBetween = waiting.map(Waiting::index) == (before.index + 1..<at).toList()
             val namesMembers = before.place.members is Members.Named
             val nothingElseIsOpen = andAt == null && ofFrom == null
-            return onlyPagesWaitBetween && namesMembers && nothingElseIsOpen && saysSomethingOf(before.word, word, acceptance, place)
+            // `rainbow sky`: a part's page that took nothing, before a word it offers something, is said of that word
+            // too; `large rainbow white leaves` is a bow and some leaves.
+            val offersIt = before.took.isEmpty() && before.word.meanings.any { isOfferedTo(it, word, acceptance) }
+            val isSaidOfIt = if (namesMembers) saysSomethingOf(before.word, word, acceptance, place) else offersIt
+            return onlyPagesWaitBetween && nothingElseIsOpen && isSaidOfIt
         }
 
         private fun saysSomethingOf(member: Word, word: Word, acceptance: Acceptance, place: Place): Boolean {
@@ -521,7 +525,12 @@ object Reader {
          * landmass`, `tunnels underground`. It says where that word belongs, and takes nothing of its own.
          */
         private fun namesThePartOf(word: Word, before: Taker): Boolean {
-            val isOurPage = word.id.namespace == Constants.MOD_ID && Aspect.byPage(word.name) == before.place.aspect
+            val part = Aspect.byPage(word.name)?.takeIf { word.id.namespace == Constants.MOD_ID }
+            // `rainbow phenomena`: the page of the part the word before brings a member of, as `rainbow` brings bows.
+            fun bringsOneOf(aspect: Aspect) = before.word.meanings.any { meaning ->
+                meaning.effects.any { it is Effect.Chooses && it.aspect == aspect }
+            }
+            val isOurPage = part != null && (part == before.place.aspect || bringsOneOf(part))
             val followsIt = before.index == at - 1
             val nothingElseIsOpen = waiting.isEmpty() && andAt == null && ofFrom == null
             return isOurPage && followsIt && nothingElseIsOpen

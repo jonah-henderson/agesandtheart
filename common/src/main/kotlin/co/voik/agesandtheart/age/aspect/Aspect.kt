@@ -227,8 +227,9 @@ enum class Aspect(
      * The bow that stands opposite the Age's light when the weather makes one.
      *
      * **Its own aspect for the aurora's reason**: a writer aiming a clause at it — `red and yellow rainbow`
-     * — must be able to say the colours are the *bow's* and not the sky's. `Vocabulary.aimingPages` mints
-     * the page, which is why there is no `art/word/rainbow.json`; naming it, or `rainbows`, asks for one.
+     * — must be able to say the colours are the *bow's* and not the sky's. `DerivedWords.aspectPages` mints
+     * the page, which is why there is no `art/word/rainbow.json`; naming it asks for one, and said of anything whose
+     * colours may turn (`rainbow sky`) it means them turning instead.
      *
      * **Describing it asserts it, and so does naming it**, likewise. It holds nothing, so no clause can mint a
      * member the way a clause mints a sun; what it has is parameters, and anything set on one — or the bare

@@ -93,7 +93,7 @@ class ResolutionCheck : FunSpec({
     }
 
     test("weather under a roof is charged, whether a word or the rock made the roof") {
-        for (weather in listOf("tempest", "deluge", "blizzard", "rainbows")) {
+        for (weather in listOf("tempest", "deluge", "blizzard", "rainbow")) {
             check(resolved("age $weather").incoherentPairs().isEmpty()) { "$weather under an open sky was charged" }
             val written = resolved("age lost $weather").incoherentPairs()
             check(setOf("lost", weather) in written) { "$weather under a written roof charged $written" }

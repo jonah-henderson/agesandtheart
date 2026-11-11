@@ -430,7 +430,7 @@ internal object SkyInstruments {
         if (look == null || rainbow == null) {
             report.say { "Nothing writes a bow into ${level.dimension().identifier()}." }
             report.fact("hasRainbow", false) {
-                "  Write one with `rainbows`, describe one — `red and yellow rainbow` — or `prismatic`."
+                "  Write one with `rainbow`, describe one — `red and yellow rainbow` — or `prismatic`."
             }
             report.finish()
             return SUCCESS
