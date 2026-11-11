@@ -548,7 +548,9 @@ object DryingRack {
             .mapColor(MapColor.WOOD)
             .strength(STRENGTH)
             .sound(SoundType.WOOD)
-            .ignitedByLava(),
+            .ignitedByLava()
+            // Its shape is for standing on and aiming at; light passes the ladder and its neighbours stay lit.
+            .noOcclusion(),
     )
 
     val ITEM: Item = BlockItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())

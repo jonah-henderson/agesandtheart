@@ -1,9 +1,20 @@
 {
   "_comment": [
-    "Learned on first holding a book of ours, which is all a bookbinder is for."
+    "Learned on first holding a book of ours, which is all a bookbinder is for, or a wooden slab, the board it",
+    "stands on (Jonah), so a player meets it before their first book."
   ],
   "parent": "minecraft:recipes/root",
   "criteria": {
+    "has_wooden_slab": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#minecraft:wooden_slabs"
+          }
+        ]
+      }
+    },
     "has_descriptive_book": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
@@ -33,6 +44,7 @@
   },
   "requirements": [
     [
+      "has_wooden_slab",
       "has_descriptive_book",
       "has_linking_book",
       "has_the_recipe"
