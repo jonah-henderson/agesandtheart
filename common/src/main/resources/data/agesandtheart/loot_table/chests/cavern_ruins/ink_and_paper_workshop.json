@@ -1,7 +1,8 @@
 {
   "_comment": [
-    "Where the D'ni made the two things a book is made of. Fine ink and fine paper by the handful -- the",
-    "grades a village will not sell (design 7.1.1) -- and a rare bottle or sheet of the masterwork.",
+    "Where the D'ni made the two things a book is made of. Common ink and paper by the handful, and now and",
+    "then a bottle of fine ink or a sheet of fine paper -- exceedingly rare, since making them is the route",
+    "(Jonah, 2026-11-11) -- and a rare bottle or sheet of the masterwork.",
     "The scarab medallion is here because a scarab is what an ink workshop was ultimately for (design",
     "7.1.2): the tool that finds the habitat, left in the room that needed it. It is the rarest thing in",
     "any of these tables, and it does nothing yet."
@@ -17,7 +18,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "agesandtheart:fine_paper",
+          "name": "minecraft:paper",
           "weight": 6,
           "modifier": [
             {
@@ -28,19 +29,8 @@
         },
         {
           "type": "minecraft:item",
-          "name": "agesandtheart:fine_ink_bottle",
-          "weight": 5,
-          "modifier": [
-            {
-              "type": "minecraft:set_count",
-              "count": { "type": "minecraft:uniform", "min": 1, "max": 3 }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "agesandtheart:ink_bottle",
-          "weight": 5,
+          "weight": 10,
           "modifier": [
             {
               "type": "minecraft:set_count",
@@ -83,6 +73,25 @@
         {
           "type": "minecraft:empty",
           "weight": 10
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:fine_ink_bottle",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:fine_paper",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 18
         }
       ]
     },
