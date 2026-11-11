@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.ephemeris.Rgba
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.DeepLake
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
@@ -117,6 +118,23 @@ object Features {
             }
             placed == null || asks(placed, registries)
         }
+
+    /** What colour the algae glows — `red algae`, `blue algae` — or [Parameter.DEFAULT] for its own. Only the algae honours it. */
+    val COLOUR = Sky.colour("colour", "The colour the algae glows.").perMember(MemberHonouring { member, _ -> member.key == ALGAE })
+
+    /** The colour [options] say the algae glows, or null where they leave it its own. */
+    fun algaeColourIn(options: Options): Rgba? {
+        val holders = options.holdersOfAny(COLOUR)
+        val said = when {
+            ALGAE in holders.only -> options.of(COLOUR, member = ALGAE)
+            holders.everyone -> options.of(COLOUR)
+            else -> return null
+        }
+        return Colour.named(said)
+    }
+
+    /** The algae, as a feature and as the block it lays. */
+    const val ALGAE = "agesandtheart:algae"
 
     /**
      * Whether everything the Age grows grows anywhere — every biome's features in every biome, at any height —

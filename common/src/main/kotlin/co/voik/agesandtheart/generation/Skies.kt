@@ -5,6 +5,8 @@ import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.StrangeSky
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Aspect
+import net.minecraft.resources.Identifier
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Prism
 import co.voik.agesandtheart.age.aspect.Spawns
@@ -85,6 +87,8 @@ object Skies {
             wind = Atmosphere.windIn(parts, recipe.seed),
             cycles = Prism.cyclesIn(parts, sky, recipe.seed),
             creatures = Spawns.coloursIn(parts.optionsFor(Aspect.SPAWNS)),
+            blocks = Features.algaeColourIn(parts.optionsFor(Aspect.FEATURES))
+                ?.let { mapOf(Identifier.parse(Features.ALGAE) to it) }.orEmpty(),
         )
     }
 }

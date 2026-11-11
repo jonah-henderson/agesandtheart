@@ -314,7 +314,7 @@ enum class Aspect(
             FEATURES -> listOf(
                 Features.SIZE, Features.ORE_SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE,
                 Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
-                Features.ARRANGEMENT, Features.SPACING,
+                Features.ARRANGEMENT, Features.SPACING, Features.COLOUR,
             )
             AIR -> listOf(
                 Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND, Atmosphere.FROM, Atmosphere.FORMER_UNCUT_SNOW,
