@@ -17,21 +17,24 @@
     "Age and a storm caught or a crater hunted, which is why the list reads cheaper than the instrument is.",
     "",
     "Plain paper, not fine (Jonah, 2026-10-15). Fine paper takes deretheni, which opens the midgame, so it",
-    "made the shard the lesser of this recipe's two gates."
+    "made the shard the lesser of this recipe's two gates.",
+    "",
+    "A breeze rod for a foot (Jonah, 2026-11-11): the Overworld mastery an early implement asks for alongside",
+    "(design 7.4), from a trial chamber, and the breeze is vanilla's creature of shock and gust."
   ],
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
     "nCn",
     "nSb",
-    "IKp"
+    "BKp"
   ],
   "key": {
     "n": "minecraft:iron_nugget",
     "C": "minecraft:iron_chain",
     "S": "agesandtheart:astrite_shard",
     "b": "agesandtheart:ink_bottle",
-    "I": "minecraft:iron_ingot",
+    "B": "minecraft:breeze_rod",
     "K": "minecraft:clock",
     "p": "minecraft:paper"
   },

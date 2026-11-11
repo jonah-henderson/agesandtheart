@@ -1,21 +1,24 @@
 {
   "_comment": [
     "Rime crystals round a spyglass, the lens that looks into the Age, with a copper bulb under it to light",
-    "them, on a stand of iron bars (Jonah, 2026-10-01). Rime because a crystal is the thing a viewer is",
-    "made of rather than a stand-in for a lens (design 7.4). Ratios are unbalanced."
+    "them, on a stand of iron bars set with prismarine crystals (Jonah, 2026-10-01). Rime because a crystal",
+    "is the thing a viewer is made of rather than a stand-in for a lens (design 7.4). The prismarine is the",
+    "Overworld mastery an early implement asks for alongside (design 7.4, Jonah, 2026-11-11): only a guardian,",
+    "so only an ocean monument, gives it. Ratios are unbalanced."
   ],
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
     "RSR",
     "RBR",
-    "III"
+    "IXI"
   ],
   "key": {
     "R": "#agesandtheart:rime_crystals",
     "S": "minecraft:spyglass",
     "B": "minecraft:copper_bulb",
-    "I": "minecraft:iron_bars"
+    "I": "minecraft:iron_bars",
+    "X": "minecraft:prismarine_crystals"
   },
   "result": { "id": "agesandtheart:crystal_viewer" }
 }

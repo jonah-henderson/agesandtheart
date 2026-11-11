@@ -1,6 +1,8 @@
 {
   "_comment": [
-    "A shroomlight over a nether quartz over phasmium, between two shelves of any wood (Jonah, 2026-10-03).",
+    "A sea lantern over a nether quartz over phasmium, between two shelves of any wood (Jonah, 2026-10-03;",
+    "the lantern for a shroomlight 2026-11-11, an ocean monument's being the Overworld mastery an early",
+    "implement asks for, design 7.4).",
     "Phasmium because it is the linking material: it frames the portals and holds their books. Ratios are",
     "unbalanced."
   ],
@@ -12,7 +14,7 @@
     "SPS"
   ],
   "key": {
-    "L": "minecraft:shroomlight",
+    "L": "minecraft:sea_lantern",
     "Q": "minecraft:quartz",
     "P": "agesandtheart:phasmium",
     "S": "#minecraft:wooden_shelves"
