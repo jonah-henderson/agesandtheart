@@ -38,13 +38,26 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
     private val seam = book.getChild(SEAM)
     private val leftPages = book.getChild(LEFT_PAGES)
     private val rightPages = book.getChild(RIGHT_PAGES)
+    private val blankRightPages = book.getChild(BLANK_RIGHT_PAGES)
+    private val bindingParts = listOf(leftLid, rightLid, seam)
     private val leaves = listOf(book.getChild(FIRST_LEAF), book.getChild(SECOND_LEAF))
 
     /**
      * A book [openness] of the way from shut (0) to flat (1), each of its two turning leaves somewhere between
-     * lying on the right-hand page (0) and on the left-hand one (1). A leaf lying on either page is not drawn.
+     * lying on the right-hand page (0) and on the left-hand one (1). A leaf lying on either page is not drawn. Only
+     * the [drawn] parts show, and the right-hand page is written on where [writtenOnTheRight], blank as the left is
+     * otherwise.
      */
-    data class State(val openness: Float, val firstLeaf: Float = 0.0f, val secondLeaf: Float = 0.0f)
+    data class State(
+        val openness: Float,
+        val firstLeaf: Float = 0.0f,
+        val secondLeaf: Float = 0.0f,
+        val drawn: Drawn = Drawn.WHOLE,
+        val writtenOnTheRight: Boolean = true,
+    )
+
+    /** Which of the book's parts a pass draws: the binding takes its dye, and the pages never do. */
+    enum class Drawn { WHOLE, BINDING, PAGES }
 
     override fun setupAnim(state: State) {
         super.setupAnim(state)
@@ -56,11 +69,19 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
         rightPages.yRot -= swing
         leftPages.z = slide
         rightPages.z = slide
+        blankRightPages.yRot -= swing
+        blankRightPages.z = slide
+        val showsBinding = state.drawn != Drawn.PAGES
+        val showsPages = state.drawn != Drawn.BINDING
+        for (part in bindingParts) part.visible = showsBinding
+        leftPages.visible = showsPages
+        rightPages.visible = showsPages && state.writtenOnTheRight
+        blankRightPages.visible = showsPages && !state.writtenOnTheRight
         for ((leaf, turned) in leaves.zip(listOf(state.firstLeaf, state.secondLeaf))) {
             // From the right-hand page's angle to the left-hand one's, over the gutter.
             leaf.yRot += swing * (2 * turned - 1)
             leaf.z = slide
-            leaf.visible = turned > 0.0f && turned < 1.0f
+            leaf.visible = showsPages && turned > 0.0f && turned < 1.0f
         }
     }
 
@@ -119,6 +140,7 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
         private const val SEAM = "seam"
         private const val LEFT_PAGES = "left_pages"
         private const val RIGHT_PAGES = "right_pages"
+        private const val BLANK_RIGHT_PAGES = "blank_right_pages"
         private const val FIRST_LEAF = "flip_page_l"
         private const val SECOND_LEAF = "flip_page_r"
 
@@ -153,11 +175,40 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
             )
         }
 
-        private val DESCRIPTIVE_TEXTURE: Identifier = "textures/entity/book/descriptive_book.png".location()
-        private val LINKING_TEXTURE: Identifier = "textures/entity/book/linking_book.png".location()
+        /**
+         * Both books' one texture, its binding in greyscale for the dye to colour. Laid out as the Blockbench model
+         * lays it out: the front board at (0, 0), the back at (14, 0), the spine at (0, 9), the blank pages at (6, 9)
+         * and the written ones at (6, 18).
+         */
+        val TEXTURE: Identifier = "textures/entity/book/age_book.png".location()
 
-        fun textureOf(book: ItemStack): Identifier =
-            if (book.`is`(AgeContent.LINKING_BOOK)) LINKING_TEXTURE else DESCRIPTIVE_TEXTURE
+        /** Whether [book]'s right-hand page is written on: a descriptive book's is, a linking book's blank as its left. */
+        fun writtenOnTheRight(book: ItemStack): Boolean = !book.`is`(AgeContent.LINKING_BOOK)
+
+        private const val FRONT_BOARD_U = 0
+        private const val BACK_BOARD_U = 14
+        private const val BOARDS_V = 0
+        private const val SPINE_U = 0
+        private const val SPINE_V = 9
+        private const val PAGES_U = 6
+        private const val BLANK_PAGES_V = 9
+        private const val WRITTEN_PAGES_V = 18
+
+        /**
+         * Where a binding box of [binding]'s thickness starts on the texture to sample its outside face where a thick
+         * one does: a box's faces lie its thickness apart, so a thin one starts two across and one down, and its inside
+         * face reads a pixel left of a thick one's.
+         */
+        private fun bindingOffset(u: Int, v: Int, binding: BookBinding): Pair<Int, Int> = when (binding) {
+            BookBinding.THICK -> u to v
+            BookBinding.THIN -> u + THIN_ACROSS to v + THIN_DOWN
+        }
+
+        private const val THIN_ACROSS = 2
+        private const val THIN_DOWN = 1
+
+        /** A leaf has no thickness, so it starts where a block of pages' face does, a pixel in. */
+        private const val LEAF_INSET = 1
 
         /**
          * The book shut, each board and block of pages turned a quarter from where it lies open, its boards and
@@ -173,36 +224,41 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
                 CubeListBuilder.create(),
                 PartPose.offsetAndRotation(boards, 0.0f, 0.0f, HALF_TURN, QUARTER_TURN, 0.0f),
             )
+            val (frontU, frontV) = bindingOffset(FRONT_BOARD_U, BOARDS_V, binding)
+            val (backU, backV) = bindingOffset(BACK_BOARD_U, BOARDS_V, binding)
+            val (spineU, spineV) = bindingOffset(SPINE_U, SPINE_V, binding)
             book.addOrReplaceChild(
                 LEFT_LID,
-                CubeListBuilder.create().texOffs(0, 0).addBox(-BOARD_WIDTH, -HALF_HEIGHT, 0.0f, BOARD_WIDTH, HEIGHT, boards),
+                CubeListBuilder.create().texOffs(frontU, frontV).addBox(-BOARD_WIDTH, -HALF_HEIGHT, 0.0f, BOARD_WIDTH, HEIGHT, boards),
                 PartPose.offsetAndRotation(-SPINE_WIDTH / 2, 0.0f, 0.0f, 0.0f, -QUARTER_TURN, 0.0f),
             )
             book.addOrReplaceChild(
                 RIGHT_LID,
-                CubeListBuilder.create().texOffs(1, 9).addBox(0.0f, -HALF_HEIGHT, 0.0f, BOARD_WIDTH, HEIGHT, boards),
+                CubeListBuilder.create().texOffs(backU, backV).addBox(0.0f, -HALF_HEIGHT, 0.0f, BOARD_WIDTH, HEIGHT, boards),
                 PartPose.offsetAndRotation(SPINE_WIDTH / 2, 0.0f, 0.0f, 0.0f, QUARTER_TURN, 0.0f),
             )
             book.addOrReplaceChild(
                 SEAM,
-                CubeListBuilder.create().texOffs(0, 18)
+                CubeListBuilder.create().texOffs(spineU, spineV)
                     .addBox(-SPINE_WIDTH / 2, -HALF_HEIGHT, 0.0f, SPINE_WIDTH, HEIGHT, boards),
                 PartPose.ZERO,
             )
             book.addOrReplaceChild(
                 LEFT_PAGES,
-                CubeListBuilder.create().texOffs(15, 0).addBox(-6.0f, -4.0f, 0.0f, 6.0f, 8.0f, 1.0f),
+                CubeListBuilder.create().texOffs(PAGES_U, BLANK_PAGES_V).addBox(-6.0f, -4.0f, 0.0f, 6.0f, 8.0f, 1.0f),
                 PartPose.rotation(0.0f, -QUARTER_TURN, 0.0f),
             )
-            book.addOrReplaceChild(
-                RIGHT_PAGES,
-                CubeListBuilder.create().texOffs(16, 9).addBox(0.0f, -4.0f, 0.0f, 6.0f, 8.0f, 1.0f),
-                PartPose.rotation(0.0f, QUARTER_TURN, 0.0f),
-            )
+            for ((pages, v) in listOf(RIGHT_PAGES to WRITTEN_PAGES_V, BLANK_RIGHT_PAGES to BLANK_PAGES_V)) {
+                book.addOrReplaceChild(
+                    pages,
+                    CubeListBuilder.create().texOffs(PAGES_U, v).addBox(0.0f, -4.0f, 0.0f, 6.0f, 8.0f, 1.0f),
+                    PartPose.rotation(0.0f, QUARTER_TURN, 0.0f),
+                )
+            }
             for (leaf in listOf(FIRST_LEAF, SECOND_LEAF)) {
                 book.addOrReplaceChild(
                     leaf,
-                    CubeListBuilder.create().texOffs(17, 10).addBox(0.0f, -4.0f, 0.0f, 6.0f, 8.0f, 0.0f),
+                    CubeListBuilder.create().texOffs(PAGES_U + LEAF_INSET, BLANK_PAGES_V + LEAF_INSET).addBox(0.0f, -4.0f, 0.0f, 6.0f, 8.0f, 0.0f),
                     PartPose.rotation(0.0f, QUARTER_TURN, 0.0f),
                 )
             }

@@ -1,0 +1,8 @@
+{
+  "_comment": "A water cauldron washes a dyed book back to its undyed binding, as it washes leather.",
+  "replace": false,
+  "values": [
+    "agesandtheart:descriptive_book",
+    "agesandtheart:linking_book"
+  ]
+}

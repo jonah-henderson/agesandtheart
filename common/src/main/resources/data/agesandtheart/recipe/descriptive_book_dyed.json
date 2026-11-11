@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_dye",
+  "dye": "#minecraft:dyes",
+  "group": "dyed_books",
+  "result": {
+    "id": "agesandtheart:descriptive_book"
+  },
+  "target": "agesandtheart:descriptive_book"
+}

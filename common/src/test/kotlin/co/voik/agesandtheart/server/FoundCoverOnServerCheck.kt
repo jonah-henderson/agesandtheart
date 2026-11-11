@@ -4,8 +4,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * A found book comes covered: a base colour and, for an advanced or unstable book, two or three layers of a loom's own
- * patterns. Only a server holds the pattern registry and its tags, so only a server can say the cover is drawn at all.
+ * A found book comes covered or dyed: a cover a base colour and, for an advanced or unstable book, two or three layers
+ * of a loom's own patterns. Only a server holds the pattern registry and its tags, so only a server can say the cover is
+ * drawn at all.
  */
 @Tags(NEEDS_SERVER)
 class FoundCoverOnServerCheck : FunSpec({
@@ -22,20 +23,20 @@ class FoundCoverOnServerCheck : FunSpec({
 
     fun layersIn(components: String): Int = Regex(""""?pattern"?:""").findAll(components).count()
 
-    test("a basic book comes covered, plain or under one layer") {
-        val books = (0..<BOOKS).map { foundBook("basic", it) }
-        check(books.all { "minecraft:base_color" in it }) { "a basic book came uncovered: ${books.first { "minecraft:base_color" !in it }}" }
-        check(books.all { layersIn(it) <= 1 }) { "a basic book wore more than one layer: ${books.first { layersIn(it) > 1 }}" }
-        check(books.all { "agesandtheart:cover_layout" in it }) { "a basic book was given no layout" }
-    }
+    fun isCovered(components: String) = "minecraft:base_color" in components
+    fun isDyed(components: String) = "minecraft:dyed_color" in components
 
-    test("an advanced or unstable book comes under two or three layers") {
-        for (kind in listOf("advanced", "unstable")) {
+    test("a found book is covered or dyed, never both, and covers wear as many layers as their kind") {
+        for ((kind, layers) in listOf("basic" to 0..1, "advanced" to 2..3, "unstable" to 2..3)) {
             val books = (0..<BOOKS).map { foundBook(kind, it) }
-            check(books.all { layersIn(it) in 2..3 }) { "an $kind book wore ${books.map(::layersIn)} layers" }
+            check(books.none { isCovered(it) && isDyed(it) }) { "a $kind book was both covered and dyed" }
+            check(books.any(::isCovered) && books.any(::isDyed)) { "of $BOOKS $kind books, not one was covered and one dyed" }
+            val covers = books.filter(::isCovered)
+            check(covers.all { layersIn(it) in layers }) { "a covered $kind book wore ${covers.map(::layersIn)} layers" }
+            check(covers.all { "agesandtheart:cover_layout" in it }) { "a covered $kind book was given no layout" }
         }
     }
 })
 
 private const val CHECK_Y = 200
-private const val BOOKS = 6
+private const val BOOKS = 40

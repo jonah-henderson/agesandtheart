@@ -7,16 +7,17 @@ import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.client.resources.model.sprite.SpriteGetter
 import net.minecraft.core.component.DataComponents
-import net.minecraft.resources.Identifier
+import net.minecraft.util.ARGB
 import net.minecraft.world.item.ItemStack
 
 /**
- * What a book of ours looks like from outside: how it is bound, its texture, the banner it wears, and the name on it
- * in its colour, glowing or not.
+ * What a book of ours looks like from outside: how it is bound, the colour its binding is dyed, whether its right-hand
+ * page is written on, the banner it wears, and the name on it in its colour, glowing or not.
  */
 data class BookLook(
     val binding: BookBinding,
-    val texture: Identifier,
+    val bindingColour: Int,
+    val writtenOnTheRight: Boolean,
     val cover: BookCover.Worn?,
     val title: String?,
     val titleColour: Int,
@@ -25,12 +26,19 @@ data class BookLook(
     companion object {
         fun of(book: ItemStack): BookLook = BookLook(
             BookBinding.of(book),
-            AgeBookModel.textureOf(book),
+            book.get(DataComponents.DYED_COLOR)?.let { ARGB.opaque(it.rgb) } ?: UNDYED,
+            AgeBookModel.writtenOnTheRight(book),
             BookCover.Worn.on(book),
             titleOf(book),
             book.get(AgeComponents.TITLE_COLOUR)?.textColor ?: BookTitle.GILT,
             book.getOrDefault(AgeComponents.TITLE_GLOWS, false),
         )
+
+        /**
+         * The binding undyed: vanilla's book's dark brown where the greyscale is lightest, (119, 78, 34) over the
+         * texture's grey of 137, and darker with it elsewhere.
+         */
+        private val UNDYED = ARGB.color(221, 145, 63)
 
         /** What the book is called: a name given it at an anvil, else the Age it describes or the place it links to. */
         private fun titleOf(book: ItemStack): String? {
@@ -58,7 +66,11 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
         outlineColor: Int = NO_OUTLINE,
     ) {
         val model = modelFor(look.binding)
-        collector.submitModel(model, state, poseStack, look.texture, lightCoords, overlayCoords, outlineColor)
+        val renderType = model.renderType(AgeBookModel.TEXTURE)
+        val pages = state.copy(drawn = AgeBookModel.Drawn.PAGES, writtenOnTheRight = look.writtenOnTheRight)
+        val binding = state.copy(drawn = AgeBookModel.Drawn.BINDING)
+        collector.submitModel(model, pages, poseStack, renderType, lightCoords, overlayCoords, UNTINTED, null, outlineColor)
+        collector.submitModel(model, binding, poseStack, renderType, lightCoords, overlayCoords, look.bindingColour, null, outlineColor)
         model.setupAnim(state)
         look.cover?.let { BookCover.submit(model, it, poseStack, collector, sprites, lightCoords) }
         look.title?.let { BookTitle.submit(model, it, BookTitle.Ink(look.titleColour, look.titleGlows), poseStack, collector, lightCoords) }
@@ -66,5 +78,6 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
 
     private companion object {
         const val NO_OUTLINE = 0
+        const val UNTINTED = -1
     }
 }
