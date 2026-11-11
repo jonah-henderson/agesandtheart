@@ -369,7 +369,8 @@ internal object SkyInstruments {
     private fun runAuroraNow(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val level = source.level
-        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
+        // The look Ephemeris holds, its sky measured against the Age's clock, as everything that draws it reads it.
+        val look = LevelAppearance.of(level.dimension())
         val aurora = look?.sky?.aurora
         if (look == null || aurora == null) {
             // **Says what to do about it**, because this is the command somebody reaches for when they
@@ -425,7 +426,8 @@ internal object SkyInstruments {
     private fun runRainbow(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val level = source.level
-        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
+        // The look Ephemeris holds, its sky measured against the Age's clock, as everything that draws it reads it.
+        val look = LevelAppearance.of(level.dimension())
         val rainbow = look?.sky?.rainbow
         if (look == null || rainbow == null) {
             report.say { "Nothing writes a bow into ${level.dimension().identifier()}." }
@@ -521,7 +523,8 @@ internal object SkyInstruments {
     private fun runRainbowNow(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val level = source.level
-        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
+        // The look Ephemeris holds, its sky measured against the Age's clock, as everything that draws it reads it.
+        val look = LevelAppearance.of(level.dimension())
         val rainbow = look?.sky?.rainbow
         if (look == null || rainbow == null) {
             source.sendFailure(Component.literal("Nothing writes a bow here to bring on"))
@@ -624,7 +627,7 @@ internal object SkyInstruments {
      * own, and vanilla's curve where it does not.
      */
     private fun starlitnessIn(level: ServerLevel): Float {
-        val look = Ages.recipeOf(level)?.let(Skies::lookOf) ?: return NOTHING_SHOWING
+        val look = LevelAppearance.of(level.dimension()) ?: return NOTHING_SHOWING
         look.air.starBrightness?.let { return it }
         if (!look.sky.isOrdinary && look.rules.daylight != Daylight.VANILLA_CLOCK) {
             return LevelDaylight.starlitnessOf(look.readAt(level.defaultClockTime), look.rules, look.sky)
