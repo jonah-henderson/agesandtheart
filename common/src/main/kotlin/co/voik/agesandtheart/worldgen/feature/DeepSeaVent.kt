@@ -60,7 +60,7 @@ object DeepSeaVent : Feature {
         random: RandomSource,
         origin: BlockPos,
     ): Boolean {
-        val floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, origin.x, origin.z)
+        val floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR, origin.x, origin.z)
         val chimneyHeight = SHORTEST_CHIMNEY + random.nextInt(TALLEST_CHIMNEY - SHORTEST_CHIMNEY + 1)
         if (!standsInOpenAbyss(level, origin.x, origin.z, floor, chimneyHeight)) return false
         if (!isDeepEnoughForTheTry(generator, floor, random)) return false

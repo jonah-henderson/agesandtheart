@@ -92,7 +92,7 @@ object Algae : Feature {
      * looser comparison would call every sea on the overworld a sunless one.
      */
     private fun isCovered(level: WorldGenLevel, at: BlockPos): Boolean =
-        level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, at.x, at.z) > at.y + 1
+        level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z) > at.y + 1
 
     /** How far a seed falls looking for water. Generous: the scatter drops it anywhere up the column. */
     private const val HOW_FAR_TO_FALL = 64

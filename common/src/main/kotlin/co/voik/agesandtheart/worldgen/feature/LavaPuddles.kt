@@ -72,7 +72,7 @@ object LavaPuddles : Feature {
      */
     private fun dig(level: WorldGenLevel, x: Int, z: Int, random: RandomSource): Boolean {
         val radius = NARROWEST + random.nextInt(WIDEST - NARROWEST + ONE)
-        val surface = level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - ONE
+        val surface = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - ONE
         if (!level.getBlockState(BlockPos(x, surface, z)).isSolidRender) return false
         if (!levelEnoughFor(level, x, z, radius, surface)) return false
 
@@ -159,7 +159,7 @@ object LavaPuddles : Feature {
         // **On this column's own ground, not the middle's** — the second thing that was leaving rim blocks
         // in the air. The ring's *shape* is the sphere's and is measured from the middle; where the block
         // ends up is whatever it has to stand on, and the two differ by a block wherever the ground does.
-        val standing = BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - ONE, z)
+        val standing = BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - ONE, z)
         // **And only where that ground is level with the hole.** A puddle sited near the brow of a hill
         // has rim columns whose ground has fallen away under them; placing there either leaves a block in
         // the air over the gap or trails the ring away down the slope. Neither is a rim, so it is simply
@@ -194,7 +194,7 @@ object LavaPuddles : Feature {
     private fun levelEnoughFor(level: WorldGenLevel, x: Int, z: Int, radius: Int, surface: Int): Boolean =
         AROUND.all { (offsetX, offsetZ) ->
             val reach = radius + RIM_SHELL
-            val here = level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x + offsetX * reach, z + offsetZ * reach) - ONE
+            val here = level.getHeight(Heightmap.Types.WORLD_SURFACE, x + offsetX * reach, z + offsetZ * reach) - ONE
             abs(here - surface) <= LIES_WITHIN
         }
 

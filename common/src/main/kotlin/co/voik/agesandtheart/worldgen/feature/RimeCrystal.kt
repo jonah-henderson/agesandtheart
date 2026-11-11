@@ -62,7 +62,7 @@ object RimeCrystal : Feature {
      * close over it is a crevice; neither is a cliff.
      */
     private fun sheerFaceAt(level: WorldGenLevel, x: Int, z: Int): Standing? {
-        val ground = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - 1
+        val ground = level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - 1
         val cursor = BlockPos.MutableBlockPos(x, ground, z)
         if (!level.getBlockState(cursor).isSolidRender) return null
         for (way in Direction.Plane.HORIZONTAL) {
