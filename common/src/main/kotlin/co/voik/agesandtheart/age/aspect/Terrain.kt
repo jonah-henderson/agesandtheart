@@ -38,6 +38,8 @@ import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Relieved
+import kotlin.math.pow
 import co.voik.agesandtheart.worldgen.field.TerrainTable
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ColumnPos
@@ -83,6 +85,15 @@ private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(s
 private fun bearingOffThe(salt: Long): Double = Math.floorMod(salt, FULL_TURN_DEGREES).toDouble()
 
 private const val FULL_TURN_DEGREES = 360L
+
+/** The stretch a relief of one gives a landform above its sea: two and a half times its height, and at minus one two-fifths. */
+private const val RELIEF_STRETCH = 2.5
+
+/** Blocks a stretched landform is kept under the top of the world, so its highest ground is never flat against it. */
+private const val RELIEF_HEADROOM = 16
+
+/** A sea standing lower than this is the floor of the world rather than a shore, and a stretch does not keep it. */
+private const val LOWEST_SEA_A_STRETCH_KEEPS = 0
 
 /** How much a landform changes as it is crossed: 0 for none, 1 unsaid, 2 at the most — see [LandVariety]. */
 private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Terrain.VARIETY, salt) ?: UNSAID_VARIETY) + 1.0
@@ -493,7 +504,30 @@ enum class Terrain(
 
     override val aspect = Aspect.TERRAIN
 
-    override val parameters: List<Parameter> get() = (axes() + weatheringAxes).distinct() + STONE + MINGLING
+    override val parameters: List<Parameter> get() = (axes() + weatheringAxes + reliefAxis).distinct() + STONE + MINGLING
+
+    /**
+     * Whether this landform reads [RELIEF] as its height above its own sea stretched or squashed ([Relieved]): any with
+     * a sea of its own but craterlands, which reads it as its rim, its bowl and its peak ring, rock filling the world,
+     * which has no height of its own to stretch, and the Spire's islands, which no book names.
+     */
+    private val takesReliefAsAStretch: Boolean
+        get() = waterline != null && this != CRATERLANDS && this != SOLID && this != SPIRE_ISLANDS
+
+    private val reliefAxis: List<Parameter> get() = if (takesReliefAsAStretch) listOf(RELIEF) else emptyList()
+
+    /**
+     * [field] with the relief a word asked for, stretched above its own sea; as it was where none was asked. A landform
+     * whose sea stands at the floor of the world, as the mountains' does, has no shore to keep, so it is stretched above
+     * the ordinary sea level instead, or a squashed range would sink to the bedrock.
+     */
+    private fun relieved(field: TerrainField, options: Options, salt: Long): TerrainField {
+        if (!takesReliefAsAStretch) return field
+        val relief = options.steer(RELIEF, salt) ?: return field
+        val ownSea = ownWaterlineAt(options, salt) ?: return field
+        val pivot = if (ownSea < LOWEST_SEA_A_STRETCH_KEEPS) ORDINARY_SEA_LEVEL else ownSea
+        return Relieved(field, pivot, RELIEF_STRETCH.pow(relief), VerticalWindow.HIGHEST_BLOCK_Y - RELIEF_HEADROOM)
+    }
 
     /** A worn landform honours [WEAR], which sets how deeply the weather wears it, and a terraced one [TERRACING]. */
     private val weatheringAxes: List<Parameter> get() = when {
@@ -651,7 +685,7 @@ enum class Terrain(
         /** The sea this landform is set at, or null where it keeps its own heights. */
         sea: SeaSetting? = null,
     ): Ground {
-        val built = build(options, salt, table).let { field -> liftTo(options, salt, sea)?.over(field) ?: field }
+        val built = relieved(build(options, salt, table), options, salt).let { field -> liftTo(options, salt, sea)?.over(field) ?: field }
         val uncut = varied(built, options, salt, isRock = true, table, sea)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
