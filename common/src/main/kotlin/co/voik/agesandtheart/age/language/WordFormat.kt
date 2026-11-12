@@ -43,14 +43,17 @@ object WordFormat {
     )
 
     /** What a minting is written as. */
-    private data class MintsFile(val pattern: String, val unstated: String?, val flows: Boolean) {
+    private data class MintsFile(val pattern: String, val unstated: String?, val flows: Boolean, val frequency: Double?) {
         companion object {
             val CODEC: Codec<MintsFile> = RecordCodecBuilder.create { instance ->
                 instance.group(
                     Codec.STRING.fieldOf("pattern").forGetter(MintsFile::pattern),
                     Codec.STRING.optionalFieldOf("unstated").forGetter { Optional.ofNullable(it.unstated) },
                     Codec.BOOL.optionalFieldOf("flows", false).forGetter(MintsFile::flows),
-                ).apply(instance) { pattern, unstated, flows -> MintsFile(pattern, unstated.orElse(null), flows) }
+                    Codec.DOUBLE.optionalFieldOf("frequency").forGetter { Optional.ofNullable(it.frequency) },
+                ).apply(instance) { pattern, unstated, flows, frequency ->
+                    MintsFile(pattern, unstated.orElse(null), flows, frequency.orElse(null))
+                }
             }
         }
     }
@@ -91,7 +94,7 @@ object WordFormat {
                 excludes.forEach { (aspect, members) -> add(Effect.Excludes(aspect, members.toSet())) }
                 restricts.forEach { (aspect, bars) -> add(Effect.Restricts(aspect, bars)) }
                 addAll(leanings)
-                mints?.let { add(Effect.Mints(it.pattern, it.unstated, it.flows)) }
+                mints?.let { add(Effect.Mints(it.pattern, it.unstated, it.flows, it.frequency)) }
                 template?.let { add(Effect.Template(it)) }
                 abundance?.let { add(Effect.Abundance(it)) }
             }
@@ -120,7 +123,7 @@ object WordFormat {
                     restricts = all(Effect.Restricts::class.java).associate { it.aspect to it.bars },
                     leans = all(Effect.Leans::class.java).associate { it.aspect.page to it.weights } +
                         all(Effect.LeansEverywhere::class.java).associate { EVERYWHERE to it.weights },
-                    mints = all(Effect.Mints::class.java).firstOrNull()?.let { MintsFile(it.pattern, it.unstated, it.flows) },
+                    mints = all(Effect.Mints::class.java).firstOrNull()?.let { MintsFile(it.pattern, it.unstated, it.flows, it.frequency) },
                     template = all(Effect.Template::class.java).firstOrNull()?.name,
                     abundance = all(Effect.Abundance::class.java).firstOrNull()?.rung,
                     chanceToApply = meaning.chanceToApply,

@@ -1,0 +1,81 @@
+{
+  "_comment": [
+    "Shapes built at a scale nobody would build them: every formation that carries `monumental`, each found as often",
+    "against villages as its weight says (one as often, a half half as often), and every monumental thing leaned",
+    "toward. `gold_block monuments` are all of gold."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.7
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:arches",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.6
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.5
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pedestals",
+        "unstated": "minecraft:sandstone",
+        "frequency": 0.2
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:spikes",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.2
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.2
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:boulders",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.1
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#monumental": 1.0
+        }
+      },
+      "must_always_apply": true
+    }
+  ]
+}

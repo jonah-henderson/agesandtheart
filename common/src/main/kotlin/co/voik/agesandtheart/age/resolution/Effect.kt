@@ -62,9 +62,10 @@ sealed interface Effect {
 
     /**
      * A feature minted from [pattern], made of what the page is taken with, or of [unstated] where nothing is —
-     * and only of something that flows where [flows].
+     * and only of something that flows where [flows]. Where [frequency] is given, it is found that often against
+     * villages, one being as often and a half half as often, in place of its pattern's own scatter.
      */
-    data class Mints(val pattern: String, val unstated: String?, val flows: Boolean) : Effect {
+    data class Mints(val pattern: String, val unstated: String?, val flows: Boolean, val frequency: Double? = null) : Effect {
         override val narrows get() = true
     }
 

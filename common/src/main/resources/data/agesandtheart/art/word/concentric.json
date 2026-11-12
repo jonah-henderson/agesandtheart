@@ -25,7 +25,10 @@
         "spikes",
         "boulders",
         "pits",
-        "pedestals"
+        "pedestals",
+        "monuments",
+        "megaliths",
+        "spires"
       ]
     }
   ]

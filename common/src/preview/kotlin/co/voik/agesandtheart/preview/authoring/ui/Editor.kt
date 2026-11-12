@@ -941,7 +941,7 @@ class Editor(
         val options = minted.map { Picker.Option(it, it, "minted by a word already") } +
             features.mapIndexed { index, it -> Picker.Option(it, it, "", startsGroup = index == 0) }
         overlay = Picker("Mint which pattern?", options) { picked ->
-            val effect = Effect.Mints(picked.value, standing?.unstated, standing?.flows ?: false)
+            val effect = standing?.copy(pattern = picked.value) ?: Effect.Mints(picked.value, unstated = null, flows = false)
             edit { word -> word.changingMeaning(meaning) { held -> at?.let { held.withEffectAt(it, effect) } ?: held.withEffect(effect) } }
         }
     }

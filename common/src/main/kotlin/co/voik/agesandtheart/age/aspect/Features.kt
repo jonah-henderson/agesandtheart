@@ -475,7 +475,8 @@ object Features {
                 // is one answer. Drawn against the Age's own salt, so a world rebuilds identically.
                 val substances = claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) }
                 val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
-                val shaped = FeatureShape.arranged(minted, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
+                val scattered = claim.frequency?.let { FeatureShape.scatteredAtFrequency(minted, it) } ?: minted
+                val shaped = FeatureShape.arranged(scattered, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
                 // **Shaped before the amount**, so what is scaled is the shape and not the placement the
                 // amount prepends to.
                 val reshaped = FeatureShape.reshaped(

@@ -201,9 +201,21 @@ class FormationCheck : FunSpec({
         check(spaced.spacing == 128.0) { "a grid spaced at one was ${spaced.spacing} apart" }
         check(placementOf(FeatureShape.arranged(scattered, FeatureShape.RINGS, spacing = null)) is Radial) { "rings were not laid in rings" }
     }
+
+    test("a formation at a frequency of one is found as often as villages, and at a quarter half as near") {
+        val scattered = Holder.direct(PlacedFeature(Holder.direct(configured(wideSlab()).copy(placement = Scatter(128.0, 0, 2, Density.uniform()))), emptyList()))
+        fun placementOf(feature: Holder<PlacedFeature>) = (feature.value().feature().value() as Formation).placement
+        val asVillages = placementOf(FeatureShape.scatteredAtFrequency(scattered, 1.0))
+        check(asVillages == Scatter(VILLAGE_REGION, 1, 1, Density.uniform())) { "at one, a formation was scattered $asVillages" }
+        val quarter = placementOf(FeatureShape.scatteredAtFrequency(scattered, 0.25)) as Scatter
+        check(quarter.cellSize == VILLAGE_REGION * 2.0) { "at a quarter, a formation's cell was ${quarter.cellSize}" }
+    }
 }) {
     private companion object {
         const val SEA_LEVEL = 64
         const val WORLD_SEED = 4242L
+
+        /** Thirty-four chunks, the side of the square vanilla tries one village in. */
+        const val VILLAGE_REGION = 544.0
     }
 }

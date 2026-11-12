@@ -65,6 +65,7 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             altitude = asked(minting.clause, ALTITUDE),
             arrangement = minting.clause.firstNotNullOfOrNull { it.settings[ARRANGEMENT] },
             spacing = asked(minting.clause, SPACING),
+            frequency = minting.mints.frequency,
         )
     }
     for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)

@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Great stones laid out as somebody meant them: every formation that carries `ordered`, each found as often",
+    "against villages as its weight says, and every ordered thing leaned toward."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.8
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.7
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.6
+      },
+      "must_always_apply": true,
+      "asserts": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#ordered": 1.0
+        }
+      },
+      "must_always_apply": true
+    }
+  ]
+}

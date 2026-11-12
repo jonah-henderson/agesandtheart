@@ -352,6 +352,21 @@ class MintingCheck : FunSpec({
         }
     }
 
+    test("a word minting by character brings every formation of the tag, each as often as its weight") {
+        val monuments = placed("gold_block", "monuments").filter { it.startsWith("agesandtheart:") }
+        val expected = mapOf(
+            "obelisks" to "0.7", "arches" to "0.6", "pyramids" to "0.5", "pedestals" to "0.2",
+            "spikes" to "0.2", "rings" to "0.2", "boulders" to "0.1",
+        )
+        for ((formation, frequency) in expected) {
+            val minted = monuments.singleOrNull { it.startsWith("agesandtheart:$formation[") }
+            check(minted != null && "frequency=$frequency" in minted) {
+                "'monuments' should bring $formation at frequency $frequency, and brought $monuments"
+            }
+            check("of=minecraft:gold_block" in minted) { "'gold_block monuments' left its $formation not of gold: $minted" }
+        }
+    }
+
     /**
      * **The size belongs to the clause, not to the aspect** — two sizes in one book contended before this,
      * and colossal won for the rings as well as for the obelisks.
@@ -621,6 +636,7 @@ class MintingCheck : FunSpec({
 })
 
 private const val SAMPLE_SEED = 0x5EEDL
+
 
 /** How far a grown patch's tries a block may stray from an ordinary one's, which is only the rounding of a count. */
 private const val DENSITY_TOLERANCE = 0.02

@@ -92,6 +92,11 @@ data class Claim(
     /** How far apart a formation of this one's stands, or null to take the Age's own — `sparse gridded obelisks`. */
     val spacing: Double? = null,
     /**
+     * How often a formation of this one's is found against villages, one as often and a half half as often, or null
+     * for its own scatter — the formations `monuments` brings, each by its weight.
+     */
+    val frequency: Double? = null,
+    /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
      * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
      * [confinedTo]'s twin, scoping to members rather than to ground.
@@ -146,6 +151,7 @@ data class Claim(
         val ownAltitude = altitude
         val ownArrangement = arrangement
         val ownSpacing = spacing
+        val ownFrequency = frequency
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
@@ -163,6 +169,7 @@ data class Claim(
             ownAltitude?.let { add("$ALTITUDE$SETS${Rung.spelled(it)}") }
             ownArrangement?.let { add("$ARRANGEMENT$SETS$it") }
             ownSpacing?.let { add("$SPACING$SETS${Rung.spelled(it)}") }
+            ownFrequency?.let { add("$FREQUENCY$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
             territory?.let { add("$ON$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
@@ -197,6 +204,7 @@ data class Claim(
         const val ALTITUDE = "altitude"
         const val ARRANGEMENT = "arrangement"
         const val SPACING = "spacing"
+        const val FREQUENCY = "frequency"
         const val FOR = "for"
 
         /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
@@ -237,6 +245,7 @@ data class Claim(
                 altitude = valueOf(parts, ALTITUDE)?.toDoubleOrNull(),
                 arrangement = valueOf(parts, ARRANGEMENT),
                 spacing = valueOf(parts, SPACING)?.toDoubleOrNull(),
+                frequency = valueOf(parts, FREQUENCY)?.toDoubleOrNull()?.takeIf { it > 0.0 },
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
                 territory = valueOf(parts, ON)?.toIntOrNull(),
             )

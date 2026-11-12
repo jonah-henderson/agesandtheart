@@ -325,6 +325,18 @@ object FeatureShape {
         return Holder.direct(PlacedFeature(Holder.direct(formation.copy(placement = spaced)), placed.placement()))
     }
 
+    /**
+     * [feature] scattered one to a cell, where it is a formation, with the cell sized so it is found [frequency] times as
+     * often as villages are, in place of its own scatter.
+     */
+    fun scatteredAtFrequency(feature: Holder<PlacedFeature>, frequency: Double): Holder<PlacedFeature> {
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return feature
+        val cell = VILLAGE_REGION / sqrt(frequency.coerceAtLeast(RAREST_FREQUENCY))
+        val scattered = Scatter(cellSize = cell, leastPerCell = ONE_TO_A_CELL, mostPerCell = ONE_TO_A_CELL, density = Density.uniform())
+        return Holder.direct(PlacedFeature(Holder.direct(formation.copy(placement = scattered)), placed.placement()))
+    }
+
     /** How far apart a layout sets its copies, near enough: a scatter's cell, a grid's spacing, a ring's. */
     private fun cellOf(placement: Placement): Double = when (placement) {
         is Scatter -> placement.cellSize
@@ -622,6 +634,13 @@ object FeatureShape {
      * scatter keeps about half, so a grid of them reads as one from the ground.
      */
     private const val LATTICE_SHARE_OF_A_CELL = 0.5
+
+    /** The side of the square vanilla tries one village in: thirty-four chunks. */
+    private const val VILLAGE_REGION = 34.0 * 16.0
+
+    /** A floor on a frequency, so a vanishing one asks for a cell no wider than the world can hold. */
+    private const val RAREST_FREQUENCY = 0.01
+    private const val ONE_TO_A_CELL = 1
 
     /** The stretch a spacing of one gives a formation's layout: twice as far apart, and at minus one half. */
     private const val SPACING_DOUBLING = 2.0
