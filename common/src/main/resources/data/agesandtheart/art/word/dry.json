@@ -4,8 +4,9 @@
     "an underground cuts answer to as well, so `dry rock` dries a great hall too), and on the whole Age the biomes",
     "leaning dry and the sea leaning away. A cave under a sea still meets the sea, and the lava at the bottom stays.",
     "",
-    "It refuses wet rock as well as drying what is left, so `dry flooded rock` is two words that cannot both hold and",
-    "is charged as the contradiction it is. Offered too, yielding to anything the book says: drier air, less rain.",
+    "It bars rock that is mostly water as well as drying what is left, so `dry flooded rock` is two words that cannot",
+    "both hold and is charged as the contradiction it is, where porous rock, wet only near the surface, dries.",
+    "Offered too, yielding to anything the book says: drier air, less rain.",
     "",
     "Before the land, the ground or the air, it is the climate that is dry."
   ],
@@ -17,10 +18,10 @@
       "must_always_apply": true
     },
     {
-      "excludes": {
-        "rock": [
-          "#watery"
-        ]
+      "restricts": {
+        "rock": {
+          "watery": "<0.5"
+        }
       },
       "must_always_apply": true
     },

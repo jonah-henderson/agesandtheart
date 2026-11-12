@@ -48,6 +48,14 @@
       "dark": 0.7
     }
   },
+  "porous": {
+    "readiness": 0.3,
+    "tags": {
+      "cavernous": 0.9,
+      "watery": 0.4,
+      "dark": 0.5
+    }
+  },
   "chambered": {
     "readiness": 0.3,
     "tags": {

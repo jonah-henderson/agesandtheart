@@ -103,8 +103,10 @@ object WordAcceptance {
      * says how the members it names are set, as `pyramidal` sets the shape of the geometric landform it chooses.
      */
     private fun membersNamedBy(word: Word, tags: MemberTags, registries: HolderLookup.Provider?): Acceptance? {
-        // A meaning offered elsewhere is not the word's own naming: `herds` offers a herd's size to `of`.
-        val effects = word.meanings.filter { !it.isOffered }.flatMap { it.effects }
+        // A meaning offered elsewhere is not the word's own naming: `herds` offers a herd's size to `of`. Nor is one only
+        // ever laid bare, which never applies where the word is aimed: `porous` alone chooses the porous rock.
+        fun appliesWhereAimed(meaning: Meaning) = meaning.mustAlwaysApply || meaning.chanceToApply > Meaning.NEVER
+        val effects = word.meanings.filter { !it.isOffered && appliesWhereAimed(it) }.flatMap { it.effects }
         val aspect = effects.mapNotNull(::aspectNamed).distinct().singleOrNull() ?: return null
         fun namesOrSetsWhatItNames(effect: Effect) = aspectNamed(effect) == aspect || settingFencedTo(effect) == aspect
         if (!effects.all(::namesOrSetsWhatItNames)) return null

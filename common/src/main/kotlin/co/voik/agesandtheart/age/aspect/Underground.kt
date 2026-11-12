@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.worldgen.PorousCaves
 import co.voik.agesandtheart.age.language.Speech
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.FissuresField
@@ -87,6 +88,13 @@ enum class Underground(override val key: String) : AuthoredPreset {
      * nowhere wide enough to build on. Wet or dry by the water table, as a tunnel is.
      */
     FISSURED("fissured"),
+
+    /**
+     * **Big round pocks**, each walkable, opening into one another and now and then joined by a crawl —
+     * [co.voik.agesandtheart.worldgen.PorousCaves]. The porous rock's vugs grown to rooms; wet or dry by the water
+     * table, as a tunnel is.
+     */
+    POROUS("porous"),
 
     ;
 
@@ -207,6 +215,13 @@ enum class Underground(override val key: String) : AuthoredPreset {
             ),
             hollows = uncut,
         )
+        POROUS -> Terrain.Ground(
+            Subtract(
+                uncut,
+                PorousCaves.between(floor, ceiling, POROUS_SEED xor salt, SizeScale.factorAt(options.steer(Terrain.SIZE, salt)), densityOf(options, salt)),
+            ),
+            hollows = uncut,
+        )
         NONE -> Terrain.Ground(uncut)
     }
 
@@ -309,13 +324,14 @@ enum class Underground(override val key: String) : AuthoredPreset {
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
         private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
         private val SAID_AS_THINGS = setOf(TUNNELS, LATTICE)
-        private val TAKES_SIZE = SIZED + NOISE_CAVES
+        private val TAKES_SIZE = SIZED + NOISE_CAVES + POROUS
 
         // Deep enough to hold a surface's dirt and a tree's roots over the void.
         private const val CRUST_THICKNESS = 8
 
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L
+        private const val POROUS_SEED = 0x504F_524F_5553L
 
         // And its tunnels, so the tubes are not laid along the noise caves.
         private const val TUNNEL_SEED = 0x7_0BE5L

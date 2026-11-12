@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.generation.StructureWeathering
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -42,6 +43,12 @@ class PorousCheck : FunSpec({
         check(Carvers.POROUS !in rockOf("porous", "landmass")) { "porous landmass made the rock porous" }
         check(Carvers.POROUS in rockOf("porous", "rock")) { "porous rock was not porous" }
         check(Carvers.POROUS in rockOf("porous")) { "a bare porous left the rock whole" }
+    }
+
+    test("porous underground is the porous underground, and leaves the rock as it was") {
+        val composition = resolved(SEED, "porous", "underground").composition
+        check(composition.underground == Underground.POROUS) { "porous underground seated ${composition.underground}" }
+        check(Carvers.POROUS !in composition.carvers) { "porous underground made the rock porous" }
     }
 
     test("porous laid bare is the rock alone") {
