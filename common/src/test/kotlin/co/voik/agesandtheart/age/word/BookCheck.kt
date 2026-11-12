@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.RUNS_OCCASIONALLY_TAG
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
@@ -103,6 +104,14 @@ class BookCheck : FunSpec({
         // pass here by never being asked.
         check(judgeable.isNotEmpty()) { "every found book names worldgen only a server has" }
         val problems = judgeable.flatMap { draft -> problemsWith(JudgedBook.of(draft)) }
+        check(problems.isEmpty()) { "${problems.size} problems, the first of them:\n  ${problems.take(10).joinToString("\n  ")}" }
+    }
+
+    /** The same, over the many more books it takes to reach the rarer of a grammar's sentences, now and then. */
+    test("every book of a long draw is one worth finding").config(tags = setOf(RUNS_OCCASIONALLY_TAG)) {
+        val problems = FoundBookKind.entries.flatMap { kind ->
+            (BOOKS_DRAWN + 1..BOOKS_DRAWN_BEFORE_A_RELEASE).mapNotNull { seed -> FoundBookDraft.drawn(vocabulary, kind, seed) }
+        }.filterNot { draft -> draft.pages.any(vocabulary::awaitsAServer) }.flatMap { draft -> problemsWith(JudgedBook.of(draft)) }
         check(problems.isEmpty()) { "${problems.size} problems, the first of them:\n  ${problems.take(10).joinToString("\n  ")}" }
     }
 
@@ -244,8 +253,11 @@ class BookCheck : FunSpec({
 /** The one page every book must carry, without which a row is refused rather than read (design §2). */
 private const val NUCLEUS_PAGE = "age"
 
-/** More seeds than any shipped book grammar has distinct expansions, so every alternative is drawn. */
+/** Enough to draw every common sentence of each grammar, in the loop; the rarer ones wait for `occasionalTest`. */
 private const val BOOKS_DRAWN = 500L
+
+/** Enough that every sentence of each grammar is drawn many times, a share of a shelf of twenty-two at least. */
+private const val BOOKS_DRAWN_BEFORE_A_RELEASE = 20_000L
 
 /** Enough that a rare combination of pages turns up, quick enough to stay in the offline suite. */
 private const val ROWS_FUZZED = 2000L

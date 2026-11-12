@@ -67,7 +67,10 @@ haze = ashen | dusty | smothered
 # Arboreal country: lush and wooded, so never beside a dry or barren word.
 arboreal_age =
     age arboreal landmass [mild_climate]@2
-    | age arboreal landmass [look] [colour] leaves
+    | age arboreal landmass [look_beside_leaves] [colour] leaves
+
+# Beside a leaf colour, no ground that names another.
+look_beside_leaves = [sky]@4 | [aurora]@2 | [rainbow]@2 | [colour] grass@2 | [moon] | [weather]
 
 # The palm beach: a ribbon rather than a trophy (Jonah, 2026-09-30), so it is a curiosity and common ink. An
 # island, so there is a beach for it, and warmth or something to look at beside it -- it grows only where
@@ -92,7 +95,7 @@ landmass_manner = stepped | ordered | worn | subdued | low
 look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [moon] | [weather]
 
 # Beside a mood, no moon: `moonless` is one. A mood's offers yield to what a page aims, so the rest may stand.
-look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [weather]
+look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground_beside_a_mood]@2 | [weather]
 
 # What a mood insists on is not an offer and does not yield: `desolate` keeps an empty sea and a barren country, so
 # beside a mood no sea and no structures.
@@ -158,7 +161,8 @@ rime_crystal_age =
     | age [rime_crystal_landmasses] landmass [cold] blizzard phenomena [flavour]@2
 
 # Sheer ground first: rime is won by climbing, and ramps with height.
-rime_crystal_landmasses = [typical_landmass]@3 | mountainous@2 | sheer@2 | pillared | cleft | shattered
+# Under a sky, since a blizzard needs one to fall from.
+rime_crystal_landmasses = [open_landmass]@3 | mountainous@2 | sheer@2 | pillared | cleft | shattered
 
 cold = frozen climate
 
@@ -376,8 +380,18 @@ ground =
     | bare trees
     | [stone] deposits
 
+# Beside a mood, nothing grown: `desolate` keeps a barren country, and trees or flowers are wooded against it.
+ground_beside_a_mood =
+    [colour] grass@2
+    | [colour] leaves@2
+    | [colour] grass [colour] leaves
+    | [surface_block] surface
+    | lakes
+    | [stone] deposits
+
 # What the ground is laid with where grass would be.
-surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
+# Whole blocks only, since a surface is laid of what a world can be made of: mud's is fourteen pixels tall.
+surface_block = sand | red_sand | moss_block | podzol | packed_mud | gravel | calcite | mycelium | snow_block
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters | water springs | packed_ice icebergs
 

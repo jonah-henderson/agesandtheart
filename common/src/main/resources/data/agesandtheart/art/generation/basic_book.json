@@ -42,7 +42,15 @@
     ],
     "arboreal_age": [
       {"weight":2.0,"produce":["age","arboreal","landmass","[mild_climate]"]},
-      {"produce":["age","arboreal","landmass","[look]","[colour]","leaves"]}
+      {"produce":["age","arboreal","landmass","[look_beside_leaves]","[colour]","leaves"]}
+    ],
+    "look_beside_leaves": [
+      {"weight":4.0,"produce":["[sky]"]},
+      {"weight":2.0,"produce":["[aurora]"]},
+      {"weight":2.0,"produce":["[rainbow]"]},
+      {"weight":2.0,"produce":["[colour]","grass"]},
+      {"produce":["[moon]"]},
+      {"produce":["[weather]"]}
     ],
     "palm_beach_age": [
       {"weight":2.0,"produce":["age","[palm_landmass]","palm_beach","biomes","[palm_climate]"]},
@@ -86,7 +94,7 @@
       {"weight":4.0,"produce":["[sky]"]},
       {"weight":2.0,"produce":["[aurora]"]},
       {"weight":2.0,"produce":["[rainbow]"]},
-      {"weight":2.0,"produce":["[ground]"]},
+      {"weight":2.0,"produce":["[ground_beside_a_mood]"]},
       {"produce":["[weather]"]}
     ],
     "thing_beside_a_mood": [
@@ -173,7 +181,7 @@
       {"weight":2.0,"produce":["age","[rime_crystal_landmasses]","landmass","[cold]","blizzard","phenomena","[flavour]"]}
     ],
     "rime_crystal_landmasses": [
-      {"weight":3.0,"produce":["[typical_landmass]"]},
+      {"weight":3.0,"produce":["[open_landmass]"]},
       {"weight":2.0,"produce":["mountainous"]},
       {"weight":2.0,"produce":["sheer"]},
       {"produce":["pillared"]},
@@ -489,12 +497,20 @@
       {"produce":["bare","trees"]},
       {"produce":["[stone]","deposits"]}
     ],
+    "ground_beside_a_mood": [
+      {"weight":2.0,"produce":["[colour]","grass"]},
+      {"weight":2.0,"produce":["[colour]","leaves"]},
+      {"produce":["[colour]","grass","[colour]","leaves"]},
+      {"produce":["[surface_block]","surface"]},
+      {"produce":["lakes"]},
+      {"produce":["[stone]","deposits"]}
+    ],
     "surface_block": [
       {"produce":["sand"]},
       {"produce":["red_sand"]},
       {"produce":["moss_block"]},
       {"produce":["podzol"]},
-      {"produce":["mud"]},
+      {"produce":["packed_mud"]},
       {"produce":["gravel"]},
       {"produce":["calcite"]},
       {"produce":["mycelium"]},

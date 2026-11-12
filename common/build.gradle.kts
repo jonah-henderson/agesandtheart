@@ -237,6 +237,9 @@ val NEEDS_LANDFORMS_TAG = "NeedsLandforms"
 /** Must match `RUNS_LONG` in `common/src/test/kotlin/.../RunsLong.kt`, which says why. */
 val RUNS_LONG_TAG = "RunsLong"
 
+/** Must match `RUNS_OCCASIONALLY` in `common/src/test/kotlin/.../RunsOccasionally.kt`. */
+val RUNS_OCCASIONALLY_TAG = "RunsOccasionally"
+
 val test: SourceSet = sourceSets.test.get()
 // Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
 // optional and is not obvious: `Bootstrap.bootStrap()` reads `en_us.json` off the classpath, and without
@@ -283,6 +286,7 @@ tasks.named<Test>("test") {
         NEEDS_SERVER_TAG,
         NEEDS_LANDFORMS_TAG,
         RUNS_LONG_TAG,
+        RUNS_OCCASIONALLY_TAG,
         NEEDS_REGISTRIES_TAG.takeIf { project.hasProperty("fast") },
     )
     systemProperty("kotest.tags", excluded.joinToString(" & ") { "!$it" })
@@ -350,7 +354,7 @@ fun Test.drivesAServer(tags: String) {
 tasks.register<Test>("serverTest") {
     group = "verification"
     description = "Runs the checks that drive a real dedicated server over RCON. -Pchecks.loader=neoforge for the other side."
-    drivesAServer("$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG & !$RUNS_LONG_TAG")
+    drivesAServer("$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG & !$RUNS_LONG_TAG & !$RUNS_OCCASIONALLY_TAG")
 }
 
 /**
@@ -360,7 +364,27 @@ tasks.register<Test>("serverTest") {
 tasks.register<Test>("longTest") {
     group = "verification"
     description = "Runs the checks that take ten seconds or more, before a release. -Pchecks.loader=neoforge for the other side."
-    drivesAServer("$RUNS_LONG_TAG & !$NEEDS_LANDFORMS_TAG")
+    drivesAServer("$RUNS_LONG_TAG & !$NEEDS_LANDFORMS_TAG & !$RUNS_OCCASIONALLY_TAG")
+}
+
+/**
+ * The checks run by hand on occasion — `./gradlew :common:occasionalTest`, and nothing else reaches them
+ * (`RunsOccasionally.kt`). Offline, and they fail as any check does.
+ */
+tasks.register<Test>("occasionalTest") {
+    group = "verification"
+    description = "Runs the checks kept for an occasional look by hand: the long draw of found books."
+    useJUnitPlatform()
+    testClassesDirs = test.output.classesDirs
+    classpath = test.runtimeClasspath
+    systemProperty("kotest.tags", RUNS_OCCASIONALLY_TAG)
+    narrowedToFeature()
+    maxHeapSize = "2g"
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+    }
 }
 
 /**

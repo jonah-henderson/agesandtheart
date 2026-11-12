@@ -144,6 +144,9 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_
 # The landform shape checks — opt-in, and they *warn* rather than fail (see "Tests")
 ./gradlew :common:landformTest
 
+# The checks kept for an occasional look by hand — today the long draw of found books, 20,000 per grammar
+./gradlew :common:occasionalTest
+
 # Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
 scripts/drive-server.sh scripts/checks/regions.txt
 
@@ -224,7 +227,7 @@ down; the script runs it. **The codec owns the value and `WordFile` the file**: 
 the word and laid first, and `AuthoringCheck` holds that every authored word writes back byte for byte.
 `--rewrite` puts the corpus back in that layout and is run by hand, like `:common:grammars`.
 
-**Tests:** **Kotest**, in four tasks split by what they cost and what they are worth.
+**Tests:** **Kotest**, in five tasks split by what they cost and what they are worth.
 
 ```bash
 ./gradlew :common:test                     # the loop — everything but landforms and the server, ~40s
@@ -233,6 +236,7 @@ the word and laid first, and `AuthoringCheck` holds that every authored word wri
 ./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~2min
 ./gradlew :common:longTest                 # the checks that take ten seconds or more — before a release, ~2min
 ./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
+./gradlew :common:occasionalTest           # by hand now and then: the long draw of found books, ~1min
 ```
 
 **`-Pon=<feature>` narrows any of them to one subject**, which is the iteration loop worth using:
