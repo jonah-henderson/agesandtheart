@@ -1,0 +1,29 @@
+[feature] new word, "porous". put holes in all the things
+[feature] new words for geometric landmasses. your schemes no longer have to be only pyramids
+[feature] new words for compass directions, dictate the motion of celestial bodies, and also the layout of canyons
+[feature] new broad words for monuments and megaliths
+[feature] new word, "fallen", knock over all the trees in a forest
+[feature] words for specific tree varieties
+[feature] new words for geodes, beds of material like clay in rivers
+[feature] new word for star fissures, tear apart the very fabric of space (or close it up)
+[feature] colourable algae!
+[feature] especially intense sandfalls may blast away blocks
+[feature] new, more crater-like shape for meteor explosions
+[feature] algae is now like leaf litter, grows in quarter block sizes
+[feature] you can now hang from underneath temperstone with climbers equipped
+[feature] books can now be dyed to change the colour of the book itself, in addition to being covered with banners
+[feature] better interactions with books on lecterns, including a "Take book" button
+[feature] new fusion compounder recipes
+[art] sfx: windy ages make wind noises
+[art] crumbly destruction particles for drifting arcstone chunks
+[art] improved textures for descriptive and linking books
+[balance] fine paper and fine ink are now rarer in D'ni ruins
+[balance] D'ni cities now contain exactly one guaranteed rare page
+[balance] blue ice now counts as a cold source for fusion compounders
+[balance] changed the recipe of desk upgrade blocks to focus more on Overworld mastery
+[bugfix] plasma now correctly boils away most fluids in its heat zone
+[bugfix] overgrowth vines now can grow through fluids
+[bugfix] linking panels show what's going on in an Age more accurately (weather, phenomena, colours)
+[bugfix] a fully activated fusion compounder now properly reveals its advanced recipes
+[bugfix] drying racks no longer unnecessarily darken the area they are placed in
+[bugfix] bookbinder recipe should unlock properly now

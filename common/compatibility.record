@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.22
-generator=26
+line=0.23
+generator=27
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -33,6 +33,7 @@ block agesandtheart:grazed_torchflower
 block agesandtheart:green_rime_crystal
 block agesandtheart:grinder
 block agesandtheart:hanging_coconut
+block agesandtheart:held_air
 block agesandtheart:ink
 block agesandtheart:lava_tube
 block agesandtheart:linking_book_receptacle
@@ -110,7 +111,7 @@ block_entity_type agesandtheart:toolbox
 block_entity_type agesandtheart:transcriber
 block_entity_type agesandtheart:writers_desk
 block_states agesandtheart:advanced_analysis_machine 32
-block_states agesandtheart:algae 2
+block_states agesandtheart:algae 32
 block_states agesandtheart:analysis_machine 3
 block_states agesandtheart:arc_crystal 1
 block_states agesandtheart:arc_crystal_block 8
@@ -140,6 +141,7 @@ block_states agesandtheart:grazed_torchflower 2
 block_states agesandtheart:green_rime_crystal 48
 block_states agesandtheart:grinder 3
 block_states agesandtheart:hanging_coconut 12
+block_states agesandtheart:held_air 1
 block_states agesandtheart:ink 16
 block_states agesandtheart:lava_tube 1
 block_states agesandtheart:linking_book_receptacle 2
@@ -148,7 +150,7 @@ block_states agesandtheart:magenta_rime_crystal 48
 block_states agesandtheart:masterwork_ink 16
 block_states agesandtheart:observation_device 3
 block_states agesandtheart:orange_rime_crystal 48
-block_states agesandtheart:overgrowth 1
+block_states agesandtheart:overgrowth 4
 block_states agesandtheart:palm_button 24
 block_states agesandtheart:palm_door 64
 block_states agesandtheart:palm_fence 64
@@ -409,6 +411,7 @@ payload agesandtheart:fog
 payload agesandtheart:gale
 payload agesandtheart:gravity
 payload agesandtheart:learned_words
+payload agesandtheart:lectern_book
 payload agesandtheart:lexicon
 payload agesandtheart:link
 payload agesandtheart:link_ended
@@ -426,6 +429,7 @@ payload agesandtheart:panel_map
 payload agesandtheart:panel_map_chunk
 payload agesandtheart:panel_map_request
 payload agesandtheart:panel_open
+payload agesandtheart:panel_weather
 payload agesandtheart:server_build
 payload agesandtheart:tears
 payload agesandtheart:temptations_here
@@ -457,6 +461,8 @@ sound_event agesandtheart:gale_sheltered
 sound_event agesandtheart:gust
 sound_event agesandtheart:surf
 sound_event agesandtheart:tornado
+sound_event agesandtheart:wind_exposed
+sound_event agesandtheart:wind_sheltered
 ticket_type agesandtheart:panel
 trigger_type agesandtheart:caged_from_a_field
 trigger_type agesandtheart:climbed_temperstone
