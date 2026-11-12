@@ -131,8 +131,13 @@ class FrequencySplitCheck : FunSpec({
         check(Blizzard.hardnessAt(BlizzardDials.of(Spending.NOTHING, written = -1.0).visibility) > 0.0) {
             "a weak blizzard's whiteout went to nothing"
         }
-        val strong = SandfallDials.of(Spending.NOTHING, written = 1.0)
-        check(strong.size in 0.0..1.0 && strong.size > 0.0) { "a strong sandfall's size went to ${strong.size}" }
+        val strong = SandfallDials.of(Spending.NOTHING, Befalling.ORDINARY.copy(strength = 1.0))
+        check(strong.scour in 0.0..1.0 && strong.scour > 0.0) { "a strong sandfall's scour went to ${strong.scour}" }
+        check(strong.size == 0.0 && strong.depth == 0.0) { "a strong sandfall grew ${strong.size} wide and ${strong.depth} deep" }
+        val colossal = SandfallDials.of(Spending.NOTHING, Befalling.ORDINARY.copy(size = 1.0))
+        check(colossal.size == 1.0 && colossal.scour == 0.0) { "a colossal sandfall came out ${colossal.size} wide, scouring ${colossal.scour}" }
+        val swift = SandfallDials.of(Spending.NOTHING, Befalling.ORDINARY.copy(writtenPace = 1.0))
+        check(swift.depth > 0.0 && swift.size == 0.0) { "a swift sandfall buried ${swift.depth} and grew ${swift.size}" }
     }
 
     test("an Age written while a rung meant how often comes as often as it did") {

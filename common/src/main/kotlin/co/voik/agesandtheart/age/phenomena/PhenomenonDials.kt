@@ -56,8 +56,12 @@ data class TectonicsDials(val size: Double, val speed: Double) {
 
 /**
  * A sandfall's: [often] how often a column comes and how many may stand at once, [long] how long one
- * lives, [size] how wide it grows, [depth] how deep a pass buries; and [pace], how fast the book wrote a
- * column to wander, as a multiple of its own.
+ * lives, [size] how wide it grows, [depth] how deep a pass buries, [scour] how hard it wears away what it crosses;
+ * and [pace], how fast the book wrote a column to wander, as a multiple of its own.
+ *
+ * **Each axis has its own words** (Jonah, 2026-11-12): a size word its width, counting in full as a tornado's does
+ * (`colossal sandfall` the widest there is); `swift` and `slow` how fast it buries as well as how fast it walks; and
+ * `strong` and `weak` its scour. So a great burying column can leave the rock alone, and a narrow one scour it bare.
  */
 data class SandfallDials(
     val often: Double,
@@ -65,16 +69,19 @@ data class SandfallDials(
     val size: Double,
     val depth: Double,
     val pace: Double = OWN_PACE,
+    val scour: Double = 0.0,
 ) {
     companion object {
         val NONE = SandfallDials(often = 0.0, long = 0.0, size = 0.0, depth = 0.0)
 
-        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE) = SandfallDials(
+        fun of(spending: Spending, befalling: Befalling = Befalling.ORDINARY) = SandfallDials(
             often = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_OFTEN),
             long = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_LONG),
-            size = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SIZE), written),
-            depth = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_DEPTH), written),
-            pace = pace,
+            size = (spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SIZE) + befalling.size)
+                .coerceIn(GENTLEST_REACH, WHOLE_REACH),
+            depth = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_DEPTH), befalling.writtenPace),
+            pace = befalling.pace,
+            scour = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SCOUR), befalling.strength),
         )
     }
 }

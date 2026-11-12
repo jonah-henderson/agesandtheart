@@ -292,7 +292,8 @@ enum class Phenomenon(
             METEORS -> listOf(
                 Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE, Phenomena.COLOUR, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
-            SANDFALL, TORNADO -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
+            SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE, Phenomena.SIZE)
+            TORNADO -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
             TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE, GALE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)

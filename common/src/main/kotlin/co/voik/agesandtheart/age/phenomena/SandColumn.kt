@@ -22,16 +22,21 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.item.FallingBlockEntity
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
+import kotlin.math.exp
+import kotlin.math.hypot
+import kotlin.math.ln
 
 /**
  * One column of sand, walking (design §5.2.2).
@@ -119,6 +124,14 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     var depth: Double = 0.0
         private set
 
+    /**
+     * How hard it scours what it crosses, from -0.5 to 1 — its own, rolled at spawn and kept, as [depth] is. Above
+     * nought it wears away the ground under it up to [wearsUpTo]'s hardness and throws its sand out sideways; at or
+     * below, it only buries. What it pours at follows it ([pour]).
+     */
+    var scour: Double = 0.0
+        private set
+
     /** How many ticks since anybody was near enough to see it. */
     private var sinceSeen: Int = 0
 
@@ -129,7 +142,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
 
     /**
      * How fast this column's sand pours, as a share of the fastest anything may — what the shader reads to
-     * make a column that buries deeper visibly stream harder.
+     * make a column that scours visibly stream harder.
      *
      * **Synced, and for the same reason [halfWidth] is**: it is arithmetic over the Age's parameters and a client
      * has no datapack to read them from, so it is worked out on the server and the answer is sent.
@@ -164,7 +177,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         // always put it back; the pour was settled at the spawn instead, so a column that outlived a logout
         // came back pouring at nothing and stood there frozen. Restated every tick from the depth it is
         // derived from — which is saved — there is one source of truth and nothing left to fall out of step.
-        pour = behaviour.column.poursAt(depth).toFloat() / ColumnBehaviour.FASTEST_POUR
+        pour = behaviour.column.poursAt(scour).toFloat() / ColumnBehaviour.FASTEST_POUR
         steer(behaviour.column)
         advance(level)
         bury(level, behaviour.column)
@@ -250,6 +263,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         // the sweep is hundreds of positions wide.
         val watched = level.getNearestPlayer(this, behaviour.dramaReach) != null
         if (watched) hangDust(level, behaviour, standing)
+        val hardestWorn = wearsUpTo(scour)
         for (eastward in -reach..reach) {
             for (southward in -reach..reach) {
                 val offsetX = blockX + eastward + MIDDLE - x
@@ -259,9 +273,53 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
                 val chance = onIt * behaviour.spillFadeAt(standing, max(along, across) - standing)
                 if (random.nextDouble() >= chance) continue
                 val dramatically = watched && random.nextDouble() < behaviour.dramaShare
-                pile(level, blockX + eastward, blockZ + southward, dramatically)
+                val underIt = max(along, across) <= standing
+                val wore = underIt && hardestWorn != null && wear(level, blockX + eastward, blockZ + southward, hardestWorn)
+                if (wore) {
+                    throwOut(level, blockX + eastward, blockZ + southward, offsetX, offsetZ, standing, dramatically)
+                } else {
+                    pile(level, blockX + eastward, blockZ + southward, dramatically)
+                }
             }
         }
+    }
+
+    /**
+     * Wears away the top block of a column under it, where it is no harder than [hardest] — answering whether it did.
+     *
+     * Anything goes that is soft enough: a chest (what it held spills), a spawner, the water itself. **Never a wound
+     * or a fissure, or what cannot be broken at all**: where one is the top, the sand piles on it as any column's
+     * does, so a wound is buried over and a fissure takes the sand down to its exit. Nothing worn drops, for the
+     * reason a buried tuft drops nothing ([pile]).
+     */
+    private fun wear(level: ServerLevel, atX: Int, atZ: Int, hardest: Float): Boolean {
+        val worn = topOf(level, atX, atZ)?.below() ?: return false
+        val state = level.getBlockState(worn)
+        val untouchable = state.`is`(AgeContent.WOUND_BLOCK) || state.block is StarFissureBlock || state.getDestroySpeed(level, worn) < 0.0f
+        val tooHard = state.block.explosionResistance > hardest
+        if (state.isAir || untouchable || tooHard) return false
+        // Set to air rather than removed: removing a block leaves its fluid, which would hand the sea straight back.
+        return level.setBlock(worn, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL)
+    }
+
+    /**
+     * The sand a scouring column wore its way through, thrown out sideways from where it struck rather than settled
+     * there (Jonah): landing [THROWN_PAST] blocks past the column's edge, straight out from its middle. Thrown as a
+     * falling block where somebody is watching, and laid where it lands otherwise.
+     */
+    private fun throwOut(level: ServerLevel, atX: Int, atZ: Int, offsetX: Double, offsetZ: Double, standing: Double, dramatically: Boolean) {
+        val outward = hypot(offsetX, offsetZ).takeIf { it > NOTHING } ?: return pile(level, atX, atZ, false)
+        val outX = offsetX / outward
+        val outZ = offsetZ / outward
+        if (dramatically) {
+            val from = topOf(level, atX, atZ) ?: return
+            val thrown = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+            thrown.deltaMovement = Vec3(outX * THROWN_SPEED, THROWN_LIFT, outZ * THROWN_SPEED)
+            thrown.syncVelocity = true
+            return
+        }
+        val lands = standing + THROWN_PAST
+        pile(level, Mth.floor(x + outX * lands), Mth.floor(z + outZ * lands), false)
     }
 
     /**
@@ -422,6 +480,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         speed = input.getDoubleOr(SPEED_KEY, 0.0)
         fullHalfWidth = input.getDoubleOr(FULL_HALF_WIDTH_KEY, 0.0)
         depth = input.getDoubleOr(DEPTH_KEY, 0.0)
+        scour = input.getDoubleOr(SCOUR_KEY, 0.0)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
@@ -431,6 +490,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         output.putDouble(SPEED_KEY, speed)
         output.putDouble(FULL_HALF_WIDTH_KEY, fullHalfWidth)
         output.putDouble(DEPTH_KEY, depth)
+        output.putDouble(SCOUR_KEY, scour)
     }
 
     override fun shouldBeSaved(): Boolean = true
@@ -494,6 +554,29 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private const val SPEED_KEY = "speed"
         private const val FULL_HALF_WIDTH_KEY = "full_half_width"
         private const val DEPTH_KEY = "depth"
+        private const val SCOUR_KEY = "scour"
+
+        /** How far past a scouring column's edge the sand it wore away lands, in blocks. */
+        private const val THROWN_PAST = 2.0
+
+        /** How hard a watched handful is thrown out, and up, in blocks a tick. */
+        private const val THROWN_SPEED = 0.6
+        private const val THROWN_LIFT = 0.35
+
+        /**
+         * The hardest a column of [scour] wears away, as blast resistance, or null where it only buries: just above
+         * nought it takes dirt and everything softer, and at one everything but what cannot be broken, obsidian
+         * included (Jonah). Between, on a log scale, as the hardness of what the world is built of climbs: half way is
+         * about stone. Read off dirt and obsidian themselves, so a pack that changes either moves the scale with it.
+         */
+        internal fun wearsUpTo(scour: Double): Float? {
+            if (scour <= NOTHING) return null
+            val softest = ln(Blocks.DIRT.explosionResistance.toDouble())
+            val hardest = ln(Blocks.OBSIDIAN.explosionResistance.toDouble())
+            return exp(softest + (hardest - softest) * scour.coerceAtMost(WHOLE_SCOUR)).toFloat()
+        }
+
+        private const val WHOLE_SCOUR = 1.0
         private const val CHUNK_BITS = 4
 
         /**
@@ -520,6 +603,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             lifetime: Int,
             fullHalfWidth: Double,
             depth: Double,
+            scour: Double = NOTHING,
         ): SandColumn? {
             val blockX = Mth.floor(atX)
             val blockZ = Mth.floor(atZ)
@@ -532,6 +616,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             column.lifetime = lifetime
             column.fullHalfWidth = fullHalfWidth
             column.depth = depth
+            column.scour = scour
             // The pour is not set here: the first tick derives it from the depth, so a spawned column and a
             // reloaded one arrive at it the same way.
             level.addFreshEntity(column)

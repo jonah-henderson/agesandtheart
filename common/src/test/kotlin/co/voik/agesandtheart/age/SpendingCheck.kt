@@ -280,6 +280,7 @@ internal val SHIPPED_LADDERS = mapOf(
             Manifestation.COLUMNS_LONG to DialSteps.flat(tier = 2, most = 4),
             Manifestation.COLUMNS_SIZE to DialSteps.flat(tier = 2, most = 4),
             Manifestation.COLUMNS_DEPTH to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.COLUMNS_SCOUR to DialSteps.flat(tier = 3, most = 4),
         ),
         leans = mapOf("humidity" to -1.0, "temperature" to 0.3),
     ),

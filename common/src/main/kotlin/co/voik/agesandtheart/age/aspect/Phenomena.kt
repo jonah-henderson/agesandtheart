@@ -59,7 +59,8 @@ object Phenomena {
 
     /**
      * How hard each phenomenon is while it lasts — `strength`, the name the creatures hold too, so `strong` and
-     * `weak` reach both. It moves the dials instability buys, toward their fury and below ordinary.
+     * `weak` reach both. It moves the dials instability buys, toward their fury and below ordinary: on a sandfall,
+     * how hard its columns scour what they cross.
      */
     val STRENGTH = Parameter.ranged(
         "strength",
@@ -82,6 +83,20 @@ object Phenomena {
             Parameter.Landmark(-1.0, "half as fast"),
             Parameter.Landmark(0.0, "its own pace", isVanilla = true),
             Parameter.Landmark(1.0, "twice as fast"),
+        ),
+    ).perMember()
+
+    /**
+     * How wide a sandfall's columns stand — `size`, the name everything's size goes by, so `colossal` and `small`
+     * reach it. The sandfall's alone: a tornado takes a size as its strength (`tornado`'s `takes_as`).
+     */
+    val SIZE = Parameter.ranged(
+        "size",
+        help = "How wide its columns stand, against an ordinary one.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "narrower than ordinary"),
+            Parameter.Landmark(0.0, "an ordinary one", isVanilla = true),
+            Parameter.Landmark(1.0, "as wide as its fury"),
         ),
     ).perMember()
 
@@ -115,6 +130,16 @@ object Phenomena {
 
     /** How many times its own pace the swiftest sandfall walks: its fastest column just under a player's sprint. */
     private const val SWIFTEST_SANDFALL = 3.0
+
+    /** How big [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
+    fun sizeOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
+        options.steer(SIZE, seed, member = phenomenon.key) ?: UNSAID_SIZE
+
+    /** How fast [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
+    fun writtenPaceOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
+        options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE
+
+    private const val UNSAID_SIZE = 0.0
 
     /** How hard [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
     fun strengthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =

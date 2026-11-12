@@ -7,6 +7,7 @@ import net.minecraft.server.MinecraftServer
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.util.RandomSource
 import kotlin.math.ceil
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
@@ -143,17 +144,17 @@ data class ColumnBehaviour(
     fun spillReachAt(standing: Double): Int = ceil(standing * (FULLY_OPEN + spillShare)).toInt()
 
     /**
-     * How fast a column of this [depth] pours, in whole turns of the roil a day — **what ties what you can
+     * How fast a column of this [scour] pours, in whole turns of the roil a day — **what ties what you can
      * see to what it is doing to the ground.**
      *
-     * A column that buries deeper visibly streams harder, which is the only cue a player has for how bad
-     * the one walking at them is before it arrives. Whole turns because the shader's drift is a day
-     * fraction that wraps at dawn, and quantised to a colour channel's step for the same reason — see
-     * `sand_column.fsh`.
+     * A column that scours visibly streams harder, and a gentle one slower, which is the only cue a player has
+     * for whether the one walking at them will take the ground from under them. Whole turns because the shader's
+     * drift is a day fraction that wraps at dawn, and quantised to a colour channel's step for the same reason —
+     * see `sand_column.fsh`.
      */
-    fun poursAt(depth: Double): Int {
-        if (this.depth <= CLOSED) return ORDINARY_POUR
-        return (ORDINARY_POUR * depth / this.depth).roundToInt().coerceIn(ORDINARY_POUR, FASTEST_POUR)
+    fun poursAt(scour: Double): Int {
+        val faster = (FASTEST_POUR.toDouble() / ORDINARY_POUR).pow(scour)
+        return (ORDINARY_POUR * faster).roundToInt().coerceIn(SLOWEST_POUR, FASTEST_POUR)
     }
 
     /**
@@ -200,8 +201,9 @@ data class ColumnBehaviour(
         private const val DEFAULT_PUSH = 0.7
         private const val DEFAULT_BETWEEN_SOUNDS = 4
 
-        /** What an ordinary column pours at, and the fastest anything may — see [poursAt]. */
+        /** What an ordinary column pours at, and the slowest and fastest anything may — see [poursAt]. */
         const val ORDINARY_POUR = 900
+        const val SLOWEST_POUR = 450
         const val FASTEST_POUR = 2550
 
         private const val BOTH_SIDES = 2.0

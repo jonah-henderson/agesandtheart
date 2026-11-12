@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.world.level.block.Blocks
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.numericDouble
 import io.kotest.property.checkAll
@@ -370,22 +371,29 @@ class SandfallCheck : FunSpec({
     }
 
     /**
-     * **A column that buries deeper pours visibly faster**, which is the only cue a player has for how bad
-     * the one walking at them is before it arrives.
+     * **A column that scours pours visibly faster**, and a gentle one slower, which is the only cue a player has for
+     * whether the one walking at them will take the ground from under them.
      */
-    test("how fast a column pours follows how deep it buries") {
-        check(ordinary.poursAt(ordinary.depth) == ColumnBehaviour.ORDINARY_POUR) {
-            "an ordinary column did not pour at the ordinary rate"
-        }
-        check(ordinary.poursAt(ordinary.depth * 2) > ordinary.poursAt(ordinary.depth)) {
-            "a column burying twice as deep poured no faster"
-        }
-        check(ordinary.poursAt(ordinary.depth * 100) == ColumnBehaviour.FASTEST_POUR) {
-            "the pour was not capped at the fastest anything may go"
-        }
-        check(ordinary.poursAt(0.0) >= ColumnBehaviour.ORDINARY_POUR) {
-            "a column burying nothing poured slower than ordinary, which would read as stopping"
-        }
+    test("how fast a column pours follows how hard it scours") {
+        check(ordinary.poursAt(0.0) == ColumnBehaviour.ORDINARY_POUR) { "an ordinary column did not pour at the ordinary rate" }
+        check(ordinary.poursAt(0.5) > ordinary.poursAt(0.0)) { "a scouring column poured no faster" }
+        check(ordinary.poursAt(1.0) == ColumnBehaviour.FASTEST_POUR) { "the fiercest column did not pour at the fastest" }
+        val gentle = ordinary.poursAt(-0.5)
+        check(gentle < ColumnBehaviour.ORDINARY_POUR && gentle >= ColumnBehaviour.SLOWEST_POUR) { "a gentle column poured at $gentle" }
+    }
+
+    /** What a column wears away climbs with its scour, from dirt to obsidian, and never past what cannot be broken. */
+    test("a column scours from dirt at the least to obsidian at the most, and nothing at or below nought") {
+        check(SandColumn.wearsUpTo(0.0) == null && SandColumn.wearsUpTo(-0.5) == null) { "a column with no scour wore something away" }
+        val dirt = Blocks.DIRT.explosionResistance
+        val stone = Blocks.STONE.explosionResistance
+        val obsidian = Blocks.OBSIDIAN.explosionResistance
+        val least = checkNotNull(SandColumn.wearsUpTo(0.01))
+        check(least >= dirt && least < stone) { "the least scour wears up to $least" }
+        val half = checkNotNull(SandColumn.wearsUpTo(0.5))
+        check(half >= stone && half < obsidian) { "half a scour wears up to $half, which should be past stone and short of obsidian" }
+        val most = checkNotNull(SandColumn.wearsUpTo(1.0))
+        check(abs(most - obsidian) < 1.0f && most < Blocks.BEDROCK.explosionResistance) { "the most scour wears up to $most" }
     }
 
     /**

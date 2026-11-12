@@ -168,9 +168,10 @@ internal object PhenomenonInstruments {
 
     private const val SECONDS_ARGUMENT = "seconds"
 
-    /** `/age sandfall <distance> <seconds> <size> [<depth>]` — how far into each dial, as a percent. */
+    /** `/age sandfall <distance> <seconds> <size> [<depth>] [<scour>]` — how far into each dial, as a percent. */
     private const val SIZE_ARGUMENT = "size"
     private const val DEPTH_ARGUMENT = "depth"
+    private const val SCOUR_ARGUMENT = "scour"
 
     /** `/age meteors <distance> <seconds> <power>` — how far into the storms' `power` dial, as a percent. */
     private const val POWER_ARGUMENT = "power"
@@ -464,7 +465,20 @@ internal object PhenomenonInstruments {
                                                     IntegerArgumentType.getInteger(context, SIZE_ARGUMENT),
                                                     IntegerArgumentType.getInteger(context, DEPTH_ARGUMENT),
                                                 )
-                                            },
+                                            }
+                                            .then(
+                                                Commands.argument(SCOUR_ARGUMENT, IntegerArgumentType.integer(0, ALL_OF_A_DIAL))
+                                                    .executes { context ->
+                                                        runSandfall(
+                                                            context,
+                                                            IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                                                            IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                                                            IntegerArgumentType.getInteger(context, SIZE_ARGUMENT),
+                                                            IntegerArgumentType.getInteger(context, DEPTH_ARGUMENT),
+                                                            IntegerArgumentType.getInteger(context, SCOUR_ARGUMENT),
+                                                        )
+                                                    },
+                                            ),
                                     ),
                             ),
                     ),
@@ -554,6 +568,7 @@ internal object PhenomenonInstruments {
         seconds: Int?,
         sizePercent: Int,
         depthPercent: Int = NONE_OF_A_DIAL,
+        scourPercent: Int = NONE_OF_A_DIAL,
     ): Int {
         val source = context.source
         val level = source.level
@@ -561,6 +576,7 @@ internal object PhenomenonInstruments {
         val dials = SandfallDials.NONE.copy(
             size = sizePercent.toDouble() / ALL_OF_A_DIAL,
             depth = depthPercent.toDouble() / ALL_OF_A_DIAL,
+            scour = scourPercent.toDouble() / ALL_OF_A_DIAL,
             pace = Happenings.paceIn(level, Phenomenon.SANDFALL),
         )
         val facing = Vec3.directionFromRotation(source.rotation)

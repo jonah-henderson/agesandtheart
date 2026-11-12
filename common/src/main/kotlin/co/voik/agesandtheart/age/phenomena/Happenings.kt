@@ -199,6 +199,8 @@ object Happenings {
                 Phenomena.paceOf(options, phenomenon, seed),
                 Phenomena.colourOf(options, phenomenon),
                 Phenomena.cyclePeriodOf(options, phenomenon, seed),
+                size = Phenomena.sizeOf(options, phenomenon, seed),
+                writtenPace = Phenomena.writtenPaceOf(options, phenomenon, seed),
             )
         }
     }
@@ -293,7 +295,7 @@ object Happenings {
             // the weather is `Phenomenon.RAINBOW.insistsOn`, which the Age was built with rather than
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
-            Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, written, befalling.pace))
+            Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, befalling))
             Phenomenon.TECTONICS -> CaveIns.stir(level, recurrence.often, TectonicsDials.of(spending, written))
             Phenomenon.BLIZZARD -> Blizzard.blow(level, BlizzardDials.of(spending, written))
             Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace, befalling.colour, befalling.cyclePeriod))

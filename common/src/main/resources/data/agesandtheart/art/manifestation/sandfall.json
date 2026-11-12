@@ -4,8 +4,9 @@
     "",
     "Difficulty rather than a verdict: you can roof over sand, and the burial hands you the glass to do it",
     "with. `often` (how often one comes, and how many may stand at once), `long` (how long one lives), `size`",
-    "(how wide it grows, up to twenty by twenty) and `depth` (how deep a pass buries). Harmful throughout: it",
-    "buries the land.",
+    "(how wide it grows, up to twenty by twenty) and `depth` (how deep a pass buries) are harmful: they bury the",
+    "land. `scour` (how hard it wears away what it crosses, from dirt up to obsidian) is failing: what a roof does",
+    "not answer.",
     "",
     "Leans dry, and a little hot."
   ],
@@ -13,7 +14,8 @@
     "often": {"tier": 2, "most": 4},
     "long": {"tier": 2, "most": 4},
     "size": {"tier": 2, "most": 4},
-    "depth": {"tier": 2, "most": 4}
+    "depth": {"tier": 2, "most": 4},
+    "scour": {"tier": 3, "most": 4}
   },
   "leans": {"humidity": -1.0, "temperature": 0.3}
 }

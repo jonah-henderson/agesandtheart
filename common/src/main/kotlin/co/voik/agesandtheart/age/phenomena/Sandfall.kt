@@ -131,6 +131,7 @@ object Sandfall {
             // No two quite alike, which is the whole of why this is a range rather than a number.
             fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
             depth = behaviour.depthAt(dials.depth),
+            scour = dials.scour,
         )
         if (raised != null) PhenomenaCeiling.began(level, Phenomenon.SANDFALL, raised)
         return raised

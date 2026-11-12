@@ -35,6 +35,7 @@ private const val SANDFALL_OFTEN = "often"
 private const val SANDFALL_SIZE = "size"
 private const val SANDFALL_LONG = "long"
 private const val SANDFALL_DEPTH = "depth"
+private const val SANDFALL_SCOUR = "scour"
 private const val BLIZZARD_OFTEN = "often"
 private const val BLIZZARD_LONG = "long"
 private const val BLIZZARD_VISIBILITY = "visibility"
@@ -114,10 +115,11 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * (Jonah, 2026-08-31): a column walking a world that never asked for one is exactly what the index is
      * for (§7.7). Where the Age already has a sandfall, the two **compound**.
      *
-     * **Four dials** (Jonah, 2026-09-23): how often a column comes and how many may stand at once, how long
-     * one lives, how wide it grows, and how deep it buries. The last two are what takes a base.
+     * **Five dials** (Jonah, 2026-09-23 and 2026-11-12): how often a column comes and how many may stand at once,
+     * how long one lives, how wide it grows, how deep it buries, and how hard it scours what it crosses. Burying is
+     * what takes a base; the scour, a failing step, wears the base away.
      */
-    SANDFALL("sandfall", SANDFALL_OFTEN, SANDFALL_LONG, SANDFALL_SIZE, SANDFALL_DEPTH),
+    SANDFALL("sandfall", SANDFALL_OFTEN, SANDFALL_LONG, SANDFALL_SIZE, SANDFALL_DEPTH, SANDFALL_SCOUR),
 
     /**
      * The Age is driven under snow (design §5.2's blizzard). **Four dials** (Jonah, 2026-09-23): how often a
@@ -308,6 +310,9 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How deep one pass of a sand column buries. */
         const val COLUMNS_DEPTH = SANDFALL_DEPTH
+
+        /** How hard a sand column scours what it crosses. */
+        const val COLUMNS_SCOUR = SANDFALL_SCOUR
 
         /** How often a blizzard comes. */
         const val SNOWSTORMS_OFTEN = BLIZZARD_OFTEN
