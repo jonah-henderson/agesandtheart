@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import kotlin.math.abs
+import kotlin.math.atan2
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.BlockParticleOption
@@ -72,7 +73,37 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(TIER, 0)
         builder.define(SHAPE, 0)
+        builder.define(STRUCK, 0.0f)
+        builder.define(SHAKING_FOR, 0)
+        builder.define(SHAKEN_BY, 0.0f)
+        builder.define(SHAKEN_TOWARD, 0.0f)
+        builder.define(SHAKES_FIRST, 1)
     }
+
+    /** How much it has taken so far, which its cracks are drawn from. */
+    private var struck: Float
+        get() = entityData.get(STRUCK)
+        set(value) = entityData.set(STRUCK, value)
+
+    /** How far it is to coming apart, nought to one. */
+    val brokenShare: Float get() = (struck / holdsTogether(tier)).coerceIn(0.0f, 1.0f)
+
+    /**
+     * A blow's wobble, as a boat's: ticks left of it, how hard it was (a boat's damage, which a boat sheds a point a
+     * tick), the bearing it was struck along in radians, and which way it swings first, flipped each blow.
+     */
+    var shakingFor: Int
+        get() = entityData.get(SHAKING_FOR)
+        private set(value) = entityData.set(SHAKING_FOR, value)
+    var shakenBy: Float
+        get() = entityData.get(SHAKEN_BY)
+        private set(value) = entityData.set(SHAKEN_BY, value)
+    var shakenToward: Float
+        get() = entityData.get(SHAKEN_TOWARD)
+        private set(value) = entityData.set(SHAKEN_TOWARD, value)
+    var shakesFirst: Int
+        get() = entityData.get(SHAKES_FIRST)
+        private set(value) = entityData.set(SHAKES_FIRST, value)
 
     /**
      * As big as the rock actually is — **two, four or six across**, rather than the one size an
@@ -110,6 +141,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         // jitter — the client's `deltaMovement` starts at nothing and is never sent, so the two drift apart
         // and every position packet snapped the body back. See [createInterpolationHandler].
         if (!level().isClientSide) {
+            settleAfterABlow()
             // **The push first, because it is the only term that can be expensive**, and it answers zero
             // for nearly every body on nearly every tick — see [pushedFromRock].
             val pushed = pushedFromRock()
@@ -294,16 +326,18 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     /**
      * Nothing to look at and nobody looking: a body far from every player is not worth ticking.
      *
-     * **Measured against the tracking range rather than a figure of its own.** `getNearestPlayer` asks in
-     * three dimensions, and the highest band is at the build limit — a body up there is 236 blocks from a
-     * player standing at sea level *directly underneath it*, so a radius chosen as a plausible-sounding
-     * number deleted the whole top band seconds after it spawned, which is the tier the entire ladder
-     * climbs towards. The honest rule is the one the client already uses: forget a body when nobody is
-     * being sent it.
+     * Measured across the ground, as vanilla measures whom an entity is sent to: the top band is some 236 blocks over
+     * anybody at sea level, so a distance in three dimensions forgot nearly every body there before anyone saw it.
      */
     private fun discardIfNobodyIsAround() {
         if (level().gameTime % LOOKED_FOR_EVERY != 0L) return
-        if (level().getNearestPlayer(this, ChargedBands.FORGOTTEN_BEYOND) == null) discard()
+        val forgottenBeyond = ChargedBands.FORGOTTEN_BEYOND * ChargedBands.FORGOTTEN_BEYOND
+        fun isNear(player: Player): Boolean {
+            val acrossX = player.x - x
+            val acrossZ = player.z - z
+            return !player.isSpectator && acrossX * acrossX + acrossZ * acrossZ <= forgottenBeyond
+        }
+        if (level().players().none(::isNear)) discard()
     }
 
     /**
@@ -315,9 +349,26 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     override fun hurtServer(level: ServerLevel, source: DamageSource, amount: Float): Boolean {
         if (isRemoved) return false
         struck += amount
-        if (struck < holdsTogether(tier)) return true
+        if (struck < holdsTogether(tier)) {
+            shakeFrom(source, amount)
+            return true
+        }
         breakApart(level)
         return true
+    }
+
+    /** Set wobbling by a blow of [amount] from wherever [source] came from, as a boat is. */
+    private fun shakeFrom(source: DamageSource, amount: Float) {
+        val from = source.sourcePosition ?: source.entity?.position()
+        if (from != null) shakenToward = atan2(z - from.z, x - from.x).toFloat()
+        shakesFirst = -shakesFirst
+        shakingFor = SHAKES_FOR
+        shakenBy = (shakenBy + amount * SHAKEN_A_POINT).coerceAtMost(SHAKEN_AT_MOST)
+    }
+
+    private fun settleAfterABlow() {
+        if (shakingFor > 0) shakingFor -= 1
+        if (shakenBy > 0.0f) shakenBy = (shakenBy - 1.0f).coerceAtLeast(0.0f)
     }
 
     private fun breakApart(level: ServerLevel) {
@@ -404,9 +455,6 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         output.putFloat(STRUCK_KEY, struck)
     }
 
-    /** How much it has taken so far. Not synched: nothing is drawn from it. */
-    private var struck: Float = 0.0f
-
     /**
      * **How fast this one takes the Age's current, and how eagerly it seeks its band** — a little either
      * side of its fellows (Jonah, 2026-09-09).
@@ -427,6 +475,21 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
         private val SHAPE: EntityDataAccessor<Int> =
             SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
+        private val STRUCK: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.FLOAT)
+        private val SHAKING_FOR: EntityDataAccessor<Int> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
+        private val SHAKEN_BY: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.FLOAT)
+        private val SHAKEN_TOWARD: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.FLOAT)
+        private val SHAKES_FIRST: EntityDataAccessor<Int> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
+
+        /** A boat's wobble: ten ticks of it, ten points a point of damage, and no more than a boat takes unbroken. */
+        private const val SHAKES_FOR = 10
+        private const val SHAKEN_A_POINT = 10.0f
+        private const val SHAKEN_AT_MOST = 40.0f
 
         private const val TIER_KEY = "tier"
         private const val SHAPE_KEY = "shape"

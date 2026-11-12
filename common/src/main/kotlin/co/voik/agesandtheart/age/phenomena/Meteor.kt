@@ -661,10 +661,13 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /** Twice TNT — see [MeteorStorm]. Only ever used by a body somebody summoned without a storm. */
         private const val TWICE_TNT = 8.0f
 
-        /** How far a crater reaches for each degree of blast, and the least and most it may. */
-        private const val CRATER_PER_BLAST = 0.7f
-        private const val SMALLEST_CRATER = 2
-        private const val LARGEST_CRATER = 12
+        /**
+         * How far a crater reaches for each degree of blast, and the least and most it may: about as wide as the hole
+         * the blast itself once blew through soft ground and what stood on it.
+         */
+        private const val CRATER_PER_BLAST = 1.2f
+        private const val SMALLEST_CRATER = 3
+        private const val LARGEST_CRATER = 14
 
         /** One in this many craters keeps a shard on its floor: catching them is how astrite is got. */
         private const val KEEPS_A_SHARD = 1.0f / 128.0f

@@ -38,6 +38,12 @@ class GeometricFieldCheck : FunSpec({
         check(tops.count { it < PLAIN_TOP } > 0) { "nothing was dug" }
     }
 
+    test("colossal pits open onto the plain, and none reaches the bottom of the world") {
+        val tops = topsOf(GeometricField.world("grid", listOf(shipped("pits")), scale = SizeScale.COLOSSAL))
+        check(tops.count { it < PLAIN_TOP } > 0) { "no colossal pit opened onto the plain" }
+        check(tops.all { it > Int.MIN_VALUE }) { "a colossal pit was dug through the bottom of the world" }
+    }
+
     test("two formations share one plain, each as likely, what is dug cut into it beside what stands") {
         val tops = topsOf(GeometricField.world("grid", listOf(shipped("obelisks"), shipped("pits"))))
         check(tops.count { it > PLAIN_TOP } > 0) { "no obelisk stood beside the pits" }

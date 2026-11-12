@@ -14,6 +14,13 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart
+import net.minecraft.util.RandomSource
+import com.mojang.math.Axis
+import org.joml.Vector3f
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * A body of drifting ore, drawn as the cluster of blocks it is (design §7.1.2).
@@ -81,7 +88,27 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             }
             Drawn(cell.at, drawn)
         }
+        state.wobbleDegrees = wobbleOf(entity, partialTicks)
+        state.wobbleTowardX = cos(entity.shakenToward)
+        state.wobbleTowardZ = sin(entity.shakenToward)
+        state.crackStage = crackStageOf(entity.brokenShare)
     }
+
+    /**
+     * How far a body is tipped this frame, as a boat rocks when struck: a boat's swing for the smallest, and less for
+     * each larger one by how much wider it is.
+     */
+    private fun wobbleOf(entity: DriftingOre, partialTicks: Float): Float {
+        val shaking = entity.shakingFor - partialTicks
+        if (shaking <= 0.0f) return 0.0f
+        val shakenBy = (entity.shakenBy - partialTicks).coerceAtLeast(0.0f)
+        val smallness = OreClusters.sideOf(0).toFloat() / OreClusters.sideOf(entity.tier)
+        return sin(shaking) * shaking * shakenBy / BOAT_SWING_DIVISOR * entity.shakesFirst * smallness
+    }
+
+    /** Which of the ten breaking stages to draw over it, or [NO_CRACKS], as vanilla reads a block's mining progress. */
+    private fun crackStageOf(brokenShare: Float): Int =
+        if (brokenShare <= 0.0f) NO_CRACKS else (brokenShare * CRACK_STAGES).toInt().coerceIn(0, CRACK_STAGES - 1)
 
     /**
      * Every cell of a body and what it is drawn as, by offset — **memoised, because it never changes**.
@@ -104,6 +131,12 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         collector: SubmitNodeCollector,
         camera: CameraRenderState,
     ) {
+        poseStack.pushPose()
+        if (state.wobbleDegrees != 0.0f) {
+            // Tipped about the level line square to the blow, top first away from it: the body's middle is the entity's.
+            val square = Vector3f(state.wobbleTowardZ, 0.0f, -state.wobbleTowardX)
+            poseStack.rotateDegrees(Axis.of(square), state.wobbleDegrees)
+        }
         for (drawn in state.cells) {
             poseStack.pushPose()
             // A block model is drawn from its own corner, so a cell at offset `o` fills `o` to `o + 1` —
@@ -111,9 +144,18 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             // `DriftingOre.makeBoundingBox`, since the offsets run from `-side / 2`.
             poseStack.translate(drawn.at.x.toDouble(), drawn.at.y.toDouble(), drawn.at.z.toDouble())
             collector.submitMovingBlock(poseStack, drawn.block, NO_OUTLINE)
+            if (state.crackStage != NO_CRACKS) submitCracks(poseStack, collector, drawn.block.blockState, state.crackStage)
             poseStack.popPose()
         }
+        poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
+    }
+
+    /** Vanilla's mining cracks over one cell, drawn as `LevelRenderer` draws them over a block being broken. */
+    private fun submitCracks(poseStack: PoseStack, collector: SubmitNodeCollector, block: BlockState, stage: Int) {
+        val model = Minecraft.getInstance().modelManager.blockStateModelSet.get(block)
+        val parts = mutableListOf<BlockStateModelPart>().also { model.collectParts(RandomSource.create(CRACK_SEED), it) }
+        collector.submitBreakingBlockModel(poseStack, parts, stage, model.hasMaterialFlag(BREAKING_MATERIAL_FLAG))
     }
 
     /** One cell of the cluster: where it sits against the middle, and the block being drawn there. */
@@ -142,10 +184,26 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         /** Nothing here is outlined; 26.2 asks every submitted block to say so. */
         const val NO_OUTLINE = 0
 
+        /** What a boat's rocking divides its damage by, so a boat's swing is the smallest body's. */
+        const val BOAT_SWING_DIVISOR = 10.0f
+
+        const val CRACK_STAGES = 10
+        const val NO_CRACKS = -1
+
+        /** The material flag `LevelRenderer` asks of a block model when it draws its cracks. */
+        const val BREAKING_MATERIAL_FLAG = 1
+
+        /** Any seed: the cracks take the shape of the block, not the variant of its texture. */
+        const val CRACK_SEED = 0L
+
         private val clusters = java.util.concurrent.ConcurrentHashMap<Int, Map<BlockPos, BlockState>>()
     }
 }
 
 class DriftingOreRenderState : EntityRenderState() {
     var cells: List<DriftingOreRenderer.Drawn> = emptyList()
+    var wobbleDegrees: Float = 0.0f
+    var wobbleTowardX: Float = 1.0f
+    var wobbleTowardZ: Float = 0.0f
+    var crackStage: Int = -1
 }

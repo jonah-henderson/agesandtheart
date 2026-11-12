@@ -7,6 +7,7 @@ import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.level.CustomSpawner
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import kotlin.math.sqrt
 
 /**
  * What puts a charged Age's ore in its sky (design §7.1.2).
@@ -63,7 +64,7 @@ class DriftingOreSpawner : CustomSpawner {
      */
     private fun somewhereIn(level: ServerLevel, band: Double, tier: Int): Vec3? {
         val around = Sampling.somebody(level)?.blockPosition() ?: return null
-        val reach = level.server.playerList.simulationDistance * BLOCKS_PER_CHUNK
+        val reach = reachOf(level)
         val x = around.x + level.random.nextInt(-reach, reach + 1) + HALF
         val z = around.z + level.random.nextInt(-reach, reach + 1) + HALF
         val y = band + (level.random.nextDouble() - HALF) * BAND_THICKNESS
@@ -71,17 +72,27 @@ class DriftingOreSpawner : CustomSpawner {
         // Null where the roll landed outside the chunks entities tick in: the square's corners reach past
         // them, and a body put there would hang still until somebody came near. Asking loads nothing.
         if (!level.isPositionEntityTicking(BlockPos.containing(at))) return null
-        if (tooManyAround(level, at)) return null
+        if (tooManyAround(level, at, tier)) return null
         val span = OreClusters.spanOf(tier)
         // Room for the whole rock rather than for a point in it: these are up to six blocks across, and a
         // body put half inside a floating island would spend its life being shoved out of it.
         return if (level.noCollision(AABB.ofSize(at, span, span, span))) at else null
     }
 
-    /** Whether this stretch of sky already holds as many bodies as it is meant to. */
-    private fun tooManyAround(level: ServerLevel, at: Vec3): Boolean {
+    /**
+     * How far out from somebody a body may be put: across the chunks being ticked, but never so far that it is forgotten
+     * as it drifts. A square about somebody reaches its corners at √2 of its half-width.
+     */
+    private fun reachOf(level: ServerLevel): Int {
+        val ticked = level.server.playerList.simulationDistance * BLOCKS_PER_CHUNK
+        val keptWithin = (ChargedBands.FORGOTTEN_BEYOND * KEPT_WITHIN_SHARE / sqrt(2.0)).toInt()
+        return minOf(ticked, keptWithin)
+    }
+
+    /** Whether this stretch of this band already holds as many bodies as it is meant to. */
+    private fun tooManyAround(level: ServerLevel, at: Vec3, tier: Int): Boolean {
         val around = AABB.ofSize(at, CROWDED_WITHIN, CROWDED_WITHIN, CROWDED_WITHIN)
-        return level.getEntities(AgeContent.DRIFTING_ORE, around) { true }.size >= MOST_IN_SIGHT
+        return level.getEntities(AgeContent.DRIFTING_ORE, around) { it.tier == tier }.size >= MOST_IN_SIGHT
     }
 
     private companion object {
@@ -103,7 +114,10 @@ class DriftingOreSpawner : CustomSpawner {
         private const val MOST_IN_SIGHT = 4
 
         /** How much rarer each band up is than the one below it — see [tierFor]. */
-        private const val RARER_EACH_BAND = 3
+        private const val RARER_EACH_BAND = 2
+
+        /** How much of the distance a body is forgotten beyond it may be put at, so it is not forgotten as it drifts. */
+        private const val KEPT_WITHIN_SHARE = 0.9
         private const val CROWDED_WITHIN = 160.0
 
         /** How far off its band a body may be put. It will seek the band itself; this only stops a row. */

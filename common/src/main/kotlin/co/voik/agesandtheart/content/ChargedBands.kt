@@ -81,10 +81,8 @@ object ChargedBands {
      * How far a body may be from every player before it is forgotten — **a fact about the bands, which is
      * why it lives here** rather than beside the code that discards one.
      *
-     * It is asked in three dimensions, and the top band is at the build limit: a body up there is 236
-     * blocks from somebody standing at sea level *directly under it*. A radius chosen as a plausible
-     * number rather than derived deleted the entire top tier seconds after it spawned. This is the range a
-     * client is told about a body at all (`AgeContent.DRIFTING_ORE_TRACKING_CHUNKS`, sixteen chunks), so
+     * Asked across the ground, never up: this is the range a client is told about a body at all
+     * (`AgeContent.DRIFTING_ORE_TRACKING_CHUNKS`, sixteen chunks), which vanilla measures in x and z alone, so
      * the rule is simply: forget one when nobody is being sent it.
      */
     const val FORGOTTEN_BEYOND = 256.0

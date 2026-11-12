@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.Lift
 import co.voik.agesandtheart.worldgen.field.Placement
@@ -85,20 +86,20 @@ object GeometricField {
         val standingTemplates = templates.mapIndexed { at, template -> if (isDug[at]) NOTHING else template }
         val dugTemplates = templates.mapIndexed { at, template -> if (isDug[at]) template else NOTHING }
         fun spaced(placement: Placement) = spacing?.let { placement.resized(SPACING_DOUBLING.pow(it)) } ?: placement
-        fun laid(templates: List<TerrainField>) = when (arrangement) {
-            "rings" -> scattered(templates, spaced(rings()), Variation.NONE, salt, scale)
-            "varied" -> scattered(templates, spaced(gradientGrid()), variedPoses(), salt, scale)
-            else -> scattered(templates, spaced(gradientGrid()), Variation.NONE, salt, scale)
+        fun laid(templates: List<TerrainField>, pivotY: Int) = when (arrangement) {
+            "rings" -> scattered(templates, spaced(rings()), Variation.NONE, salt, scale, pivotY)
+            "varied" -> scattered(templates, spaced(gradientGrid()), variedPoses(pivotY), salt, scale, pivotY)
+            else -> scattered(templates, spaced(gradientGrid()), Variation.NONE, salt, scale, pivotY)
         }
         val firstIsDug = kinds.first()?.sunk == true
-        fun withTheGreat(shapes: TerrainField, isItsKind: Boolean): TerrainField =
-            if (landmarks.anyDrawn && isItsKind) Union(listOf(shapes, greatOnes(ofHeights.first(), landmarks, scale))) else shapes
+        fun withTheGreat(shapes: TerrainField, isItsKind: Boolean, pivotY: Int): TerrainField =
+            if (landmarks.anyDrawn && isItsKind) Union(listOf(shapes, greatOnes(ofHeights.first(), landmarks, scale, pivotY))) else shapes
         val anyStand = isDug.any { !it }
         val anyDug = isDug.any { it }
-        val standing = if (anyStand) withTheGreat(laid(standingTemplates), isItsKind = !firstIsDug) else null
-        val dug = if (anyDug) withTheGreat(laid(dugTemplates), isItsKind = firstIsDug) else null
+        val standing = if (anyStand) withTheGreat(laid(standingTemplates, STANDS_FROM), isItsKind = !firstIsDug, STANDS_FROM) else null
+        val dug = if (anyDug) withTheGreat(laid(dugTemplates, DUG_FROM), isItsKind = firstIsDug, DUG_FROM) else null
         val stoodOn = standing?.let { Union(listOf(plain(), it)) } ?: plain()
-        return dug?.let { Subtract(stoodOn, it) } ?: stoodOn
+        return dug?.let { Subtract(stoodOn, Intersect(listOf(it, DUG_NO_DEEPER))) } ?: stoodOn
     }
 
     /**
@@ -122,37 +123,40 @@ object GeometricField {
 
     /**
      * Each of [formation]'s shapes at about [height], standing on the plain or dug a block into it as the formation
-     * is. A formation is authored [AUTHORED_HEIGHT] tall at its own ordinary size, which its [Formation.largest] says.
+     * is. A formation is authored [AUTHORED_HEIGHT] tall, or [AUTHORED_DEPTH] deep where it is dug, at its own ordinary
+     * size, which its [Formation.largest] says.
      */
     private fun shapesOfHeight(formation: Formation): (Int) -> List<TerrainField> {
         val ordinarySize = formation.largest / SizeScale.COLOSSAL
-        val standsAt = if (formation.sunk) GROUND_TOP else GROUND_TOP + 1
+        val standsAt = if (formation.sunk) DUG_FROM else STANDS_FROM
+        val authored = if (formation.sunk) AUTHORED_DEPTH else AUTHORED_HEIGHT
         val standing = Lift(datumY = 0, toY = standsAt)
         return { height ->
-            formation.shapes.map { shape -> standing.over(shape.resized(ordinarySize * height / AUTHORED_HEIGHT, 0), keepsFloor = false) }
+            formation.shapes.map { shape -> standing.over(shape.resized(ordinarySize * height / authored, 0), keepsFloor = false) }
         }
     }
 
     /** One great shape where each landmark is drawn, as tall as the world leaves room for at its [scale]. */
-    private fun greatOnes(ofHeight: (Int) -> List<TerrainField>, landmarks: Landmarks, scale: Double): TerrainField {
+    private fun greatOnes(ofHeight: (Int) -> List<TerrainField>, landmarks: Landmarks, scale: Double, pivotY: Int): TerrainField {
         val height = minOf(GREAT_HEIGHT, ((VerticalWindow.HIGHEST_BLOCK_Y - GROUND_TOP - 1) / scale).toInt())
         val great = ofHeight(height).first()
         val drawn = Density(atOrigin = landmarks.chance, atEdge = landmarks.chance, falloffRadius = 1.0)
         val layout = Scatter(cellSize = landmarks.spacing / scale, leastPerCell = 1, mostPerCell = 1, density = drawn)
-        return Instanced(listOf(great), layout, Variation.NONE, seed = landmarks.seed).resized(scale, GROUND_TOP + 1)
+        return Instanced(listOf(great), layout, Variation.NONE, seed = landmarks.seed).resized(scale, pivotY)
     }
 
-    private fun variedPoses() = Variation(
+    private fun variedPoses(pivotY: Int) = Variation(
         yawSteps = YAW_STEPS,
         minScale = MIN_SCALE,
         maxScale = MAX_SCALE,
         scaleSteps = SCALE_STEPS,
-        pivotY = GROUND_TOP + 1,
+        pivotY = pivotY,
     )
 
     /**
      * [scale] is [SizeScale]'s factor, and the whole scatter takes it about the plain: taller shapes, further apart,
-     * thinning out over a proportionally wider country, so every size reads alike.
+     * thinning out over a proportionally wider country, so every size reads alike. Sized about [pivotY], where the
+     * shapes meet the plain, so a dug one's mouth stays open at every size.
      */
     private fun scattered(
         templates: List<TerrainField>,
@@ -160,12 +164,16 @@ object GeometricField {
         variation: Variation,
         salt: Long,
         scale: Double,
-    ): TerrainField = Instanced(templates, placement, variation, seed = SCATTER_SEED xor salt).resized(scale, GROUND_TOP + 1)
+        pivotY: Int,
+    ): TerrainField = Instanced(templates, placement, variation, seed = SCATTER_SEED xor salt).resized(scale, pivotY)
 
     private val HEIGHTS = listOf(8, 16, 24, 32)
 
     /** The pyramids built in code, which is what a geometric landform asked for nothing else is built of. */
     private val PYRAMIDS_ALONE: List<Formation?> = listOf(null)
+
+    /** As deep as anything may be dug, keeping the deepslate at the bottom of the world under every pit. */
+    private val DUG_NO_DEEPER: TerrainField = Slab(lowY = VerticalWindow.MIN_Y + FLOOR_KEPT, highY = GROUND_TOP)
 
     /** A template with nothing in it, where a copy is laid on the other side of the plain. */
     private val NOTHING: TerrainField = Union(emptyList())
@@ -182,7 +190,17 @@ object GeometricField {
     /** How tall a formation stands at its ordinary size, as written: twenty-five, or a hundred `colossal`. */
     private const val AUTHORED_HEIGHT = 25.0
 
+    /** How deep a dug formation goes at its ordinary size, as written: a pit about eight. */
+    private const val AUTHORED_DEPTH = 12.0
+
     private const val GROUND_TOP = 63
+
+    /** Where a standing shape rises from, and where a dug one's mouth is cut: the plain's top block taken with it. */
+    private const val STANDS_FROM = GROUND_TOP + 1
+    private const val DUG_FROM = GROUND_TOP
+
+    /** How much of the bottom of the world no pit reaches into. */
+    private const val FLOOR_KEPT = 24
     private const val SCATTER_SEED = 0x5EED_C0DEL
 
     // Wide enough that the largest pyramid still stands clear of its neighbours away from the origin,
