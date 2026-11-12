@@ -27,3 +27,4 @@
 [bugfix] a fully activated fusion compounder now properly reveals its advanced recipes
 [bugfix] drying racks no longer unnecessarily darken the area they are placed in
 [bugfix] bookbinder recipe should unlock properly now
+[bugfix] third layer of drifting arc crystal should show up more often
