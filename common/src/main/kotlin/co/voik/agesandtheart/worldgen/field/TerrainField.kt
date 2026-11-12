@@ -112,7 +112,8 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     RECONCILED({ self -> Reconciled.codec(self) }),
     LIFTED({ self -> Lifted.codec(self) }),
     RELIEVED({ self -> Relieved.codec(self) }),
-    STREAMS({ self -> Streams.codec(self) });
+    STREAMS({ self -> Streams.codec(self) }),
+    TOPPLED({ self -> Toppled.codec(self) });
 
     fun codec(self: Codec<TerrainField>): MapCodec<out TerrainField> = makeCodec(self)
 

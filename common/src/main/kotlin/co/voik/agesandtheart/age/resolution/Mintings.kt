@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Materials
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Span
 
@@ -67,6 +68,7 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             spacing = asked(minting.clause, SPACING),
             frequency = minting.mints.frequency,
             porosity = asked(minting.clause, POROSITY),
+            toppled = minting.clause.any { it.settings[FALLEN] == Parameter.TRUE },
         )
     }
     for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)
@@ -127,3 +129,4 @@ private const val ALTITUDE = "altitude"
 private const val ARRANGEMENT = "arrangement"
 private const val SPACING = "spacing"
 private const val POROSITY = "porosity"
+private const val FALLEN = "fallen"

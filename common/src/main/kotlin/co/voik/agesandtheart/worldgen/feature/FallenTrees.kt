@@ -17,8 +17,6 @@ import net.minecraft.world.level.levelgen.feature.SimpleRandomSelectorFeature
 import net.minecraft.world.level.levelgen.feature.TreeFeature
 import net.minecraft.world.level.levelgen.feature.WeightedPlacedFeature
 import net.minecraft.world.level.levelgen.feature.WeightedRandomSelectorFeature
-import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
-import net.minecraft.world.level.levelgen.feature.stateproviders.SimpleStateProvider
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
 /**
@@ -47,16 +45,6 @@ object FallenTrees {
         return Felling(fallenTrees, logs).placed(feature)
     }
 
-    /** The logs of the trees [feature] grows, wherever they sit among what it chooses between. */
-    fun logsOf(feature: Holder<PlacedFeature>): Set<Block> = feature.value().getFeatures()
-        .map { it.value() }
-        .toList()
-        .filterIsInstance<TreeFeature>()
-        .mapNotNull { blockOf(it.trunkProvider()) }
-        .toSet()
-
-    private fun blockOf(provider: Holder<BlockStateProvider>): Block? = (provider.value() as? SimpleStateProvider)?.state()?.block
-
     private class Felling(private val fallenTrees: List<Holder.Reference<Feature>>, private val logs: Set<Block>?) {
 
         fun placed(feature: Holder<PlacedFeature>): Holder<PlacedFeature> {
@@ -69,7 +57,7 @@ object FallenTrees {
             return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
         }
 
-        private fun falls(tree: TreeFeature): Boolean = logs == null || blockOf(tree.trunkProvider()) in logs
+        private fun falls(tree: TreeFeature): Boolean = logs == null || TreeKinds.logOf(tree) in logs
 
         private fun standingOrFallen(tree: Holder<Feature>, held: TreeFeature): Feature {
             val standing = Holder.direct(PlacedFeature(tree, emptyList()))
@@ -93,8 +81,8 @@ object FallenTrees {
 
         /** Vanilla's fallen tree of [tree]'s log, or its fallen oak laid of [tree]'s trunk. */
         private fun fallenOf(tree: TreeFeature): Feature {
-            val log = blockOf(tree.trunkProvider())
-            val ofTheSameLog = fallenTrees.firstOrNull { log != null && blockOf((it.value() as FallenTreeFeature).trunkProvider()) == log }
+            val log = TreeKinds.logOf(tree)
+            val ofTheSameLog = fallenTrees.firstOrNull { log != null && TreeKinds.blockOf((it.value() as FallenTreeFeature).trunkProvider()) == log }
             if (ofTheSameLog != null) return ofTheSameLog.value()
             val oak = fallenTrees.firstOrNull { it.key() == FALLEN_OAK }?.value() as? FallenTreeFeature
                 ?: return FallenTreeFeature(tree.trunkProvider(), LOG_LENGTH, emptyList(), emptyList())

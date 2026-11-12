@@ -2,7 +2,10 @@ package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.age.aspect.Holders
 import co.voik.agesandtheart.age.aspect.TreeFoliage
+import co.voik.agesandtheart.worldgen.feature.TreeKinds
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.levelgen.feature.TreeFeature
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacer
 import net.minecraft.util.RandomSource
@@ -38,20 +41,28 @@ object StrangeGround {
         val leafless: Holders,
         val foliage: TreeFoliage,
         val idOf: (PlacedFeature) -> String?,
+        /** The logs of the kinds of tree left bare (`bare birch`), each bare wherever it stands. */
+        val leaflessLogs: Set<Block>,
+        /** What each kind of tree a book grew of something grows in place of its leaves (`diamond_block cherry`). */
+        val foliageByLog: Map<Block, BlockState>,
     )
 
     /**
      * Runs [decoration] with this thread doing to it whatever [consequence] holds, off the Age's [seed]. [idOf]
-     * names a placed feature, since what a book said of `trees` it said of those features and no others.
+     * names a placed feature, since what a book said of `trees` it said of those features and no others; [logsOf] the
+     * logs of the trees a placed feature grows, since what it said of one kind of tree it said of every tree of its log.
      */
     fun decorating(
         consequence: Consequence,
         foliage: TreeFoliage,
         seed: Long,
         idOf: (PlacedFeature) -> String?,
+        logsOf: (String) -> Set<Block>,
         decoration: () -> Unit,
     ) {
-        val wanted = Decorating(seed, consequence.stamped, consequence.leafless, foliage, idOf)
+        val leaflessLogs = consequence.leafless.only.flatMap(logsOf).toSet()
+        val foliageByLog = foliage.byFeature.flatMap { (member, block) -> logsOf(member).map { log -> log to block } }.toMap()
+        val wanted = Decorating(seed, consequence.stamped, consequence.leafless, foliage, idOf, leaflessLogs, foliageByLog)
         if (wanted.stamped.isNobody && wanted.leafless.isNobody && foliage.isNothing) return decoration()
         val was = decorating.get()
         decorating.set(wanted)
@@ -109,17 +120,23 @@ object StrangeGround {
         return RandomSource.create(seed xor feature.hashCode().toLong())
     }
 
-    /** Whether a tree placed on this thread should be left without its leaves. */
+    /** Whether [tree], placed on this thread, should be left without its leaves: its feature or its kind left bare. */
     @JvmStatic
-    fun isLeafless(): Boolean = decorating.get()?.leafless?.includes(placing.get()) == true
+    fun isLeafless(tree: TreeFeature): Boolean {
+        val doing = decorating.get() ?: return false
+        return doing.leafless.includes(placing.get()) || TreeKinds.logOf(tree) in doing.leaflessLogs
+    }
 
     /**
-     * [setter] setting, wherever a tree placed on this thread would set a leaf, the block its book grew it with in
-     * place of its leaves — or [setter] itself where it grows leaves.
+     * [setter] setting, wherever [tree] placed on this thread would set a leaf, the block its book grew it with in
+     * place of its leaves — said of its feature, of its kind, or of every tree — or [setter] itself where it grows leaves.
      */
     @JvmStatic
-    fun grownWithItsFoliage(setter: FoliagePlacer.FoliageSetter): FoliagePlacer.FoliageSetter {
-        val grownWith = decorating.get()?.foliage?.of(placing.get()) ?: saplingGrowsWith.get() ?: return setter
+    fun grownWithItsFoliage(setter: FoliagePlacer.FoliageSetter, tree: TreeFeature): FoliagePlacer.FoliageSetter {
+        val doing = decorating.get()
+        val ofItsKind = doing?.foliageByLog?.get(TreeKinds.logOf(tree))
+        val ofItsFeature = placing.get()?.let { doing?.foliage?.byFeature?.get(it) }
+        val grownWith = ofItsFeature ?: ofItsKind ?: doing?.foliage?.everyTree ?: saplingGrowsWith.get() ?: return setter
         return object : FoliagePlacer.FoliageSetter {
             override fun set(pos: BlockPos, state: BlockState) = setter.set(pos, grownWith)
 

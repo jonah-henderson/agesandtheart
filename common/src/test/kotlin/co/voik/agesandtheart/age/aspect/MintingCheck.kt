@@ -663,6 +663,23 @@ class MintingCheck : FunSpec({
         check(stateOf(geode.blockSettings().innerLayerProvider()) == Blocks.DIAMOND_BLOCK) { "a diamond geode was lined with something else" }
         check(geode.usePotentialPlacementsChance() == 0.0) { "a diamond geode budded" }
     }
+
+    test("fallen stone is minted knocked over, and stone said of nothing stands") {
+        val fallen = placed("fallen", "obelisks").filter { it.startsWith("agesandtheart:obelisks") }
+        check(fallen.isNotEmpty() && fallen.all { Claim.TOPPLED in Claim.read(it).spelled() }) { "fallen obelisks minted $fallen" }
+        val standing = placed("obelisks").filter { it.startsWith("agesandtheart:obelisks") }
+        check(standing.none { Claim.read(it).toppled }) { "obelisks alone minted $standing" }
+        val megaliths = placed("fallen", "megaliths").map(Claim::read).filter { it.madeOf != null }
+        check(megaliths.isNotEmpty() && megaliths.all { it.toppled }) { "fallen megaliths minted ${megaliths.map(Claim::spelled)}" }
+    }
+
+    test("fallen leaves lie thick, and fallen stars are meteors") {
+        val leaves = vocabulary.read(listOf("fallen", "leaves", "age"), SAMPLE_SEED)
+        val admitted = leaves?.landings.orEmpty().flatMap { it.effects }.filterIsInstance<Effect.Admits>().flatMap { it.members }
+        check("agesandtheart:fallen_leaves" in admitted) { "fallen leaves admitted $admitted" }
+        val phenomena = resolved(SAMPLE_SEED, "fallen", "stars").composition.optionsFor(Aspect.PHENOMENA, 0)
+        check(Phenomena.claimsIn(phenomena).any { it.value == "meteors" }) { "fallen stars brought ${Phenomena.claimsIn(phenomena)}" }
+    }
 })
 
 private const val SAMPLE_SEED = 0x5EEDL

@@ -40,7 +40,8 @@ public abstract class TreeFeatureMixin {
         index = 5
     )
     private FoliagePlacer.FoliageSetter agesandtheart$bare(FoliagePlacer.FoliageSetter setter) {
-        return StrangeGround.isLeafless() ? BARE : FlagTrees.foliage(StrangeGround.grownWithItsFoliage(setter));
+        TreeFeature tree = (TreeFeature) (Object) this;
+        return StrangeGround.isLeafless(tree) ? BARE : FlagTrees.foliage(StrangeGround.grownWithItsFoliage(setter, tree));
     }
 
     @ModifyArg(

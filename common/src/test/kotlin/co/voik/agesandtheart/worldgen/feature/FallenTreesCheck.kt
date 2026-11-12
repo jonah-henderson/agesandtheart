@@ -66,7 +66,7 @@ class FallenTreesCheck : FunSpec({
 
     test("a kind of tree falls by its log among a forest's others, and they stand") {
         val forest = placed("trees_birch_and_oak_leaf_litter")
-        val oaks = FallenTrees.logsOf(placed("oak"))
+        val oaks = TreeKinds.logsOf(placed("oak"))
         check(oaks == setOf(Blocks.OAK_LOG)) { "vanilla's oak grows of $oaks" }
         val felled = FallenTrees.felled(forest, MinecraftRegistries.worldgen, oaks)
         fun fallenOf(feature: Holder<PlacedFeature>) = allPlacedBy(feature).filterIsInstance<FallenTreeFeature>().map(::logOf)

@@ -44,6 +44,9 @@ import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
+import java.util.concurrent.ConcurrentHashMap
+import net.minecraft.world.level.levelgen.placement.PlacedFeature
+import co.voik.agesandtheart.worldgen.feature.TreeKinds
 import net.minecraft.core.HolderSet
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
@@ -1639,13 +1642,23 @@ class AgeChunkGenerator(
      * Seeded off the chunk so an Age rebuilds identically on every open: this runs per chunk, and a chunk
      * generated today and the same chunk generated next year must agree about whether it holds one.
      */
+    /** The logs of the trees each placed feature a book named grows, read once per feature for the generator's life. */
+    private val treeLogsByFeature = ConcurrentHashMap<String, Set<Block>>()
+
+    private fun treeLogsOf(member: String, placedFeatures: HolderLookup.RegistryLookup<PlacedFeature>): Set<Block> =
+        treeLogsByFeature.computeIfAbsent(member) {
+            val id = Identifier.tryParse(member) ?: return@computeIfAbsent emptySet()
+            placedFeatures.get(ResourceKey.create(Registries.PLACED_FEATURE, id)).map(TreeKinds::logsOf).orElse(emptySet())
+        }
+
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         surfacePitted?.pitInto(chunk)
         seaBubbled?.bubbleInto(chunk)
         CrumbledFeatures.decorating(featuresCrumbled, level.seed) {
             PorousFeatures.decorating(featuresHoled) {
-                StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
+                val logsOf = { member: String -> treeLogsOf(member, placedFeatures) }
+                StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }, logsOf) {
                     StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
                         IncongruousSpawns.settling(incongruity.spawns, { offeredAnywhere }, level.seed) {
                             FlagTrees.sweeping(windBendingTrees) { super.applyBiomeDecoration(level, chunk, structures) }

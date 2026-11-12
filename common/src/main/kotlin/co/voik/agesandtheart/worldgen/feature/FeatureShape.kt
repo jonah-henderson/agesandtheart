@@ -58,6 +58,7 @@ import co.voik.agesandtheart.worldgen.field.Radial
 import co.voik.agesandtheart.worldgen.field.Relieved
 import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Spans
+import co.voik.agesandtheart.worldgen.field.Toppled
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -271,6 +272,21 @@ object FeatureShape {
 
     /** Whether this places a [Formation] — the one kind of feature [confinedTo] can confine. */
     fun isAFormation(feature: Holder<PlacedFeature>): Boolean = feature.value().feature().value() is Formation
+
+    /** Whether [feature] is a formation standing on the ground, which can be knocked over, rather than a pit dug into it. */
+    fun isAStandingFormation(feature: Holder<PlacedFeature>): Boolean = (feature.value().feature().value() as? Formation)?.sunk == false
+
+    /**
+     * [feature]'s formations knocked over where they stand taller than they are deep — `fallen obelisks` — or itself where
+     * it is no standing formation.
+     */
+    fun toppled(feature: Holder<PlacedFeature>): Holder<PlacedFeature> {
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return feature
+        if (formation.sunk) return feature
+        val knockedOver = formation.copy(shapes = formation.shapes.map(Toppled::of))
+        return Holder.direct(PlacedFeature(Holder.direct(knockedOver), placed.placement()))
+    }
 
     fun reshaped(
         feature: Holder<PlacedFeature>,

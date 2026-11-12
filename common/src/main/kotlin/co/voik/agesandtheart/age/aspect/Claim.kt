@@ -98,6 +98,8 @@ data class Claim(
     val frequency: Double? = null,
     /** How holed a member of this one's is, or null to take the Age's own — `porous obelisks`. */
     val porosity: Double? = null,
+    /** Whether a formation of this one's lies knocked over — `fallen obelisks`. */
+    val toppled: Boolean = false,
     /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
      * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
@@ -174,6 +176,7 @@ data class Claim(
             ownSpacing?.let { add("$SPACING$SETS${Rung.spelled(it)}") }
             ownFrequency?.let { add("$FREQUENCY$SETS${Rung.spelled(it)}") }
             ownPorosity?.let { add("$POROSITY$SETS${Rung.spelled(it)}") }
+            if (toppled) add(TOPPLED)
             confinedTo?.let { add("$IN$SETS$it") }
             territory?.let { add("$ON$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
@@ -210,6 +213,7 @@ data class Claim(
         const val SPACING = "spacing"
         const val FREQUENCY = "frequency"
         const val POROSITY = "porosity"
+        const val TOPPLED = "toppled"
         const val FOR = "for"
 
         /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
@@ -252,6 +256,7 @@ data class Claim(
                 spacing = valueOf(parts, SPACING)?.toDoubleOrNull(),
                 frequency = valueOf(parts, FREQUENCY)?.toDoubleOrNull()?.takeIf { it > 0.0 },
                 porosity = valueOf(parts, POROSITY)?.toDoubleOrNull(),
+                toppled = parts.any { it == TOPPLED },
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
                 territory = valueOf(parts, ON)?.toIntOrNull(),
             )

@@ -223,13 +223,14 @@ object Verdict {
 
         /**
          * A preset has one page that means it; an aspect's page announcing its own phenomenon is not counted, nor a
-         * choice made only by chance, which brings the preset now and then without meaning it (`stormy`'s gale). A
+         * choice made only by chance, which brings the preset now and then without meaning it (`stormy`'s gale), nor one
+         * offered to another word, which is a phrase meaning it rather than a page (`fallen stars` are meteors). A
          * preset set differently in the meaning that chooses it is another configuration of it, and has a page of its
          * own: `pyramidal` and `spired` both choose the geometric landform, in two shapes.
          */
         fun duplicateChoices(): List<Finding> {
             if (isAnAspectPage) return emptyList()
-            fun choicesMeantBy(meanings: List<Meaning>) = meanings.filter { it.mustAlwaysApply }.flatMap { meaning ->
+            fun choicesMeantBy(meanings: List<Meaning>) = meanings.filter { it.mustAlwaysApply && !it.isOffered }.flatMap { meaning ->
                 val configuration = meaning.effects.filterIsInstance<Effect.Sets>().toSet()
                 meaning.effects.filterIsInstance<Effect.Chooses>().map { it to configuration }
             }
