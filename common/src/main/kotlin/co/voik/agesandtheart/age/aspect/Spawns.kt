@@ -612,6 +612,8 @@ object Spawns {
                 // after the list, so offering one costs the biome's own creatures a share of every attempt
                 // and puts nothing in the world. `AgeSpawner` has them.
                 if (spawning.isPlacedByTheAge(id)) return@mapNotNull null
+                // Nor these, which vanilla gives no rule: their own spawners have them ([VanillaSpawners]).
+                if (spawning.comesByItsOwnSpawner(id)) return@mapNotNull null
                 val type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null)
                     ?: return@mapNotNull null
                 val arrival = spawning.of(id)

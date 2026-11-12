@@ -29,6 +29,11 @@
     "taken out of the list getMobsAt builds and placed by AgeSpawner instead, at whatever ground they",
     "belong to -- which is what `in_the_air` is for.",
     "",
+    "`by_their_own_spawner` is for the creatures vanilla brings by a spawner of their own and gives no spawn",
+    "rule: phantoms over the sleepless, the wandering trader and its llamas. Offered to the natural spawner,",
+    "a phantom came at noon underground and a trader never left. They are taken out of the list too, and what",
+    "a book asks of them tunes the Age's own spawner for them (VanillaSpawners); unasked, it is vanilla's.",
+    "",
     "`apart_by` is for creatures the Age PLACES, where AgeSpawner backs it with a count of what is",
     "already nearby. In a biome list it has no such backing: the window is one chunk of each cell, so a",
     "creature is absent from 143 cells out of 144 and most of what spawns inside the one -- which walks",
@@ -107,6 +112,11 @@
   ],
   "in_the_air": [
     "minecraft:ender_dragon"
+  ],
+  "by_their_own_spawner": [
+    "minecraft:phantom",
+    "minecraft:wandering_trader",
+    "minecraft:trader_llama"
   ],
   "placed_by_the_age": [
     "minecraft:iron_golem",

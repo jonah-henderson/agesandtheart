@@ -46,6 +46,13 @@ data class Spawning(
      * belongs to.
      */
     private val placedByTheAge: Set<String> = emptySet(),
+    /**
+     * Creatures that come only through a spawner of their own — the phantoms, the wandering trader and its llamas —
+     * which vanilla gives no spawn rule, so offered to the natural spawner one came at noon, underground, or never left.
+     * Taken out of the list `getMobsAt` builds; what a book asks of them tunes the Age's own spawner for them instead
+     * ([co.voik.agesandtheart.generation.VanillaSpawners]).
+     */
+    private val byTheirOwnSpawner: Set<String> = emptySet(),
 ) {
     fun of(id: Identifier): Arrival = byType[id.toString()] ?: ordinary
 
@@ -92,6 +99,9 @@ data class Spawning(
     /** Whether the Age has to put [id] there itself — see [placedByTheAge]. */
     fun isPlacedByTheAge(id: Identifier): Boolean = id.toString() in placedByTheAge
 
+    /** Whether [id] comes only through a spawner of its own — see [byTheirOwnSpawner]. */
+    fun comesByItsOwnSpawner(id: Identifier): Boolean = id.toString() in byTheirOwnSpawner
+
     /**
      * Every creature named here, which is what makes one **writable at all** where vanilla would never
      * have grown it: `DerivedWords.spawns` gives no word to a `MobCategory.MISC` entity — an arrow and a
@@ -109,6 +119,7 @@ data class Spawning(
         inTheLight + later.inTheLight,
         inTheDark + later.inTheDark,
         placedByTheAge + later.placedByTheAge,
+        byTheirOwnSpawner + later.byTheirOwnSpawner,
     )
 
     companion object {
@@ -132,11 +143,13 @@ data class Spawning(
                     .forGetter { it.inTheDark.toList() },
                 Codec.STRING.listOf().optionalFieldOf("placed_by_the_age", emptyList())
                     .forGetter { it.placedByTheAge.toList() },
-            ).apply(instance) { creatures, ordinary, surface, underground, air, lit, dark, placed ->
+                Codec.STRING.listOf().optionalFieldOf("by_their_own_spawner", emptyList())
+                    .forGetter { it.byTheirOwnSpawner.toList() },
+            ).apply(instance) { creatures, ordinary, surface, underground, air, lit, dark, placed, ownSpawner ->
                 Spawning(
                     creatures, ordinary,
                     surface.toSet(), underground.toSet(), air.toSet(),
-                    lit.toSet(), dark.toSet(), placed.toSet(),
+                    lit.toSet(), dark.toSet(), placed.toSet(), ownSpawner.toSet(),
                 )
             }
         }

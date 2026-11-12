@@ -223,6 +223,15 @@ class SpawningCheck : FunSpec({
         }
     }
 
+    /** Phantoms, traders and their llamas have no spawn rule, so a book's ask tunes their own spawners instead. */
+    test("what comes by its own spawner is never offered to vanilla's natural one") {
+        val passes = mapOf("phantom" to MobCategory.MONSTER, "wandering_trader" to MobCategory.CREATURE, "trader_llama" to MobCategory.CREATURE)
+        for ((creature, pass) in passes) {
+            val arrived = livingWith("minecraft:$creature", pass, skyIsOpen = true)
+            check(creature !in arrived) { "$creature was offered to the natural spawner: $arrived" }
+        }
+    }
+
     /** And it is picked up by the one that will place it, at the ground the corpus gives it. */
     test("and is picked up by the Age's own spawner") {
         val placing = AgeSpawner.placing(

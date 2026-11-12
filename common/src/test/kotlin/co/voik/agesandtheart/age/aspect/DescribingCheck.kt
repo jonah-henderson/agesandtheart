@@ -83,13 +83,14 @@ class DescribingCheck : FunSpec({
 
     test("a description never stocks a menu, and everywhere does") {
         // **More where it lives, never where it does not** (Jonah, 2026-10-16): `teeming monsters` was putting
-        // zombie nautiluses and hadalfish on offer in every biome. No biome in the game offers a wandering
-        // trader, so it can only ever arrive as an introduction — which a description no longer makes.
-        check("minecraft:wandering_trader" !in stocks("villagers")) {
-            "'villagers' put a wandering trader on the menu: ${stocks("villagers")}"
+        // zombie nautiluses and hadalfish on offer in every biome. No biome in the game offers a pillager, which
+        // comes by patrols and outposts, so it can only ever arrive as an introduction — which a description no
+        // longer makes.
+        check("minecraft:pillager" !in stocks("villagers")) {
+            "'villagers' put a pillager on the menu: ${stocks("villagers")}"
         }
         check("minecraft:zombie" !in stocks("undead")) { "'undead' stocked a zombie: ${stocks("undead")}" }
-        check("minecraft:wandering_trader" in stocks("villagers", "everywhere")) {
+        check("minecraft:pillager" in stocks("villagers", "everywhere")) {
             "'villagers everywhere' put nobody on the menu: ${stocks("villagers", "everywhere")}"
         }
     }

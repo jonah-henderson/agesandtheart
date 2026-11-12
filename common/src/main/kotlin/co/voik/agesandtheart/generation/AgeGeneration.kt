@@ -1188,7 +1188,13 @@ object AgeGeneration {
      * is policy and belongs in common, where opening one is Ephemeris'.
      */
     fun spawnersFor(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> =
-        VanillaSpawners.forAnAge() + spawnersOfItsOwn(server, recipe)
+        VanillaSpawners.forAnAge(askedOfVanillasSpawners(recipe)) + spawnersOfItsOwn(server, recipe)
+
+    /** How thickly the book named each creature vanilla's own spawners bring, by id. */
+    private fun askedOfVanillasSpawners(recipe: AgeRecipe): Map<Identifier, Double> {
+        val options = recipe.composition?.optionsFor(Aspect.SPAWNS, 0) ?: return emptyMap()
+        return Spawns.claimedCreatures(options).toMap()
+    }
 
     private fun spawnersOfItsOwn(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> {
         val composition = recipe.composition ?: return emptyList()
