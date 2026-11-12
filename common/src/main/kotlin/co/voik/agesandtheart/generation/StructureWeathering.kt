@@ -43,7 +43,7 @@ data class StructureWeathering(val crumble: Double, val charred: Boolean, val po
     companion object {
         val NONE = StructureWeathering(crumble = 0.0, charred = false)
 
-        /** How big a hole through a wall is, in blocks. */
+        /** The scale that makes a hole through a wall about two blocks across ([Perforation]). */
         private const val HOLE_SIZE = 2.5
         private const val HOLES_SALT = 0x484F_4C45_53L
 

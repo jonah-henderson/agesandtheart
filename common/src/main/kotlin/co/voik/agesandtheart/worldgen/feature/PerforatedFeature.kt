@@ -31,7 +31,7 @@ data class PerforatedFeature(val feature: Holder<Feature>, val porosity: Double,
     }
 
     companion object {
-        /** How big a hole through a feature is, in blocks. */
+        /** The scale that makes a hole through a feature about two blocks across ([Perforation]). */
         const val HOLE_SIZE = 2.5
 
         val CODEC: MapCodec<PerforatedFeature> = RecordCodecBuilder.mapCodec { instance ->

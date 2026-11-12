@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.SurfacePits
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import co.voik.agesandtheart.worldgen.Sastrugi
 import co.voik.agesandtheart.age.aspect.Biomes
@@ -482,6 +483,7 @@ object AgeGeneration {
             treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),
             featuresCrumbled = CrumbledFeatures.shareIn(composition.optionsFor(Aspect.FEATURES), seed),
             featuresHoled = PorousFeatures.of(composition.optionsFor(Aspect.FEATURES), seed),
+            surfacePitted = SurfacePits.of(composition.optionsFor(Aspect.SURFACE), seed),
             banned = BannedBlocks.named(composition.banned),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.

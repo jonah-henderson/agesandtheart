@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.SurfacePits
 import co.voik.agesandtheart.worldgen.Perforation
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.core.registries.BuiltInRegistries
@@ -224,6 +225,8 @@ class AgeChunkGenerator(
     private val featuresCrumbled: Double = 0.0,
     /** What the features build of rock above the ground is holed by — `porous features` — or null. */
     private val featuresHoled: Perforation? = null,
+    /** The pits the ground is pocked with — `porous surface` — or null. */
+    private val surfacePitted: SurfacePits? = null,
     /** The blocks the book banned, which no chunk of the Age is generated holding — see [BannedBlocks]. */
     private val banned: Set<Block> = emptySet(),
     /** Whether no new living thing may be made in this Age by anything at all — see [StruckCreatures]. */
@@ -1635,6 +1638,7 @@ class AgeChunkGenerator(
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
+        surfacePitted?.pitInto(chunk)
         CrumbledFeatures.decorating(featuresCrumbled, level.seed) {
             PorousFeatures.decorating(featuresHoled) {
                 StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {

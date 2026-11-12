@@ -39,6 +39,17 @@ object Surface {
      */
     val BARE = Parameter.flag("bare", help = "Whether the ground wears nothing, so its rock shows.")
 
+    /** How pitted the ground is — `porous surface` ([co.voik.agesandtheart.worldgen.SurfacePits]). Only an aimed word turns it. */
+    val POROSITY = Parameter.ranged(
+        "porosity",
+        help = "How pocked the ground is with round pits.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "a third pitted"),
+        ),
+    ).onlyWhenAimed()
+
     /**
      * The rule this Age's ground wears, over the rock that has to say which blocks are the top of the
      * ground and which are the floor of a cave.

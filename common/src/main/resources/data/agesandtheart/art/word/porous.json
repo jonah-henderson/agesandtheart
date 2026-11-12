@@ -4,7 +4,8 @@
     "into rather than tunnels you walk along, wet near the surface and dry far below (`Carvers.POROUS`); `dry porous",
     "rock` keeps them dry. `porous features` holes the rock the features build above the ground, and a named one",
     "(`porous trees`, `porous obelisks`) everything it lays; `porous structures` and `porous villages` are holed through",
-    "their walls and floors, never through what holds something."
+    "their walls and floors, never through what holds something. `porous surface` is the ground pocked with pits,",
+    "like pumice."
   ],
   "meanings": [
     {
@@ -29,6 +30,15 @@
       "must_always_apply": true,
       "offered_to": [
         "structures"
+      ]
+    },
+    {
+      "sets": {
+        "surface.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "surface"
       ]
     }
   ]

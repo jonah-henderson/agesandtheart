@@ -29,9 +29,15 @@ class PorousCheck : FunSpec({
         check("for=minecraft:villages" in villages) { "porous villages holed '$villages' rather than the villages" }
     }
 
+    test("porous surface pits the ground") {
+        check(porosityOf(Aspect.SURFACE, listOf("porous", "surface")) != null) { "porous surface pitted nothing" }
+        check(porosityOf(Aspect.FEATURES, listOf("porous", "surface")) == null) { "porous surface holed the features" }
+    }
+
     test("porous laid bare is the rock alone") {
         check(porosityOf(Aspect.FEATURES, listOf("porous")) == null) { "a bare porous holed the features" }
         check(porosityOf(Aspect.STRUCTURES, listOf("porous")) == null) { "a bare porous holed the structures" }
+        check(porosityOf(Aspect.SURFACE, listOf("porous")) == null) { "a bare porous pitted the ground" }
     }
 
     test("a porous obelisk carries its porosity in its own clause") {

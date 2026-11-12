@@ -5,9 +5,12 @@ import net.minecraft.world.level.levelgen.synth.SimplexNoise
 import kotlin.random.Random
 
 /**
- * Round holes through whatever is laid, `porous` at a scale of [holeSize] blocks: a smooth noise of the place, and a
- * hole wherever it stands over the threshold [porosity] asks for. The threshold is read off the noise itself, so a
- * porosity of a half leaves half the void one of one does, whatever the noise's spread.
+ * Round holes through whatever is laid, `porous` at a scale of [holeSize]: a smooth noise of the place, and a hole
+ * wherever it stands over the threshold [porosity] asks for. The threshold is read off the noise itself, so a porosity
+ * of a half leaves half the void one of one does, whatever the noise's spread.
+ *
+ * A hole comes out about four fifths of [holeSize] across at the middle porosity, measured: a scale of six makes holes
+ * four or five blocks wide, and of two and a half about two.
  */
 class Perforation(seed: Long, private val holeSize: Double, porosity: Double) {
 

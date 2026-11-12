@@ -310,7 +310,7 @@ enum class Aspect(
             // A biome's population is the aspect's [pool] rather than a setting; `footing` says how it
             // is *worn*, not which.
             BIOMES -> listOf(Biomes.FOOTING, Biomes.SIZE)
-            SURFACE -> listOf(Surface.MATERIAL, Surface.BARE)
+            SURFACE -> listOf(Surface.MATERIAL, Surface.BARE, Surface.POROSITY)
             FEATURES -> listOf(
                 Features.SIZE, Features.ORE_SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE,
                 Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.POROSITY, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
