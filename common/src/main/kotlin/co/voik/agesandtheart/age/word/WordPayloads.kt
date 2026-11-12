@@ -68,42 +68,75 @@ data class LexiconPayload(
         private val RARITY_STREAM_CODEC: StreamCodec<ByteBuf, WordHeadings.Rarity> =
             ByteBufCodecs.idMapper({ WordHeadings.Rarity.entries[it] }, WordHeadings.Rarity::ordinal)
 
-        private val IDS: StreamCodec<ByteBuf, Set<Identifier>> =
-            Identifier.STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet))
-
         /** By ordinal, which is stable: aspects are only ever appended (see [Aspect]). */
         private val ASPECT_STREAM_CODEC: StreamCodec<ByteBuf, Aspect> =
             ByteBufCodecs.idMapper({ Aspect.entries[it] }, Aspect::ordinal)
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, LexiconPayload> = StreamCodec.composite(
-            Script.STREAM_CODEC,
-            LexiconPayload::script,
-            ByteBufCodecs.map(
-                ::LinkedHashMap,
-                Identifier.STREAM_CODEC,
-                ASPECT_STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet)),
-            ),
-            LexiconPayload::reach,
-            IDS,
-            LexiconPayload::materials,
-            IDS,
-            LexiconPayload::shapes,
-            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, RARITY_STREAM_CODEC),
-            LexiconPayload::rarity,
-            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
-            LexiconPayload::headings,
-            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())),
-            LexiconPayload::appliesTo,
-            IDS,
-            LexiconPayload::structural,
-            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, Identifier.STREAM_CODEC),
-            LexiconPayload::renamed,
-            IDS,
-            LexiconPayload::members,
-            IDS,
-            LexiconPayload::parts,
-            ::LexiconPayload,
-        )
+        private val ASPECTS: StreamCodec<ByteBuf, Set<Aspect>> = ASPECT_STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet))
+
+        private val INDICES: StreamCodec<ByteBuf, List<Int>> = ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())
+
+        /**
+         * **Every id written once**, in a table at the head, and each mention of it after as its place there: a word
+         * is named in four or five of the lists, and its id written out each time was most of the payload.
+         */
+        val STREAM_CODEC: StreamCodec<ByteBuf, LexiconPayload> = StreamCodec.of(::write, ::read)
+
+        private fun idsIn(payload: LexiconPayload): List<Identifier> = with(payload) {
+            (reach.keys + materials + shapes + rarity.keys + headings + appliesTo.keys + structural + renamed.keys + renamed.values +
+                members + parts).distinct()
+        }
+
+        private fun write(buffer: ByteBuf, payload: LexiconPayload) {
+            val table = idsIn(payload)
+            val at = table.withIndex().associate { (index, id) -> id to index }
+            fun id(id: Identifier) = ByteBufCodecs.VAR_INT.encode(buffer, at.getValue(id))
+            fun ids(ids: Collection<Identifier>) = INDICES.encode(buffer, ids.map(at::getValue))
+            fun <V> map(map: Map<Identifier, V>, value: (V) -> Unit) {
+                ByteBufCodecs.VAR_INT.encode(buffer, map.size)
+                for ((key, held) in map) {
+                    id(key)
+                    value(held)
+                }
+            }
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, table)
+            Script.STREAM_CODEC.encode(buffer, payload.script)
+            map(payload.reach) { ASPECTS.encode(buffer, it) }
+            ids(payload.materials)
+            ids(payload.shapes)
+            map(payload.rarity) { RARITY_STREAM_CODEC.encode(buffer, it) }
+            ids(payload.headings)
+            map(payload.appliesTo) { INDICES.encode(buffer, it) }
+            ids(payload.structural)
+            map(payload.renamed) { id(it) }
+            ids(payload.members)
+            ids(payload.parts)
+        }
+
+        private fun read(buffer: ByteBuf): LexiconPayload {
+            val table = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer)
+            fun id(): Identifier = table[ByteBufCodecs.VAR_INT.decode(buffer)]
+            fun ids(): List<Identifier> = INDICES.decode(buffer).map(table::get)
+            fun <V> map(value: () -> V): Map<Identifier, V> {
+                val size = ByteBufCodecs.VAR_INT.decode(buffer)
+                val read = LinkedHashMap<Identifier, V>(size)
+                repeat(size) { read[id()] = value() }
+                return read
+            }
+            return LexiconPayload(
+                script = Script.STREAM_CODEC.decode(buffer),
+                reach = map { ASPECTS.decode(buffer) },
+                materials = ids().toCollection(LinkedHashSet()),
+                shapes = ids().toCollection(LinkedHashSet()),
+                rarity = map { RARITY_STREAM_CODEC.decode(buffer) },
+                headings = ids(),
+                appliesTo = map { INDICES.decode(buffer) },
+                structural = ids().toCollection(LinkedHashSet()),
+                renamed = map { id() },
+                members = ids().toCollection(LinkedHashSet()),
+                parts = ids().toCollection(LinkedHashSet()),
+            )
+        }
     }
 }
 
