@@ -39,6 +39,7 @@ book =
     | [pitted_jungle_age]
     | [linked_age]
     | [herded_age]
+    | [rare_age]@2
 
 # `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
 # stones in one monument. A member says its own part of the world, so no aiming page follows one.
@@ -134,6 +135,40 @@ herded_age =
     | age [land] minuscule herds of allay bright stars
     | age [land] pyramids of [semiprecious] [colour] sky
     | age [land] herds of iron_golem [colour] sky
+
+# The rarer words, each beside a modifier in a scene that suits it. What a word could do is suggested, never said:
+# `motionless sun` stops the sun and leaves the monsters for the reader to think of, and the ancient city is only
+# sighted, with nothing said of what guards it.
+rare_age =
+    [rare_mood_age]@3
+    | [rare_creature_age]@3
+    | [rare_built_age]@2
+
+rare_mood_age =
+    foreboding age [land] only [dark_biome]
+    | age [land] lifeless sea no [built]
+    | age only [open_biome] motionless [body] [colour] sky
+    | age only [fog_biome] constant fog [colour] air
+    | age colourless air only [bright_biome]
+    | age only [open_biome] starless sky [moon_size] moon
+    | starlit age only [cold_biome] [aurora_colour] aurora
+    | untouched age only [wild_biome]
+    | age tangled landmass no [kind] [night]
+
+rare_creature_age =
+    age [warm_land] only mushroom_fields [rung] mooshroom
+    | age only [cold_biome] herds of snow_golem
+    | age [land] [rung] wandering_trader and trader_llama everywhere
+    | age only [open_biome] herds of skeleton_horse [dark_colour] sky
+    | age only pale_garden friendly creaking [colour] sky
+    | age only [open_biome] friendly phantom [night]
+
+rare_built_age =
+    age [land] [rung] pillager_outposts no villages
+    | age [land] trial_chambers no villages [colour] sky
+    | age [land] [few_or_many] ancient_cities [colour] sky
+    | age [land] resin_bricks [shape] in [dry_biome] [colour] sky
+    | age [land] [rung] [froglight] [shape] [night]
 
 # The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
 wonder_age =
@@ -232,3 +267,33 @@ sun_colour = red | white | yellow | cyan | indigo | magenta
 aurora_colour = green | cyan | blue | indigo | purple | magenta | red | white
 
 monster = zombie | skeleton | creeper | spider
+
+rung = plentiful | teeming
+
+few_or_many = few | plentiful
+
+body = sun | moon
+
+moon_size = small | colossal
+
+built = structures | villages
+
+kind = monsters | undead | arthropods
+
+dark_colour = black | red | indigo | purple
+
+froglight = ochre_froglight | pearlescent_froglight | verdant_froglight
+
+dark_biome = dark_forest | pale_garden | swamp | old_growth_spruce_taiga
+
+open_biome = plains | desert | snowy_plains | badlands | savanna
+
+fog_biome = swamp | mangrove_swamp | dark_forest | old_growth_spruce_taiga
+
+bright_biome = cherry_grove | flower_forest | sunflower_plains | meadow
+
+cold_biome = snowy_plains | ice_spikes | snowy_taiga | snowy_slopes
+
+wild_biome = old_growth_pine_taiga | old_growth_birch_forest | jungle | dark_forest | bamboo_jungle
+
+dry_biome = badlands | desert | savanna | eroded_badlands

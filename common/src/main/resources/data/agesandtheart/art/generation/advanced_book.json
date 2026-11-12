@@ -16,7 +16,8 @@
       {"produce":["[flowered_jungle_age]"]},
       {"produce":["[pitted_jungle_age]"]},
       {"produce":["[linked_age]"]},
-      {"produce":["[herded_age]"]}
+      {"produce":["[herded_age]"]},
+      {"weight":2.0,"produce":["[rare_age]"]}
     ],
     "mingled_age": [
       {"weight":3.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
@@ -100,6 +101,37 @@
       {"produce":["age","[land]","minuscule","herds","of","allay","bright","stars"]},
       {"produce":["age","[land]","pyramids","of","[semiprecious]","[colour]","sky"]},
       {"produce":["age","[land]","herds","of","iron_golem","[colour]","sky"]}
+    ],
+    "rare_age": [
+      {"weight":3.0,"produce":["[rare_mood_age]"]},
+      {"weight":3.0,"produce":["[rare_creature_age]"]},
+      {"weight":2.0,"produce":["[rare_built_age]"]}
+    ],
+    "rare_mood_age": [
+      {"produce":["foreboding","age","[land]","only","[dark_biome]"]},
+      {"produce":["age","[land]","lifeless","sea","no","[built]"]},
+      {"produce":["age","only","[open_biome]","motionless","[body]","[colour]","sky"]},
+      {"produce":["age","only","[fog_biome]","constant","fog","[colour]","air"]},
+      {"produce":["age","colourless","air","only","[bright_biome]"]},
+      {"produce":["age","only","[open_biome]","starless","sky","[moon_size]","moon"]},
+      {"produce":["starlit","age","only","[cold_biome]","[aurora_colour]","aurora"]},
+      {"produce":["untouched","age","only","[wild_biome]"]},
+      {"produce":["age","tangled","landmass","no","[kind]","[night]"]}
+    ],
+    "rare_creature_age": [
+      {"produce":["age","[warm_land]","only","mushroom_fields","[rung]","mooshroom"]},
+      {"produce":["age","only","[cold_biome]","herds","of","snow_golem"]},
+      {"produce":["age","[land]","[rung]","wandering_trader","and","trader_llama","everywhere"]},
+      {"produce":["age","only","[open_biome]","herds","of","skeleton_horse","[dark_colour]","sky"]},
+      {"produce":["age","only","pale_garden","friendly","creaking","[colour]","sky"]},
+      {"produce":["age","only","[open_biome]","friendly","phantom","[night]"]}
+    ],
+    "rare_built_age": [
+      {"produce":["age","[land]","[rung]","pillager_outposts","no","villages"]},
+      {"produce":["age","[land]","trial_chambers","no","villages","[colour]","sky"]},
+      {"produce":["age","[land]","[few_or_many]","ancient_cities","[colour]","sky"]},
+      {"produce":["age","[land]","resin_bricks","[shape]","in","[dry_biome]","[colour]","sky"]},
+      {"produce":["age","[land]","[rung]","[froglight]","[shape]","[night]"]}
     ],
     "wonder_age": [
       {"produce":["age","only","badlands","red_sand","surface","sandfall","orange","sky"]},
@@ -264,6 +296,86 @@
       {"produce":["skeleton"]},
       {"produce":["creeper"]},
       {"produce":["spider"]}
+    ],
+    "rung": [
+      {"produce":["plentiful"]},
+      {"produce":["teeming"]}
+    ],
+    "few_or_many": [
+      {"produce":["few"]},
+      {"produce":["plentiful"]}
+    ],
+    "body": [
+      {"produce":["sun"]},
+      {"produce":["moon"]}
+    ],
+    "moon_size": [
+      {"produce":["small"]},
+      {"produce":["colossal"]}
+    ],
+    "built": [
+      {"produce":["structures"]},
+      {"produce":["villages"]}
+    ],
+    "kind": [
+      {"produce":["monsters"]},
+      {"produce":["undead"]},
+      {"produce":["arthropods"]}
+    ],
+    "dark_colour": [
+      {"produce":["black"]},
+      {"produce":["red"]},
+      {"produce":["indigo"]},
+      {"produce":["purple"]}
+    ],
+    "froglight": [
+      {"produce":["ochre_froglight"]},
+      {"produce":["pearlescent_froglight"]},
+      {"produce":["verdant_froglight"]}
+    ],
+    "dark_biome": [
+      {"produce":["dark_forest"]},
+      {"produce":["pale_garden"]},
+      {"produce":["swamp"]},
+      {"produce":["old_growth_spruce_taiga"]}
+    ],
+    "open_biome": [
+      {"produce":["plains"]},
+      {"produce":["desert"]},
+      {"produce":["snowy_plains"]},
+      {"produce":["badlands"]},
+      {"produce":["savanna"]}
+    ],
+    "fog_biome": [
+      {"produce":["swamp"]},
+      {"produce":["mangrove_swamp"]},
+      {"produce":["dark_forest"]},
+      {"produce":["old_growth_spruce_taiga"]}
+    ],
+    "bright_biome": [
+      {"produce":["cherry_grove"]},
+      {"produce":["flower_forest"]},
+      {"produce":["sunflower_plains"]},
+      {"produce":["meadow"]}
+    ],
+    "cold_biome": [
+      {"produce":["snowy_plains"]},
+      {"produce":["ice_spikes"]},
+      {"produce":["snowy_taiga"]},
+      {"produce":["snowy_slopes"]}
+    ],
+    "wild_biome": [
+      {"produce":["old_growth_pine_taiga"]},
+      {"produce":["old_growth_birch_forest"]},
+      {"produce":["jungle"]},
+      {"produce":["dark_forest"]},
+      {"produce":["bamboo_jungle"]}
+    ],
+    "dry_biome": [
+      {"produce":["badlands"]},
+      {"produce":["desert"]},
+      {"produce":["savanna"]},
+      {"produce":["eroded_badlands"]}
     ]
   }
 }
