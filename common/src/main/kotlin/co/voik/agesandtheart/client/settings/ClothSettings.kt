@@ -42,7 +42,7 @@ object ClothSettings {
         val builder = ConfigBuilder.create().setParentScreen(parent).setTitle(TITLE)
         val entries = builder.entryBuilder()
         val changed = mutableSetOf<ModConfigSpec>()
-        val categories = Page.entries.associateWith { builder.getOrCreateCategory(it.title) }
+        val headings = mutableMapOf<Page, MutableList<AbstractConfigListEntry<*>>>()
         for ((spec, locked) in specs()) {
             for (section in SettingsReading.sectionsOf(spec)) {
                 val byPage = section.settings.groupBy { pageOf(section, it) }
@@ -53,9 +53,15 @@ object ClothSettings {
                         listOf(entries.startTextDescription(OPEN_A_WORLD).build())
                     }
                     val heading = entries.startSubCategory(section.title, shown).setExpanded(true).build()
-                    categories.getValue(page).addEntry(heading)
+                    headings.getOrPut(page, ::mutableListOf) += heading
                 }
             }
+        }
+        // In the pages' own order, and a page with nothing on it left out rather than shown empty.
+        for (page in Page.entries) {
+            val shown = headings[page] ?: continue
+            val category = builder.getOrCreateCategory(page.title)
+            shown.forEach(category::addEntry)
         }
         builder.setSavingRunnable { changed.forEach(ModConfigSpec::save) }
         return builder.build()

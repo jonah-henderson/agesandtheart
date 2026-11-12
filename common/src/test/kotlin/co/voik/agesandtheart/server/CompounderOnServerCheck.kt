@@ -45,19 +45,23 @@ class CompounderOnServerCheck : FunSpec({
         check(shows.startsWith("Test passed")) { "the compounder does not show its power: $shows" }
     }
 
-    test("a recipe a server may switch off runs while its switch is on, as it is by default") {
+    test("a recipe whose output is otherwise unobtainable runs by default") {
         build(BEDROCK_X, 1 to "agesandtheart:arc_crystal_block")
-        load(BEDROCK_X, 0, "minecraft:netherite_block", A_STACK)
-        check(offers(BEDROCK_X, "minecraft:bedrock")) { "no bedrock offered for a stack of netherite blocks" }
-    }
-
-    test("the recipes that change the balance most are off until a server turns them on") {
-        build(OFF_BY_DEFAULT_X, 1 to "agesandtheart:arc_crystal_block")
         for ((input, output) in listOf(
-            "minecraft:end_stone" to "minecraft:end_portal_frame",
             "minecraft:gilded_blackstone" to "minecraft:ancient_debris",
             "minecraft:snow_block" to "minecraft:ice",
             "minecraft:sandstone" to "minecraft:quartz_block",
+        )) {
+            load(BEDROCK_X, 0, input, A_STACK)
+            check(offers(BEDROCK_X, output)) { "no $output offered for a stack of $input" }
+        }
+    }
+
+    test("one whose output survival cannot break is off until a server turns it on") {
+        build(OFF_BY_DEFAULT_X, 1 to "agesandtheart:arc_crystal_block")
+        for ((input, output) in listOf(
+            "minecraft:netherite_block" to "minecraft:bedrock",
+            "minecraft:end_stone" to "minecraft:end_portal_frame",
         )) {
             load(OFF_BY_DEFAULT_X, 0, input, A_STACK)
             check(!offers(OFF_BY_DEFAULT_X, output)) { "a stack of $input offered $output with its switch off" }

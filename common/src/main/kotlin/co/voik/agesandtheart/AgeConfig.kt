@@ -24,13 +24,6 @@ import net.neoforged.neoforge.common.ModConfigSpec
 object AgeConfig {
 
     /**
-     * Whether the server, as it starts, scans the whole save for books and deletes the Ages none can reach (design §9,
-     * "Losing the books"). **Not read yet**: the sweep on boot is unbuilt (`notes/remaining-work.md`), so it does
-     * nothing either way until it is.
-     */
-    val cleansUpAgesOnBoot: ModConfigSpec.BooleanValue
-
-    /**
      * Whether a villager will work a writer's desk (the plan's "can be done any time" list).
      *
      * Read **live** by both of the profession's job-site predicates rather than gating registration,
@@ -65,17 +58,15 @@ object AgeConfig {
     /**
      * Whether the fusion-compounder makes what nothing else in the game can — one switch a recipe, named by
      * the recipe's `allowed_by` (design §7.1.2). Read live by the recipe, so turning one off takes effect at
-     * once. Bedrock most of all: a player who can place it can build what nobody else can break.
+     * once. **Off by default only where the output cannot be broken in survival** (Jonah, 2026-11-12) — bedrock,
+     * reinforced deepslate, an end portal frame — since a player who can place it can build what nobody else can
+     * break; what is merely unobtainable otherwise is on.
      */
     val compoundsBedrock: ModConfigSpec.BooleanValue
     val compoundsReinforcedDeepslate: ModConfigSpec.BooleanValue
     val compoundsBuddingAmethyst: ModConfigSpec.BooleanValue
     val compoundsHeavyCore: ModConfigSpec.BooleanValue
 
-    /**
-     * The four that change the balance most, off unless a server turns them on (Jonah): an end portal frame, so an End
-     * gateway anywhere, ancient debris, ice and quartz.
-     */
     val compoundsEndPortalFrame: ModConfigSpec.BooleanValue
     val compoundsAncientDebris: ModConfigSpec.BooleanValue
     val compoundsIce: ModConfigSpec.BooleanValue
@@ -113,16 +104,6 @@ object AgeConfig {
 
     init {
         val builder = ModConfigSpec.Builder()
-        builder.comment("Age save data").translation(translationOf(AGE_SAVE_DATA)).push(AGE_SAVE_DATA)
-        cleansUpAgesOnBoot = builder
-            .comment(
-                "When the server starts, scan the whole save for linking books and delete the Ages none can",
-                "reach any more. POTENTIAL DATA LOSS: what was built in a deleted Age is gone for good,",
-                "though a book for it that turns up later rebuilds the Age itself, empty.",
-            )
-            .translation(translationOf("cleans_up_ages_on_boot"))
-            .define("cleansUpAgesOnBoot", false)
-        builder.pop()
         builder.comment("Villagers").translation(translationOf(VILLAGERS)).push(VILLAGERS)
         writerProfession = builder
             .comment(
@@ -174,11 +155,11 @@ object AgeConfig {
                 "bedrock can build what no other player can break.",
             )
             .translation(translationOf("compounds_bedrock"))
-            .define("compoundsBedrock", true)
+            .define("compoundsBedrock", false)
         compoundsReinforcedDeepslate = builder
             .comment("Let the compounder make reinforced deepslate, which nothing else can.")
             .translation(translationOf("compounds_reinforced_deepslate"))
-            .define("compoundsReinforcedDeepslate", true)
+            .define("compoundsReinforcedDeepslate", false)
         compoundsBuddingAmethyst = builder
             .comment("Let the compounder make budding amethyst, which nothing else can.")
             .translation(translationOf("compounds_budding_amethyst"))
@@ -197,15 +178,15 @@ object AgeConfig {
         compoundsAncientDebris = builder
             .comment("Let the compounder press 64 gilded blackstone into ancient debris.")
             .translation(translationOf("compounds_ancient_debris"))
-            .define("compoundsAncientDebris", false)
+            .define("compoundsAncientDebris", true)
         compoundsIce = builder
             .comment("Let the compounder press 64 snow blocks into ice, which packs into packed and blue ice as ever.")
             .translation(translationOf("compounds_ice"))
-            .define("compoundsIce", false)
+            .define("compoundsIce", true)
         compoundsQuartz = builder
             .comment("Let the compounder press 64 sandstone into a block of quartz.")
             .translation(translationOf("compounds_quartz"))
-            .define("compoundsQuartz", false)
+            .define("compoundsQuartz", true)
         builder.pop()
         builder.comment("Drying rack").translation(translationOf(DRYING_RACK)).push(DRYING_RACK)
         driesLeather = builder
@@ -269,7 +250,6 @@ object AgeConfig {
     /** Where a screen looks for an option's name, the generated screens reading these rather than the key. */
     private fun translationOf(option: String): String = "config.${Constants.MOD_ID}.$option"
 
-    private const val AGE_SAVE_DATA = "age_save_data"
 
     private const val VILLAGERS = "villagers"
 
