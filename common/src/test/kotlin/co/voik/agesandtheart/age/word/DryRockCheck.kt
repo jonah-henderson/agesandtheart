@@ -26,6 +26,15 @@ class DryRockCheck : FunSpec({
         check(dry.instability.flaws.isEmpty()) { "dry rock alone was charged: ${dry.instability.flaws}" }
     }
 
+    test("porous rock is the porous carving and nothing else, and dry porous rock is it dry") {
+        val porous = resolved(SEED, "porous", "rock")
+        check(porous.composition.carvers == listOf(Carvers.POROUS)) { "porous rock seated ${porous.composition.carvers}" }
+        check(porous.instability.flaws.isEmpty()) { "porous rock alone was charged: ${porous.instability.flaws}" }
+        val dry = resolved(SEED, "dry", "porous", "rock")
+        check(dry.composition.carvers == listOf(Carvers.POROUS)) { "dry porous rock seated ${dry.composition.carvers}" }
+        check(dry.composition.optionsFor(Aspect.CARVERS, 0).isTrue(Carvers.DRY)) { "dry porous rock was wet: ${dry.composition}" }
+    }
+
     /** Flooded rock has no `dry` to set, so without the exclusion it simply won and `dry` went unsaid. */
     test("dry flooded rock is charged, not quietly flooded") {
         val both = resolved(SEED, "dry", "flooded", "rock")

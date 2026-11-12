@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Full of small pockets: the rock chosen porous, isolated voids you break into rather than tunnels you",
+    "walk along, wet near the surface and dry far below (`Carvers.POROUS`). `dry porous rock` keeps them dry."
+  ],
+  "meanings": [
+    {
+      "chooses": {
+        "rock": "porous"
+      },
+      "must_always_apply": true
+    }
+  ]
+}
