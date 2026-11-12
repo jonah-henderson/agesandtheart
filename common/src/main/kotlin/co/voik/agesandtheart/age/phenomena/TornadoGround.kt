@@ -86,7 +86,7 @@ object TornadoGround {
      */
     fun tear(level: ServerLevel, vortex: TornadoWinds.Vortex, untouched: Int, howMany: Int, thrown: MutableSet<FallingBlockEntity>): Double {
         thrown.removeIf { !it.isAlive }
-        val movesBlocks = AgeConfig.tornadoesTakeBlocks.get()
+        val movesBlocks = AgeConfig.tornadoesDestroyBlocks.get()
         var spent = 0.0
         var left = howMany
         for (at in tallestFirst(level, vortex, untouched)) {
@@ -110,7 +110,7 @@ object TornadoGround {
      * nothing.
      */
     fun strip(level: ServerLevel, vortex: TornadoWinds.Vortex, howMany: Int): Double {
-        if (!AgeConfig.tornadoesTakeBlocks.get()) return 0.0
+        if (!AgeConfig.tornadoesDestroyBlocks.get()) return 0.0
         var spent = 0.0
         repeat(howMany) {
             val angle = level.random.nextDouble() * Mth.TWO_PI

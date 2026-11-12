@@ -66,7 +66,7 @@ object PanelWarming {
      * writes itself. Until then a book describes no world and there is nothing to make ready.
      */
     fun whenBound(server: MinecraftServer, stack: ItemStack) {
-        if (AgeConfig.warmAgesWhen.get() != WarmAgesWhen.BOUND) return
+        if (AgeConfig.agePreload.get() != WarmAgesWhen.ON_CREATE) return
         warm(server, stack)
     }
 
@@ -79,10 +79,10 @@ object PanelWarming {
      * was on, carried in from another world.
      */
     fun consider(server: MinecraftServer, stack: ItemStack, inHand: Boolean) {
-        when (AgeConfig.warmAgesWhen.get()) {
-            WarmAgesWhen.OPENED -> return
-            WarmAgesWhen.HELD -> if (!inHand) return
-            WarmAgesWhen.BOUND -> Unit
+        when (AgeConfig.agePreload.get()) {
+            WarmAgesWhen.ON_OPEN -> return
+            WarmAgesWhen.ON_HOLD -> if (!inHand) return
+            WarmAgesWhen.ON_CREATE -> Unit
         }
         warm(server, stack)
     }

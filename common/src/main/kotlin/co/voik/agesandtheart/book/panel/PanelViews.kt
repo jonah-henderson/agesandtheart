@@ -15,7 +15,6 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.desk.CrystalViewerMenu
 import co.voik.agesandtheart.desk.PreviewedAges
 import co.voik.agesandtheart.desk.ViewerFinding
-import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.util.Util
 import net.minecraft.core.BlockPos
@@ -99,8 +98,8 @@ object PanelViews {
         closeWatchOf(server, player.uuid)
 
         // A map is asked for book by book with `PanelMapRequest` (`PanelMapViews`), never as the one live panel.
-        when (AgeConfig.panelView.get()) {
-            PanelView.LIVE -> Unit
+        when (AgeConfig.panelMode.get()) {
+            PanelView.PREVIEW -> Unit
             PanelView.MAP -> return
             PanelView.OFF -> {
                 Services.NETWORK.sendToPlayer(player, PanelDeclined)

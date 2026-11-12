@@ -13,7 +13,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.rendertype.RenderType
 
 /**
- * Map panels (`AgeConfig.panelView` MAP), one for every open book in reach and every book a screen is showing, all
+ * Map panels (`AgeConfig.panelMode` MAP), one for every open book in reach and every book a screen is showing, all
  * at once. A map costs the server one read and the client one small texture, so where [LinkingPanel] shows one
  * live Age, every book here shows its own map, misted only while its Age's ground is still being made.
  *
@@ -49,7 +49,7 @@ object BookMaps {
 
     /** Whether panels are maps on this server — the server's setting, which reaches the client with the rest of it. */
     val isOn: Boolean
-        get() = runCatching { AgeConfig.panelView.get() == PanelView.MAP }.getOrDefault(false)
+        get() = runCatching { AgeConfig.panelMode.get() == PanelView.MAP }.getOrDefault(false)
 
     /** Wants [book]'s map for as long as a screen shows it. */
     fun pin(book: BookBeingRead) {

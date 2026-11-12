@@ -46,6 +46,14 @@ versionRange = "${kff_version_range}"
 ordering = "AFTER"
 side = "BOTH"
 
+# Cloth Config, whose screen the settings are shown in where it is installed; NeoForge's own otherwise.
+[[dependencies."${mod_id}"]]
+modId = "cloth_config"
+type="optional"
+versionRange = "${cloth_config_range_neoforge}"
+ordering = "NONE"
+side = "CLIENT"
+
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't
 # stop your mod loading on the server for example.

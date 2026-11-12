@@ -129,7 +129,7 @@ object Gales {
         if (client.isPaused) return
         val isHoldingOn = player.isShiftKeyDown && player.onGround()
         val gust = gustIn(level).takeUnless { isHoldingOn }
-        val strength = Gale.pushStrength(AgeConfig.galeWind.get(), blowing, gustsIn(level), gust)
+        val strength = Gale.pushStrength(AgeConfig.windStrength.get(), blowing, gustsIn(level), gust)
         val driving = Gale.drivingDegrees(blowing, gust)
         val towardsX = cos(Math.toRadians(driving))
         val towardsZ = sin(Math.toRadians(driving))

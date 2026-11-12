@@ -57,7 +57,20 @@ ephemerisRangeFabric = "~0.7.0"
 # Fabric API), and the ecosystem rule is that libraries are nested and mods are declared. Needed only on
 # Fabric; NeoForge has the same classes built in.
 forgeConfigApiPort = "26.3.1"
+
+# Cloth Config, whose screen the settings are shown in where it is installed (`client/settings/ClothSettings`).
+# Optional on both loaders and compiled against only: a player without it gets the loader's own config screen.
+clothConfig = "26.3.159"
+clothConfigRangeNeoForge = "[26.3.159,)"
+
+# NightConfig, which a config spec's values are held in — what the settings screen walks to find them. Compiled
+# against only: NeoForge ships it, and the port nests the same version on Fabric.
+nightConfig = "3.8.4"
 forgeConfigApiPortRange = ">=26.3.1"
+
+# Mod Menu, the Fabric mod list — on the dev client only, where it opens the config screen the port carries
+# (`ConfigScreenFactoryRegistry`). A player chooses it for themselves; the manifest suggests it.
+modmenu = "21.0.0"
 
 # Just Enough Items, which our recipe categories and screen handlers plug into when it is installed. Compiled
 # against only: JEI is a mod a player chooses, and the plugin is never loaded without it.
@@ -82,6 +95,10 @@ ephemeris-neoforge = { group = "co.voik.ephemeris", name = "ephemeris-neoforge-2
 # written once in `common` instead of twice behind the SPI.
 forgeConfigApiPort-common = { group = "fuzs.forgeconfigapiport", name = "forgeconfigapiport-common", version.ref = "forgeConfigApiPort" }
 forgeConfigApiPort-fabric = { group = "fuzs.forgeconfigapiport", name = "forgeconfigapiport-fabric", version.ref = "forgeConfigApiPort" }
+clothConfig-fabric = { group = "me.shedaniel.cloth", name = "cloth-config-fabric", version.ref = "clothConfig" }
+clothConfig-neoforge = { group = "me.shedaniel.cloth", name = "cloth-config-neoforge", version.ref = "clothConfig" }
+nightConfig = { group = "com.electronwill.night-config", name = "core", version.ref = "nightConfig" }
+modmenu = { group = "com.terraformersmc", name = "modmenu", version.ref = "modmenu" }
 jei-commonApi = { group = "mezz.jei", name = "jei-26.3-common-api", version.ref = "jei" }
 
 

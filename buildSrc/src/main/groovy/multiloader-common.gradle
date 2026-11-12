@@ -126,6 +126,18 @@ repositories {
         url = uri("https://github.com/Fuzss/modresources/raw/main/maven")
         content { includeGroup("fuzs.forgeconfigapiport") }
     }
+    maven {
+        // Cloth Config, the settings screen where a player has it installed.
+        name = "Shedaniel"
+        url = uri("https://maven.shedaniel.me/")
+        content { includeGroup("me.shedaniel.cloth") }
+    }
+    maven {
+        // Mod Menu, on the Fabric dev client only.
+        name = "TerraformersMC"
+        url = uri("https://maven.terraformersmc.com/releases")
+        content { includeGroup("com.terraformersmc") }
+    }
 }
 
 // Declare capabilities on the outgoing configurations.
@@ -219,6 +231,7 @@ processResources {
             'neoforge_range'               : libs.versions.neoforgeRange.get(),
             'kff_version'                  : libs.versions.kff.get(),
             'kff_version_range'            : libs.versions.kffRange.get(),
+            'cloth_config_range_neoforge'  : libs.versions.clothConfigRangeNeoForge.get(),
             'ephemeris_range_neoforge'     : localEphemeris ? '[0,)' : libs.versions.ephemerisRangeNeoForge.get(),
             'ephemeris_range_fabric'       : localEphemeris ? '*' : libs.versions.ephemerisRangeFabric.get(),
             'config_port_range'            : libs.versions.forgeConfigApiPortRange.get(),

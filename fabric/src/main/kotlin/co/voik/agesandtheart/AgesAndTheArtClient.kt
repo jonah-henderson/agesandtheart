@@ -29,10 +29,21 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.client.renderer.special.SpecialModelRenderers
 import net.minecraft.world.level.block.entity.BlockEntity
+import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
+import co.voik.agesandtheart.client.settings.ClothPresence
+import co.voik.agesandtheart.client.settings.ClothSettings
+import net.neoforged.neoforge.client.gui.ConfigurationScreen
 
 /** Fabric client entrypoint. */
 fun initClient() {
     Constants.LOG.info("Ages client init")
+
+    // The settings screen, offered to Mod Menu as NeoForge's Mods page offers it on that loader (`ConfigScreen`): Cloth
+    // Config's where it is installed, and the one the port carries where it is not. The port hands Mod Menu only the
+    // screens registered here.
+    ConfigScreenFactoryRegistry.INSTANCE.register(Constants.MOD_ID) { modId, parent ->
+        if (ClothPresence.isLoaded()) ClothSettings.screen(parent) else ConfigurationScreen(modId, parent)
+    }
 
     // The Art's skies, clouds and air, handed to the library that owns those seams.
     AgeLooks.register()

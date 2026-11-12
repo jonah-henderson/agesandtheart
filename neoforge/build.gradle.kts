@@ -49,6 +49,9 @@ dependencies {
 
     // JEI's API, which `common`'s plugin compiles against here too since its sources are compiled into this jar.
     compileOnly(libs.jei.commonApi)
+
+    // Cloth Config, compiled against for the settings screen `common` builds where a player has it, and never required.
+    compileOnly(libs.clothConfig.neoforge) { isTransitive = false }
 }
 /**
  * Let the console be driven from a pipe.

@@ -56,13 +56,12 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         CommonSetup.init()
 
-        // The config, and the screen that reads it. NeoForge owns both `ModConfigSpec` and a generated
-        // `ConfigurationScreen`, so a Config button appears on the Mods page for one line and no UI code
-        // — see `notes/decisions.md`, "Config" for why the spec is shaped for screens rather than for us.
+        // The config, and the screen that reads it, offered as the Mods page's Config button ([ConfigScreen]) — see
+        // `notes/decisions.md`, "Config" for why the spec is NeoForge's.
         modContainer.registerConfig(ModConfig.Type.SERVER, AgeConfig.SPEC)
         modContainer.registerConfig(ModConfig.Type.CLIENT, AgeClientLook.SPEC)
         // **The screen is client-only and naming it here would take the dedicated server down** (found
-        // 2026-08-09, the first time `:neoforge:runServer` could be run at all). `ConfigurationScreen`
+        // 2026-08-09, the first time `:neoforge:runServer` could be run at all). A screen
         // extends `Screen`, which the dev dist cleaner refuses to load on a server, and the reference is
         // resolved while this constructor is being verified — so it fails during mod construction, before
         // any of our code has had a chance to check anything. Hiding it behind a lambda would not help;

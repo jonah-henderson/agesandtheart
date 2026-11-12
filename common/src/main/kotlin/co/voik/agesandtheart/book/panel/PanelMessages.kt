@@ -208,7 +208,7 @@ class PanelChunkPayload(
     }
 }
 
-/** *"This server shows no panels."* — the answer to an open when `AgeConfig.panelView` is OFF. */
+/** *"This server shows no panels."* — the answer to an open when `AgeConfig.panelMode` is OFF. */
 object PanelDeclined : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelDeclined> = TYPE
@@ -219,7 +219,7 @@ object PanelDeclined : CustomPacketPayload {
 }
 
 /**
- * *"Map that book."* — asked for every open book in reach when `AgeConfig.panelView` is MAP, since a map costs the
+ * *"Map that book."* — asked for every open book in reach when `AgeConfig.panelMode` is MAP, since a map costs the
  * server one read of each chunk and holds nothing afterwards, so any number of books may show one at once.
  *
  * [ask] numbers the request, so a client can tell an answer to it from one to an earlier request for the same

@@ -19,7 +19,7 @@ data class MapInView(
 )
 
 /**
- * A map panel (`AgeConfig.panelView` MAP): the ground around where a book would put you, north up, a block to a
+ * A map panel (`AgeConfig.panelMode` MAP): the ground around where a book would put you, north up, a block to a
  * texel, filled in chunk by chunk as the server reads them and shaded as vanilla's map shades (`MapItem.update`).
  */
 class PanelMap(private val arrival: BlockPos, chunksComing: Int, val slot: Int) : PanelSource, AutoCloseable {

@@ -16,7 +16,7 @@ import net.minecraft.world.level.chunk.status.ChunkStatus
 import java.util.UUID
 
 /**
- * Map panels (`AgeConfig.panelView` MAP): each book's map read off its Age and sent, as often as books ask.
+ * Map panels (`AgeConfig.panelMode` MAP): each book's map read off its Age and sent, as often as books ask.
  *
  * Nothing is held. A chunk is read on the server thread the moment it is ready and not kept loaded by anything of
  * ours, so a map costs one read of the ring and the server has no notion of which maps a client is showing.
@@ -30,7 +30,7 @@ object PanelMapViews {
     private const val TICKS_BETWEEN_ASKS = 20L
 
     fun request(server: MinecraftServer, player: ServerPlayer, request: PanelMapRequest) {
-        if (AgeConfig.panelView.get() != PanelView.MAP) return
+        if (AgeConfig.panelMode.get() != PanelView.MAP) return
         if (!isPaced(server, player, request.book)) return
         val destination = PanelViews.destinationFor(server, player, request.book) ?: return
         val level = destination.level

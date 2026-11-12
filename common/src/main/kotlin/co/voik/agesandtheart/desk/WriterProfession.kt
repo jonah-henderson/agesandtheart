@@ -25,7 +25,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
  * question; if the wings were job sites too, one desk would record five points of interest and a writer
  * could take up post at a bookshelf.
  *
- * **Both job-site predicates read [AgeConfig.villagerWriters] live**, which is the only way a registry
+ * **Both job-site predicates read [AgeConfig.writerProfession] live**, which is the only way a registry
  * that freezes at startup can be turned off at all. `acquirableJobSite` stops villagers taking the job;
  * `heldJobSite` stops them keeping it, so the setting means what it says the moment it changes.
  *
@@ -67,7 +67,7 @@ object WriterProfession {
     )
 
     private fun isTheDesk(poi: Holder<PoiType>): Boolean =
-        AgeConfig.villagerWriters.get() && poi.`is`(POI)
+        AgeConfig.writerProfession.get() && poi.`is`(POI)
 
     /** `agesandtheart:writer_level_1` … `_5`, matching the files under `data/agesandtheart/trade_set/`. */
     private fun tradeSetsByLevel(): Int2ObjectMap<ResourceKey<TradeSet>> {

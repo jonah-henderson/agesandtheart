@@ -159,7 +159,7 @@ object Gale {
      * by their own clients, which move them.
      */
     private fun leanOnWhatIsOutInIt(level: ServerLevel, blowing: Blowing, gusts: Gusts, gust: Gust?) {
-        val strength = pushStrength(AgeConfig.galeWind.get(), blowing, gusts, gust)
+        val strength = pushStrength(AgeConfig.windStrength.get(), blowing, gusts, gust)
         if (strength <= NONE) return
         val driving = drivingDegrees(blowing, gust)
         val leanedOn = HashSet<Entity>()

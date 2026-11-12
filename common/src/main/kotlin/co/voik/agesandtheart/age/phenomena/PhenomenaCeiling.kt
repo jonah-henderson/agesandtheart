@@ -12,7 +12,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.saveddata.WeatherData
 
 /**
- * How many phenomena may be running at once (`AgeConfig.phenomenaAtOnce`), in each Age or across the server.
+ * How many phenomena may be running at once (`AgeConfig.maxPhenomena`), in each Age or across the server.
  *
  * Counted are the events — a sandfall, a cave-in, a meteor storm, a tornado, each running while an entity it raised
  * stands — and the spells of weather that a blizzard, a deluge or a tempest does its work in. A spell that
@@ -42,11 +42,11 @@ object PhenomenaCeiling {
     /** The timer that makes vanilla's cycle turn the weather over on its next tick. */
     private const val TURNS_NEXT_TICK = 1
 
-    private fun ceiling(): Int = AgeConfig.phenomenaAtOnce.get()
+    private fun ceiling(): Int = AgeConfig.maxPhenomena.get()
 
-    private fun scopeOf(age: Identifier): Any = when (AgeConfig.phenomenaCeilingCovers.get()) {
-        CeilingCovers.EACH_AGE -> age
-        CeilingCovers.THE_SERVER -> THE_WHOLE_SERVER
+    private fun scopeOf(age: Identifier): Any = when (AgeConfig.phenomenaLimitScope.get()) {
+        CeilingCovers.PER_AGE -> age
+        CeilingCovers.WHOLE_SERVER -> THE_WHOLE_SERVER
     }
 
     private fun ageOf(level: ServerLevel): Identifier = level.dimension().identifier()
@@ -171,7 +171,7 @@ object PhenomenaCeiling {
 
     /** What the instrument says: the ceiling, and each episode with what it is doing. */
     fun describe(): List<String> = buildList {
-        add("ceiling ${ceiling()}, covering ${AgeConfig.phenomenaCeilingCovers.get().name.lowercase()}")
+        add("ceiling ${ceiling()}, covering ${AgeConfig.phenomenaLimitScope.get().name.lowercase()}")
         fun said(episode: Episode<Identifier>) = "${episode.kinds.joinToString("+") { it.key }} in ${episode.age}"
         for (episode in ledger.runningNow()) add("running: ${said(episode)}")
         for (episode in ledger.grantedNow()) add("granted: ${said(episode)}")

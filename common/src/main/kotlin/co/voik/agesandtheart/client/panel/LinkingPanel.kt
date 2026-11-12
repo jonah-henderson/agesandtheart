@@ -25,7 +25,7 @@ object LinkingPanel {
     /** The level the panel is showing, while it shows one. */
     val showingLevel: ClientLevel? get() = showing?.level
 
-    /** Whether the server shows no panels (`AgeConfig.panelView` OFF), so the panel stays misted and stops asking. */
+    /** Whether the server shows no panels (`AgeConfig.panelMode` OFF), so the panel stays misted and stops asking. */
     private var isDeclined = false
     private var asked = false
 

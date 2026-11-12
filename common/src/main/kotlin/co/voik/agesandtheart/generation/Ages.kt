@@ -261,7 +261,7 @@ object Ages {
      * against 122ms to roll and open the whole world.
      *
      * A generator is rebuilt identically on every open, so the second answer would always be the first —
-     * except that `AgeConfig.searchesForFooting` can change between server runs, which is why this is a
+     * except that `AgeConfig.searchForSolidGround` can change between server runs, which is why this is a
      * memo rather than anything persisted. Weakly keyed on the level, so an arrival lasts exactly as long
      * as the level it was worked out for: an Age deleted and written again, or one of the same name in
      * another world, is a different level and works out its own.
@@ -453,7 +453,7 @@ object Ages {
      * origin costs nothing, since its height was sampled on the way past.
      */
     private fun findFooting(level: ServerLevel): Pair<Int, Int> {
-        if (!AgeConfig.searchesForFooting.get()) return ORIGIN
+        if (!AgeConfig.searchForSolidGround.get()) return ORIGIN
 
         val generator = level.chunkSource.generator
         val randomState = level.chunkSource.randomState()

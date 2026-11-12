@@ -8,8 +8,9 @@ import net.neoforged.neoforge.common.ModConfigSpec
  * **NeoForge's `ModConfigSpec`, and on Fabric the same classes from Forge Config API Port**
  * (`notes/decisions.md`, "Config"). Config screens work one of two ways — they introspect a spec they already
  * know, or they host a screen the mod writes — and only the first is what compatibility means. This spec
- * is rendered natively by NeoForge, turned into a screen by Configured on every loader, and indexed by Mod
- * Menu's option search, none of which costs a line of interface code here.
+ * is shown by Cloth Config's screen where it is installed ([co.voik.agesandtheart.client.settings.ClothSettings]) and by
+ * NeoForge's own `ConfigurationScreen` where it is not — the Mods page's Config button on NeoForge, Mod Menu's on
+ * Fabric — each showing whatever is defined here with no further code, as any other tool that reads a spec can.
  *
  * Written once in `common` rather than twice behind [co.voik.agesandtheart.platform.Services]. The port
  * publishes its API under the original package names for exactly this, and there is nothing
@@ -23,18 +24,11 @@ import net.neoforged.neoforge.common.ModConfigSpec
 object AgeConfig {
 
     /**
-     * Whether a background sweep may delete Ages nothing can reach any more (design §9, "Losing the
-     * books").
-     *
-     * **Off, and it has to be.** Whether every book pointing at an Age is gone cannot be *observed* — no
-     * event catches every way an item stops existing, and copies cannot be enumerated — so a sweep can only
-     * ever be probably right. A server with the disk to spare should not spend correctness it does not
-     * need, and one that is short of disk can decide that for itself.
-     *
-     * The comment is worded as what it is rather than as what it is for, because the screen shows it to
-     * somebody who has not read any of this.
+     * Whether the server, as it starts, scans the whole save for books and deletes the Ages none can reach (design §9,
+     * "Losing the books"). **Not read yet**: the sweep on boot is unbuilt (`notes/remaining-work.md`), so it does
+     * nothing either way until it is.
      */
-    val collectsUnreachableAges: ModConfigSpec.BooleanValue
+    val cleansUpAgesOnBoot: ModConfigSpec.BooleanValue
 
     /**
      * Whether a villager will work a writer's desk (the plan's "can be done any time" list).
@@ -44,7 +38,7 @@ object AgeConfig {
      * decides whether anyone may hold it. That is also what makes turning it off take effect at once —
      * `heldJobSite` stops matching, so writers already at a desk give it up.
      */
-    val villagerWriters: ModConfigSpec.BooleanValue
+    val writerProfession: ModConfigSpec.BooleanValue
 
     /**
      * Whether linking hunts outward from an Age's origin for ground above the waterline.
@@ -54,7 +48,7 @@ object AgeConfig {
      * server can decide that arriving where the Age happens to put you is the visitor's problem to prepare
      * for.
      */
-    val searchesForFooting: ModConfigSpec.BooleanValue
+    val searchForSolidGround: ModConfigSpec.BooleanValue
 
     /**
      * When an Age's terrain is made ready, which decides who waits for it.
@@ -63,10 +57,10 @@ object AgeConfig {
      * that loads the same chunks from disk in a tenth of a second. So the question is never how fast that
      * is, only who is sitting through it.
      */
-    val warmAgesWhen: ModConfigSpec.EnumValue<WarmAgesWhen>
+    val agePreload: ModConfigSpec.EnumValue<WarmAgesWhen>
 
     /** What a bound book's panel shows: the Age live, a map of where it would put you, or nothing. */
-    val panelView: ModConfigSpec.EnumValue<PanelView>
+    val panelMode: ModConfigSpec.EnumValue<PanelView>
 
     /**
      * Whether the fusion-compounder makes what nothing else in the game can — one switch a recipe, named by
@@ -104,12 +98,12 @@ object AgeConfig {
      * How many phenomena may be running at once, and over what — see
      * [co.voik.agesandtheart.age.phenomena.PhenomenaCeiling]. Read live.
      */
-    val phenomenaAtOnce: ModConfigSpec.IntValue
-    val phenomenaCeilingCovers: ModConfigSpec.EnumValue<CeilingCovers>
+    val maxPhenomena: ModConfigSpec.IntValue
+    val phenomenaLimitScope: ModConfigSpec.EnumValue<CeilingCovers>
 
     /** How hard a gale or a blizzard pushes whatever is out in it, as a share of the most it may — see `Gale.pushStrength`. */
-    val galeWind: ModConfigSpec.DoubleValue
-    val tornadoesTakeBlocks: ModConfigSpec.BooleanValue
+    val windStrength: ModConfigSpec.DoubleValue
+    val tornadoesDestroyBlocks: ModConfigSpec.BooleanValue
 
     /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
     val coconutHoofbeats: ModConfigSpec.BooleanValue
@@ -119,30 +113,29 @@ object AgeConfig {
 
     init {
         val builder = ModConfigSpec.Builder()
-        builder.comment("Housekeeping").push(HOUSEKEEPING)
-        collectsUnreachableAges = builder
+        builder.comment("Age save data").translation(translationOf(AGE_SAVE_DATA)).push(AGE_SAVE_DATA)
+        cleansUpAgesOnBoot = builder
             .comment(
-                "Delete Ages that nothing can reach any more — every book pointing at one destroyed,",
-                "and nobody inside. POTENTIAL DATA LOSS: whether every book is really gone cannot be",
-                "known for certain, so an Age may be collected while a book for it survives somewhere.",
-                "What is lost is whatever was built there; the Age itself is rebuilt from the book.",
+                "When the server starts, scan the whole save for linking books and delete the Ages none can",
+                "reach any more. POTENTIAL DATA LOSS: what was built in a deleted Age is gone for good,",
+                "though a book for it that turns up later rebuilds the Age itself, empty.",
             )
-            .translation(translationOf("collects_unreachable_ages"))
-            .define("collectsUnreachableAges", false)
+            .translation(translationOf("cleans_up_ages_on_boot"))
+            .define("cleansUpAgesOnBoot", false)
         builder.pop()
-        builder.comment("Villagers").push(VILLAGERS)
-        villagerWriters = builder
+        builder.comment("Villagers").translation(translationOf(VILLAGERS)).push(VILLAGERS)
+        writerProfession = builder
             .comment(
                 "Let a villager take up a writer's desk as a job site, and trade pages, papers, inks and",
                 "written Descriptive Books. Turn this off for a world where the Art is found rather than",
                 "bought. TAKES EFFECT AT ONCE: villagers already working a desk lose the job and go back",
                 "to being unemployed, keeping neither their trades nor their level.",
             )
-            .translation(translationOf("villager_writers"))
-            .define("villagerWriters", true)
+            .translation(translationOf("writer_profession"))
+            .define("writerProfession", true)
         builder.pop()
-        builder.comment("Linking").push(LINKING)
-        searchesForFooting = builder
+        builder.comment("Linking").translation(translationOf(LINKING)).push(LINKING)
+        searchForSolidGround = builder
             .comment(
                 "Look outward from an Age's origin for dry land to arrive on, instead of arriving at the",
                 "origin itself. The search is the slowest part of opening an Age for the first time, and a",
@@ -150,9 +143,9 @@ object AgeConfig {
                 "first link, at the cost of arriving in whatever is at the origin — water, a cave, or the",
                 "open air.",
             )
-            .translation(translationOf("searches_for_footing"))
-            .define("searchesForFooting", true)
-        warmAgesWhen = builder
+            .translation(translationOf("search_for_solid_ground"))
+            .define("searchForSolidGround", true)
+        agePreload = builder
             .comment(
                 "When to generate the terrain a book's panel shows. BOUND does it the moment the book's",
                 "Age is decided — as it is bound at a desk, or as a found one writes itself — so the panel",
@@ -161,20 +154,20 @@ object AgeConfig {
                 "Age being made.",
                 "Preparing early means an Age exists, and takes up room, from the moment its book does.",
             )
-            .translation(translationOf("warm_ages_when"))
-            .defineEnum("warmAgesWhen", WarmAgesWhen.BOUND)
-        panelView = builder
+            .translation(translationOf("age_preload"))
+            .defineEnum("agePreload", WarmAgesWhen.ON_CREATE)
+        panelMode = builder
             .comment(
                 "What a bound book's panel shows. LIVE is the Age itself, moving, streamed to the player",
                 "who opens it. MAP is a map of the ground around where the book would put you, read once",
                 "from the Age and sent as colours, which spares the player's machine a second world and",
                 "the server the chunks it would send. OFF shows the panel misted over.",
-                "The Age is still made for a MAP panel; warmAgesWhen still decides when.",
+                "The Age is still made for a MAP panel; agePreload still decides when.",
             )
-            .translation(translationOf("panel_view"))
-            .defineEnum("panelView", PanelView.LIVE)
+            .translation(translationOf("panel_mode"))
+            .defineEnum("panelMode", PanelView.PREVIEW)
         builder.pop()
-        builder.comment("Compounding").push(COMPOUNDING)
+        builder.comment("Fusion compounder").translation(translationOf(FUSION_COMPOUNDER)).push(FUSION_COMPOUNDER)
         compoundsBedrock = builder
             .comment(
                 "Let the fusion compounder press 64 blocks of netherite into bedrock. A player with",
@@ -214,7 +207,7 @@ object AgeConfig {
             .translation(translationOf("compounds_quartz"))
             .define("compoundsQuartz", false)
         builder.pop()
-        builder.comment("Drying").push(DRYING)
+        builder.comment("Drying rack").translation(translationOf(DRYING_RACK)).push(DRYING_RACK)
         driesLeather = builder
             .comment(
                 "Let the drying rack turn rotten flesh into leather. An early, endless supply of leather",
@@ -223,7 +216,7 @@ object AgeConfig {
             .translation(translationOf("dries_leather"))
             .define("driesLeather", true)
         builder.pop()
-        builder.comment("Plasma").push(PLASMA)
+        builder.comment("Plasma").translation(translationOf(PLASMA)).push(PLASMA)
         plasmaAnnihilates = builder
             .comment(
                 "Let plasma let loose from a broken container destroy the blocks it erupts through and bursts",
@@ -232,39 +225,39 @@ object AgeConfig {
             .translation(translationOf("plasma_annihilates"))
             .define("plasmaAnnihilates", true)
         builder.pop()
-        builder.comment("Phenomena").push(PHENOMENA)
-        phenomenaAtOnce = builder
+        builder.comment("Phenomena").translation(translationOf(PHENOMENA)).push(PHENOMENA)
+        maxPhenomena = builder
             .comment(
                 "How many phenomena may be running at once: sandfalls, cave-ins, meteor storms, and the",
                 "storms a blizzard, deluge or tempest blows in. One that would begin past this waits its",
                 "turn and begins when another ends, so nothing is lost, only delayed. 0 for no limit.",
             )
-            .translation(translationOf("phenomena_at_once"))
-            .defineInRange("phenomenaAtOnce", DEFAULT_PHENOMENA_AT_ONCE, 0, MOST_PHENOMENA_AT_ONCE)
-        phenomenaCeilingCovers = builder
+            .translation(translationOf("max_phenomena"))
+            .defineInRange("maxPhenomena", DEFAULT_PHENOMENA_AT_ONCE, 0, MOST_PHENOMENA_AT_ONCE)
+        phenomenaLimitScope = builder
             .comment(
                 "Whether that limit is for each Age on its own (EACH_AGE), or shared by every Age on the",
-                "server (THE_SERVER) — the safer choice when many players are each in an Age of their own.",
+                "server (WHOLE_SERVER) — the safer choice when many players are each in an Age of their own.",
             )
-            .translation(translationOf("phenomena_ceiling_covers"))
-            .defineEnum("phenomenaCeilingCovers", CeilingCovers.EACH_AGE)
-        galeWind = builder
+            .translation(translationOf("phenomena_limit_scope"))
+            .defineEnum("phenomenaLimitScope", CeilingCovers.PER_AGE)
+        windStrength = builder
             .comment(
                 "How hard a gale or a blizzard's wind pushes players, creatures, dropped items and what is thrown,",
                 "from 0 (not at all) to 1 (the most it may). An ordinary one leans; a fierce one shoves. At 1 the",
                 "fiercest still lets a player sprint into it, though a jump or the edge of a bridge is another matter.",
             )
-            .translation(translationOf("gale_wind"))
-            .defineInRange("galeWind", DEFAULT_GALE_WIND, 0.0, 1.0)
-        tornadoesTakeBlocks = builder
+            .translation(translationOf("wind_strength"))
+            .defineInRange("windStrength", DEFAULT_GALE_WIND, 0.0, 1.0)
+        tornadoesDestroyBlocks = builder
             .comment(
                 "Whether a tornado tears up and throws the blocks under it, built or not. Off, it moves none, but",
                 "still spends its strength as though it had, so it lasts as long and goes as far.",
             )
-            .translation(translationOf("tornadoes_take_blocks"))
-            .define("tornadoesTakeBlocks", true)
+            .translation(translationOf("tornadoes_destroy_blocks"))
+            .define("tornadoesDestroyBlocks", true)
         builder.pop()
-        builder.comment("Coconuts").push(COCONUTS)
+        builder.comment("Easter eggs").translation(translationOf(EASTER_EGGS)).push(EASTER_EGGS)
         coconutHoofbeats = builder
             .comment("Walking with half a coconut in each hand sounds like a horse.")
             .translation(translationOf("coconut_hoofbeats"))
@@ -276,14 +269,14 @@ object AgeConfig {
     /** Where a screen looks for an option's name, the generated screens reading these rather than the key. */
     private fun translationOf(option: String): String = "config.${Constants.MOD_ID}.$option"
 
-    private const val HOUSEKEEPING = "housekeeping"
+    private const val AGE_SAVE_DATA = "age_save_data"
 
     private const val VILLAGERS = "villagers"
 
     private const val LINKING = "linking"
 
-    private const val COMPOUNDING = "compounding"
-    private const val DRYING = "drying"
+    private const val FUSION_COMPOUNDER = "fusion_compounder"
+    private const val DRYING_RACK = "drying_rack"
 
     private const val PLASMA = "plasma"
 
@@ -292,13 +285,13 @@ object AgeConfig {
     private const val MOST_PHENOMENA_AT_ONCE = 64
     private const val DEFAULT_GALE_WIND = 0.4
 
-    private const val COCONUTS = "coconuts"
+    private const val EASTER_EGGS = "easter_eggs"
 }
 
 /** What one ceiling on running phenomena is shared by. */
 enum class CeilingCovers {
-    EACH_AGE,
-    THE_SERVER,
+    PER_AGE,
+    WHOLE_SERVER,
 }
 
 /**
@@ -313,19 +306,19 @@ enum class WarmAgesWhen {
      *
      * Earlier than anything else can be, because until a book is bound it describes no world at all.
      */
-    BOUND,
+    ON_CREATE,
 
     /** Only once a bound book is in hand. */
-    HELD,
+    ON_HOLD,
 
     /** Not until the panel asks, which is where the whole cost lands on the person who opened it. */
-    OPENED,
+    ON_OPEN,
 }
 
 /** What a bound book's panel shows. */
 enum class PanelView {
     /** The Age itself, moving, as a second world on the client. */
-    LIVE,
+    PREVIEW,
 
     /** A map of the ground around the arrival, read off the Age's chunks on the server. */
     MAP,

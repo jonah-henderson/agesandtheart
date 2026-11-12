@@ -56,9 +56,7 @@ fun init() {
     // The config. Fabric has no config system of its own, so the spec is registered through Forge Config
     // API Port, against the same `ModConfigSpec` NeoForge registers (`notes/decisions.md`, "Config").
     //
-    // No screen is registered here. The port offers a `ConfigScreenFactoryRegistry` for a mod that wants
-    // to supply its own, and the whole point of choosing a spec other tools can read is not needing to:
-    // Configured generates one from this, and Mod Menu indexes it.
+    // Its screen is the client's, registered in `initClient`.
     ConfigRegistry.INSTANCE.register(Constants.MOD_ID, ModConfig.Type.SERVER, AgeConfig.SPEC)
     ConfigRegistry.INSTANCE.register(Constants.MOD_ID, ModConfig.Type.CLIENT, AgeClientLook.SPEC)
 

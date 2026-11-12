@@ -69,6 +69,11 @@ dependencies {
     // through would put Fabric on `common`'s compile path — the one thing this module must never see.
     // What is wanted is the class files and nothing else.
     compileOnly(libs.forgeConfigApiPort.fabric) { isTransitive = false }
+    // NightConfig, which the spec's values are held in, for the settings screen to walk them. Both loaders have it.
+    compileOnly(libs.nightConfig)
+    // Cloth Config's API, for the settings screen where a player has it installed. Its classes are the same under
+    // either loader's artifact; non-transitive for the reason the port is, as its artifact declares Fabric's loader.
+    compileOnly(libs.clothConfig.fabric) { isTransitive = false }
     // JEI's loader-neutral API, for the plugin in `client/jei/`. JEI loads that plugin only when it is
     // installed, so nothing of JEI's is ever needed at runtime.
     compileOnly(libs.jei.commonApi)

@@ -29,22 +29,22 @@ object AgeClientLook {
      *
      * The comment is worded for somebody reading a settings screen who has read none of this.
      */
-    val auroraCurtains: ModConfigSpec.IntValue
+    val maxAuroras: ModConfigSpec.IntValue
 
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
     init {
         val builder = ModConfigSpec.Builder()
-        builder.comment("How much this machine draws").push(DRAWING)
-        auroraCurtains = builder
+        builder.comment("Rendering").translation(translationOf(RENDERING)).push(RENDERING)
+        maxAuroras = builder
             .comment(
                 "How many curtains of light an aurora may hang at once. Each one costs frames, so turn",
                 "this down on a machine that struggles — or to 0 to leave aurorae undrawn entirely.",
                 "Affects only what you see; other players in the same Age are unchanged.",
             )
-            .translation(translationOf("aurora_curtains"))
-            .defineInRange("auroraCurtains", Aurora.MOST_CURTAINS, NONE, Aurora.MOST_CURTAINS)
+            .translation(translationOf("max_auroras"))
+            .defineInRange("maxAuroras", Aurora.MOST_CURTAINS, NONE, Aurora.MOST_CURTAINS)
         builder.pop()
         SPEC = builder.build()
     }
@@ -52,7 +52,7 @@ object AgeClientLook {
     /** Where a screen looks for an option's name, the generated screens reading these rather than the key. */
     private fun translationOf(option: String): String = "config.${Constants.MOD_ID}.$option"
 
-    private const val DRAWING = "drawing"
+    private const val RENDERING = "rendering"
 
     private const val NONE = 0
 }

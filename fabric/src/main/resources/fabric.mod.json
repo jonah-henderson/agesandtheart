@@ -45,5 +45,9 @@
     "fabric-language-kotlin": ">=${flk_version}",
     "ephemeris": "${ephemeris_range_fabric}",
     "forgeconfigapiport": "${config_port_range}"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "cloth-config": "*"
   }
 }

@@ -20,7 +20,7 @@ object AgeLooks {
     fun register() {
         // **What this machine will draw, which is ours to decide and the library's to obey.** Read afresh
         // each frame rather than set once, so turning it down in a settings screen takes effect at once.
-        AuroraPainter.mostCurtainsDrawn = { AgeClientLook.auroraCurtains.get() }
+        AuroraPainter.mostCurtainsDrawn = { AgeClientLook.maxAuroras.get() }
 
         // A meteor storm's first thirty seconds, which are the sky and nothing else. An overlay rather
         // than a sky of our own, so an Age keeps whatever sun and stars it was written with underneath.

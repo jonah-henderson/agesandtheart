@@ -62,7 +62,7 @@ object PreviewedAges {
      * its room and warming is not turned off.
      */
     fun whenTheDeskCloses(writer: ServerPlayer, desk: WritersDeskBlockEntity) {
-        if (AgeConfig.warmAgesWhen.get() == WarmAgesWhen.OPENED) return
+        if (AgeConfig.agePreload.get() == WarmAgesWhen.ON_OPEN) return
         val level = writer.level()
         // A menu closes as its player leaves and as the server stops, and neither is a time to make a world.
         if (writer.hasDisconnected() || !level.server.isRunning) return

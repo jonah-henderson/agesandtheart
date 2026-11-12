@@ -36,6 +36,13 @@ dependencies {
     // unobfuscated, so the plain configurations are the only ones there are.
     implementation(libs.forgeConfigApiPort.fabric)
 
+    // Cloth Config, compiled against for the settings screen `common` builds where a player has it, and never required.
+    compileOnly(libs.clothConfig.fabric) { isTransitive = false }
+
+    // Mod Menu, on the dev client and nowhere else: it is where Fabric opens a mod's config screen, and the one
+    // the port carries is ours to look at there. Never in the jar, and never a dependency a player must have.
+    localRuntime(libs.modmenu)
+
     // JEI's API, which `common`'s plugin compiles against here too since its sources are compiled into this jar.
     compileOnly(libs.jei.commonApi)
 }
