@@ -9,7 +9,7 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 
 /**
- * Temperstone climbers: any face of the stuff can be climbed (design §7.1.2).
+ * Temperstone climbers: any face of the stuff can be climbed, and its underside hung from (design §7.1.2).
  *
  * They share the boot slot with [RimeSkates], so owning both is a choice between going fast and going up.
  */
@@ -25,7 +25,23 @@ object Temperstone {
     fun climbing(entity: LivingEntity): Boolean {
         if (entity !is Player) return false
         if (entity.getItemBySlot(EquipmentSlot.FEET).item !== AgeContent.TEMPERSTONE_CLIMBERS) return false
-        return againstIt(entity)
+        return againstIt(entity) || hangingFromIt(entity)
+    }
+
+    /**
+     * Whether the entity hangs from temperstone over its head: off the ground, with the stuff within [REACH] of its
+     * crown anywhere across its width. Clinging rather than walking upside down — climbing holds it there and lets it
+     * edge along at a ladder's pace, and sneaking lets go. Never on the ground, so a low corridor of it does not slow
+     * the walk.
+     */
+    private fun hangingFromIt(entity: LivingEntity): Boolean {
+        if (entity.onGround()) return false
+        val box = entity.boundingBox
+        val above = BlockPos.betweenClosed(
+            BlockPos.containing(box.minX, box.maxY + REACH, box.minZ),
+            BlockPos.containing(box.maxX, box.maxY + REACH, box.maxZ),
+        )
+        return above.any { temperstoneAt(entity, it) }
     }
 
     /**
@@ -81,4 +97,7 @@ object Temperstone {
     private const val HOLDING = 0.0
 
     private const val GOING_UP = 0.05
+
+    /** How far over a climber's crown temperstone may be and still be held: a jump's reach, short of a gap. */
+    private const val REACH = 0.3
 }
