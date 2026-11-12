@@ -140,16 +140,21 @@ data class Vocabulary(
      */
     fun stillNames(id: Identifier): Boolean = word(id) != null || structural[id.path]?.id == id || successorIds(id) != null
 
-    /** Every retired id of ours that leads to a word now, and the word's id. */
+    /** Every retired id that leads to a word now, and the word's id. */
     val renamed: Map<Identifier, Identifier> by lazy {
-        retired.names.map { Identifier.fromNamespaceAndPath(Constants.MOD_ID, it) }
+        retired.names.mapNotNull(RetiredWords::idOf)
             .mapNotNull { old -> successorId(old)?.let { old to it } }
             .toMap()
     }
 
-    /** The id [id] has become, where it is one of our words that was retired. */
-    fun successorId(id: Identifier): Identifier? =
-        if (id.namespace != Constants.MOD_ID) null else retired.successorOf(id.path)?.let(byName::get)?.id
+    /**
+     * The id [id] has become, where it was retired: one of our words by its name, and a derived word of another
+     * namespace by its whole id (`minecraft:birch_checked`), so a retired name of ours never reaches a creature's.
+     */
+    fun successorId(id: Identifier): Identifier? {
+        val retiredAs = if (id.namespace == Constants.MOD_ID) id.path else id.toString()
+        return retired.successorOf(retiredAs)?.let(byName::get)?.id
+    }
 
     /**
      * Whether [name] would be a word on a server and is not one here: a placed feature, biome or structure
@@ -406,7 +411,10 @@ data class Vocabulary(
             // their ids with the words minting them, and the derived word left under `agesandtheart:arches` was a
             // second word of one id, which the lexicon's cache, keyed by id, would answer for both.
             val authoredIds = authored.values.map { it.id }.toSet()
-            val words = derived(fromContent.filterNot { it.id in authoredIds }) + authored + pages
+            // A derived word retired by its whole id is renamed, and its successor answers for it.
+            val retired = RetiredWords.load(resources, problems)
+            fun isRetired(word: Word) = word.id.toString() in retired.names
+            val words = derived(fromContent.filterNot { it.id in authoredIds || isRetired(it) }) + authored + pages
             val structural = readStructurePages(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
@@ -414,7 +422,6 @@ data class Vocabulary(
             val stock = WriterStock.load(resources, problems)
             // After the words, since a grammar naming one that does not exist is the fault worth reporting.
             val shippedButNotLoaded = worldgenShippedButNotLoaded(resources, registries)
-            val retired = RetiredWords.load(resources, problems)
             for (name in retired.names) {
                 if (retired.successorOf(name)?.let { it in words } != true) {
                     problems += "retired word '$name' leads to no word that exists"
@@ -428,7 +435,7 @@ data class Vocabulary(
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
             // Authored wins every collision above, so a derived id that an authored word displaced is not
             // in `words` and must not be counted derived.
-            val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
+            val derivedIds = fromContent.filterNot(::isRetired).map { it.id }.toSet() - authoredIds
             return Vocabulary(
                 words, structural, described, opposedTags, script, rarity, ink, stock, generation,
                 derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems, registries,

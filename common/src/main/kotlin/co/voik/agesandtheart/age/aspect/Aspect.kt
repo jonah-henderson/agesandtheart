@@ -313,7 +313,7 @@ enum class Aspect(
             SURFACE -> listOf(Surface.MATERIAL, Surface.BARE, Surface.POROSITY)
             FEATURES -> listOf(
                 Features.SIZE, Features.ORE_SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE,
-                Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.POROSITY, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
+                Features.FALLEN, Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.POROSITY, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
                 Features.ARRANGEMENT, Features.SPACING, Features.COLOUR,
             )
             AIR -> listOf(

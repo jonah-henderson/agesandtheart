@@ -1,0 +1,12 @@
+{
+  "_comment": "Pale oak trees: vanilla's own, as its sapling grows them. The word derived as `pale_oak_checked`, renamed.",
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "features": "minecraft:pale_oak_checked"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

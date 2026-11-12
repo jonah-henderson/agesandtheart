@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.resources.Identifier
 import net.minecraft.server.packs.resources.ResourceManager
 
 /**
@@ -43,6 +44,10 @@ data class RetiredWords(private val successors: Map<String, String>, private val
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("phrases", emptyMap()).forGetter(Retirements::phrases),
             ).apply(instance, ::Retirements)
         }
+
+        /** The id a retired [name] was saved under: ours where it is bare, and its own namespace's where it names one. */
+        fun idOf(name: String): Identifier? =
+            if (':' in name) Identifier.tryParse(name) else Identifier.fromNamespaceAndPath(Constants.MOD_ID, name)
 
         /** Our own words answer to their bare name and to `agesandtheart:name`. */
         private fun bareName(name: String): String = name.removePrefix("${Constants.MOD_ID}:")

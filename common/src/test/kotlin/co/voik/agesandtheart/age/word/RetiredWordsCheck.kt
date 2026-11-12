@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.language.Fate
 import co.voik.agesandtheart.location
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.resources.Identifier
 
 /** A retired word still reads, as what it became, so no saved page or learned word is stranded. */
 @Tags(NEEDS_REGISTRIES)
@@ -36,6 +37,18 @@ class RetiredWordsCheck : FunSpec({
 
     test("a name a live word answers to is that word, though a word of ours was retired from it") {
         check(vocabulary.word("drowned")?.id?.toString() == "minecraft:drowned") { "'drowned' is not the creature" }
+    }
+
+    test("a derived word renamed reads as its new name, by its whole id, and is no longer derived") {
+        val oldId = Identifier.withDefaultNamespace("birch_checked")
+        check(vocabulary.word(oldId)?.id == "birch".location()) { "a saved 'minecraft:birch_checked' reads as ${vocabulary.word(oldId)?.id}" }
+        check(vocabulary.renamed[oldId] == "birch".location()) { "the client is not told 'minecraft:birch_checked' became 'birch'" }
+        check(vocabulary.words.none { it.id == oldId }) { "'minecraft:birch_checked' is still a word of its own" }
+        val learned = LearnedWords()
+        learned.learn(oldId)
+        check(learned.migrate(vocabulary::successorIds) && learned.words.toList() == listOf("birch".location())) {
+            "a learned 'minecraft:birch_checked' became ${learned.words}"
+        }
     }
 
     test("a learned set is carried over, in place, without a repeat") {

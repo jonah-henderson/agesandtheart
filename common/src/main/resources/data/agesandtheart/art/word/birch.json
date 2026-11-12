@@ -1,0 +1,12 @@
+{
+  "_comment": "Birch trees: vanilla's own, as its sapling grows them. The word derived as `birch_checked`, renamed.",
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "features": "minecraft:birch_checked"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

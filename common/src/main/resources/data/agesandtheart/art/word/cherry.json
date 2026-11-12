@@ -1,0 +1,12 @@
+{
+  "_comment": "Cherry trees: vanilla's own, as its sapling grows them. The word derived as `cherry_checked`, renamed.",
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "features": "minecraft:cherry_checked"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

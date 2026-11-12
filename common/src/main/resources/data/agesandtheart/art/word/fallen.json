@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Trees lying where they fell: half of each tree it is said of lie fallen, each of its own trunk -- `fallen trees`",
+    "every tree the Age grows, `fallen oak` and `fallen birch` the one kind. Said alone, every tree. A tree falls as",
+    "vanilla's fallen tree of its log where there is one, and as a fallen oak of its own trunk where there is not."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "features.fallen": "true"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

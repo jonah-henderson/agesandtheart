@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.ephemeris.Rgba
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.DeepLake
+import co.voik.agesandtheart.worldgen.feature.FallenTrees
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
@@ -16,6 +17,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.feature.BlockPileFeature
@@ -147,6 +149,13 @@ object Features {
 
     /** Whether trees grow with no leaves at all — `bare features`, `bare trees`. */
     val BARE = Parameter.flag("bare", help = "Whether the trees grow bare, with no leaves.")
+        .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
+
+    /**
+     * Whether half the trees lie where they fell, each of its own trunk — `fallen trees`, `fallen oak` ([FallenTrees]).
+     * Said of one kind of tree, every tree of that kind's log falls, wherever it stands.
+     */
+    val FALLEN = Parameter.flag("fallen", help = "Whether half the trees lie fallen.")
         .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
 
     /** The block trees grow in place of their leaves — `diamond_block trees`, `frozen trees` — where it is not leaves. */
@@ -385,7 +394,7 @@ object Features {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE, ARRANGEMENT, SPACING, POROSITY).none { it.name in options.chosen }
+                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE, ARRANGEMENT, SPACING, POROSITY, FALLEN).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
@@ -429,6 +438,27 @@ object Features {
             return options.steer(POROSITY, salt, member = key)
         }
 
+        private val treesFall: Boolean get() = options.holdersOfAny(FALLEN).everyone && options.isTrue(FALLEN)
+
+        /** The logs of the kinds of tree said to have fallen (`fallen oak`), each falling wherever it stands. */
+        private val fallenLogs: Set<Block> by lazy {
+            val features = registries.lookupOrThrow(Registries.PLACED_FEATURE)
+            fun placed(member: String) = Identifier.tryParse(member)
+                ?.let { features.get(ResourceKey.create(Registries.PLACED_FEATURE, it)).orElse(null) }
+            options.holdersOfAny(FALLEN).only
+                .filter { member -> options.isTrue(FALLEN, member = member) }
+                .mapNotNull(::placed)
+                .flatMap(FallenTrees::logsOf)
+                .toSet()
+        }
+
+        /** [feature] with half its trees fallen where every tree or its kind of tree was said to have fallen. */
+        fun felled(feature: Holder<VanillaPlacedFeature>): Holder<VanillaPlacedFeature> = when {
+            treesFall -> FallenTrees.felled(feature, registries)
+            fallenLogs.isNotEmpty() -> FallenTrees.felled(feature, registries, fallenLogs)
+            else -> feature
+        }
+
         val holesSeed: Long get() = salt
 
         private fun keyOf(feature: Holder<VanillaPlacedFeature>): String? = idOf(feature)?.toString()
@@ -444,6 +474,7 @@ object Features {
                     FeatureShape.reshaped(arranged, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
                         .let { reshaped -> FeatureShape.heightened(reshaped, tallnessOf(it)) }
                         .let { reshaped -> FeatureShape.deepened(reshaped, depth = null, altitude = altitudeOf(it)) }
+                        .let { reshaped -> felled(reshaped) }
                         .let { reshaped -> FeatureShape.perforated(reshaped, porosityOf(it), salt) }
                 }
             }
@@ -514,7 +545,8 @@ object Features {
                     .let { FeatureShape.heightened(it, claim.tallness ?: shape.tallnessOf(found)) }
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
                 val kept = claim.territory?.let { FeatureShape.keptToTerritory(confined, it) } ?: confined
-                FeatureShape.perforated(FeatureDensity.applied(kept, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
+                val felled = shape.felled(kept)
+                FeatureShape.perforated(FeatureDensity.applied(felled, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
             clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }

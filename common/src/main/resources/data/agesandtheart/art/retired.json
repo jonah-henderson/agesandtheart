@@ -5,7 +5,10 @@
     "joining. Add to this and never remove from it.",
     "",
     "A word retired into several (`phrases`) reads as them in its place: `rising_north` is `north rising`. A",
-    "learned one becomes each of them, and a page of it keeps its name and reads as the phrase."
+    "learned one becomes each of them, and a page of it keeps its name and reads as the phrase.",
+    "",
+    "A derived word renamed is listed by its whole id (`minecraft:birch_checked`): it is no longer derived, and a",
+    "retired name of ours never reaches another namespace's word of that name (`drowned`)."
   ],
   "words": {
     "glimmering": "bright",
@@ -16,7 +19,12 @@
     "spawns": "inhabitants",
     "infernal": "nether",
     "dark_void": "end",
-    "rainbows": "rainbow"
+    "rainbows": "rainbow",
+    "minecraft:birch_checked": "birch",
+    "minecraft:cherry_checked": "cherry",
+    "minecraft:dark_oak_checked": "dark_oak",
+    "minecraft:mangrove_checked": "mangrove",
+    "minecraft:pale_oak_checked": "pale_oak"
   },
   "phrases": {
     "rising_north": "north rising",
