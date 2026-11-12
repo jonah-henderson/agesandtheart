@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.PorousLand
 import co.voik.agesandtheart.worldgen.SurfacePits
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import co.voik.agesandtheart.worldgen.Sastrugi
@@ -157,7 +158,7 @@ object AgeGeneration {
         // wearing vanilla's rock still gets its mountains, written into the chunk after vanilla's own fill.
         // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
         // are all the same object — see the note on `ourGround`'s parameter.
-        val overlay = volcanicOverlay(composition, seed)
+        val overlay = volcanicOverlay(composition, seed).alsoHollowing(PorousLand.holes(landPorosity(composition, seed), seed))
         val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table, sea, FormationLookup.of(server.registryAccess()))
         val merged = landmass.seam == Seam.MERGED
         val territories = Territories(
@@ -1050,6 +1051,12 @@ object AgeGeneration {
      */
     private fun roofOverVanillasRock(composition: AgeComposition, window: VerticalWindow, seed: Long): TerrainField? =
         if (composition.roofedByItsRock || !Sky.isRoofed(composition)) null else CeilingField.over(window, seed)
+
+    /** How holed the land is above the ground — `porous landmass` — as much as any territory asks. */
+    private fun landPorosity(composition: AgeComposition, seed: Long): Double =
+        composition.terrains.indices.mapNotNull { member ->
+            composition.optionsFor(Aspect.TERRAIN, member).steer(Terrain.POROSITY, saltFor(seed, member))
+        }.maxOrNull()?.coerceIn(0.0, 1.0) ?: 0.0
 
     internal fun volcanicOverlay(composition: AgeComposition, seed: Long): Overlay {
         // **The amount, not merely the fact.** Read as a number here so a quantifier reaches the rock: a

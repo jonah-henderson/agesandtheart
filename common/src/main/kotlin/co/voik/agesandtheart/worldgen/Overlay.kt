@@ -82,6 +82,13 @@ data class Overlay(
     /** This overlay with [body] standing in it as well. */
     fun alsoPouring(body: StandingFluid): Overlay = copy(pours = pours + body)
 
+    /** This overlay taking [more] rock out as well, or itself where there is none to take. */
+    fun alsoHollowing(more: TerrainField?): Overlay = when {
+        more == null -> this
+        hollows == null -> copy(hollows = more)
+        else -> copy(hollows = Union(listOf(hollows, more)))
+    }
+
     /** This overlay raising [more] rock as well, or itself where there is none to add. */
     fun alsoRaising(more: TerrainField?): Overlay = when {
         more == null -> this

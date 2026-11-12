@@ -1124,6 +1124,20 @@ enum class Terrain(
         val TORN = Parameter.flag("torn", help = "Whether the seams between territories are torn wide open.")
 
         /**
+         * How holed the land is above the ground, whatever landform it is — `porous landmass`, great round holes through
+         * hills and cliffs ([co.voik.agesandtheart.worldgen.PorousLand]). The aspect's own; only an aimed word turns it.
+         */
+        val POROSITY = Parameter.ranged(
+            "porosity",
+            help = "How holed the land is above the ground, in great round holes.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "whole"),
+                Parameter.Landmark(0.0, "whole"),
+                Parameter.Landmark(1.0, "a third holes"),
+            ),
+        ).onlyWhenAimed()
+
+        /**
          * Whether patches of the ground are another country's, as far as instability shifts them —
          * `incongruous landmass` (`Dislocation`).
          */

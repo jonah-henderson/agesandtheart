@@ -373,7 +373,7 @@ enum class Aspect(
             SEA -> listOf(Sea.DEPTH, Sea.CLIMBING)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(
-                Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
+                Terrain.TORN, Terrain.POROSITY, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
                 Terrain.FORMER_WEAR, Terrain.FORMER_LAYOUT, Terrain.FORMER_UNSAID_WEAR, Terrain.FORMER_CAVES, Terrain.FORMER_EASING,
                 Terrain.FORMER_ISLANDS, Terrain.FORMER_ISLAND_WEAR, Terrain.FORMER_BARE_WINDSWEPT, Terrain.FORMER_UNSPACED_SHAPES,
             )

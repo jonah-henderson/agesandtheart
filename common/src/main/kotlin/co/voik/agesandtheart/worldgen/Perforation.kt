@@ -16,14 +16,7 @@ class Perforation(seed: Long, private val holeSize: Double, porosity: Double) {
 
     private val noise = SimplexNoise(XoroshiroRandomSource(seed))
 
-    private val threshold: Double = run {
-        val void = porosity.coerceIn(0.0, 1.0) * MOST_VOID
-        val sampling = Random(SAMPLING_SEED)
-        val samples = DoubleArray(SAMPLES) {
-            noise.get(sampling.nextDouble() * SAMPLED_ACROSS, sampling.nextDouble() * SAMPLED_ACROSS, sampling.nextDouble() * SAMPLED_ACROSS).toDouble()
-        }.sorted()
-        samples[((1.0 - void) * (SAMPLES - 1)).toInt().coerceIn(0, SAMPLES - 1)]
-    }
+    private val threshold: Double = thresholdLeaving(porosity) { x, y, z -> noise.get(x, y, z).toDouble() }
 
     val isNothing: Boolean = porosity <= 0.0
 
@@ -33,6 +26,19 @@ class Perforation(seed: Long, private val holeSize: Double, porosity: Double) {
     companion object {
         /** The share of what is laid a porosity of one leaves void. */
         const val MOST_VOID = 0.35
+
+        /**
+         * The level of [noise] that leaves the void [porosity] asks for above it, read off the noise's own spread at a
+         * few thousand places so it holds for any noise, octaves and all.
+         */
+        fun thresholdLeaving(porosity: Double, noise: (Double, Double, Double) -> Double): Double {
+            val void = porosity.coerceIn(0.0, 1.0) * MOST_VOID
+            val sampling = Random(SAMPLING_SEED)
+            val samples = DoubleArray(SAMPLES) {
+                noise(sampling.nextDouble() * SAMPLED_ACROSS, sampling.nextDouble() * SAMPLED_ACROSS, sampling.nextDouble() * SAMPLED_ACROSS)
+            }.sorted()
+            return samples[((1.0 - void) * (SAMPLES - 1)).toInt().coerceIn(0, SAMPLES - 1)]
+        }
 
         private const val SAMPLES = 4096
         private const val SAMPLED_ACROSS = 1000.0

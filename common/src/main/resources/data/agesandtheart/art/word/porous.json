@@ -5,14 +5,24 @@
     "rock` keeps them dry. `porous features` holes the rock the features build above the ground, and a named one",
     "(`porous trees`, `porous obelisks`) everything it lays; `porous structures` and `porous villages` are holed through",
     "their walls and floors, never through what holds something. `porous surface` is the ground pocked with pits,",
-    "like pumice."
+    "like pumice; `porous landmass` the land itself holed through above the ground, in great round holes."
   ],
   "meanings": [
     {
       "chooses": {
         "rock": "porous"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
+    },
+    {
+      "chooses": {
+        "rock": "porous"
+      },
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 1.0
     },
     {
       "sets": {
@@ -39,6 +49,15 @@
       "must_always_apply": true,
       "offered_to": [
         "surface"
+      ]
+    },
+    {
+      "sets": {
+        "landmass.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
       ]
     }
   ]

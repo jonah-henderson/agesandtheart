@@ -20,9 +20,24 @@ class PerforationCheck : FunSpec({
         check(abs(half - Perforation.MOST_VOID / 2) < TOLERANCE) { "a porosity of a half left $half void" }
         check(voidShare(0.0) == 0.0) { "a porosity of nought left holes" }
     }
+
+    test("the land's holes take a third of the land at the most, and only over the sea") {
+        val holes = requireNotNull(PorousLand.holes(1.0, SEED)) { "a porosity of one made no holes" }
+        val columns = (0..<COLUMNS).flatMap { x -> (0..<COLUMNS).map { z -> holes.columnSpans(x * STRIDE, z * STRIDE) } }
+        val band = (columns.first().ranges.firstOrNull()?.first ?: 0)
+        val holed = columns.sumOf { spans -> spans.ranges.sumOf { it.last - it.first + 1 } }
+        val share = holed.toDouble() / (columns.size * (BAND_TOP - BAND_FLOOR + 1))
+        check(abs(share - Perforation.MOST_VOID) < TOLERANCE) { "the land's holes took $share of it" }
+        check(columns.all { spans -> spans.ranges.all { it.first >= BAND_FLOOR } }) { "a hole reached under the sea's lip (from $band)" }
+        check(PorousLand.holes(0.0, SEED) == null) { "a porosity of nought made holes" }
+    }
 })
 
 private const val SEED = 42L
+private const val COLUMNS = 24
+private const val STRIDE = 7
+private const val BAND_FLOOR = 66
+private const val BAND_TOP = 255
 private const val HOLE_SIZE = 2.5
 private const val ACROSS = 48
 private const val TOLERANCE = 0.05

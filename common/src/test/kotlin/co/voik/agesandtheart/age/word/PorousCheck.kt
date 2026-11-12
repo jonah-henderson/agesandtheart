@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.generation.StructureWeathering
@@ -34,10 +35,20 @@ class PorousCheck : FunSpec({
         check(porosityOf(Aspect.FEATURES, listOf("porous", "surface")) == null) { "porous surface holed the features" }
     }
 
+    test("porous landmass holes the land, and what porous is said of keeps the rock as it was") {
+        check(porosityOf(Aspect.TERRAIN, listOf("porous", "landmass")) != null) { "porous landmass holed no land" }
+        fun rockOf(vararg pages: String) = resolved(SEED, *pages).composition.carvers
+        check(Carvers.POROUS !in rockOf("porous", "features")) { "porous features made the rock porous" }
+        check(Carvers.POROUS !in rockOf("porous", "landmass")) { "porous landmass made the rock porous" }
+        check(Carvers.POROUS in rockOf("porous", "rock")) { "porous rock was not porous" }
+        check(Carvers.POROUS in rockOf("porous")) { "a bare porous left the rock whole" }
+    }
+
     test("porous laid bare is the rock alone") {
         check(porosityOf(Aspect.FEATURES, listOf("porous")) == null) { "a bare porous holed the features" }
         check(porosityOf(Aspect.STRUCTURES, listOf("porous")) == null) { "a bare porous holed the structures" }
         check(porosityOf(Aspect.SURFACE, listOf("porous")) == null) { "a bare porous pitted the ground" }
+        check(porosityOf(Aspect.TERRAIN, listOf("porous")) == null) { "a bare porous holed the land" }
     }
 
     test("a porous obelisk carries its porosity in its own clause") {
