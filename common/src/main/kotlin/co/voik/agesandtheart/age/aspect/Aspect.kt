@@ -370,7 +370,7 @@ enum class Aspect(
                 Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
             )
             GRAVITY -> listOf(Gravity.PULL)
-            SEA -> listOf(Sea.DEPTH, Sea.CLIMBING)
+            SEA -> listOf(Sea.DEPTH, Sea.CLIMBING, Sea.POROSITY)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(
                 Terrain.TORN, Terrain.POROSITY, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,

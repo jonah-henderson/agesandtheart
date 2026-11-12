@@ -1,0 +1,4 @@
+{
+  "_comment": "Air: nothing to draw, as vanilla's cave air.",
+  "variants": { "": { "model": "minecraft:block/air" } }
+}

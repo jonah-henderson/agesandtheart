@@ -6,7 +6,8 @@
     "(`porous trees`, `porous obelisks`) everything it lays; `porous structures` and `porous villages` are holed through",
     "their walls and floors, never through what holds something. `porous surface` is the ground pocked with pits,",
     "like pumice; `porous landmass` the land itself holed through above the ground, in great round holes; and",
-    "`porous underground` the caves a sponge of big round pocks, now and then joined by a crawl."
+    "`porous underground` the caves a sponge of big round pocks, now and then joined by a crawl; and `porous sea` the",
+    "water holding bubbles of air suspended in it, as Riven's does, that flood if the water beside one is disturbed."
   ],
   "meanings": [
     {
@@ -68,6 +69,16 @@
       "must_always_apply": true,
       "offered_to": [
         "landmass"
+      ]
+    },
+    {
+      "sets": {
+        "sea.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sea",
+        "waters"
       ]
     }
   ]

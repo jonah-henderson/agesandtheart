@@ -120,6 +120,7 @@ import net.minecraft.world.item.equipment.Equippable
 import net.minecraft.world.item.equipment.EquipmentAssets
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.level.block.AmethystClusterBlock
+import net.minecraft.world.level.block.AirBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.level.block.SoundType
@@ -355,6 +356,7 @@ object AgeContent {
 
     private val VENT_LINING_ID: Identifier = "vent_lining".location()
     private val DEEP_BUBBLE_COLUMN_ID: Identifier = "deep_bubble_column".location()
+    private val HELD_AIR_ID: Identifier = "held_air".location()
     private val GLOOMGRIT_ID: Identifier = "gloomgrit".location()
     private val PHASMIUM_GRAINS_ID: Identifier = "phasmium_grains".location()
     private val PHASMIUM_ID: Identifier = "phasmium".location()
@@ -395,6 +397,21 @@ object AgeContent {
             .pushReaction(PushReaction.POPPED)
             .liquid()
             .sound(SoundType.EMPTY),
+    )
+
+    /**
+     * Air a fluid never flows into. Vanilla's cave air in every property, breathable and placed into like air, but kept
+     * out of `#minecraft:air`, so it is not one of the blocks a fluid washes away. Nothing lays it yet: a porous sea's
+     * bubbles are plain air on purpose, so a careless player floods them (Jonah), and this is kept for air meant to
+     * hold for good.
+     */
+    val HELD_AIR: AirBlock = AirBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, HELD_AIR_ID))
+            .replaceable()
+            .noCollision()
+            .noLootTable()
+            .air(),
     )
 
     val VENT_LINING_ITEM: Item = BlockItem(
@@ -1959,6 +1976,7 @@ object AgeContent {
     val blocks: List<Pair<Identifier, Block>> = listOf(
         VENT_LINING_ID to VENT_LINING,
         DEEP_BUBBLE_COLUMN_ID to DEEP_BUBBLE_COLUMN,
+        HELD_AIR_ID to HELD_AIR,
         PHASMIUM_BLOCK_ID to PHASMIUM_BLOCK_BLOCK,
         LINKING_PORTAL_ID to LINKING_PORTAL,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_BLOCK,

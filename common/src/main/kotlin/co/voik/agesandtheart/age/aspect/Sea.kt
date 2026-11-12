@@ -119,6 +119,20 @@ data class Sea(override val id: Identifier) : RegistryReference {
          * perfectly well, and the result is simply invisible. A word that wants a *deep* sea and not an empty
          * one says so by pushing the `empty` tag away.
          */
+        /**
+         * How much of the sea is bubbles of held air — `porous sea` ([co.voik.agesandtheart.worldgen.SeaBubbles]). Only
+         * an aimed word turns it.
+         */
+        val POROSITY = Parameter.ranged(
+            "porosity",
+            help = "How much of the sea is bubbles of air held in the water.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "whole"),
+                Parameter.Landmark(0.0, "whole"),
+                Parameter.Landmark(1.0, "an eighth bubbles"),
+            ),
+        ).onlyWhenAimed()
+
         val DEPTH = Parameter.ranged(
             "depth",
             help = "How far above or below its usual level the sea stands.",

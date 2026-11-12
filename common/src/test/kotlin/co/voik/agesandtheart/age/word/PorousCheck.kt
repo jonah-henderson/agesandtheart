@@ -51,11 +51,17 @@ class PorousCheck : FunSpec({
         check(Carvers.POROUS !in composition.carvers) { "porous underground made the rock porous" }
     }
 
+    test("porous sea and porous waters hold bubbles in the sea") {
+        check(porosityOf(Aspect.SEA, listOf("porous", "sea")) != null) { "porous sea held no bubbles" }
+        check(porosityOf(Aspect.SEA, listOf("porous", "waters")) != null) { "porous waters held no bubbles" }
+    }
+
     test("porous laid bare is the rock alone") {
         check(porosityOf(Aspect.FEATURES, listOf("porous")) == null) { "a bare porous holed the features" }
         check(porosityOf(Aspect.STRUCTURES, listOf("porous")) == null) { "a bare porous holed the structures" }
         check(porosityOf(Aspect.SURFACE, listOf("porous")) == null) { "a bare porous pitted the ground" }
         check(porosityOf(Aspect.TERRAIN, listOf("porous")) == null) { "a bare porous holed the land" }
+        check(porosityOf(Aspect.SEA, listOf("porous")) == null) { "a bare porous bubbled the sea" }
     }
 
     test("a porous obelisk carries its porosity in its own clause") {
