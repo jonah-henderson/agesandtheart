@@ -71,7 +71,8 @@ object StructureMaterials {
                     val set = Identifier.tryParse(member) ?: return@mapNotNull null
                     blockNamed(options.of(Structures.MATERIAL, member = member))?.let { set to it }
                 }.toMap()
-                val weathered = options.holdersOfAny(Structures.CRUMBLE).only + options.holdersOfAny(Structures.CHARRED).only
+                val weathered = options.holdersOfAny(Structures.CRUMBLE).only + options.holdersOfAny(Structures.CHARRED).only +
+                    options.holdersOfAny(Structures.POROSITY).only
                 val weatheringBySet = weathered.mapNotNull(Identifier::tryParse)
                     .associateWith { StructureWeathering.of(options, salt, it) }.filterValues { !it.isNothing }
                 return Written(everyStructure, bySet, StructureWeathering.of(options, salt), weatheringBySet, salt)

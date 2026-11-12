@@ -313,7 +313,7 @@ enum class Aspect(
             SURFACE -> listOf(Surface.MATERIAL, Surface.BARE)
             FEATURES -> listOf(
                 Features.SIZE, Features.ORE_SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE,
-                Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
+                Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.POROSITY, Features.DEPTH, Features.TALLNESS, Features.ALTITUDE,
                 Features.ARRANGEMENT, Features.SPACING, Features.COLOUR,
             )
             AIR -> listOf(
@@ -381,7 +381,7 @@ enum class Aspect(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
                 Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR, Spawns.DISPOSITION,
             )
-            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY,
+            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.POROSITY, Structures.VARIETY,
                 Structures.FORMER_INCONGRUOUS_HEIGHTS)
             UNDERGROUND -> listOf(Underground.DEPTH, Underground.VEINS, Underground.FORMER_NOISE_CAVES)
             // Each phenomenon carries the dials it has (`Phenomenon.parameters`), since an inferno has no "how often"

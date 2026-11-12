@@ -337,6 +337,20 @@ object FeatureShape {
         return Holder.direct(PlacedFeature(Holder.direct(formation.copy(placement = scattered)), placed.placement()))
     }
 
+    /** [feature] holed through at [porosity] — `porous trees` — or itself where none was asked. Laid last, as it hides what it wraps. */
+    fun perforated(feature: Holder<PlacedFeature>, porosity: Double?, seed: Long): Holder<PlacedFeature> {
+        val holed = porosity?.coerceIn(0.0, 1.0)?.takeIf { it > 0.0 } ?: return feature
+        val placed = feature.value()
+        return Holder.direct(PlacedFeature(Holder.direct(PerforatedFeature(placed.feature(), holed, seed)), placed.placement()))
+    }
+
+    /** The feature [perforated] wrapped, or [feature] where it wraps nothing. */
+    fun underItsHoles(feature: Holder<PlacedFeature>): Holder<PlacedFeature> {
+        val placed = feature.value()
+        val holed = placed.feature().value() as? PerforatedFeature ?: return feature
+        return Holder.direct(PlacedFeature(holed.feature, placed.placement()))
+    }
+
     /** How far apart a layout sets its copies, near enough: a scatter's cell, a grid's spacing, a ring's. */
     private fun cellOf(placement: Placement): Double = when (placement) {
         is Scatter -> placement.cellSize

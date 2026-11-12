@@ -481,6 +481,7 @@ object AgeGeneration {
             structureHeights = StructureHeights.of(server, composition.optionsFor(Aspect.STRUCTURES, 0), seed),
             treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),
             featuresCrumbled = CrumbledFeatures.shareIn(composition.optionsFor(Aspect.FEATURES), seed),
+            featuresHoled = PorousFeatures.of(composition.optionsFor(Aspect.FEATURES), seed),
             banned = BannedBlocks.named(composition.banned),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.

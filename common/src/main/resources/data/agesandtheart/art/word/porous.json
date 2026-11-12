@@ -1,7 +1,10 @@
 {
   "_comment": [
-    "Full of small pockets: the rock chosen porous, isolated voids you break into rather than tunnels you",
-    "walk along, wet near the surface and dry far below (`Carvers.POROUS`). `dry porous rock` keeps them dry."
+    "Full of round holes, cut through whatever it is said of. The rock chosen porous: isolated voids you break",
+    "into rather than tunnels you walk along, wet near the surface and dry far below (`Carvers.POROUS`); `dry porous",
+    "rock` keeps them dry. `porous features` holes the rock the features build above the ground, and a named one",
+    "(`porous trees`, `porous obelisks`) everything it lays; `porous structures` and `porous villages` are holed through",
+    "their walls and floors, never through what holds something."
   ],
   "meanings": [
     {
@@ -9,6 +12,24 @@
         "rock": "porous"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "features.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "features"
+      ]
+    },
+    {
+      "sets": {
+        "structures.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
+      ]
     }
   ]
 }

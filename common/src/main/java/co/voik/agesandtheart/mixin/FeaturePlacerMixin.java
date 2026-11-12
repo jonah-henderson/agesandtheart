@@ -2,6 +2,7 @@ package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.age.consequence.StrangeGround;
 import co.voik.agesandtheart.generation.CrumbledFeatures;
+import co.voik.agesandtheart.generation.PorousFeatures;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -25,7 +26,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * modifiers chose. Outside a stamped Age it hands back the same random, at the cost of one thread-local read.
  *
  * <p>And places through a view that crumbles what the feature builds of rock above the ground, in an Age whose
- * features are worn ({@link CrumbledFeatures}); the same one thread-local read anywhere else.
+ * features are worn ({@link CrumbledFeatures}), and holes it in one whose features are porous ({@link PorousFeatures});
+ * the same one thread-local read each anywhere else.
  */
 @Mixin(FeaturePlacer.class)
 public abstract class FeaturePlacerMixin {
@@ -49,6 +51,6 @@ public abstract class FeaturePlacerMixin {
         BlockPos origin,
         boolean biomeCheck
     ) {
-        return StrangeGround.place(placed, random, drawing -> feature.place(CrumbledFeatures.levelFor(level), generator, drawing, at));
+        return StrangeGround.place(placed, random, drawing -> feature.place(PorousFeatures.levelFor(CrumbledFeatures.levelFor(level)), generator, drawing, at));
     }
 }

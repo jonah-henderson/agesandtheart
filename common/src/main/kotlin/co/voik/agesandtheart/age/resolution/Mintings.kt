@@ -66,6 +66,7 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             arrangement = minting.clause.firstNotNullOfOrNull { it.settings[ARRANGEMENT] },
             spacing = asked(minting.clause, SPACING),
             frequency = minting.mints.frequency,
+            porosity = asked(minting.clause, POROSITY),
         )
     }
     for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)
@@ -125,3 +126,4 @@ private const val TALLNESS = "tallness"
 private const val ALTITUDE = "altitude"
 private const val ARRANGEMENT = "arrangement"
 private const val SPACING = "spacing"
+private const val POROSITY = "porosity"

@@ -143,6 +143,20 @@ object Structures {
      */
     val CHARRED = Parameter.flag("charred", help = "Whether the structures have burned.").perMember().onlyWhenAimed()
 
+    /**
+     * How much of what is built is round holes — `porous villages` — through walls and floors, never through what holds
+     * something. Only an aimed word turns it.
+     */
+    val POROSITY = Parameter.ranged(
+        "porosity",
+        help = "How much of what is built is round holes.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "a third holes"),
+        ),
+    ).perMember().onlyWhenAimed()
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 

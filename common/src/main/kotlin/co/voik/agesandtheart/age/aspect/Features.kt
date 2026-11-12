@@ -172,6 +172,20 @@ object Features {
         ),
     )
 
+    /**
+     * How much of what the features build is holes — `porous features` the rock they build above the ground, `porous
+     * trees` everything a tree lays ([co.voik.agesandtheart.generation.PorousFeatures]). Only an aimed word turns it.
+     */
+    val POROSITY = Parameter.ranged(
+        "porosity",
+        help = "How much of what the features build is round holes.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "a third holes"),
+        ),
+    ).perMember().onlyWhenAimed()
+
     val SIZE = Parameter.ranged(
         "size",
         help = "How big one of a thing is.",
@@ -371,7 +385,7 @@ object Features {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE, ARRANGEMENT, SPACING).none { it.name in options.chosen }
+                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT, TALLNESS, ALTITUDE, ARRANGEMENT, SPACING, POROSITY).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
@@ -408,6 +422,15 @@ object Features {
 
         fun spacingOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(SPACING, salt, member = keyOf(feature))
 
+        /** How holed [feature] is where the book said it of this feature itself — `porous trees` — or null. */
+        fun porosityOf(feature: Holder<VanillaPlacedFeature>): Double? {
+            val key = keyOf(feature) ?: return null
+            if (key !in options.holdersOfAny(POROSITY).only) return null
+            return options.steer(POROSITY, salt, member = key)
+        }
+
+        val holesSeed: Long get() = salt
+
         private fun keyOf(feature: Holder<VanillaPlacedFeature>): String? = idOf(feature)?.toString()
 
         private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
@@ -421,6 +444,7 @@ object Features {
                     FeatureShape.reshaped(arranged, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
                         .let { reshaped -> FeatureShape.heightened(reshaped, tallnessOf(it)) }
                         .let { reshaped -> FeatureShape.deepened(reshaped, depth = null, altitude = altitudeOf(it)) }
+                        .let { reshaped -> FeatureShape.perforated(reshaped, porosityOf(it), salt) }
                 }
             }
     }
@@ -490,7 +514,7 @@ object Features {
                     .let { FeatureShape.heightened(it, claim.tallness ?: shape.tallnessOf(found)) }
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
                 val kept = claim.territory?.let { FeatureShape.keptToTerritory(confined, it) } ?: confined
-                FeatureDensity.applied(kept, claim.density)
+                FeatureShape.perforated(FeatureDensity.applied(kept, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
             clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }
@@ -581,7 +605,7 @@ object Features {
         laid: Holder<VanillaPlacedFeature>,
         clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
     ): Holder<VanillaPlacedFeature>? {
-        val pit = (laid.value().feature().value() as? Formation)?.takeIf { it.sunk } ?: return null
+        val pit = (FeatureShape.underItsHoles(laid).value().feature().value() as? Formation)?.takeIf { it.sunk } ?: return null
         return clearings.computeIfAbsent(laid) {
             Holder.direct(VanillaPlacedFeature(Holder.direct(PitClearing(pit)), laid.value().placement()))
         }
