@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "A column of whatever the clause names standing up out of the ground, as vanilla's cactus stands: `cactus",
+    "stalks`, `obsidian stalks`. Cactus when the clause names nothing, where cactus can stand; anything else",
+    "anywhere with room, one block all the way up. The umbrella for vanilla's block columns."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "minecraft:patch_cactus",
+        "unstated": "minecraft:cactus"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
+}

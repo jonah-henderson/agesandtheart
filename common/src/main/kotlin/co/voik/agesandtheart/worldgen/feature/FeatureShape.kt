@@ -10,6 +10,13 @@ import net.minecraft.world.level.levelgen.placement.RarityFilter
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.BlockBlobFeature
 import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.levelgen.placement.BlockPredicateFilter
+import net.minecraft.world.level.levelgen.feature.stateproviders.SimpleStateProvider
+import net.minecraft.world.level.levelgen.GeodeBlockSettings
+import net.minecraft.world.level.levelgen.feature.GeodeFeature
+import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
+import net.minecraft.world.level.levelgen.feature.DiskFeature
 import net.minecraft.world.level.levelgen.feature.SpikeFeature
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
@@ -182,10 +189,60 @@ object FeatureShape {
             is BlockPileFeature -> BlockPileFeature(mingled(blocks))
             is Heap -> feature.copy(stateProvider = mingled(blocks))
             is IcebergFeature -> IcebergFeature(block.defaultBlockState())
+            // A bed is what it lays over the floor: the floor it may replace stays the pattern's.
+            is DiskFeature -> DiskFeature(mingled(blocks), feature.target(), feature.radius(), feature.halfHeight())
+            // A patch of moss is its ground; what grows on it stays the pattern's. The waterlogged kind lays water too.
+            is WaterloggedVegetationPatchFeature -> return pattern
+            is VegetationPatchFeature -> VegetationPatchFeature(
+                feature.replaceable, mingled(blocks), feature.vegetationFeature, feature.surface, feature.depth,
+                feature.extraBottomBlockChance, feature.verticalRange, feature.vegetationChance, feature.xzRadius,
+                feature.extraEdgeColumnChance,
+            )
+            // A stalk is its column, one block all the way up: a cactus's flower is the cactus's own.
+            is BlockColumnFeature -> BlockColumnFeature(
+                listOf(BlockColumnFeature.Layer(feature.layers().first().height(), mingled(blocks))),
+                feature.direction(),
+                feature.allowedPlacement(),
+                feature.prioritizeTip(),
+            )
+            is GeodeFeature -> geodeOf(feature, block)
             else -> return pattern
         }
-        return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
+        return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placementFor(placed, rebuilt, block)))
     }
+
+    /**
+     * Where a minted pattern stands: the pattern's own placement, but for a column of something other than what it
+     * grew — a cactus's must stand on sand to survive, and an obsidian stalk need not, so its survival filter goes.
+     */
+    private fun placementFor(placed: PlacedFeature, rebuilt: Feature, block: Block): List<PlacementModifier> {
+        val grewOfItsOwn = (placed.feature().value() as? BlockColumnFeature)?.layers()?.firstOrNull()?.state()?.value()
+            ?.let { provider -> (provider as? SimpleStateProvider)?.state()?.block == block } ?: true
+        if (rebuilt !is BlockColumnFeature || grewOfItsOwn) return placed.placement()
+        return placed.placement().filterNot { it is BlockPredicateFilter }
+    }
+
+    /**
+     * A geode lined with [block]: its inner layer and the layer that buds both [block], its calcite and basalt
+     * shells the pattern's; and buds only in an amethyst one, since nothing else has them to grow.
+     */
+    private fun geodeOf(feature: GeodeFeature, block: Block): GeodeFeature {
+        val settings = feature.blockSettings()
+        val lining = BlockStateProvider.holderOf(block.defaultBlockState())
+        val lined = GeodeBlockSettings(
+            settings.fillingProvider(), lining, lining, settings.middleLayerProvider(), settings.outerLayerProvider(),
+            settings.innerPlacements(), settings.cannotReplace(), settings.invalidBlocks(),
+        )
+        val buds = if (block == Blocks.AMETHYST_BLOCK) feature.usePotentialPlacementsChance() else NO_BUDS
+        return GeodeFeature(
+            lined, feature.layerSettings(), feature.crackSettings(), buds, feature.useAlternateLayer0Chance(),
+            feature.placementsRequireLayer0Alternate(), feature.outerWallDistance(), feature.distributionPoints(),
+            feature.pointOffset(), feature.minGenOffset(), feature.maxGenOffset(), feature.noiseMultiplier(),
+            feature.invalidBlocksThreshold(),
+        )
+    }
+
+    private const val NO_BUDS = 0.0
 
     /** [blocks] as one provider, drawn evenly where there are several. */
     private fun mingled(blocks: List<Block>): Holder<BlockStateProvider> {

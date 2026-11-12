@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Vanilla's moss patch, which it places only inside lush caves, set out on the open ground as its pale moss is:",
+    "the pattern `moss` mints from. No word of its own (`does_not_have_a_word`); `moss` is the word."
+  ],
+  "feature": "minecraft:moss_patch",
+  "placement": [
+    {
+      "type": "minecraft:count",
+      "count": 1
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "MOTION_BLOCKING_NO_LEAVES"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

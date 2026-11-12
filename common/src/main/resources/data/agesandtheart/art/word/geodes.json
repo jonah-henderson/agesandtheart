@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "A geode lined with whatever the clause names, shaped and placed like vanilla's amethyst one: `diamond_block",
+    "geodes`. Its calcite and basalt shells are vanilla's, and only an amethyst one buds. Amethyst when the",
+    "clause names nothing."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "minecraft:amethyst_geode",
+        "unstated": "minecraft:amethyst_block"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
+}

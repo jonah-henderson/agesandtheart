@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A patch of moss on the open ground, its ground whatever the clause names under the moss's own growth: `moss`,",
+    "`pale_moss_block moss`. The umbrella for vanilla's moss patches; `pale_moss_patch` keeps its own word."
+  ],
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:moss_patch",
+        "unstated": "minecraft:moss_block"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
+}

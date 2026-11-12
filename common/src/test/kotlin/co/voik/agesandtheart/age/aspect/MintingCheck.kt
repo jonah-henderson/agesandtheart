@@ -12,6 +12,13 @@ import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import co.voik.agesandtheart.worldgen.feature.OreVein
 import net.minecraft.core.Holder
+import net.minecraft.world.level.levelgen.placement.BlockPredicateFilter
+import net.minecraft.world.level.levelgen.feature.stateproviders.SimpleStateProvider
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
+import net.minecraft.world.level.levelgen.feature.GeodeFeature
+import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
+import net.minecraft.world.level.levelgen.feature.VegetationPatchFeature
+import net.minecraft.world.level.levelgen.feature.DiskFeature
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -632,6 +639,29 @@ class MintingCheck : FunSpec({
         for (other in listOf("minecraft:ore_diamond", "minecraft:ore_coal_lower", "minecraft:ore_granite_upper", "minecraft:ore_gravel")) {
             check(!FeatureShape.laysAVeinOre(placedFeature(other))) { "$other was read as a vein's ore" }
         }
+    }
+
+    test("a bed, a moss patch, a stalk and a geode are remade of what the clause names") {
+        fun minted(pattern: String, of: String) = FeatureShape.mintedFrom(placedFeature(pattern), listOf(of)).value()
+        fun stateOf(provider: Holder<BlockStateProvider>) = (provider.value() as SimpleStateProvider).state().block
+
+        val bed = minted("minecraft:disk_sand", "minecraft:clay").feature().value() as DiskFeature
+        check(stateOf(bed.stateProvider()) == Blocks.CLAY) { "a clay bed was laid of ${bed.stateProvider().value()}" }
+
+        // Our own moss patch is only on a server; vanilla's pale one is the same kind of feature.
+        val moss = minted("minecraft:pale_moss_patch", "minecraft:moss_block").feature().value() as VegetationPatchFeature
+        check(stateOf(moss.groundState) == Blocks.MOSS_BLOCK) { "moss lay on ${moss.groundState.value()}" }
+
+        val placedStalk = minted("minecraft:patch_cactus", "minecraft:obsidian")
+        val stalk = placedStalk.feature().value() as BlockColumnFeature
+        check(stalk.layers().size == 1 && stateOf(stalk.layers().single().state()) == Blocks.OBSIDIAN) { "an obsidian stalk was ${stalk.layers()}" }
+        check(placedStalk.placement().none { it is BlockPredicateFilter }) { "an obsidian stalk still had to survive as a cactus" }
+        val cactus = minted("minecraft:patch_cactus", "minecraft:cactus")
+        check(cactus.placement().any { it is BlockPredicateFilter }) { "a cactus stalk lost its sand" }
+
+        val geode = minted("minecraft:amethyst_geode", "minecraft:diamond_block").feature().value() as GeodeFeature
+        check(stateOf(geode.blockSettings().innerLayerProvider()) == Blocks.DIAMOND_BLOCK) { "a diamond geode was lined with something else" }
+        check(geode.usePotentialPlacementsChance() == 0.0) { "a diamond geode budded" }
     }
 })
 
