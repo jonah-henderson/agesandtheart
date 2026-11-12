@@ -16,6 +16,9 @@ interface MemberTags {
     fun availableToBroadWordsIn(aspect: Aspect): List<Taggable>
 
     fun tagsOf(member: Taggable): Map<String, Double>
+
+    /** Whether the member of [aspect] keyed [key] is in a world nobody asked for it in, or only where something brings it. */
+    fun isThereByDefault(aspect: Aspect, key: String): Boolean
 }
 
 /**

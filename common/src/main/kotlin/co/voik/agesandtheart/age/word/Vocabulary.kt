@@ -254,6 +254,9 @@ data class Vocabulary(
      */
     override fun isPresentAnyway(member: Taggable): Boolean = profileOf(member).presentAnyway
 
+    override fun isThereByDefault(aspect: Aspect, key: String): Boolean =
+        tagsBySlot[aspect]?.byKey(key)?.presentAnyway ?: true
+
     /** How willingly the Art reaches for [member] when nothing asked for it. */
     override fun readinessOf(member: Taggable): Double =
         profileOf(member).readiness ?: PresetProfile.ORDINARY_READINESS

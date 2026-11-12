@@ -162,6 +162,21 @@
       "cavernous": 0.7
     }
   },
+  "agesandtheart:algae": {
+    "present_anyway": false
+  },
+  "agesandtheart:hollow_tree": {
+    "present_anyway": false
+  },
+  "agesandtheart:piles": {
+    "present_anyway": false
+  },
+  "agesandtheart:pits": {
+    "present_anyway": false
+  },
+  "agesandtheart:torchflowers": {
+    "present_anyway": false
+  },
   "agesandtheart:obelisks": {
     "present_anyway": false,
     "_comment": [

@@ -28,6 +28,9 @@ class WordCheck : FunSpec({
             ShippedCorpus.vocabulary.availableToBroadWordsIn(aspect)
 
         override fun tagsOf(member: Taggable): Map<String, Double> = ShippedCorpus.vocabulary.tagsOf(member)
+
+        override fun isThereByDefault(aspect: Aspect, key: String): Boolean =
+            ShippedCorpus.vocabulary.isThereByDefault(aspect, key)
     }
 
     fun takes(word: Word) = WordAcceptance.of(word, tags, MinecraftRegistries.worldgen)

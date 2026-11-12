@@ -29,6 +29,9 @@ class Lexicon(
 
     fun structure(page: String): Structure? = structureNamed(page)
 
+    /** Whether [aspect]'s member [key] is in a world nobody asked for it in. */
+    fun isThereByDefault(aspect: Aspect, key: String): Boolean = tags.isThereByDefault(aspect, key)
+
     /** The words [page] is read as where it is an old word retired into several, `rising_north` into `north rising`. */
     fun phrase(page: String): List<String>? = phraseNamed(page)
 

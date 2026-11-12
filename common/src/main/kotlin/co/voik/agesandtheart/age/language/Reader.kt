@@ -543,7 +543,7 @@ object Reader {
          * 2026-10-20): naming a member asks for a little more of it, a consolation for a writer who names one on its
          * own, and `deserted villages` is plainly about the villages there are. It still asks where what it took asks
          * for an amount, where `only` or `no` leads it, or where its members are not there until something brings
-         * them, as a phenomenon or a catalogue's member is not.
+         * them, as a phenomenon or a catalogue's member is not, nor a member the pack grows nowhere (`blue algae`).
          */
         /** [asked] where nothing it took may make it only describe — the word after an `of`, which a herd is made of. */
         private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>, joined: Int?, asked: Boolean = false) {
@@ -560,7 +560,9 @@ object Reader {
             val asksForAnAmount = describedBy.any { claim -> claim.effects.any { it is Effect.Abundance } }
             // A catalogue's member is there only where it is chosen, so `large chambered` still chooses the chambers.
             val isAPopulationOfMembers = place.aspect.holds == Holds.WEIGHTED_SET
-            val membersAreThereAnyway = isAPopulationOfMembers && place.aspect.pool?.startsEmpty != true
+            val named = (acceptance.place.members as? Members.Named)?.keys.orEmpty()
+            val namedAreThereByDefault = named.all { key -> lexicon.isThereByDefault(place.aspect, key) }
+            val membersAreThereAnyway = isAPopulationOfMembers && place.aspect.pool?.startsEmpty != true && namedAreThereByDefault
             val onlyDescribes = !asked && namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
             if (place.members is Members.Body) {
                 claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), clause = at, aimed = true)
