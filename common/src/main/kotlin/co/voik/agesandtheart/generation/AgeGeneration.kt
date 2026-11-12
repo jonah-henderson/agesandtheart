@@ -1169,12 +1169,16 @@ object AgeGeneration {
     private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()
 
     /**
-     * **The spawners this Age carries of its own**, for the creatures vanilla's own will not place.
+     * **The spawners this Age carries**: vanilla's own for the overworld ([VanillaSpawners]), and its own for the
+     * creatures vanilla's will not place.
      *
      * Here rather than in either backend, which are otherwise the same file twice: what a level is made of
      * is policy and belongs in common, where opening one is Ephemeris'.
      */
-    fun spawnersFor(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> {
+    fun spawnersFor(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> =
+        VanillaSpawners.forAnAge() + spawnersOfItsOwn(server, recipe)
+
+    private fun spawnersOfItsOwn(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> {
         val composition = recipe.composition ?: return emptyList()
         val placing = AgeSpawner.placing(
             composition.optionsFor(Aspect.SPAWNS, 0),
