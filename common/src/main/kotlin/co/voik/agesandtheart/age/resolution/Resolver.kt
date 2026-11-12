@@ -52,6 +52,7 @@ object Resolver {
             template = template,
             dropped = book.unread,
             cameToNothing = resolving.cameToNothing(),
+            lostDecisions = resolving.lostDecisions(),
             divided = resolving.divisions(),
         )
     }

@@ -48,6 +48,7 @@ fun main(arguments: Array<String>) {
     when {
         asked.auditing -> audit(terminal, corpus)
         asked.inert -> inert(terminal, corpus, asked.withMembers, asked.sentences)
+        asked.pairingsOf != null -> pairings(terminal, corpus, asked.pairingsOf, asked.everyDerived)
         asked.sentence != null -> for (sentence in asked.sentence.split(SENTENCES_APART).map(String::trim)) {
             terminal.println(TextColors.cyan("» $sentence"))
             terminal.println(
@@ -66,6 +67,8 @@ private data class Arguments(
     val word: String? = null,
     val auditing: Boolean = false,
     val inert: Boolean = false,
+    val pairingsOf: String? = null,
+    val everyDerived: Boolean = false,
     val sentence: String? = null,
     val withMembers: Boolean = false,
     val sentences: Int = DEFAULT_SENTENCES,
@@ -83,6 +86,8 @@ private data class Arguments(
                 read = when {
                     argument == "--audit" -> read.copy(auditing = true)
                     argument == "--inert" -> read.copy(inert = true)
+                    argument == "--pairings" -> read.copy(pairingsOf = arguments.getOrNull(++index))
+                    argument == "--all" -> read.copy(everyDerived = true)
                     argument == "--read" -> read.copy(sentence = arguments.getOrNull(++index))
                     argument == "--members" -> read.copy(withMembers = true)
                     argument == "--sentences" -> read.copy(sentences = arguments.getOrNull(++index)?.toIntOrNull() ?: DEFAULT_SENTENCES)
@@ -227,6 +232,33 @@ private fun inert(terminal: Terminal, corpus: Corpus, withMembers: Boolean, sent
     )
 }
 
+/**
+ * Every phrase [name] makes, written to [Pairings.reportFor]: what each came to, the ones a person has not ruled on
+ * first, and what other words mean where this one means nothing.
+ */
+private fun pairings(terminal: Terminal, corpus: Corpus, name: String, everyDerived: Boolean) {
+    val word = if (WordFile.exists(name)) WordFile.read(name).getOrNull()?.asWord() else corpus.vocabulary.word(name)
+    if (word == null) {
+        terminal.println(TextColors.brightRed("'$name' is no word"))
+        return
+    }
+    terminal.println(TextColors.gray("reading every phrase '$name' makes…"))
+    val pairings = Pairings(corpus.vocabulary, standIn = word)
+    val before = pairings.before(word, everyDerived)
+    val after = pairings.after(word)
+    val found = before + after
+    val ruled = PairingRulings.read()
+    val open = found.filter { it.verdict.asksForAPerson && !ruled.settles(it) }
+    val report = PairingRulings.report(name, before, after, ruled)
+    val file = Pairings.reportFor(name)
+    file.parentFile.mkdirs()
+    file.writeText(report)
+    val byVerdict = open.groupingBy { it.verdict }.eachCount().entries.sortedBy { it.key.ordinal }
+        .joinToString(", ") { (verdict, count) -> "$count ${verdict.said}" }.ifEmpty { "nothing" }
+    val means = found.count { it.verdict == Pairings.Verdict.MEANS }
+    terminal.println(TextColors.green("${found.size} phrases, $means meaning something; to rule on: $byVerdict — written to ${file.path}"))
+}
+
 /** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
 private fun rewrite(terminal: Terminal) {
     val rewritten = WordFile.authoredNames().filter { name ->
@@ -271,6 +303,8 @@ private val USAGE = """
     |  scripts/scrivener.sh --read "<sentence>"  what a book of that sentence is read as; `|` between several
     |  scripts/scrivener.sh --inert [--members] [--sentences N]
     |                                         phrases that land nothing on what they name
+    |  scripts/scrivener.sh --pairings <word> [--all]
+    |                                         every phrase a word makes, read and built, and what to rule on
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
     |  scripts/scrivener.sh --refresh --attach host:port:password

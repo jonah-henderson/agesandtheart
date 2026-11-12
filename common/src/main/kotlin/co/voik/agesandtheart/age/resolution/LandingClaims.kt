@@ -121,16 +121,21 @@ internal val Landing.unwanted: Set<String>
  * substance it makes a minting of, and the minting. What only leans, bends or counts is kept whatever else holds.
  */
 internal val Landing.decisions: Set<String>
-    get() = effects.map { effect ->
-        when (effect) {
-            is Effect.Sets -> effect.parameter.name
-            is Effect.Chooses, is Effect.Admits, is Effect.Excludes, is Effect.Restricts -> Decision.MEMBERS
-            is Effect.Mints -> Decision.MINTS
-            is Effect.MadeOf -> Decision.SUBSTANCE
-            is Effect.Bends, is Effect.Leans, is Effect.LeansEverywhere, is Effect.Abundance, is Effect.Template,
-            is Effect.Bans, is Effect.LinksIn -> Decision.KEPT
-        }
-    }.toSet()
+    get() = effects.map(Effect::decision).toSet()
+
+/** The one name what resolution may keep or overrule of this effect goes by, as [Landing.decisions] gives it. */
+val Effect.decision: String
+    get() = when (this) {
+        is Effect.Sets -> parameter.name
+        is Effect.Chooses, is Effect.Admits, is Effect.Excludes, is Effect.Restricts -> Decision.MEMBERS
+        is Effect.Mints -> Decision.MINTS
+        is Effect.MadeOf -> Decision.SUBSTANCE
+        is Effect.Bends, is Effect.Leans, is Effect.LeansEverywhere, is Effect.Abundance, is Effect.Template,
+        is Effect.Bans, is Effect.LinksIn -> Decision.KEPT
+    }
+
+/** Whether this effect came to nothing, where [lost] is what came to nothing at its landing's place. */
+fun Effect.cameToNothingAmong(lost: Set<String>): Boolean = Decision.WHOLE in lost || decision in lost
 
 /** The names [Landing.decisions] gives what is not a parameter. */
 internal object Decision {

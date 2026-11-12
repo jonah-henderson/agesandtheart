@@ -272,13 +272,17 @@ private fun spelled(claims: List<Claim>, pool: Pool, drawnFrom: List<Taggable>, 
 
 /**
  * A population's roll grown to what a landing asked, where no page described a body — only into silence, and the
- * largest asked rather than the sum.
+ * largest asked rather than the sum. Where a page did describe one, a count asked beside it comes to nothing.
  */
 internal fun Resolving.cast(composition: AgeComposition): AgeComposition =
     Aspect.entries.filter { it.holds == Holds.POPULATION }.fold(composition) { held, aspect ->
         val speaking = speakingTo(aspect)
-        if (speaking.any { it.body != null }) return@fold held
-        val asked = speaking.mapNotNull { it.settings[Parameter.CAST]?.toIntOrNull() }.maxOrNull()
+        val counting = speaking.filter { it.settings[Parameter.CAST]?.toIntOrNull() != null }
+        if (speaking.any { it.body != null }) {
+            counting.forEach { lose(it, Parameter.CAST) }
+            return@fold held
+        }
+        val asked = counting.mapNotNull { it.settings[Parameter.CAST]?.toIntOrNull() }.maxOrNull()
         if (asked == null) held else held.withCastOf(aspect, asked)
     }
 

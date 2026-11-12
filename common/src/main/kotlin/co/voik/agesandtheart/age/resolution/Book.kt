@@ -36,6 +36,8 @@ data class Resolution(
     val dropped: List<String> = emptyList(),
     /** Where what landed came to nothing — overruled, set aside for want of room, or honoured by nothing. */
     val cameToNothing: Set<LandingAt> = emptySet(),
+    /** What came to nothing at each place, decision by decision, where some of what landed there held ([Effect.decision]). */
+    val lostDecisions: Map<LandingAt, Set<String>> = emptyMap(),
     /** Which share of a part divided between rival words each landing went to, where they did not ask for it with `and`. */
     val divided: Map<LandingAt, Int> = emptyMap(),
 )

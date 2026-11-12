@@ -9,7 +9,7 @@
     "light and petals drifting, a second sun, a vast moon and brighter stars are offered to every dreamlike Age,",
     "each yielding to anything the book says.",
     "",
-    "Before the aurora, a soft one anywhere; before the structures, `jumbled`'s."
+    "Before the aurora, a soft one anywhere; before the sun, a larger one, magenta or cyan; before the structures, `jumbled`'s."
   ],
   "meanings": [
     {
@@ -149,7 +149,8 @@
       "sets": {
         "sun.cast": "2"
       },
-      "chance_to_apply": 0.33
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.165
     },
     {
       "sets": {
@@ -213,6 +214,33 @@
       "must_always_apply": true,
       "offered_to": [
         "structures"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.3..0.6"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "magenta"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "cyan"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
       ]
     }
   ]

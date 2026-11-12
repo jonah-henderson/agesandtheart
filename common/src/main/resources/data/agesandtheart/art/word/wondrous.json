@@ -4,7 +4,7 @@
     "vault, starlight in the air, brighter and denser stars, and a colourful rock are offered to every",
     "wondrous Age, each yielding to anything the book says.",
     "",
-    "Before the moon or the aurora: more of them, larger, stranger in colour, or oftener."
+    "Before the sun, the moon or the aurora: larger, stranger in colour, or oftener; a second moon only laid bare."
   ],
   "meanings": [
     {
@@ -23,7 +23,8 @@
       "sets": {
         "sun.cast": "2"
       },
-      "chance_to_apply": 0.33
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.165
     },
     {
       "sets": {
@@ -71,10 +72,8 @@
       "sets": {
         "moon.cast": "2"
       },
-      "chance_to_apply": 0.4,
-      "offered_to": [
-        "moon"
-      ]
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.2
     },
     {
       "sets": {
@@ -128,6 +127,33 @@
       "chance_to_apply": 0.4,
       "offered_to": [
         "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.4..0.8"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "cyan"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "purple"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
       ]
     }
   ]

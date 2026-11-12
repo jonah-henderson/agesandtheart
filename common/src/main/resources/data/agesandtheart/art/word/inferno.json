@@ -83,13 +83,15 @@
       "sets": {
         "sun.cast": "2"
       },
-      "chance_to_apply": 0.6
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.3
     },
     {
       "sets": {
         "sun.cast": "3"
       },
-      "chance_to_apply": 0.6
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.3
     },
     {
       "sets": {

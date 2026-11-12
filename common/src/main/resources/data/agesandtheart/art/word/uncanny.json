@@ -74,10 +74,8 @@
       "sets": {
         "sun.cast": "2"
       },
-      "chance_to_apply": 0.3,
-      "offered_to": [
-        "sun"
-      ]
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.15
     },
     {
       "sets": {

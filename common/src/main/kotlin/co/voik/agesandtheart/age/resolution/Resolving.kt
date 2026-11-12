@@ -54,6 +54,9 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
     /** Which share of a divided part each landing went to, where one was divided. */
     fun divisions(): Map<LandingAt, Int> = shares.toMap()
 
+    /** What came to nothing at each place a landing reached, by the decisions it made there ([Effect.decision]). */
+    fun lostDecisions(): Map<LandingAt, Set<String>> = lost.mapValues { it.value.toSet() }
+
     /** Where everything that landed came to nothing. */
     fun cameToNothing(): Set<LandingAt> = said.groupBy { it.at }.filter { (at, landings) ->
         val lostHere = lost[at] ?: return@filter false

@@ -144,7 +144,7 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_
 # The landform shape checks — opt-in, and they *warn* rather than fail (see "Tests")
 ./gradlew :common:landformTest
 
-# The checks kept for an occasional look by hand — today the long draw of found books, 20,000 per grammar
+# The checks kept for an occasional look by hand — the long draw of found books, and no word hollow before a part
 ./gradlew :common:occasionalTest
 
 # Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
@@ -154,6 +154,7 @@ scripts/drive-server.sh scripts/checks/regions.txt
 scripts/scrivener.sh              # a new word
 scripts/scrivener.sh colossal     # an authored one
 scripts/scrivener.sh --audit      # every authored word, worst first
+scripts/scrivener.sh --pairings porous   # every phrase a word makes, read and built (see below)
 ```
 
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
@@ -201,6 +202,13 @@ boots a dedicated server, writes the Age, and sends you in when you connect — 
 changing a page and looking again is seconds. The world is thrown away when the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
+**Run every new word through `--pairings`.** It reads the word before every part of the world, every authored word
+and a few of each kind of derived one (`--all` for every one), and every authored word before it that means
+something before its part, each resolved beside the same book with the word's page blank, and files each phrase as
+means, silent, strays, clashes or hollow. Hollow is always a fault (`occasionalTest` sweeps the corpus for it); the
+rest are English calls, with what the word's siblings and its mirror mean on the same noun beside them. Rulings
+are `.authoring/pairings-ruled.txt`, `phrase | verdict | ruling | note`, and settle a phrase while its verdict stands.
+
 **Scrivener reaches past the words.** Its main menu is four groups — the words, the world they describe, the
 age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
 visible — every carrier says whether its weight was **authored**, **overridden**, **derived**, or **dropped**, because
@@ -236,7 +244,7 @@ the word and laid first, and `AuthoringCheck` holds that every authored word wri
 ./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~2min
 ./gradlew :common:longTest                 # the checks that take ten seconds or more — before a release, ~2min
 ./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
-./gradlew :common:occasionalTest           # by hand now and then: the long draw of found books, ~1min
+./gradlew :common:occasionalTest           # by hand now and then: the long book draw, the hollow sweep, ~1min
 ```
 
 **`-Pon=<feature>` narrows any of them to one subject**, which is the iteration loop worth using:
