@@ -367,7 +367,7 @@ enum class Aspect(
             )
             CLOUD -> listOf(
                 Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL,
-                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE, CloudShape.POROSITY,
             )
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH, Sea.CLIMBING, Sea.POROSITY)

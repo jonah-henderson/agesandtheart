@@ -4,6 +4,7 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
+import co.voik.agesandtheart.age.aspect.CloudShape
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Underground
@@ -54,6 +55,13 @@ class PorousCheck : FunSpec({
     test("porous sea and porous waters hold bubbles in the sea") {
         check(porosityOf(Aspect.SEA, listOf("porous", "sea")) != null) { "porous sea held no bubbles" }
         check(porosityOf(Aspect.SEA, listOf("porous", "waters")) != null) { "porous waters held no bubbles" }
+    }
+
+    test("porous clouds are an overcast sheet holed through") {
+        val clouds = resolved(SEED, "porous", "clouds").composition.optionsFor(Aspect.CLOUD)
+        val pattern = requireNotNull(CloudShape.patternIn(clouds, SEED)) { "porous clouds kept vanilla's clouds" }
+        check(pattern.cover == 1.0f) { "porous clouds were not a whole sheet: ${pattern.cover}" }
+        check(pattern.holes in 0.1f..0.25f) { "porous clouds were holed by ${pattern.holes}" }
     }
 
     test("porous laid bare is the rock alone") {

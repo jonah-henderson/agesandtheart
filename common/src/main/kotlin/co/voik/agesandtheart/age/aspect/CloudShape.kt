@@ -8,7 +8,7 @@ import kotlin.math.pow
 /**
  * The shape of an Age's vanilla clouds, drawn by Ephemeris from a picture made for the Age ([CloudPattern]): how much of
  * the sky is cloud (`few`, `unbroken`), whether it lies in bits or patches (`scattered`, `patchy`), whether it is torn
- * into rags, and how large it is (`colossal`, `small`).
+ * into rags, how large it is (`colossal`, `small`), and whether it is an overcast sheet holed through (`porous`).
  */
 object CloudShape {
 
@@ -50,6 +50,20 @@ object CloudShape {
         ),
     )
 
+    /**
+     * How holed the clouds are — `porous clouds`: an overcast sheet with round holes through it, a share of it at the
+     * most. Only an aimed word turns it; where nothing says how much of the sky is cloud, the sheet is whole but for them.
+     */
+    val POROSITY = Parameter.ranged(
+        "porosity",
+        help = "How much of an overcast sheet of cloud is cut away in round holes.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "a quarter holes"),
+        ),
+    ).onlyWhenAimed()
+
     /** The share of the sky in cloud at [cover] on its axis: a tenth of vanilla's to vanilla's evenly in its logarithm. */
     fun shareAt(cover: Double): Float {
         val held = cover.coerceIn(-1.0, 1.0)
@@ -65,16 +79,22 @@ object CloudShape {
 
     /** The shape [clouds] say their clouds take, or null where they say nothing of it and keep vanilla's. */
     fun patternIn(clouds: Options, seed: Long): CloudPattern? {
-        val cover = clouds.steer(COVER, seed)?.let(::shareAt)
+        val holes = clouds.steer(POROSITY, seed)?.let { (it.coerceIn(0.0, 1.0) * MOST_HOLES).toFloat() } ?: 0.0f
+        val sheet = if (holes > 0.0f) WHOLE_SHEET else null
+        val cover = clouds.steer(COVER, seed)?.let(::shareAt) ?: sheet
         val clumping = clouds.steer(CLUMPING, seed)?.toFloat() ?: CloudPattern().clumping
         val torn = clouds.isTrue(TORN)
         val scale = clouds.steer(SIZE, seed)?.let { SizeScale.factorAt(it).toFloat() } ?: CloudPattern().cellScale
-        val pattern = CloudPattern(cover, clumping, torn, scale, seed xor PATTERN_SALT)
+        val pattern = CloudPattern(cover, clumping, torn, scale, seed xor PATTERN_SALT, holes)
         val saysNothing = !pattern.drawsItsOwnPicture && pattern.cellScale == CloudPattern().cellScale
         return pattern.takeUnless { saysNothing }
     }
 
     private const val VANILLAS = CloudPattern.VANILLA_COVER.toDouble()
     private const val MOST = 0.97
+
+    /** The share of a sheet a porosity of one cuts away in holes, and the sheet they are cut through where no cover is said. */
+    private const val MOST_HOLES = 0.25
+    private const val WHOLE_SHEET = 1.0f
     private const val PATTERN_SALT = 0x3C1D_7E55_2A90_B4F1L
 }

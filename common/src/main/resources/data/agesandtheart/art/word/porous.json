@@ -7,7 +7,8 @@
     "their walls and floors, never through what holds something. `porous surface` is the ground pocked with pits,",
     "like pumice; `porous landmass` the land itself holed through above the ground, in great round holes; and",
     "`porous underground` the caves a sponge of big round pocks, now and then joined by a crawl; and `porous sea` the",
-    "water holding bubbles of air suspended in it, as Riven's does, that flood if the water beside one is disturbed."
+    "water holding bubbles of air suspended in it, as Riven's does, that flood if the water beside one is disturbed.",
+    "`porous clouds` are an overcast sheet with round holes through it."
   ],
   "meanings": [
     {
@@ -79,6 +80,15 @@
       "offered_to": [
         "sea",
         "waters"
+      ]
+    },
+    {
+      "sets": {
+        "clouds.porosity": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds"
       ]
     }
   ]
