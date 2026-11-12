@@ -136,12 +136,13 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     override fun tick() {
         super.tick()
+        // On both sides, as a boat's is, so the swing counts down every tick between the server's updates.
+        settleAfterABlow()
         // **The client never simulates one, it only catches up**, and the catching up is vanilla's:
         // `commonTick` steps the interpolation before `tick` runs. Both sides running the physics was the
         // jitter — the client's `deltaMovement` starts at nothing and is never sent, so the two drift apart
         // and every position packet snapped the body back. See [createInterpolationHandler].
         if (!level().isClientSide) {
-            settleAfterABlow()
             // **The push first, because it is the only term that can be expensive**, and it answers zero
             // for nearly every body on nearly every tick — see [pushedFromRock].
             val pushed = pushedFromRock()
