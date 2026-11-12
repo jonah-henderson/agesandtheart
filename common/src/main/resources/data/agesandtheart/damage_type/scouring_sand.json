@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Being scoured by a sandfall strong enough to wear the ground away (design 5.2.2). Scaled as the world's own",
+    "hazards are, by nothing but who caused it."
+  ],
+  "message_id": "scouring_sand",
+  "scaling": "when_caused_by_living_non_player",
+  "exhaustion": 0.1
+}

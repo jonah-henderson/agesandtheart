@@ -202,9 +202,9 @@ data class ColumnBehaviour(
         private const val DEFAULT_BETWEEN_SOUNDS = 4
 
         /** What an ordinary column pours at, and the slowest and fastest anything may — see [poursAt]. */
-        const val ORDINARY_POUR = 900
-        const val SLOWEST_POUR = 450
-        const val FASTEST_POUR = 2550
+        const val ORDINARY_POUR = 1800
+        const val SLOWEST_POUR = 900
+        const val FASTEST_POUR = 5100
 
         private const val BOTH_SIDES = 2.0
         private const val CERTAIN = 1.0

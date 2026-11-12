@@ -35,7 +35,11 @@ const float TAU = 6.28318530718;
 //
 // **`ColumnBehaviour.FASTEST_POUR` is this same number in Kotlin**, and `SandfallCheck` reads this file to
 // say so. If they ever disagree every column pours wrong and the drift stops landing on a whole turn.
-const float FASTEST_FALL = 2550.0;
+const float FASTEST_FALL = 5100.0;
+
+// How much longer each lane's streaks are drawn than its grains are wide: the longer the streak, the faster the
+// same drift reads, without the flicker a faster one would strobe into at a frame's pace.
+const float STREAK_STRETCH = 3.0;
 
 // How many lanes of falling sand there are to a block. Fine enough to read as grains at arm's length,
 // coarse enough that a column seen from across the Age is not a shimmer.
@@ -90,7 +94,7 @@ float fallAt(vec2 there, float drifted) {
     float phase = hashOf(lane) * TAU;
     // One of three whole rates, so the drift still completes whole turns in a day and nothing jumps at dawn.
     float rate = 1.0 + floor(hashOf(lane + 7.0) * 3.0);
-    float down = there.y;
+    float down = there.y / STREAK_STRETCH;
 
     float value = sin(down * 0.75 + phase - drifted * rate);
     value += 0.7 * sin(down * 0.24 + phase * 2.0 - drifted * rate);

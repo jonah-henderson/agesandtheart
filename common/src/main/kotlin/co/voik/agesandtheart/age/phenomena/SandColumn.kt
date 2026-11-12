@@ -12,6 +12,10 @@ import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.damagesource.DamageType
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
+import co.voik.agesandtheart.location
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
@@ -30,6 +34,7 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
@@ -201,12 +206,21 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         val standing = halfWidth.toDouble()
         if (standing <= NOTHING || behaviour.push <= NOTHING) return
         val force = behaviour.push * (standing / behaviour.widestHalfWidth)
+        val scours = scour > NOTHING && age % SCOURS_EVERY == 0
         for (caught in level.getEntitiesOfClass(LivingEntity::class.java, sweptVolume(level, standing))) {
             if (!covers(caught.x, caught.z, standing)) continue
             caught.push(NOTHING, -force, NOTHING)
             caught.syncVelocity = true
+            if (scours) caught.hurtServer(level, scouredBy(level), scourDamage())
         }
     }
+
+    /** What a scouring column does to what it catches, more the harder it scours. */
+    private fun scourDamage(): Float =
+        SCOUR_DAMAGE_LEAST + (SCOUR_DAMAGE_MOST - SCOUR_DAMAGE_LEAST) * scour.coerceAtMost(WHOLE_SCOUR).toFloat()
+
+    private fun scouredBy(level: ServerLevel): DamageSource =
+        DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(SCOURING_SAND))
 
     /** From the ground it walks on to the top of the world, which is all of what the column covers. */
     private fun sweptVolume(level: ServerLevel, standing: Double): AABB =
@@ -265,6 +279,12 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         val watched = level.getNearestPlayer(this, behaviour.dramaReach) != null
         if (watched) hangDust(level, behaviour, standing)
         val hardestWorn = wearsUpTo(scour)
+        // Wider than the narrowest, a column is seen blasting from as much further off, and flies as many grains as the
+        // narrowest does, its share of what it lays falling as it widens; the rest is laid where it would land.
+        val widerThanTheNarrowest = max(standing / behaviour.narrowestHalfWidth, ONE_FOLD)
+        val blastWatched = hardestWorn != null &&
+            level.getNearestPlayer(this, behaviour.dramaReach * widerThanTheNarrowest) != null
+        val flyingShare = 1.0 / widerThanTheNarrowest
         for (eastward in -reach..reach) {
             for (southward in -reach..reach) {
                 val offsetX = blockX + eastward + MIDDLE - x
@@ -273,15 +293,13 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
                 val across = abs(forwardZ * offsetX - forwardX * offsetZ)
                 val chance = onIt * behaviour.spillFadeAt(standing, max(along, across) - standing)
                 if (random.nextDouble() >= chance) continue
-                val dramatically = watched && random.nextDouble() < behaviour.dramaShare
-                val underIt = max(along, across) <= standing
-                val wore = underIt && hardestWorn != null && wear(level, blockX + eastward, blockZ + southward, hardestWorn)
-                if (wore) {
-                    val flies = watched && random.nextDouble() < THROWN_FLYING_SHARE
-                    throwOut(level, blockX + eastward, blockZ + southward, offsetX, offsetZ, standing, flies)
-                } else {
-                    pile(level, blockX + eastward, blockZ + southward, dramatically)
+                if (hardestWorn == null) {
+                    pile(level, blockX + eastward, blockZ + southward, watched && random.nextDouble() < behaviour.dramaShare)
+                    continue
                 }
+                // A scouring column buries nothing: what it wears away and every grain it would have laid is blasted out.
+                if (max(along, across) <= standing) wear(level, blockX + eastward, blockZ + southward, hardestWorn)
+                blastOut(level, offsetX, offsetZ, standing, flies = blastWatched && random.nextDouble() < flyingShare)
             }
         }
     }
@@ -305,31 +323,36 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     }
 
     /**
-     * The sand a scouring column wore its way through, blasted out sideways from where it struck rather than settled
-     * there (Jonah): landing [THROWN_PAST_LEAST] to [THROWN_PAST_MOST] blocks past the column's edge, straight out from
-     * its middle. Where it [flies], it is thrown as a falling block hard enough to land there, in a burst of sand;
-     * otherwise it is laid where it would land.
+     * A grain of a scouring column blasted out sideways (Jonah): from just past the column's edge, straight out from its
+     * middle, at [THROWN_SPEED_LEAST] to [THROWN_SPEED_MOST] blocks a tick and [THROWN_ANGLE_LEAST] to
+     * [THROWN_ANGLE_MOST] degrees over level. Where it [flies] it is thrown as a falling block in a burst of sand;
+     * otherwise it is laid where such a throw lands on level ground.
      */
-    private fun throwOut(level: ServerLevel, atX: Int, atZ: Int, offsetX: Double, offsetZ: Double, standing: Double, flies: Boolean) {
-        val outward = hypot(offsetX, offsetZ).takeIf { it > NOTHING } ?: return pile(level, atX, atZ, false)
-        val outX = offsetX / outward
-        val outZ = offsetZ / outward
-        val pastTheEdge = THROWN_PAST_LEAST + random.nextDouble() * (THROWN_PAST_MOST - THROWN_PAST_LEAST)
-        if (flies) {
-            val from = topOf(level, atX, atZ) ?: return
-            val lift = THROWN_LIFT_LEAST + random.nextDouble() * (THROWN_LIFT_MOST - THROWN_LIFT_LEAST)
-            val speed = throwSpeedFor(standing - outward + pastTheEdge, lift)
-            val thrown = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
-            thrown.deltaMovement = Vec3(outX * speed, lift, outZ * speed)
-            thrown.syncVelocity = true
-            level.sendParticles(
-                SAND_BURST, from.x + MIDDLE, from.y + MIDDLE, from.z + MIDDLE, BURST_MOTES,
-                outX * BURST_LEAN, BURST_SPREAD, outZ * BURST_LEAN, BURST_SPEED,
-            )
+    private fun blastOut(level: ServerLevel, offsetX: Double, offsetZ: Double, standing: Double, flies: Boolean) {
+        val outward = hypot(offsetX, offsetZ)
+        val bearing = if (outward > NOTHING) atan2(offsetZ, offsetX) else random.nextDouble() * Mth.TWO_PI
+        val outX = cos(bearing)
+        val outZ = sin(bearing)
+        val edge = standing + LEAVES_PAST_THE_EDGE
+        val fromX = Mth.floor(x + outX * edge)
+        val fromZ = Mth.floor(z + outZ * edge)
+        val speed = THROWN_SPEED_LEAST + random.nextDouble() * (THROWN_SPEED_MOST - THROWN_SPEED_LEAST)
+        val angle = Math.toRadians(THROWN_ANGLE_LEAST + random.nextDouble() * (THROWN_ANGLE_MOST - THROWN_ANGLE_LEAST))
+        val across = speed * cos(angle)
+        val up = speed * sin(angle)
+        if (!flies) {
+            val lands = edge + rangeOf(across, up)
+            pile(level, Mth.floor(x + outX * lands), Mth.floor(z + outZ * lands), false)
             return
         }
-        val lands = standing + pastTheEdge
-        pile(level, Mth.floor(x + outX * lands), Mth.floor(z + outZ * lands), false)
+        val from = topOf(level, fromX, fromZ) ?: return
+        val thrown = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+        thrown.deltaMovement = Vec3(outX * across, up, outZ * across)
+        thrown.syncVelocity = true
+        level.sendParticles(
+            SAND_BURST, from.x + MIDDLE, from.y + MIDDLE, from.z + MIDDLE, BURST_MOTES,
+            outX * BURST_LEAN, BURST_SPREAD, outZ * BURST_LEAN, BURST_SPEED,
+        )
     }
 
     /**
@@ -566,16 +589,23 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private const val DEPTH_KEY = "depth"
         private const val SCOUR_KEY = "scour"
 
-        /** How far past a scouring column's edge the sand it wore away lands, in blocks. */
-        private const val THROWN_PAST_LEAST = 10.0
-        private const val THROWN_PAST_MOST = 20.0
+        private const val ONE_FOLD = 1.0
 
-        /** How hard a thrown handful is sent upward, in blocks a tick; how hard outward follows from where it lands. */
-        private const val THROWN_LIFT_LEAST = 0.45
-        private const val THROWN_LIFT_MOST = 0.75
+        /** How far past a scouring column's edge its sand leaves from, in blocks. */
+        private const val LEAVES_PAST_THE_EDGE = 1.0
 
-        /** How much of the sand a watched column wears away flies rather than being laid where it lands. */
-        private const val THROWN_FLYING_SHARE = 0.5
+        /** How hard a scouring column's sand is blasted out, in blocks a tick, as a TNT cannon throws, and how steeply. */
+        private const val THROWN_SPEED_LEAST = 2.5
+        private const val THROWN_SPEED_MOST = 4.0
+        private const val THROWN_ANGLE_LEAST = 10.0
+        private const val THROWN_ANGLE_MOST = 45.0
+
+        /** How often a scouring column hurts what it catches, in ticks, and how much at the least and most scour. */
+        private const val SCOURS_EVERY = 10
+        private const val SCOUR_DAMAGE_LEAST = 1.0f
+        private const val SCOUR_DAMAGE_MOST = 4.0f
+
+        val SCOURING_SAND: ResourceKey<DamageType> = ResourceKey.create(Registries.DAMAGE_TYPE, "scouring_sand".location())
 
         /** The burst where a thrown handful is torn up: how many motes, leaning outward, and how fast. */
         private val SAND_BURST = BlockParticleOption(ParticleTypes.BLOCK, Blocks.SAND.defaultBlockState())
@@ -589,13 +619,13 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private const val FALLING_DRAG = 0.98
 
         /**
-         * How fast outward something thrown up at [lift] must leave to land [distance] off at the height it left from,
-         * under a falling block's pull and drag: the ticks it is aloft are counted, and its outward speed loses the drag
+         * How far a falling block thrown [across] and [up], in blocks a tick, carries before it is back at the height it
+         * left from, under its own pull and drag: the ticks it is aloft are counted, and its outward speed loses the drag
          * each of them.
          */
-        internal fun throwSpeedFor(distance: Double, lift: Double): Double {
+        internal fun rangeOf(across: Double, up: Double): Double {
             var height = 0.0
-            var rising = lift
+            var rising = up
             var ticks = 0
             do {
                 rising -= FALLING_PULL
@@ -603,8 +633,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
                 rising *= FALLING_DRAG
                 ticks += 1
             } while (height > 0.0)
-            val carriedPerSpeed = (1.0 - FALLING_DRAG.pow(ticks)) / (1.0 - FALLING_DRAG)
-            return distance / carriedPerSpeed
+            return across * (1.0 - FALLING_DRAG.pow(ticks)) / (1.0 - FALLING_DRAG)
         }
 
         /**

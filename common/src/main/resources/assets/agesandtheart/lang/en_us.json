@@ -462,6 +462,8 @@
   "death.attack.plasma.player": "%1$s was consumed by plasma while fighting %2$s",
   "death.attack.pressure": "%1$s was crushed by the deep",
   "death.attack.pressure.player": "%1$s was crushed by the deep while fighting %2$s",
+  "death.attack.scouring_sand": "%1$s was scoured away by falling sand",
+  "death.attack.scouring_sand.player": "%1$s was scoured away by falling sand while fighting %2$s",
   "creature.agesandtheart.follows": "%s follows you",
   "creature.agesandtheart.holds": "%s holds here",
   "device.agesandtheart.already_known": "You already know the word for %s",
