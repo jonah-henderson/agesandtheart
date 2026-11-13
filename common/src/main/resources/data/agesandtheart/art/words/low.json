@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "Down where people walk, `high`'s antonym: the cloud deck brought down to stand in, the height out of the land,",
+    "the sea standing down, what is built sunk partway, a formation stubby, gravity pulling lightly. A sun or moon keeps",
+    "low to the horizon on a polar path, said of the body alone; the grass stays short."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "-1.0..-0.6"
+    },
+    {
+      "concept": "path",
+      "value": "polar",
+      "for": "sun",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "path",
+      "value": "polar",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "grass",
+      "chance_from_whole_age": 0.33,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "minecraft:patch_tall_grass": -1.0,
+              "minecraft:patch_tall_grass_2": -1.0,
+              "minecraft:patch_large_fern": -1.0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

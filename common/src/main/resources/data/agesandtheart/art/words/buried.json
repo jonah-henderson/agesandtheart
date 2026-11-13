@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Under the ground: what is built sunk into it, the features lying low and those that lie buried, and every part",
+    "leaning to what is buried -- ore, geodes, fossils, what was built and went under."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "-1.0..-0.5"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "buried": ">0.3"
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#buried": 0.6
+      }
+    },
+    {
+      "for": "features",
+      "means": [
+        {
+          "sets": {
+            "features.height": "-1.0..-0.5"
+          }
+        }
+      ]
+    }
+  ]
+}

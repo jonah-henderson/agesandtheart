@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Little, one step down the size axis: half of what was tuned. The size axis is geometric, so the five steps -- minuscule, small, unsaid, large, colossal -- are equal."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "size",
+      "value": "-0.5..-0.5"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Air that moves: anything from a steady breeze to a strong wind, on the Age's own bearing. Only to look at --",
+    "the clouds drift along it and the rain leans with it -- since pushing a player is the gale's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wind",
+      "value": "-0.2..0.6"
+    }
+  ]
+}

@@ -131,6 +131,8 @@ private class Checking(
     private fun sense(sense: Sense, where: String): Sense {
         sense.offers.forEach { offer(it, where) }
         sense.accepts.forEach { acceptance(it, where) }
+        val acceptedTwice = sense.accepts.groupBy(Acceptance::concept).filterValues { it.size > 1 }.keys
+        acceptedTwice.forEach { problems += "$where accepts ${PackNames.spell(it)} twice, and only the first is ever read" }
         val resolved = sense.kind?.let(kinds::get)?.let(sense::withKind) ?: sense
         resolved.acceptances.forEach { outcomeFits(it, resolved.endsAPhrase, where) }
         sense.behaviour?.takeIf { it !in behaviours }?.let { problems += "$where runs as '${PackNames.spell(it)}', which no structure word is" }

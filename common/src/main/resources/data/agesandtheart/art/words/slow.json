@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Slower than it should be: rain drifting down, creatures dawdling, a long day, colours that turn slowly. `swift`'s",
+    "other end."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "pace",
+      "value": "-1.0..-0.6"
+    }
+  ]
+}

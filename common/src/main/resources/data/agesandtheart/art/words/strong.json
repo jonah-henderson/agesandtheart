@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Strong, as each thing is: a creature's might, gravity's pull and a moon's tide, a sun's light, an aurora's glow.",
+    "`weak`'s other end. Said of the whole Age it never touches gravity."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "strength",
+      "value": "0.3..1.0"
+    }
+  ]
+}

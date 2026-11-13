@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "How much of what it is said of there is, as a multiple of what there would be. Twice."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "amount",
+      "value": 2.0
+    }
+  ]
+}

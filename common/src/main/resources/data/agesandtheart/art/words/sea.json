@@ -19,7 +19,8 @@
         {
           "sets": "depth"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "climbing",

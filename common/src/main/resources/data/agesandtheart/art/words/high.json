@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "Up where nothing walks, `low`'s antonym, and every part's own height: the clouds lifted far above, the land",
+    "towering, the sea standing high, what is built raised over the ground, a formation twice as tall, an aurora overhead,",
+    "gravity pulling harder. A sun or moon climbs overhead on its way across, said of the body alone; the grass grows tall."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "0.6..1.0"
+    },
+    {
+      "concept": "path",
+      "value": "overhead",
+      "for": "sun",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "path",
+      "value": "overhead",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "grass",
+      "chance_from_whole_age": 0.33,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "minecraft:patch_tall_grass": 1.0,
+              "minecraft:patch_tall_grass_2": 1.0,
+              "minecraft:patch_large_fern": 1.0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

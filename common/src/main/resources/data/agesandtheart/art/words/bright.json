@@ -1,0 +1,71 @@
+{
+  "_comment": [
+    "Whatever shines, shining as hard as it can: a sun's and a moon's light, the stars', a curtain's and a bow's",
+    "glow; the biomes and what grows leaning pale and glowing. Said of the sky, a white or cyan vault and clear air; of a",
+    "sun or a moon, a larger one; of the underground, what glows in it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "brightness",
+      "value": "0.6..1.0"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#bright": 0.8,
+        "#glowing": 0.6
+      }
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sky",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "sky",
+      "chance": 0.33,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.2..0.5",
+      "for": "sun",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.2..0.5",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "sky",
+      "means": [
+        {
+          "sets": {
+            "air.haze": "-1.0..-0.6"
+          }
+        }
+      ],
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "underground",
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "#glowing": 1.0
+            }
+          }
+        }
+      ],
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

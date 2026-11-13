@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "The air moving, as `windy` says it, and a thing of the air: a point of the compass before it says where the",
+    "wind blows from, `north wind`."
+  ],
+  "speech": "noun",
+  "terminal": true,
+  "part": "air",
+  "means": [
+    {
+      "sets": {
+        "air.wind": "-0.2..0.6"
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "direction",
+      "becomes": [
+        {
+          "sets": "from"
+        }
+      ]
+    },
+    {
+      "concept": "wind",
+      "becomes": [
+        {
+          "sets": "wind"
+        }
+      ]
+    }
+  ]
+}

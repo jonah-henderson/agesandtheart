@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Whatever comes and goes -- a curtain, a bow, the rain, every phenomenon -- at the bottom of the scale: brief showers, a curtain on a very few nights. Said of the whole Age",
+    "only one Age in four, short of `rainless`."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "-1.0..-0.9",
+      "chance_from_whole_age": 0.25
+    }
+  ]
+}

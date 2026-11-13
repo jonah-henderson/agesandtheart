@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Air that does not move, and clouds that barely drift. Still air is what an Age has unless a word asked for a",
+    "wind, so beside `windy` this is the word that contradicts it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wind",
+      "value": "-1.0..-1.0"
+    },
+    {
+      "concept": "pace",
+      "value": "-0.7..-0.4",
+      "for": "clouds"
+    }
+  ]
+}

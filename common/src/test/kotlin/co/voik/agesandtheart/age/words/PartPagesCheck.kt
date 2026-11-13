@@ -46,7 +46,8 @@ class PartPagesCheck : FunSpec({
     }
 
     test("every setting a word may turn is reachable through its part's page") {
-        val unreached = setOf("caps", "altitude", "wool")
+        // Internal (`caps`), or said only by a thing or a reading: a lake's altitude, a sheep's wool, where a feature lies.
+        val unreached = setOf("inhabitants.caps", "features.altitude", "inhabitants.wool", "features.height")
         fun turns(sense: Sense, parameter: String) = sense.acceptances.any { acceptance ->
             val becomes = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty()
             becomes.any { template ->
@@ -59,7 +60,7 @@ class PartPagesCheck : FunSpec({
         val gaps = Aspect.entries.flatMap { part ->
             val page = words.partPage(part)?.defaultSense ?: return@flatMap listOf("${part.page}: no page")
             part.understood.map { it.name }.distinct()
-                .filterNot { it.startsWith("former_") || it in unreached }
+                .filterNot { it.startsWith("former_") || "${part.page}.$it" in unreached }
                 .filterNot { turns(page, it) }
                 .map { "${part.page}.$it" }
         }

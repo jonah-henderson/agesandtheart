@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Shallow: the sea standing well below where the land left it, coastlines walking out; the underground held",
+    "up under the surface; a lake shallow. Gentler than `deep`, since a sea drained to nothing is not shallow."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "depth",
+      "value": "-0.9..-0.5"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#empty": -0.5
+      },
+      "for": "sea"
+    }
+  ]
+}

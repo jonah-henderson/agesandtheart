@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Weak, as each thing is: a creature with half its health and blows, a light world, a slack tide, a dusky noon.",
+    "`strong`'s other end. Said of the whole Age it never touches gravity."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "strength",
+      "value": "-1.0..-0.3"
+    }
+  ]
+}

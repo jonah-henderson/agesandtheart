@@ -86,6 +86,14 @@
       "can_resolve_dangling_offers": false
     },
     {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    },
+    {
       "concept": "colour_cycle_pace",
       "becomes": [
         {

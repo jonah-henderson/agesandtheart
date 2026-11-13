@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Quicker than it should be: the rain hard and fast, creatures half again as fast, a sun that makes the day as short",
+    "as half, colours that turn faster. `slow`'s other end."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "pace",
+      "value": "0.5..1.0"
+    }
+  ]
+}

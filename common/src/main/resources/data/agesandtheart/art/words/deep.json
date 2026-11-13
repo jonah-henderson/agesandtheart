@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Deep: the sea standing far above where the land left it -- half of the deep-ocean material's gate -- the",
+    "underground held deep in the rock, a lake deep. `shallow`'s other end."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "depth",
+      "value": "0.6..0.95"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#empty": -0.8,
+        "#watery": 0.4
+      },
+      "for": "sea"
+    }
+  ]
+}

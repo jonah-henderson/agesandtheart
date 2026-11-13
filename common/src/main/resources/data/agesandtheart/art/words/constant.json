@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Whatever comes and goes -- a curtain, a bow, the rain, every phenomenon -- at the top of the scale, and uninterrupted: rain that never stops, a fog that never lifts. Said",
+    "of the whole Age only one Age in four. The clouds it covers the sky with, but for gaps."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "1.0..1.0",
+      "chance_from_whole_age": 0.25
+    },
+    {
+      "concept": "cover",
+      "value": "0.6..0.85",
+      "for": "clouds"
+    }
+  ]
+}

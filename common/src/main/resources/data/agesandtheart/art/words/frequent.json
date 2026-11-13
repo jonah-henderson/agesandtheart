@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Whatever comes and goes -- a curtain, a bow, the rain, every phenomenon -- coming more often."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "0.6..1.0"
+    }
+  ]
+}

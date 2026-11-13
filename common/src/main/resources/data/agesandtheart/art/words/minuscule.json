@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Smallness at its limit, a quarter of what was tuned: `minuscule rings` a ring you could step over. The size axis is geometric, so the five steps -- minuscule, small, unsaid, large, colossal -- are equal."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "size",
+      "value": "-1.0..-1.0"
+    }
+  ]
+}
