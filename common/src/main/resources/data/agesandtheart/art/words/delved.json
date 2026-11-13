@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Dug into: great halls cut under the ground, ore leaning in where somebody would have dug for it, and what was built",
+    "leaning to the abandoned workings -- mineshafts and the like."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "great_halls",
+      "for": "underground"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#ore": 0.5,
+        "#ruined": 0.4
+      }
+    }
+  ]
+}

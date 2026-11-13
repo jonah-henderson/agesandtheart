@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Worn down by a long time: an eroded landmass, the ground and what stands on it leaning eroded, sheer where it",
+    "broke and barren where it wore, never laid out fresh; what is built leans ruined; the wear on everything turned up and",
+    "what stands set closer, as rubble does."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wear",
+      "value": {
+        "amount": "0.45..1.0"
+      }
+    },
+    {
+      "concept": "spacing",
+      "value": "-1.0..-0.3",
+      "for": "landmass"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "eroded": ">0.3"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#sheer": 0.5,
+        "#barren": 0.5,
+        "#ruined": 0.4,
+        "#ordered": -0.6
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#sheer": 0.5,
+        "#barren": 0.5,
+        "#ruined": 0.4,
+        "#ordered": -0.6
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#sheer": 0.5,
+        "#barren": 0.5,
+        "#ruined": 0.4,
+        "#ordered": -0.6
+      },
+      "for": "structures"
+    }
+  ]
+}

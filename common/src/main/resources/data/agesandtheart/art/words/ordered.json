@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Laid out on a plan: an ordered landmass, every part leaning ordered and away from the eroded, and the wear on",
+    "everything turned down. The plain word; `uniform` is the strange one, where everything is alike."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wear",
+      "value": {
+        "amount": "-0.8..-0.3"
+      }
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "ordered": ">0.3"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#ordered": 0.8,
+        "#eroded": -0.6
+      }
+    }
+  ]
+}

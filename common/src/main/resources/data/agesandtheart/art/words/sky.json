@@ -79,6 +79,16 @@
           "sets": "colour_cycle_pace"
         }
       ]
+    },
+    {
+      "concept": "bare",
+      "becomes": [
+        {
+          "sets": {
+            "clouds.absent": "true"
+          }
+        }
+      ]
     }
   ]
 }

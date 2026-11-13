@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Stripped: trees with no leaves at all, so no sapling ever falls; the ground dressed in nothing, the rock showing",
+    "wherever it would have worn grass or sand; the sky without its clouds. `bare rock` is the ground stripped to it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bare"
+    },
+    {
+      "for": "rock",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "surface.bare": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

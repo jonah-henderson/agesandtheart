@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Full of round holes, cut through whatever it is said of: the rock in isolated voids you break into, the land holed",
+    "through above the ground, the ground pitted like pumice, what the features and structures build holed, the sea holding",
+    "bubbles of air, the clouds a sheet with round holes. A way of wear, so `ancient porous` is holed through at a great",
+    "amount. Said of the whole Age, only the rock."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wear",
+      "value": {
+        "way": "porous"
+      },
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "wear",
+      "value": {
+        "way": "porous"
+      },
+      "for": "rock"
+    }
+  ]
+}

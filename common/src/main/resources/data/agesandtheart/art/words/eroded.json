@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "The eroded country, and what is built of rock above the ground crumbled: said of the land the landform, said of",
+    "the features or what is built, their crumbling."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "eroded"
+    },
+    {
+      "concept": "wear",
+      "value": {
+        "way": "eroded",
+        "amount": "0.45..1.0"
+      }
+    }
+  ]
+}

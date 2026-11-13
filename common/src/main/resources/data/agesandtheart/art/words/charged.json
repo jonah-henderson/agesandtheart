@@ -1,0 +1,160 @@
+{
+  "_comment": [
+    "Lightning in the air, taken each its own way: the weather thunders, the Age hangs curtains of aurora and storms",
+    "break; a charged sky or air hangs the aurora at its brightest; charged phenomena are the storms and curtains at their",
+    "strongest; a charged creeper is the one lightning leaves. A charged sun or moon may burn cyan or white, the sun larger,",
+    "the moon pulling harder; charged stars glow."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "thunder",
+      "value": "0.7..1.0"
+    },
+    {
+      "concept": "member",
+      "value": "aurora",
+      "for": "phenomena"
+    },
+    {
+      "concept": "member",
+      "value": "tempest",
+      "for": "phenomena"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "aurora": 1.0,
+        "tempest": 1.0
+      },
+      "for": "phenomena"
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "admits": {
+            "phenomena": [
+              "aurora"
+            ]
+          }
+        },
+        {
+          "sets": {
+            "aurora.frequency": "0.9..1",
+            "aurora.glow": "+0.8",
+            "aurora.size": "0.7..1",
+            "aurora.warmth": "0.6..1"
+          }
+        }
+      ]
+    },
+    {
+      "for": "air",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "admits": {
+            "phenomena": [
+              "aurora"
+            ]
+          }
+        },
+        {
+          "sets": {
+            "aurora.frequency": "0.9..1",
+            "aurora.glow": "+0.8",
+            "aurora.size": "0.7..1",
+            "aurora.warmth": "0.6..1",
+            "weather.thunder": "0.7..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "clouds",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "weather.thunder": "0.7..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "phenomena",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "aurora.frequency": "0.75..1",
+            "phenomena.strength": "0.6..1"
+          }
+        }
+      ]
+    },
+    {
+      "for": "aurora",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "aurora.frequency": "0.9..1",
+            "aurora.glow": "+0.8",
+            "aurora.size": "0.7..1",
+            "aurora.warmth": "0.6..1"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "charged",
+      "for": "inhabitants",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "sun",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sun",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.2..0.5",
+      "for": "sun",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "moon",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "strength",
+      "value": "0.4..0.8",
+      "for": "moon",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "brightness",
+      "value": "0.7..0.9",
+      "for": "stars",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

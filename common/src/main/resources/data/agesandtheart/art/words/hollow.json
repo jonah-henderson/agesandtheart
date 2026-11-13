@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Hollow: a cavernous landmass, and the hollow underground, a crust over one void; the biomes and features leaning",
+    "cavernous, never the creatures (Jonah, 2026-10-21)."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "hollow",
+      "for": "underground"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "cavernous": ">0.3"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#cavernous": 0.5
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#cavernous": 0.5
+      },
+      "for": "features"
+    }
+  ]
+}

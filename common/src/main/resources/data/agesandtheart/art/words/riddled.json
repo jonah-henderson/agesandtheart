@@ -1,0 +1,64 @@
+{
+  "_comment": [
+    "Full of holes: cavernous rock and a cavernous underground, more of its caves, and the biomes and features leaning",
+    "to caves -- the dripstone and the sculk. Not the creatures. `riddled landmass` is the caves turned up (Jonah)."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "cavernous": ">0.3"
+      },
+      "for": "rock"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "cavernous": ">0.3"
+      },
+      "for": "underground"
+    },
+    {
+      "concept": "density",
+      "value": "0.5..1.0",
+      "for": "underground",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#cavernous": 0.8
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#cavernous": 0.8
+      },
+      "for": "features"
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "restricts": {
+            "rock": {
+              "cavernous": ">0.6"
+            },
+            "underground": {
+              "cavernous": ">0.6"
+            }
+          }
+        },
+        {
+          "sets": {
+            "underground.density": "0.5..1.0"
+          }
+        }
+      ]
+    }
+  ]
+}

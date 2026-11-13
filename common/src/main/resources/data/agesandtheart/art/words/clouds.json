@@ -123,6 +123,16 @@
         }
       ],
       "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "bare",
+      "becomes": [
+        {
+          "sets": {
+            "clouds.absent": "true"
+          }
+        }
+      ]
     }
   ]
 }

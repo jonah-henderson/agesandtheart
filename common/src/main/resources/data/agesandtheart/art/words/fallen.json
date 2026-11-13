@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Lying where it fell: half of the trees it is said of lie fallen beside their stumps, and every standing stone",
+    "taller than it is deep lies knocked over beside its stump (`fallen obelisks`). `fallen stars` are meteors; `fallen",
+    "leaves` carpet the ground."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "fallen"
+    },
+    {
+      "for": "stars",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "admits": {
+            "phenomena": [
+              "meteors"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "for": "leaves",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "admits": {
+            "features": [
+              "agesandtheart:fallen_leaves"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

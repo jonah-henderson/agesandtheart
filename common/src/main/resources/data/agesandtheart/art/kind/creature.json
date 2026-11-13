@@ -1,14 +1,82 @@
 {
   "_comment": [
     "A creature: one member of the inhabitants, said as itself (`zombie`). What is said of it is said of that creature",
-    "alone: its colour, its size and its pace, and how many of it there are."
+    "alone: its colour (a sheep's wool), its size, pace and strength, whether it stands still, how it bears itself toward",
+    "you, whether lightning charged it (a creeper), and how many of it there are."
   ],
   "terminal": true,
   "part": "inhabitants",
   "accepts": [
-    { "concept": "colour", "becomes": [ { "sets": "colour" } ] },
-    { "concept": "size", "becomes": [ { "sets": "size" } ] },
-    { "concept": "pace", "becomes": [ { "sets": "pace" } ] },
-    { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        },
+        {
+          "sets": "wool"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "strength"
+        }
+      ]
+    },
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "disposition",
+      "becomes": [
+        {
+          "sets": "disposition"
+        }
+      ]
+    },
+    {
+      "concept": "charged",
+      "becomes": [
+        {
+          "sets": {
+            "charged": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
   ]
 }

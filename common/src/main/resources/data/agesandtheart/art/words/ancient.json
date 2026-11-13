@@ -1,0 +1,71 @@
+{
+  "_comment": [
+    "Worn, great and laid out long ago, the ground and what stands on it leaning that way, its builders' works gone to",
+    "ruin, and faded with it: now and then a yellowed or grey light, glimmering dust in the air, a faint haze, and old stone",
+    "underfoot."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wear",
+      "value": {
+        "amount": "0.6..1.0"
+      }
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#monumental": 0.7,
+        "#ordered": 0.5,
+        "#ruined": 0.5
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#monumental": 0.7,
+        "#ordered": 0.5,
+        "#ruined": 0.5
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#monumental": 0.7,
+        "#ordered": 0.5,
+        "#ruined": 0.5
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "tint",
+      "value": "yellow",
+      "chance": 0.4
+    },
+    {
+      "concept": "tint",
+      "value": "grey",
+      "chance": 0.4
+    },
+    {
+      "concept": "motes",
+      "value": "glimmer",
+      "chance": 0.4
+    },
+    {
+      "concept": "haze",
+      "value": "+0.15",
+      "chance": 0.4
+    },
+    {
+      "concept": "block",
+      "value": "#stony",
+      "chance": 0.4
+    }
+  ]
+}
