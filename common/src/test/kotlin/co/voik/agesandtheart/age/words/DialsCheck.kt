@@ -62,8 +62,8 @@ class DialsCheck : FunSpec({
     }
 
     test("depth and burial: `deep sea`, `deep underground`, and buried structures sunk and features lying low") {
-        check(set("deep sea age", Aspect.SEA, "depth") == listOf("0.6..0.95")) { "deep sea: ${effects("deep sea age")}" }
-        check(set("deep underground age", Aspect.UNDERGROUND, "depth") == listOf("0.6..0.95")) { "deep underground was not deep" }
+        check(set("deep sea age", Aspect.SEA, "depth") == listOf("0.85..0.98")) { "deep sea: ${effects("deep sea age")}" }
+        check(set("deep underground age", Aspect.UNDERGROUND, "depth") == listOf("0.85..0.98")) { "deep underground was not deep" }
         check(set("buried structures age", Aspect.STRUCTURES, "height") == listOf("-1.0..-0.5")) { "buried structures were not sunk" }
         check(set("buried features age", Aspect.FEATURES, "height") == listOf("-1.0..-0.5")) { "buried features did not lie low" }
     }

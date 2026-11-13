@@ -33,14 +33,15 @@ sealed interface EffectTemplate {
 
     /**
      * An effect made of the offer's value: [target] is a parameter, a part's page, or [THE_VALUE] where neither is needed.
-     * A parameter set from a value of another kind reads it through [values] — a compass point as a land's bearing — and
-     * takes nothing the table does not name.
+     * A parameter set from a value of another kind reads it through [values] — a compass point as a land's bearing, an
+     * amount as the clouds' cover — and takes nothing the table does not name; an amount is read only through one.
      */
     data class Taking(val verb: Verb, val target: String, val values: Map<String, String> = emptyMap()) : EffectTemplate {
         override fun applied(value: Value, part: Aspect?): Effect? {
             val given = when (value) {
                 is Value.Text -> value.text
                 is Value.Parts -> value.measure
+                is Value.Amount -> value.multiple.toString().takeIf { values.isNotEmpty() }
                 else -> null
             }
             val text = if (values.isEmpty()) given else values[given]

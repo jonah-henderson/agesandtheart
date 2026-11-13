@@ -72,7 +72,9 @@ private class Drawing(
         val handedOutLanding = thatLandFromTheAge(reading.handedOut)
         val landed = sayings.flatMap { it.landings(thatLand(it.placements)) } +
             handedOutLanding.flatMap(::landingsHandedOut) + ofTheWholeAge(handedOutLanding)
-        val overruledWhole = possible.groupBy { it.page }.filterValues { ofThePage -> ofThePage.none(::stands) }.keys
+        val outclashed = clashes.filterNot { it.isAYield }.map { whereSaid(it.weaker) }.toSet()
+        fun lostAClash(ofThePage: List<Landing>) = ofThePage.any { whereSaid(it) in outclashed }
+        val overruledWhole = possible.groupBy { it.page }.filterValues { ofThePage -> ofThePage.none(::stands) && lostAClash(ofThePage) }.keys
         val dangling = (reading.dangling.map(PageRead::index) + overruledWhole).distinct().sorted().map(::drawnOnto)
         val danglingFlaws = dangling.filter { (dangled, _) -> dangled.page !in overruledWhole }.map { (dangled, drawnLandings) ->
             Flaw(Register.DANGLES, listOfNotNull(dangled.written, dangled.drawnOnto), drawnLandings.firstOrNull()?.place?.aspect, emptyList())

@@ -1,10 +1,8 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.RUNS_OCCASIONALLY_TAG
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
-import co.voik.agesandtheart.age.word.generation.GenerationGrammar
 import co.voik.agesandtheart.age.language.Fate
 import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.language.Word
@@ -40,9 +38,6 @@ import kotlin.random.Random
 @Tags(NEEDS_REGISTRIES)
 class BookCheck : FunSpec({
 
-    fun grammarFor(kind: FoundBookKind): GenerationGrammar =
-        vocabulary.generation.grammar(kind.grammar) ?: error("the pack ships no '${kind.grammar}' grammar")
-
     /**
      * Written once and read by every property below. Generating and resolving are the whole cost of this
      * spec, and doing either per property multiplies a four-minute-loop saving away for nothing.
@@ -75,44 +70,6 @@ class BookCheck : FunSpec({
             // Everything after it is as random as before, `age` being in `sayable` and free to recur.
             seed to (listOf(NUCLEUS_PAGE) + List(random.nextInt(1, LONGEST_ROW)) { page() })
         }
-    }
-
-    /** Deterministic, or a failing seed could not be reproduced — the first thing anyone will want. */
-    /** Nothing else teaches the grammar, so between them the advanced books must use every structure page there is. */
-    test("the advanced books teach every structure page") {
-        val written = drafts.filter { it.kind == FoundBookKind.ADVANCED }.flatMap { it.pages }.toSet()
-        val untaught = vocabulary.structurePages.map { it.name }.filterNot { it in written }
-        check(untaught.isEmpty()) { "no advanced book teaches $untaught" }
-    }
-
-    test("the same seed writes the same book") {
-        for (kind in FoundBookKind.entries) {
-            val grammar = grammarFor(kind)
-            check(grammar.expand(Random(1L)) == grammar.expand(Random(1L))) {
-                "the same seed wrote two different ${kind.key} books"
-            }
-        }
-    }
-
-    /**
-     * **Every book the Art writes is a good found book** — read whole, resolved, coherent unless it is
-     * meant not to be, and teaching a modifier if it is advanced. `FoundBookRules` is what that means, and
-     * the server's half of this check asks the same of the books only a server can read.
-     */
-    test("every book the Art writes is one worth finding") {
-        // The instrument has to be measuring something: a grammar that had gone wholly server-only would
-        // pass here by never being asked.
-        check(judgeable.isNotEmpty()) { "every found book names worldgen only a server has" }
-        val problems = judgeable.flatMap { draft -> problemsWith(JudgedBook.of(draft)) }
-        check(problems.isEmpty()) { "${problems.size} problems, the first of them:\n  ${problems.take(10).joinToString("\n  ")}" }
-    }
-
-    /** The same, over the many more books it takes to reach the rarer of a grammar's sentences, now and then. */
-    test("every book of a long draw is one worth finding").config(tags = setOf(RUNS_OCCASIONALLY_TAG)) {
-        val problems = FoundBookKind.entries.flatMap { kind ->
-            (BOOKS_DRAWN + 1..BOOKS_DRAWN_BEFORE_A_RELEASE).mapNotNull { seed -> FoundBookDraft.drawn(vocabulary, kind, seed) }
-        }.filterNot { draft -> draft.pages.any(vocabulary::awaitsAServer) }.flatMap { draft -> problemsWith(JudgedBook.of(draft)) }
-        check(problems.isEmpty()) { "${problems.size} problems, the first of them:\n  ${problems.take(10).joinToString("\n  ")}" }
     }
 
     /**
@@ -256,8 +213,6 @@ private const val NUCLEUS_PAGE = "age"
 /** Enough to draw every common sentence of each grammar, in the loop; the rarer ones wait for `occasionalTest`. */
 private const val BOOKS_DRAWN = 500L
 
-/** Enough that every sentence of each grammar is drawn many times, a share of a shelf of twenty-two at least. */
-private const val BOOKS_DRAWN_BEFORE_A_RELEASE = 20_000L
 
 /** Enough that a rare combination of pages turns up, quick enough to stay in the offline suite. */
 private const val ROWS_FUZZED = 2000L

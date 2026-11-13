@@ -89,6 +89,24 @@
           }
         }
       ]
+    },
+    {
+      "concept": "wind",
+      "chance_from_whole_age": 0.0,
+      "becomes": [
+        {
+          "sets": "air.wind"
+        }
+      ]
+    },
+    {
+      "concept": "density",
+      "chance_from_whole_age": 0.0,
+      "becomes": [
+        {
+          "sets": "stars.density"
+        }
+      ]
     }
   ]
 }

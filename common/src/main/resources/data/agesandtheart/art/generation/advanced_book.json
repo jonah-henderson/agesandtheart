@@ -22,10 +22,10 @@
     "mingled_age": [
       {"weight":3.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
       {"weight":2.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","[night]"]},
-      {"produce":["age","archipelagic","and","pillared","[semiprecious]","arches","[colour]","waters","[colour]","sky"]},
-      {"produce":["age","canyoned","and","shattered","red_sand","surface","sandfall","orange","sky"]},
-      {"produce":["wondrous","age","skyborne","and","archipelagic","[night]"]},
-      {"produce":["age","insular","and","archipelagic","palm_beach","[colour]","waters","white","clouds"]},
+      {"produce":["age","archipelagic","and","pillared","landmass","[semiprecious]","arches","[colour]","waters","[colour]","sky"]},
+      {"produce":["age","canyoned","and","shattered","landmass","red_sand","surface","sandfall","orange","sky"]},
+      {"produce":["wondrous","age","skyborne","and","archipelagic","landmass","[night]"]},
+      {"produce":["age","insular","and","archipelagic","landmass","palm_beach","[colour]","waters","white","clouds"]},
       {"produce":["age","void","and","gentle","landmass","[night]"]},
       {"produce":["age","[land]","[colour]","and","[colour]","shifting","sky","shifting","clouds"]},
       {"produce":["age","windswept","and","canyoned","landmass","[colour]","sky"]},
@@ -69,11 +69,11 @@
     "thinned_age": [
       {"produce":["age","floating","landmass","few","glowstone","obelisks"]},
       {"produce":["age","[land]","few","obsidian","obelisks","[colour]","sky"]},
-      {"produce":["age","sheer","scarce","trees","white","sky"]}
+      {"produce":["age","sheer","landmass","scarce","trees","white","sky"]}
     ],
     "sited_age": [
       {"produce":["age","[land]","amethyst_block","spikes","in","desert","yellow","sky"]},
-      {"produce":["age","archipelagic","prismarine","pyramids","in","beach","[colour]","waters"]},
+      {"produce":["age","archipelagic","landmass","prismarine","pyramids","in","beach","[colour]","waters"]},
       {"produce":["age","[land]","glowstone","rings","in","plains","bright","stars"]},
       {"produce":["age","teeming","parrot","in","jungle","jungle"]},
       {"produce":["age","plentiful","axolotl","in","lush_caves"]}
@@ -81,11 +81,11 @@
     "widened_age": [
       {"produce":["age","only","swamp","teeming","frog","everywhere","green","air"]},
       {"produce":["age","deep","water","sea","teeming","axolotl","everywhere"]},
-      {"produce":["age","insular","reefs","warm","climate","teeming","axolotl","everywhere","[colour]","waters"]},
+      {"produce":["age","insular","landmass","reefs","warm","climate","teeming","axolotl","everywhere","[colour]","waters"]},
       {"produce":["age","teeming","sniffer","everywhere","[colour]","grass"]},
       {"produce":["age","teeming","allay","everywhere","[colour]","leaves"]},
       {"produce":["age","only","flower_forest","teeming","bee","everywhere","honey_block","[honey_shape]"]},
-      {"produce":["age","archipelagic","palm_beach","teeming","parrot","everywhere","tropical","climate"]}
+      {"produce":["age","archipelagic","landmass","palm_beach","teeming","parrot","everywhere","tropical","climate"]}
     ],
     "linked_age": [
       {"produce":["age","[land]","link","in","lush_caves","bright","stars"]},
@@ -141,7 +141,7 @@
       {"produce":["age","[land]","delved","underground","glowstone","and","shroomlight","veins"]},
       {"produce":["age","colossal","chambered","underground","only","lush_caves"]},
       {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains"]},
-      {"produce":["wondrous","age","skyborne","bright","stars","[aurora_colour]","aurora","only","plains"]},
+      {"produce":["wondrous","age","skyborne","landmass","bright","stars","[aurora_colour]","aurora","only","plains"]},
       {"produce":["age","eclipsing","moon","[colour]","sky","only","plains"]},
       {"produce":["age","[land]","torn","clouds","windy","sky","only","plains"]},
       {"produce":["age","unbroken","clouds","windy","air","frozen","climate","only","snowy_plains"]},

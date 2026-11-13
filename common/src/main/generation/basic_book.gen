@@ -40,7 +40,7 @@ rare_material_age =
 # world is a page nobody can see.
 curiosity_age =
     [mood] age [open_curious_landmass] [look_beside_a_mood]
-    | [mood] age [curious_landmass] [thing_beside_a_mood]
+    | [mood] age [landmass_beside_a_mood] [thing_beside_a_mood]
     | age [open_curious_landmass] [look] [thing]@4
     | age [open_curious_landmass] [look] [landed_thing] [mild_climate]@2
     | age [open_curious_landmass] [bare_look] [bare_thing] [barren_climate]
@@ -86,6 +86,9 @@ palm_climate = tropical climate | warm climate
 # A size is taken by a landform that honours one, and a stone by the landmass after the landform.
 curious_landmass = [typical_landmass] landmass@3 | [size] [sized_landmass] landmass@2 | [typical_landmass] [stone] landmass
 
+# Beside a mood, no stone named: a mood says what its country is built of, and a stone beside it argues.
+landmass_beside_a_mood = [typical_landmass] landmass@3 | [size] [sized_landmass] landmass@2
+
 open_curious_landmass = [open_landmass] landmass@3 | [size] [open_sized_landmass] landmass@2 | [open_landmass] [stone] landmass
 
 # How the land is laid out and how worn, said of the landmass after its landform, as a stone is. Never beside a
@@ -99,7 +102,7 @@ look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground_beside_a_mood]
 
 # What a mood insists on is not an offer and does not yield: `desolate` keeps an empty sea and a barren country, so
 # beside a mood no sea and no structures.
-thing_beside_a_mood = [formation]@3 | [underground]@3
+thing_beside_a_mood = [formation]@3 | [underground_beside_a_mood]@3
 
 thing = [landed_thing]@4 | [sea]
 
@@ -363,6 +366,19 @@ underground =
     | open underground@2
     | rich underground
 
+# Beside a mood, no wealth underground and no open one: `rich` leans the features to ore and away from the barren, and
+# `open` away from the sheer, which a mood leans its own way.
+underground_beside_a_mood =
+    tunnelled underground@4
+    | fissured underground@4
+    | chambered underground@3
+    | riddled rock@3
+    | dry rock
+    | [size] tunnelled underground@2
+    | delved underground
+    | hollow underground
+    | latticed underground
+
 # The ground and what grows on it, which is mostly colour.
 ground =
     [colour] grass@2
@@ -395,7 +411,7 @@ surface_block = sand | red_sand | moss_block | podzol | packed_mud | gravel | ca
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters | water springs | packed_ice icebergs
 
-life = [quantity] herds | aggressive herds | fish | fliers | beasts | aggressive beasts | ruins structures | settled | untouched structures | lost villages | buried villages | villagers
+life = [quantity] herds | aggressive herds | fish | fliers | beasts | aggressive beasts | ruins structures | settled structures | untouched structures | lost villages | buried villages | villagers
 
 life_beside_a_sea = [quantity] herds | aggressive herds | fish | fliers | beasts | ruins structures | untouched structures
 

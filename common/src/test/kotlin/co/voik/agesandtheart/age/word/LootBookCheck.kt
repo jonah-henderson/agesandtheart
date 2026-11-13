@@ -5,9 +5,12 @@ import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.reading.WorldMembership
+import co.voik.agesandtheart.age.reading.Writing
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
+import co.voik.agesandtheart.age.words.ShippedWords
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -29,10 +32,14 @@ class LootBookCheck : FunSpec({
         vocabulary.generation.grammar(FoundBookKind.BASIC.grammar) ?: error("the pack ships no basic book")
     }
 
+    val writing by lazy {
+        Writing(ShippedWords.with(), vocabulary, WorldMembership(vocabulary)) { false }
+    }
+
     /** What an Age written from [rule] at [seed] grows, and the book it was written from. */
     fun grownFrom(rule: String, seed: Long): Pair<List<String>, Grown> {
         val pages = grammar.copy(start = rule).expand(Random(seed))
-        val resolved = vocabulary.resolve(pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
+        val resolved = writing.resolve(pages, seed)
         val composition = resolved.composition
         // A coherent book inflicts nothing, which is what an empty spending says.
         val materials = EarlyGameRareMaterials.grownIn(composition, seed, Spending(emptyMap()))

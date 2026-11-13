@@ -3,7 +3,6 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.reward.DangerScoring
-import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -18,16 +17,14 @@ class DangerBooksCheck : FunSpec({
 
     val paysAt by lazy { DangerScoring.table.lines.paysAt }
 
-    val advancedPages by lazy {
-        (1L..BOOKS_DRAWN).flatMap { seed ->
-            val draft = FoundBookDraft.drawn(vocabulary, FoundBookKind.ADVANCED, seed) ?: error("the pack ships no advanced grammar")
-            draft.pages
-        }.toSet()
+    val advanced by lazy {
+        vocabulary.generation.grammar(FoundBookKind.ADVANCED.grammar) ?: error("the pack ships no advanced grammar")
     }
+
+    val advancedPages by lazy { (1L..BOOKS_DRAWN).flatMap { seed -> advanced.expand(Random(seed)) }.toSet() }
 
     /** The danger books, each with the seed it was drawn at. */
     val dangerBooks by lazy {
-        val advanced = vocabulary.generation.grammar(FoundBookKind.ADVANCED.grammar) ?: error("the pack ships no advanced grammar")
         val danger = advanced.copy(start = DANGER_RULE)
         (1L..BOOKS_DRAWN).map { seed -> seed to danger.expand(Random(seed)) }
     }

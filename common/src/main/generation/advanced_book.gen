@@ -46,10 +46,10 @@ book =
 mingled_age =
     age [landform_pair] landmass [material_pair] [shape] [colour] sky [colour] clouds@3
     | age [landform_pair] landmass [material_pair] [shape] [night]@2
-    | age archipelagic and pillared [semiprecious] arches [colour] waters [colour] sky
-    | age canyoned and shattered red_sand surface sandfall orange sky
-    | wondrous age skyborne and archipelagic [night]
-    | age insular and archipelagic palm_beach [colour] waters white clouds
+    | age archipelagic and pillared landmass [semiprecious] arches [colour] waters [colour] sky
+    | age canyoned and shattered landmass red_sand surface sandfall orange sky
+    | wondrous age skyborne and archipelagic landmass [night]
+    | age insular and archipelagic landmass palm_beach [colour] waters white clouds
     | age void and gentle landmass [night]
     | age [land] [colour] and [colour] shifting sky shifting clouds
     | age windswept and canyoned landmass [colour] sky
@@ -97,12 +97,12 @@ thronged_age =
 thinned_age =
     age floating landmass few glowstone obelisks
     | age [land] few obsidian obelisks [colour] sky
-    | age sheer scarce trees white sky
+    | age sheer landmass scarce trees white sky
 
 # `in`: a monument or a creature confined to one kind of country.
 sited_age =
     age [land] amethyst_block spikes in desert yellow sky
-    | age archipelagic prismarine pyramids in beach [colour] waters
+    | age archipelagic landmass prismarine pyramids in beach [colour] waters
     | age [land] glowstone rings in plains bright stars
     | age teeming parrot in jungle jungle
     | age plentiful axolotl in lush_caves
@@ -111,11 +111,11 @@ sited_age =
 widened_age =
     age only swamp teeming frog everywhere green air
     | age deep water sea teeming axolotl everywhere
-    | age insular reefs warm climate teeming axolotl everywhere [colour] waters
+    | age insular landmass reefs warm climate teeming axolotl everywhere [colour] waters
     | age teeming sniffer everywhere [colour] grass
     | age teeming allay everywhere [colour] leaves
     | age only flower_forest teeming bee everywhere honey_block [honey_shape]
-    | age archipelagic palm_beach teeming parrot everywhere tropical climate
+    | age archipelagic landmass palm_beach teeming parrot everywhere tropical climate
 
 # `link in`: where a link into the Age arrives, somewhere it would not have — down in a cave, out on the water,
 # beside a village. Rare on purpose (Jonah, 2026-10-21): one share of the shelf, and the only place it is taught.
@@ -179,7 +179,7 @@ wonder_age =
     | age [land] delved underground glowstone and shroomlight veins
     | age colossal chambered underground only lush_caves
     | age floating landmass hollow underground [colour] sky only plains
-    | wondrous age skyborne bright stars [aurora_colour] aurora only plains
+    | wondrous age skyborne landmass bright stars [aurora_colour] aurora only plains
     | age eclipsing moon [colour] sky only plains
     | age [land] torn clouds windy sky only plains
     | age unbroken clouds windy air frozen climate only snowy_plains

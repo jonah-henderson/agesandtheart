@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "No stars: a night sky with nothing in it."
+    "No stars: a night sky with nothing in it, said of the stars or of the sky."
   ],
   "speech": "adjective",
   "offers": [
@@ -8,6 +8,17 @@
       "concept": "density",
       "value": "-1.0..-1.0",
       "for": "stars"
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "stars.density": "-1.0..-1.0"
+          }
+        }
+      ]
     }
   ]
 }

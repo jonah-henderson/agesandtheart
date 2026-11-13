@@ -1,13 +1,14 @@
 {
   "_comment": [
     "Deep: the sea standing far above where the land left it -- half of the deep-ocean material's gate -- the",
-    "underground held deep in the rock, a lake deep. `shallow`'s other end."
+    "underground held deep in the rock, a lake deep. `shallow`'s other end. Its low end is where a sea first holds an abyss",
+    "on the flat-floored landforms, so that every deep sea is one, and its high end short of the deepest sayable."
   ],
   "speech": "adjective",
   "offers": [
     {
       "concept": "depth",
-      "value": "0.6..0.95"
+      "value": "0.85..0.98"
     },
     {
       "concept": "lean",

@@ -10,9 +10,16 @@ import co.voik.agesandtheart.age.aspect.Setting
 /**
  * Two landings that could not both be what they said where they met (`the-world-model.md` §8), the firmer holding, and
  * what over. Found among what could land before anything is drawn, so the same book clashes the same at every seed; the
- * weaker comes to nothing there, and is drawn elsewhere where its page then placed nothing.
+ * weaker comes to nothing there, and is drawn elsewhere where its page then placed nothing — but a suggestion meeting a
+ * certainty only yields ([isAYield]).
  */
 data class Clash(val firmer: Landing, val weaker: Landing, val aspect: Aspect, val over: List<String>) {
+    /**
+     * Whether the weaker was only a suggestion meeting a certainty — a mood's green grass beside `orange grass` — and
+     * yields: it does not apply there, and nothing is charged (Jonah).
+     */
+    val isAYield: Boolean get() = weaker.chance < CERTAIN && firmer.chance >= CERTAIN
+
     /** The flaw it costs, naming the two words in the order they were laid. */
     val flaw: Flaw get() = Flaw(Register.INCOHERENT, listOf(firmer, weaker).sortedBy { it.page }.map(Landing::word), aspect, over)
 }
@@ -37,7 +44,14 @@ fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<C
                 val other = here[second]
                 if (one.word == other.word || !meet(one, other, mintingClauses)) continue
                 val over = clashBetween(world, aspect, one, other) ?: clashBetween(world, aspect, other, one) ?: continue
-                val (firmer, weaker) = if (ranking.compare(one, other) <= 0) one to other else other to one
+                val oneYields = one.chance < CERTAIN && other.chance >= CERTAIN
+                val otherYields = other.chance < CERTAIN && one.chance >= CERTAIN
+                val (firmer, weaker) = when {
+                    oneYields -> other to one
+                    otherYields -> one to other
+                    ranking.compare(one, other) <= 0 -> one to other
+                    else -> other to one
+                }
                 found += Clash(firmer, weaker, aspect, over)
             }
         }
@@ -45,8 +59,10 @@ fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<C
     return found
 }
 
-/** The flaws [clashes] cost: one per pair of words, at the first place they clashed. */
-fun flawsOf(clashes: List<Clash>): List<Flaw> = clashes.distinctBy { it.flaw.words.toSet() }.map(Clash::flaw)
+/** The flaws [clashes] cost: one per pair of words, at the first place they clashed, and nothing where a suggestion yielded. */
+fun flawsOf(clashes: List<Clash>): List<Flaw> = clashes.filterNot(Clash::isAYield).distinctBy { it.flaw.words.toSet() }.map(Clash::flaw)
+
+private const val CERTAIN = 1.0
 
 /**
  * Whether two landings are in one place to disagree: the same members in part, the same body, the same biome,
