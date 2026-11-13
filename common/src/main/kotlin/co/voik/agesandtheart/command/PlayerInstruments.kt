@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.learnedWords
-import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.age.readout.ReadoutClause
 import co.voik.agesandtheart.book.CoverLayout
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.content.AgeComponents
@@ -109,7 +109,7 @@ internal object PlayerInstruments {
     }
 
     /** What the pages say, or null where they say nothing the grammar can read. */
-    private fun readingOf(source: CommandSourceStack, pages: List<String>, seed: Long): List<ProseClause>? {
+    private fun readingOf(source: CommandSourceStack, pages: List<String>, seed: Long): List<ReadoutClause>? {
         if (pages.isEmpty()) return null
         val vocabulary = Vocabulary.of(source.server)
         val reading = vocabulary.read(pages, seed) ?: return null

@@ -2,7 +2,7 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.language.Meaning
-import co.voik.agesandtheart.age.language.Speech
+import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.location

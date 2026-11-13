@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.aspect.RANGED_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.language.Meaning
-import co.voik.agesandtheart.age.language.Speech
+import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey

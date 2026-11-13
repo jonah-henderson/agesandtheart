@@ -1,5 +1,6 @@
-package co.voik.agesandtheart.age.language
+package co.voik.agesandtheart.age.readout
 
+import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
@@ -8,7 +9,7 @@ import net.minecraft.locale.Language
 import java.util.Locale
 
 /**
- * **[ProseClause]s written out as sentences**, in whatever language the `said` handed to [sentencesOf] speaks.
+ * **[ReadoutClause]s written out as sentences**, in whatever language the `said` handed to [sentencesOf] speaks.
  *
  * English first and by design (§4.1): every frame is a key in the language file, so a translation can make
  * a best effort, though not every language will bend to sentences built this way. The two places English is
@@ -17,17 +18,17 @@ import java.util.Locale
  *
  * Pure, so it runs wherever a book is read and a check can drive it with a map for a language file.
  */
-object ProseWriting {
+object ReadoutWriting {
     /** The running game's language — the client's, wherever a book is read. */
     val inTheGamesLanguage: (String) -> String? = { key ->
         Language.getInstance().takeIf { it.has(key) }?.getOrDefault(key)
     }
 
     /** [clauses] as sentences, each capitalised and closed — one per thing said. */
-    fun sentencesOf(clauses: List<ProseClause>, said: (String) -> String? = inTheGamesLanguage): List<String> =
+    fun sentencesOf(clauses: List<ReadoutClause>, said: (String) -> String? = inTheGamesLanguage): List<String> =
         Writer(said, clauses).sentences()
 
-    private class Writer(private val said: (String) -> String?, private val clauses: List<ProseClause>) {
+    private class Writer(private val said: (String) -> String?, private val clauses: List<ReadoutClause>) {
         private val lowersNames = said(key("lowercase_names")) != "false"
         private val inflectsInEnglish = said(key("english_inflection")) != "false"
 
@@ -46,7 +47,7 @@ object ProseWriting {
          * The Age itself: "A beautiful, ancient Age of basalt." Its qualities stand in front of it with
          * commas, the way a chronicle opens; anything it is made of or full of follows.
          */
-        private fun theAge(clause: ProseClause): String {
+        private fun theAge(clause: ReadoutClause): String {
             val qualities = qualities(clause.terms.filter { it.speech == Speech.ADJECTIVE })
             val things = clause.terms.filter { it.speech != Speech.ADJECTIVE }
             val (without, with) = things.partition { it.polarity == Polarity.EXCEPT }
@@ -67,7 +68,7 @@ object ProseWriting {
          * claims and joining them would make one of them a clause of the other. A clause about members says
          * what they are like of them — "its spiders are large" — and what they come in with them.
          */
-        private fun sentencesAbout(about: Aspect, clause: ProseClause): List<String> {
+        private fun sentencesAbout(about: Aspect, clause: ReadoutClause): List<String> {
             val where = whereOf(clause)
             clause.shape?.let { return listOf(sentence(about, "has", shaped(it), where, ordinal = null)) }
             val ordinal = clause.body?.takeIf { (bodies[about] ?: 0) > 1 }?.let { ordinal(it + 1) }
@@ -84,16 +85,16 @@ object ProseWriting {
         }
 
         /** Whether [term] is the page of [about] itself — `features` — rather than anything in it. */
-        private fun isTheWhole(term: ProseTerm, about: Aspect): Boolean =
+        private fun isTheWhole(term: ReadoutTerm, about: Aspect): Boolean =
             term.word.namespace == Constants.MOD_ID && Aspect.byPage(term.word.path) == about
 
         /** What was said of [subject]: what it comes in, what it is like, and anything else the clause holds. */
         private fun sentencesOf(
             about: Aspect,
-            subject: ProseTerm,
-            collective: ProseShape?,
-            described: List<ProseTerm>,
-            named: List<ProseTerm>,
+            subject: ReadoutTerm,
+            collective: ReadoutShape?,
+            described: List<ReadoutTerm>,
+            named: List<ReadoutTerm>,
             where: String,
             ordinal: String?,
         ): List<String> = buildList {
@@ -108,19 +109,19 @@ object ProseWriting {
         }
 
         /** What `of` said members come in: its rung and qualities before it — "teeming colossal herds". */
-        private fun collectivePhrase(collective: ProseShape): String {
+        private fun collectivePhrase(collective: ReadoutShape): String {
             val named = (collective.qualities.map(::nameOf) + plural(collective.shape)).joinToString(" ")
             return quantified(collective.shape.quantifier, named)
         }
 
-        private fun whereOf(clause: ProseClause): String = when {
+        private fun whereOf(clause: ReadoutClause): String = when {
             clause.confinedTo != null -> framed("in", listOf(plural(clause.confinedTo)))
             clause.everywhere -> word("everywhere")
             else -> ""
         }
 
         /** A minted shape: its rung and qualities before it, what it is made of after. */
-        private fun shaped(minted: ProseShape): String {
+        private fun shaped(minted: ReadoutShape): String {
             val qualities = minted.qualities.map(::nameOf)
             val named = (qualities + plural(minted.shape)).joinToString(" ")
             val madeOf = if (minted.madeOf.isEmpty()) "" else framed("shape_of", listOf(list(things(minted.madeOf))))
@@ -155,13 +156,13 @@ object ProseWriting {
          * What something is like: its qualities, and then what it is made of — each share of a part divided between
          * rival words said where it holds, "frozen in places and scorching in others".
          */
-        private fun predicate(terms: List<ProseTerm>): String {
+        private fun predicate(terms: List<ReadoutTerm>): String {
             val shares = terms.groupBy { it.share }
             if (shares.size < 2) return undivided(terms)
             return list(shares.values.mapIndexed { at, share -> framed(if (at == 0) "divided.first" else "divided.other", listOf(undivided(share))) })
         }
 
-        private fun undivided(terms: List<ProseTerm>): String {
+        private fun undivided(terms: List<ReadoutTerm>): String {
             val qualities = qualities(terms.filter { it.speech == Speech.ADJECTIVE })
             val substances = things(terms.filter { it.speech == Speech.MASS })
             val madeOf = if (substances.isEmpty()) emptyList() else listOf(framed("made_of", listOf(list(substances))))
@@ -169,26 +170,26 @@ object ProseWriting {
         }
 
         /** Qualities, each with its rung, and `only` or `except` said as the writer laid them. */
-        private fun qualities(terms: List<ProseTerm>): List<String> =
+        private fun qualities(terms: List<ReadoutTerm>): List<String> =
             polarised(terms, except = { "not" }, say = ::nameOf)
 
         /** Things there are, said as many where they can be counted. */
-        private fun things(terms: List<ProseTerm>): List<String> =
+        private fun things(terms: List<ReadoutTerm>): List<String> =
             polarised(terms, except = { if (it.speech == Speech.MASS) "anything_but" else "no" }, say = ::plural)
 
         /** A thing as itself, with no `only` or `except` — for where the frame already says which. */
-        private fun bare(term: ProseTerm): String = quantified(term.quantifier, plural(term))
+        private fun bare(term: ReadoutTerm): String = quantified(term.quantifier, plural(term))
 
         /**
          * [terms] said, with **one `only` or `except` over each run that shares it** — `only wolf and witch`
          * is "only wolves and witches", where saying it per term would read as two separate pins.
          */
         private fun polarised(
-            terms: List<ProseTerm>,
-            except: (ProseTerm) -> String,
-            say: (ProseTerm) -> String,
+            terms: List<ReadoutTerm>,
+            except: (ReadoutTerm) -> String,
+            say: (ReadoutTerm) -> String,
         ): List<String> {
-            val runs = mutableListOf<MutableList<ProseTerm>>()
+            val runs = mutableListOf<MutableList<ReadoutTerm>>()
             for (term in terms) {
                 val previous = runs.lastOrNull()?.last()
                 val continuesTheRun = previous != null && previous.polarity == term.polarity &&
@@ -210,8 +211,8 @@ object ProseWriting {
          * [run] said with **one rung over each stretch that shares it**, as the writer laid it at the head of
          * their run — `teeming zombie and skeleton` is "teeming zombies and skeletons".
          */
-        private fun quantifiedOnce(run: List<ProseTerm>, say: (ProseTerm) -> String): List<String> {
-            val stretches = mutableListOf<MutableList<ProseTerm>>()
+        private fun quantifiedOnce(run: List<ReadoutTerm>, say: (ReadoutTerm) -> String): List<String> {
+            val stretches = mutableListOf<MutableList<ReadoutTerm>>()
             for (term in run) {
                 val rung = stretches.lastOrNull()?.last()?.quantifier
                 if (rung != null && rung == term.quantifier) stretches.last() += term else stretches += mutableListOf(term)
@@ -229,14 +230,14 @@ object ProseWriting {
          * What a word is called mid-sentence: a name written for prose, else vanilla's name for the thing,
          * else the name a page carries, else its id made legible.
          */
-        private fun nameOf(term: ProseTerm): String {
+        private fun nameOf(term: ReadoutTerm): String {
             val id = term.word
             said("prose.${id.namespace}.${id.path}")?.let { return it }
             val named = term.nameKey?.let(said) ?: said("word.${id.namespace}.${id.path}")
             return named?.let { if (lowersNames) it.lowercase(Locale.ROOT) else it } ?: term.plain
         }
 
-        private fun plural(term: ProseTerm): String {
+        private fun plural(term: ReadoutTerm): String {
             val id = term.word
             said("prose.${id.namespace}.${id.path}.plural")?.let { return it }
             val name = nameOf(term)

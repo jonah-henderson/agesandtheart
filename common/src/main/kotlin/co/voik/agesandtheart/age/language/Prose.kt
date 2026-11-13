@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -14,128 +15,11 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import java.util.Optional
-
-/**
- * One word of a book's prose: what it is, how it is spoken, and what to call it.
- *
- * **Everything a reader needs and nothing they cannot have.** Reading a sentence takes the whole corpus,
- * which is a server's, so a book carries what its prose is made of rather than the prose itself — and the
- * prose is written where the book is read, in the reader's own language, where a name can be translated and
- * *then* made plural, which a translation key alone can never be.
- */
-data class ProseTerm(
-    val word: Identifier,
-    val speech: Speech,
-    val polarity: Polarity = Polarity.ASSERTED,
-    /** The rung page the writer laid in front of it, where it asks for more or less than ordinary. */
-    val quantifier: String? = null,
-    /** Vanilla's own name for the thing, where vanilla has one — a creature's, a biome's, a block's. */
-    val nameKey: String? = null,
-    /** What it is called where no language file says: its id, made legible. */
-    val plain: String,
-    /** Which share of a part divided between rival words it went to, where one was divided. */
-    val share: Int? = null,
-) {
-    companion object {
-        val CODEC: Codec<ProseTerm> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                Identifier.CODEC.fieldOf("word").forGetter(ProseTerm::word),
-                Speech.CODEC.fieldOf("speech").forGetter(ProseTerm::speech),
-                POLARITY_CODEC.optionalFieldOf("polarity", Polarity.ASSERTED).forGetter(ProseTerm::polarity),
-                Codec.STRING.optionalFieldOf("quantifier").forGetter { Optional.ofNullable(it.quantifier) },
-                Codec.STRING.optionalFieldOf("name_key").forGetter { Optional.ofNullable(it.nameKey) },
-                Codec.STRING.fieldOf("plain").forGetter(ProseTerm::plain),
-                Codec.INT.optionalFieldOf("share").forGetter { Optional.ofNullable(it.share) },
-            ).apply(instance) { word, speech, polarity, quantifier, nameKey, plain, share ->
-                ProseTerm(word, speech, polarity, quantifier.orElse(null), nameKey.orElse(null), plain, share.orElse(null))
-            }
-        }
-    }
-}
-
-/**
- * A shape a clause minted, said as one thing — `teeming basalt arches` is "teeming arches of basalt",
- * since every rung and every material in a minting clause belongs to what it mints.
- */
-data class ProseShape(
-    val shape: ProseTerm,
-    /** What the shape is made of, where the clause said. */
-    val madeOf: List<ProseTerm> = emptyList(),
-    /** Its size and the like — `colossal`. */
-    val qualities: List<ProseTerm> = emptyList(),
-) {
-    companion object {
-        val CODEC: Codec<ProseShape> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                ProseTerm.CODEC.fieldOf("shape").forGetter(ProseShape::shape),
-                ProseTerm.CODEC.listOf().optionalFieldOf("made_of", emptyList()).forGetter(ProseShape::madeOf),
-                ProseTerm.CODEC.listOf().optionalFieldOf("qualities", emptyList()).forGetter(ProseShape::qualities),
-            ).apply(instance, ::ProseShape)
-        }
-    }
-}
-
-/**
- * **One sentence's worth of a book**: what was said about one part of the world, and where.
- *
- * A clause of the grammar is about one part of the world when it closes on an aiming page, and about as many
- * as its words reach when it closes on a siting alone — so a clause of the grammar can be several of these,
- * and the book reads as several sentences where it said several things.
- */
-data class ProseClause(
-    /** The part of the world this is about, or null for the Age itself — the words laid before `age`. */
-    val about: Aspect?,
-    val terms: List<ProseTerm>,
-    /** The biome the clause was confined to with `in`. */
-    val confinedTo: ProseTerm? = null,
-    val everywhere: Boolean = false,
-    /** Which member of a population this describes — the second sun rather than the first. */
-    val body: Int? = null,
-    /** What the clause minted, where it minted something; its words are then here and not in [terms]. */
-    val shape: ProseShape? = null,
-    /** The members it is about, where the word that took it names some — `spiders` — rather than the whole part. */
-    val subject: ProseTerm? = null,
-    /** What `of` said the subject comes in — `herds` in `herds of warden` — with what was said of that. */
-    val collective: ProseShape? = null,
-) {
-    companion object {
-        val CODEC: Codec<ProseClause> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                ASPECT_CODEC.optionalFieldOf("about").forGetter { Optional.ofNullable(it.about) },
-                ProseTerm.CODEC.listOf().fieldOf("terms").forGetter(ProseClause::terms),
-                ProseTerm.CODEC.optionalFieldOf("confined_to").forGetter { Optional.ofNullable(it.confinedTo) },
-                Codec.BOOL.optionalFieldOf("everywhere", false).forGetter(ProseClause::everywhere),
-                Codec.INT.optionalFieldOf("body").forGetter { Optional.ofNullable(it.body) },
-                ProseShape.CODEC.optionalFieldOf("shape").forGetter { Optional.ofNullable(it.shape) },
-                ProseTerm.CODEC.optionalFieldOf("subject").forGetter { Optional.ofNullable(it.subject) },
-                ProseShape.CODEC.optionalFieldOf("collective").forGetter { Optional.ofNullable(it.collective) },
-            ).apply(instance) { about, terms, confinedTo, everywhere, body, shape, subject, collective ->
-                ProseClause(
-                    about.orElse(null), terms, confinedTo.orElse(null), everywhere, body.orElse(null), shape.orElse(null),
-                    subject.orElse(null), collective.orElse(null),
-                )
-            }
-        }
-    }
-}
-
-private val POLARITY_CODEC: Codec<Polarity> = Codec.STRING.comapFlatMap(
-    { named ->
-        Polarity.entries.firstOrNull { it.name.lowercase() == named }
-            ?.let { DataResult.success(it) }
-            ?: DataResult.error { "no polarity is called '$named'" }
-    },
-    { it.name.lowercase() },
-)
-
-private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
-    { named ->
-        Aspect.entries.firstOrNull { it.key == named }
-            ?.let { DataResult.success(it) }
-            ?: DataResult.error { "no part of the world is called '$named'" }
-    },
-    Aspect::key,
-)
+import co.voik.agesandtheart.age.readout.FeatureNames
+import co.voik.agesandtheart.age.readout.ReadoutClause
+import co.voik.agesandtheart.age.readout.ReadoutShape
+import co.voik.agesandtheart.age.readout.ReadoutTerm
+import co.voik.agesandtheart.age.words.Speech
 
 /**
  * **A reading, said as an account of an Age** — several sentences, each about one part of the world, the way a
@@ -156,11 +40,11 @@ private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
  *   written, never what it will make.
  * - **What `of` joins is said as one thing**: `herds of warden` is herds of wardens.
  *
- * Built on the server into [ProseClause]s; written as sentences by [ProseWriting] wherever the book is read.
+ * Built on the server into [ReadoutClause]s; written as sentences by [ReadoutWriting] wherever the book is read.
  */
 object Prose {
     /** [reading] as the clauses of its prose, the Age first, with only what held in [resolution]. */
-    fun of(reading: Reading, resolution: Resolution, lexicon: Lexicon): List<ProseClause> {
+    fun of(reading: Reading, resolution: Resolution, lexicon: Lexicon): List<ReadoutClause> {
         val said = Said(reading, resolution, lexicon)
         val theAge = said.ofTheAge()
         val rest = reading.pages.sortedBy { it.index }.flatMap { page ->
@@ -174,8 +58,8 @@ object Prose {
     }
 
     /** [clauses] with every two about the same subject in the same place made one, where the first stood. */
-    private fun joined(clauses: List<ProseClause>): List<ProseClause> {
-        fun subjectOf(clause: ProseClause) =
+    private fun joined(clauses: List<ReadoutClause>): List<ReadoutClause> {
+        fun subjectOf(clause: ReadoutClause) =
             listOf(clause.about, clause.subject?.word, clause.body, clause.confinedTo?.word, clause.everywhere)
         val mayJoin = clauses.filter { it.shape == null && it.collective == null }
         val gathered = mayJoin.groupBy(::subjectOf).mapValues { (_, same) ->
@@ -221,16 +105,16 @@ object Prose {
         private fun isACollective(taker: PageRead): Boolean =
             reading.pages.getOrNull(taker.index + 1)?.fate == Fate.Structural(Structure.OF)
 
-        fun ofTheAge(): ProseClause? {
+        fun ofTheAge(): ReadoutClause? {
             val bare = reading.pages.filter { it.fate == Fate.LaidBare || it.fate == Fate.Moved }.filter { heldAnywhere(it.index) }
             val banned = reading.pages.filter { it.fate == Fate.Banned }.mapNotNull(::termOf).map { it.copy(polarity = Polarity.EXCEPT) }
             val ageWasLaid = reading.pages.any { it.fate == Fate.Structural(Structure.AGE) }
             val terms = bare.mapNotNull(::termOf) + banned
-            if (terms.isEmpty()) return if (ageWasLaid) ProseClause(about = null, terms = emptyList()) else null
-            return ProseClause(about = null, terms = terms)
+            if (terms.isEmpty()) return if (ageWasLaid) ReadoutClause(about = null, terms = emptyList()) else null
+            return ReadoutClause(about = null, terms = terms)
         }
 
-        fun clauseTakenBy(taker: PageRead, place: Place): ProseClause? {
+        fun clauseTakenBy(taker: PageRead, place: Place): ReadoutClause? {
             if (isACollective(taker)) return null
             val word = wordOf(taker) ?: return null
             val taken = reading.pages.filter { it.fate == Fate.TakenBy(taker.index) && heldIn(it.index, taker.index) }
@@ -256,7 +140,7 @@ object Prose {
                     landing.effects.any { it is Effect.Chooses } && landing.at !in resolution.cameToNothing
             }
             if (isTheAspectsPage && announces && taken.isEmpty()) {
-                return ProseClause(Aspect.PHENOMENA, listOfNotNull(counted?.copy(speech = Speech.NOUN)), confinedTo, everywhere)
+                return ReadoutClause(Aspect.PHENOMENA, listOfNotNull(counted?.copy(speech = Speech.NOUN)), confinedTo, everywhere)
             }
             if (isTheAspectsPage) {
                 // `no features`: the page itself, struck, which the writing says as the part holding nothing.
@@ -264,49 +148,49 @@ object Prose {
                     landing.page == taker.index && landing.effects.any { it is Effect.Excludes && Effect.Excludes.EVERY_MEMBER in it.members }
                 }
                 val itself = listOfNotNull(counted?.copy(polarity = Polarity.EXCEPT)).takeIf { emptied }.orEmpty()
-                return ProseClause(place.aspect, taken.mapNotNull(::said) + itself, confinedTo, everywhere, body)
+                return ReadoutClause(place.aspect, taken.mapNotNull(::said) + itself, confinedTo, everywhere, body)
             }
             val shape = shapeOf(word, counted, described)
-            if (shape != null) return ProseClause(place.aspect, emptyList(), confinedTo, everywhere, body, shape)
+            if (shape != null) return ReadoutClause(place.aspect, emptyList(), confinedTo, everywhere, body, shape)
             val collective = collectiveBefore(taker)?.let(::collectiveOf)
             val namesMembers = word.partOfSpeech.names && place.members is Members.Named
             val subject = counted?.takeIf { namesMembers && (described.isNotEmpty() || collective != null) }
             val terms = described.mapNotNull(::said) + listOfNotNull(counted.takeIf { subject == null })
-            return ProseClause(place.aspect, terms, confinedTo, everywhere, body, subject = subject, collective = collective)
+            return ReadoutClause(place.aspect, terms, confinedTo, everywhere, body, subject = subject, collective = collective)
         }
 
         /** What an `of` joined a word to, said as the shape it comes in: its rung, and the qualities said of it. */
-        private fun collectiveOf(collective: PageRead): ProseShape? {
+        private fun collectiveOf(collective: PageRead): ReadoutShape? {
             val taken = reading.pages.filter { it.fate == Fate.TakenBy(collective.index) }
             val (amounts, qualities) = taken.partition(::isAQuantifier)
             val shape = termOf(collective)?.copy(quantifier = amounts.firstOrNull()?.written) ?: return null
-            return ProseShape(shape, qualities = qualities.mapNotNull(::termOf))
+            return ReadoutShape(shape, qualities = qualities.mapNotNull(::termOf))
         }
 
         /**
          * A minting said as its shape, made of the substances laid before it; or a landform of ours with nothing
          * but qualities before it, said as that landform. Null for anything else.
          */
-        private fun shapeOf(word: Word, counted: ProseTerm?, described: List<PageRead>): ProseShape? {
+        private fun shapeOf(word: Word, counted: ReadoutTerm?, described: List<PageRead>): ReadoutShape? {
             val shape = counted ?: return null
             val (substances, qualities) = described.partition { wordOf(it)?.block != null }
             if (word.mints != null) {
-                return ProseShape(shape, substances.mapNotNull(::termOf), qualities.mapNotNull(::termOf))
+                return ReadoutShape(shape, substances.mapNotNull(::termOf), qualities.mapNotNull(::termOf))
             }
             val namesADesign = word.meanings.flatMap { it.effects }.any { effect ->
                 effect is Effect.Chooses && !effect.aspect.open && word.partOfSpeech.names
             }
             val onlyQualities = described.all { wordOf(it)?.partOfSpeech == Speech.ADJECTIVE }
-            return if (namesADesign && onlyQualities) ProseShape(shape, qualities = described.mapNotNull(::termOf)) else null
+            return if (namesADesign && onlyQualities) ReadoutShape(shape, qualities = described.mapNotNull(::termOf)) else null
         }
 
-        fun alone(page: PageRead): ProseClause? {
+        fun alone(page: PageRead): ReadoutClause? {
             if (!heldAnywhere(page.index)) return null
             val about = reading.landings.firstOrNull { it.page == page.index }?.place?.aspect ?: return null
-            return ProseClause(about, listOfNotNull(termOf(page)))
+            return ReadoutClause(about, listOfNotNull(termOf(page)))
         }
 
-        private fun termOf(page: PageRead): ProseTerm? {
+        private fun termOf(page: PageRead): ReadoutTerm? {
             if (lexicon.phrase(page.written) != null) return phraseTerm(page.written)
             val word = wordOf(page) ?: return null
             // `north rising sun` is said as "rising in the north", by the carrier and the point together, and `north
@@ -315,17 +199,17 @@ object Prose {
             val taker = reading.pages.getOrNull(page.index + 1)?.takeIf { page.fate == Fate.TakenBy(it.index) }
             val carriedKey = (carrier ?: taker)?.let { "prose.${Constants.MOD_ID}.${it.written}_${page.written}" }
             val plain = carrier?.let { "${page.written} ${it.written}" } ?: plainNameOf(word)
-            return ProseTerm(word.id, word.partOfSpeech, nameKey = carriedKey ?: nameKeyOf(word), plain = plain)
+            return ReadoutTerm(word.id, word.partOfSpeech, nameKey = carriedKey ?: nameKeyOf(word), plain = plain)
         }
 
         /** An old page retired into a phrase, said by its own name, as the books it was written in already say it. */
-        private fun phraseTerm(written: String): ProseTerm {
+        private fun phraseTerm(written: String): ReadoutTerm {
             val name = written.removePrefix("${Constants.MOD_ID}:")
-            return ProseTerm(Identifier.fromNamespaceAndPath(Constants.MOD_ID, name), Speech.ADJECTIVE, plain = name.replace('_', ' '))
+            return ReadoutTerm(Identifier.fromNamespaceAndPath(Constants.MOD_ID, name), Speech.ADJECTIVE, plain = name.replace('_', ' '))
         }
     }
 
-    private fun biomeTerm(biome: Identifier): ProseTerm = ProseTerm(
+    private fun biomeTerm(biome: Identifier): ReadoutTerm = ReadoutTerm(
         word = biome,
         speech = Speech.NOUN,
         nameKey = "biome.${biome.namespace}.${biome.path}",
@@ -346,53 +230,4 @@ object Prose {
 
     private fun plainNameOf(word: Word): String =
         if (Registries.PLACED_FEATURE in word.referentRegistries) FeatureNames.legible(word.id.path) else word.id.path.replace('_', ' ')
-}
-
-/**
- * A placed feature's id, made into something a sentence can hold.
- *
- * Vanilla names its placed features for the code that places them — `ore_diamond_buried`, `trees_plains`,
- * `seagrass_deep_warm` — and the variants a biome needs are the same thing to anyone reading about it. So
- * the variant is struck and the kind put after what it is of: "diamond deposits", "plains trees". What this
- * gets wrong is overridden by name in the language file, under `prose.<namespace>.<path>`.
- */
-internal object FeatureNames {
-    /** What a variant's suffix is: where in the world, how deep, how big — never what the thing is. */
-    private val VARIANT = Regex(
-        "_(checked|lower|upper|middle|extra|buried|normal|small|medium|large|cold|warm|deep|nether|deltas|" +
-            "on_snow|decorated|return|river|swamp|taiga|old_growth|birch_forest|meadow|\\d+)$",
-    )
-
-    /**
-     * The kinds that lead a feature's id, and how each is said after what it is of. `ore` is said as
-     * deposits because half of what vanilla calls an ore is a blob of dirt or granite.
-     */
-    private val KINDS = mapOf(
-        "ore" to "deposits",
-        "disk" to "disks",
-        "patch" to "patches",
-        "pile" to "piles",
-        "lake" to "lakes",
-        "spring" to "springs",
-        "flower" to "flowers",
-        "trees" to "trees",
-    )
-
-    fun legible(path: String): String {
-        val kind = path.substringBefore('_')
-        val rest = path.substringAfter('_', missingDelimiterValue = "")
-        val said = KINDS[kind]
-        if (said != null && rest.isNotEmpty()) return "${withoutVariants(rest).replace('_', ' ')} $said"
-        return withoutVariants(path).replace('_', ' ')
-    }
-
-    /** [path] with every variant suffix struck, so long as something is left to be the thing itself. */
-    private fun withoutVariants(path: String): String {
-        var left = path
-        while (true) {
-            val struck = VARIANT.replace(left, "")
-            if (struck == left || struck.isEmpty()) return left
-            left = struck
-        }
-    }
 }

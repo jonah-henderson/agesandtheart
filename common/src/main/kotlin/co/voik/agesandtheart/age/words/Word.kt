@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.words
 
-import co.voik.agesandtheart.age.language.Speech
+import co.voik.agesandtheart.age.words.Speech
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.DynamicOps

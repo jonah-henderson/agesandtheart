@@ -2,7 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.age.language.ProseWriting
+import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBookPayload
@@ -314,7 +314,7 @@ class BookScreen(
     /** What the book says, written in this client's language and wrapped to the writing column. */
     private fun proseLines(): List<Line> {
         val clauses = book.get(AgeComponents.BOOK_READING).orEmpty()
-        val prose = ProseWriting.sentencesOf(clauses).joinToString(" ")
+        val prose = ReadoutWriting.sentencesOf(clauses).joinToString(" ")
         if (prose.isEmpty()) return emptyList()
         return font.split(Component.literal(prose), (COLUMN_WIDTH / PROSE_SCALE).toInt()).map(::ProseLine)
     }

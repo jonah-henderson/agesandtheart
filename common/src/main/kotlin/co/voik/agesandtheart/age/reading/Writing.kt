@@ -15,11 +15,19 @@ class Writing(
     /** Whether a word brings what a dangling page may never be drawn onto: a rare material, a reward. */
     private val isGated: (Word) -> Boolean,
 ) {
-    fun resolve(pages: List<String>, seed: Long): Resolution = Resolver.resolve(world, bookOf(Reader.read(words, pages, membership, seed), seed), seed)
+    fun resolve(pages: List<String>, seed: Long): Resolution = written(pages, seed).resolution
+
+    /** [pages] read, drawn and resolved at [seed]: everything a book, its readout and the instruments need of them. */
+    fun written(pages: List<String>, seed: Long): Written {
+        val reading = Reader.read(words, pages, membership, seed)
+        val drawn = Draw.of(reading, words, membership, world, isGated, seed)
+        return Written(reading, drawn, Resolver.resolve(world, bookOf(reading, drawn), seed))
+    }
 
     /** What resolution is handed of [reading] drawn at [seed]: what landed, what could have, its cost, and its clashes and dangling pages. */
-    fun bookOf(reading: Reading, seed: Long): Book {
-        val drawn = Draw.of(reading, words, membership, world, isGated, seed)
+    fun bookOf(reading: Reading, seed: Long): Book = bookOf(reading, Draw.of(reading, words, membership, world, isGated, seed))
+
+    private fun bookOf(reading: Reading, drawn: Drawn): Book {
         return Book(
             landings = drawn.landed,
             possible = drawn.possible,
@@ -31,3 +39,6 @@ class Writing(
         )
     }
 }
+
+/** A row of pages as it was read, what of it landed, and the Age it resolved to. */
+data class Written(val reading: Reading, val drawn: Drawn, val resolution: Resolution)

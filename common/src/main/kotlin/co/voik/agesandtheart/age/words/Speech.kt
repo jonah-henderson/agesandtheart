@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.language
+package co.voik.agesandtheart.age.words
 
 import com.mojang.serialization.Codec
 import net.minecraft.util.StringRepresentable

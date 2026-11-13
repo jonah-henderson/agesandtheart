@@ -202,6 +202,7 @@ private class Drawing(
             sitedIn = phrase.sitedIn,
             everywhere = phrase.everywhere,
             biome = biomeNamedBy(phrase),
+            isAPartsPage = part != null && words.partPage(part)?.id == words.word(written[phrase.head])?.id,
         )
     }
 
@@ -289,6 +290,8 @@ private class Drawing(
         val everywhere: Boolean,
         /** The biome it names, in which what it takes is said, or null where it is no biome. */
         val biome: Identifier?,
+        /** Whether its thing is its part's own page — `features` — which, struck with nothing to narrow it, is every member. */
+        val isAPartsPage: Boolean,
     ) {
         /**
          * Its own meaning and [landing] of its placements, said of its members. A negated or `only` thing is one claim,
@@ -298,7 +301,9 @@ private class Drawing(
             val isNarrowed = polarity != Polarity.ASSERTED
             if (isNarrowed) {
                 val described = own + landing.flatMap { it.effects }.map(::asANarrowing)
-                return said(described, word, head, CERTAIN, joined)
+                val strikesEveryMember = described.isEmpty() && isAPartsPage && polarity == Polarity.EXCEPT && part != null
+                val struck = if (strikesEveryMember && part != null) listOf(Effect.Excludes(part, setOf(Effect.Excludes.EVERY_MEMBER))) else described
+                return said(struck, word, head, CERTAIN, joined)
             }
             val bringsABody = members is Members.Body
             val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)

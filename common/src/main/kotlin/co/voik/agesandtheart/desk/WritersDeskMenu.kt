@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.language.Prose
-import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.age.readout.ReadoutClause
 import co.voik.agesandtheart.age.language.Reading
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.Services
@@ -89,7 +89,7 @@ class WritersDeskMenu(
      * conflicts are (design §7.3): visibility is a property of the workspace. The gate is on the desk's
      * live reading and nothing else — a bound book still carries its own, and a found one still teaches.
      */
-    private fun readingOf(capabilities: DeskState, said: Reading?, resolved: Resolution?, vocabulary: Vocabulary): List<ProseClause> {
+    private fun readingOf(capabilities: DeskState, said: Reading?, resolved: Resolution?, vocabulary: Vocabulary): List<ReadoutClause> {
         if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return emptyList()
         if (said == null || resolved == null) return emptyList()
         return Prose.of(said, resolved, vocabulary.lexicon)

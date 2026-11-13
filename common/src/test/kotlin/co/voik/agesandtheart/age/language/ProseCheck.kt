@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
 import com.google.gson.JsonParser
@@ -23,7 +24,7 @@ class ProseCheck : FunSpec({
         val vocabulary = ShippedCorpus.vocabulary
         val reading = ShippedCorpus.read(row.split(" "))
         val clauses = vocabulary.prose(reading, ShippedCorpus.ANY_SEED)
-        return ProseWriting.sentencesOf(clauses) { key -> language.get(key)?.asString }.joinToString(" ")
+        return ReadoutWriting.sentencesOf(clauses) { key -> language.get(key)?.asString }.joinToString(" ")
     }
 
     for ((row, expected) in BOOKS) {

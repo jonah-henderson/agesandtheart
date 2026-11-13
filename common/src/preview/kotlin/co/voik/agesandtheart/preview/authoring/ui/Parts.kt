@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Rung

@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.age.readout.ReadoutClause
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -58,7 +58,7 @@ data class DeskSyncPayload(
     /**
      * The sentence as the bound book will read it — empty without the grammar guide in the room.
      */
-    val reading: List<ProseClause>,
+    val reading: List<ReadoutClause>,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -84,8 +84,8 @@ data class DeskSyncPayload(
             ::Quarrel,
         )
 
-        private val READING_STREAM: StreamCodec<ByteBuf, List<ProseClause>> =
-            ByteBufCodecs.fromCodec(ProseClause.CODEC.listOf())
+        private val READING_STREAM: StreamCodec<ByteBuf, List<ReadoutClause>> =
+            ByteBufCodecs.fromCodec(ReadoutClause.CODEC.listOf())
 
         val STREAM_CODEC: StreamCodec<ByteBuf, DeskSyncPayload> = StreamCodec.of(
             { buffer, value ->

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.age.readout.ReadoutClause
 import co.voik.agesandtheart.book.CoverLayout
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.PageArchive
@@ -129,9 +129,9 @@ object AgeComponents {
      * none; clauses rather than finished prose, because a name can only be made plural once it is in the
      * reader's own language.
      */
-    val BOOK_READING: DataComponentType<List<ProseClause>> = DataComponentType.builder<List<ProseClause>>()
-        .persistent(ProseClause.CODEC.listOf())
-        .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(ProseClause.CODEC.listOf()))
+    val BOOK_READING: DataComponentType<List<ReadoutClause>> = DataComponentType.builder<List<ReadoutClause>>()
+        .persistent(ReadoutClause.CODEC.listOf())
+        .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(ReadoutClause.CODEC.listOf()))
         .build()
 
     /**

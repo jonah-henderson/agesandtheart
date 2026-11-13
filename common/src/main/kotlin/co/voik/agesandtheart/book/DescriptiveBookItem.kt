@@ -2,7 +2,7 @@ package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.age.language.ProseWriting
+import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.client.BookScreenOpener
@@ -47,7 +47,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         // What it says, a line to a sentence, so a shelf of books is readable without opening any of them.
         // The row of pages is the fallback for a book bound before the Art read one.
         val reading = stack.get(AgeComponents.BOOK_READING)
-            ?.let { ProseWriting.sentencesOf(it) }
+            ?.let { ReadoutWriting.sentencesOf(it) }
             ?.map { Component.literal(it) }
         val said = reading ?: listOfNotNull(pagesOf(stack))
         said.forEach { builder.accept(it.copy().withStyle(ChatFormatting.DARK_GRAY)) }
