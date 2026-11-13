@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Never one colour for long: `shifting sky` wanders slowly from colour to colour, keeping its own brightness so the",
+    "night stays dark -- between the colours written for it (`red and blue shifting sky`), or through a few no sky should be.",
+    "`slow` and `swift` set how fast. `shifting clouds` race; `shifting weather` is wind and racing clouds."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "shifting"
+    },
+    {
+      "concept": "pace",
+      "value": "0.3..0.7",
+      "for": "clouds",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "weather",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "clouds.pace": "0.3..0.7",
+            "air.wind": "0.2..0.5"
+          }
+        }
+      ]
+    }
+  ]
+}

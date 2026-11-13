@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "What does not go with the day (Jonah, 2026-10-06): `unfading purple sky` is purple at midnight, `unfading stars`",
+    "keep out through the day as bright as at midnight, and an unfading Age does both."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "fades",
+      "value": "never"
+    }
+  ]
+}

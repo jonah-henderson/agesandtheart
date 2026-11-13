@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "Held up by nothing: a floating landmass over a sea leaning to empty air, and the biomes, features and structures",
+    "leaning to what stands aloft; the clouds brought down beneath the land."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "floating": ">0.3"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#empty": 0.6
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#aloft": 0.6
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#aloft": 0.6
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#aloft": 0.6
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "height",
+      "value": "-0.4",
+      "for": "clouds"
+    }
+  ]
+}

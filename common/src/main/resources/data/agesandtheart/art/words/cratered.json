@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "The cratered country, and the craters themselves: said of the land it is the landform, of the features the",
+    "craters, and of the whole Age the landform, and half the time the craters over it too (Jonah)."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "cratered"
+    },
+    {
+      "concept": "member",
+      "value": "agesandtheart:craters",
+      "chance_from_whole_age": 0.5
+    }
+  ]
+}

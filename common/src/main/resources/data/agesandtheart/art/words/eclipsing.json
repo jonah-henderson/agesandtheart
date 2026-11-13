@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Passing in front of its sun: `eclipsing moon` sets the moon on the sun's own path, one turn behind it a month,",
+    "so once a month, at noon, it covers the sun and the day goes dark enough for monsters. Said of the moon alone."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "path",
+      "value": "eclipsing",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

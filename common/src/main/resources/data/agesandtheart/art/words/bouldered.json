@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "The geometric landmass built of the boulders formation: a plain strewn with boulders. The geometric landmass has no page of its own;",
+    "each shape it can be built of is reached by a word like this one, offering the landform and the formation it is built of.",
+    "`gridded`, `concentric` and `scattered` lay the shapes out."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "geometric"
+    },
+    {
+      "concept": "shape",
+      "value": "agesandtheart:boulders"
+    }
+  ]
+}

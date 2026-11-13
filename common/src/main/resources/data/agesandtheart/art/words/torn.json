@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Torn open: `torn sky` hangs it with rifts, as many as instability ever tears; `torn landmass` tears the seams",
+    "between its territories wide and leans toward the landforms torn already -- cleft, canyoned, shattered. A torn Age is both."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "torn"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0
+      },
+      "for": "landmass"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "_comment": [
+    "The sea rising and falling with the moon, and a little puzzle (Jonah, 2026-09-30): the sea is what moves, but the",
+    "moon is what moves it, so the tide is the moon's. `tidal moon` is the one way to write a tide, and a little larger moon.",
+    "Anywhere else it is only the shore: a sea of water, the beaches and swamps, what lives in water."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "strength",
+      "value": "0..1",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.1..0.3",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "watery": ">0.5"
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:beach": 0.6,
+        "minecraft:mangrove_swamp": 0.4,
+        "minecraft:stony_shore": 0.3
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}
