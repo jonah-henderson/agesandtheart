@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "A biome: one member of the biomes, said as itself (`jungle`). What is said of it is said in it, sited there as",
+    "`in jungle` sites a phrase: `red jungle` is the jungle's grass and leaves tinted red. A setting that cannot yet be",
+    "confined to one biome is not turned at all. How much of it there is is the biome's own."
+  ],
+  "terminal": true,
+  "part": "biomes",
+  "accepts": [
+    { "concept": "colour", "becomes": [ { "sets": "grass.colour" }, { "sets": "leaves.colour" } ] },
+    { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
+  ]
+}

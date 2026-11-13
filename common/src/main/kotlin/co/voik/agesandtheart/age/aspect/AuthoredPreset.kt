@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.age.language.Speech
 
 /**
  * Something an aspect can hold that **this pack wrote** — a landform, a carve pattern, a sky, a
@@ -40,9 +39,6 @@ interface AuthoredPreset : Taggable {
      * (`tempest` also sets `happens`) is written by hand, and `VocabularyCheck` refuses both at once.
      */
     val writtenWordFor: String? get() = null
-
-    /** How [writtenWordFor] is said in a book, where the page's own claims would derive it wrongly. */
-    val writtenSpeech: Speech? get() = null
 }
 
 /**

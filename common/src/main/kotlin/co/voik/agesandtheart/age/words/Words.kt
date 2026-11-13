@@ -14,12 +14,21 @@ import net.minecraft.server.packs.resources.ResourceManager
 data class Words(
     val concepts: Map<Identifier, Concept>,
     val kinds: Map<Identifier, Kind>,
-    /** By what a writer says: `frozen`, whichever pack defined it. */
+    /**
+     * By what a writer says: `frozen`, whichever pack defined it, every sense under that name gathered into one word. A
+     * derived word is also under its whole id, which writes it alone.
+     */
     val byName: Map<String, Word>,
     /** What could not be read or did not fit, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
 ) {
     fun word(name: String): Word? = byName[name]
+
+    /** Every word once, whatever it is listed under. */
+    val all: List<Word> by lazy { byName.values.distinctBy(Word::id).sortedBy { it.id.toString() } }
+
+    /** The page that writes [word]: its name, or its whole id where its name is another's. */
+    fun pageFor(word: Word): String = if (byName[word.name]?.id == word.id) word.name else word.id.toString()
 
     /** What [word] costs to write ([Price]). */
     fun priceOf(word: Word): Int = Price.of(word, concepts)
@@ -32,21 +41,29 @@ data class Words(
         const val KIND_DIRECTORY = "art/kind"
         const val WORD_DIRECTORY = "art/word"
 
-        /** What the packs in [resources] define, checked; [behaviours] are the structure words' code there is. */
-        fun load(resources: ResourceManager, behaviours: Set<Identifier>): Words {
+        /**
+         * What the packs in [resources] define, checked; [behaviours] are the structure words' code there is, and
+         * [derived] the words every block, biome, feature, structure and creature is given ([DerivedWords]).
+         */
+        fun load(resources: ResourceManager, behaviours: Set<Identifier>, derived: List<Word> = emptyList()): Words {
             val problems = mutableListOf<String>()
             val concepts = read(resources, CONCEPT_DIRECTORY, Concept::mapCodec, problems)
             val kinds = read(resources, KIND_DIRECTORY, Kind::mapCodec, problems)
             val words = read(resources, WORD_DIRECTORY, Word::mapCodec, problems)
-            return of(concepts, kinds, words, behaviours, problems)
+            return of(concepts, kinds, words, behaviours, derived, problems)
         }
 
-        /** [concepts], [kinds] and [words] checked against each other, each word's senses given their kinds. */
+        /**
+         * [concepts], [kinds] and [words] checked against each other, each word's senses given their kinds. Each [derived]
+         * word joins the word of its name, adding the senses the neighbours could choose between and no other — a block
+         * and a placed feature, never two blocks — the pack's own first, then vanilla's, ours, and other packs' by id.
+         */
         fun of(
             concepts: List<Concept>,
             kinds: List<Kind>,
             words: List<Word>,
             behaviours: Set<Identifier>,
+            derived: List<Word> = emptyList(),
             alreadyFound: List<String> = emptyList(),
         ): Words {
             val problems = alreadyFound.toMutableList()
@@ -62,8 +79,23 @@ data class Words(
                 }
                 byName[word.name] = check.word(word)
             }
+            for (word in derived.sortedWith(DERIVED_ORDER).map(check::word)) {
+                val existing = byName[word.name]
+                val joined = existing?.withSensesOf(word) ?: word
+                byName[word.name] = joined
+                byName[word.id.toString()] = if (existing?.id == word.id) joined else byName[word.id.toString()]?.withSensesOf(word) ?: word
+            }
             return Words(conceptsById, kindsById, byName, problems)
         }
+
+        /** Vanilla's first, then ours, then every other pack's, each by id: whose sense a shared name is read in by default. */
+        private val DERIVED_ORDER: Comparator<Word> = compareBy<Word> { word ->
+            when (word.id.namespace) {
+                Identifier.DEFAULT_NAMESPACE -> 0
+                Constants.MOD_ID -> 1
+                else -> 2
+            }
+        }.thenBy { it.id.toString() }
 
         private fun <T> read(
             resources: ResourceManager,

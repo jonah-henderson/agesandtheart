@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "A placed feature: one member of the features, said as itself (`oak`). What is said of it is said of that feature",
+    "alone: its colour and size, the block its leaves are made of where it has any, and how much of it there is."
+  ],
+  "terminal": true,
+  "part": "features",
+  "accepts": [
+    { "concept": "colour", "becomes": [ { "sets": "colour" } ] },
+    { "concept": "size", "becomes": [ { "sets": "size" } ] },
+    { "concept": "block", "only": [ "#agesandtheart:makes_a_world" ], "becomes": [ { "sets": "foliage" } ] },
+    { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
+  ]
+}

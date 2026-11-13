@@ -175,7 +175,7 @@ wonder_age =
     age only badlands red_sand surface sandfall orange sky
     | age snow_block surface inferno phenomena only snowy_plains
     | age prismatic rainbow purple sky only cherry_grove
-    | age [land] lattice underground glowstone and shroomlight veins
+    | age [land] latticed underground glowstone and shroomlight veins
     | age [land] delved underground glowstone and shroomlight veins
     | age colossal chambered underground only lush_caves
     | age floating landmass hollow underground [colour] sky only plains

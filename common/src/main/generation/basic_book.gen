@@ -30,7 +30,7 @@ rare_material_age =
 
 # Between them the curiosities use the aiming pages: a basic book is where a player first meets the parts of a
 # world there are to aim at. A member is followed by the page of its part where that reads more naturally than
-# the member alone (Jonah, 2026-10-21) -- `insular landmass`, `tunnels underground`, `tempest phenomena` -- and
+# the member alone (Jonah, 2026-10-21) -- `insular landmass`, `tunnelled underground`, `tempest phenomena` -- and
 # read as the part it is of. Not after `trees` or `flowers`, which say their part plainly.
 
 # One thing to look at and one thing to find, each drawn from its own group so no two say the same part of
@@ -118,14 +118,14 @@ bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures | eroded features | sterile features | sparse features | ores features | empty underground
 
 underground_beside_a_sea =
-    tunnels underground@4
+    tunnelled underground@4
     | fissured underground@4
     | chambered underground@3
     | riddled rock@3
-    | [size] tunnels underground@2
+    | [size] tunnelled underground@2
     | delved underground
     | hollow underground
-    | lattice underground
+    | latticed underground
     | open underground@2
     | rich underground
 
@@ -351,15 +351,15 @@ formation_shape = arches | boulders | obelisks | pyramids | rings | spikes | ped
 
 # The dramatic undergrounds are the rare end of this: halls, the hollow and the lattice.
 underground =
-    tunnels underground@4
+    tunnelled underground@4
     | fissured underground@4
     | chambered underground@3
     | riddled rock@3
     | dry rock
-    | [size] tunnels underground@2
+    | [size] tunnelled underground@2
     | delved underground
     | hollow underground
-    | lattice underground
+    | latticed underground
     | open underground@2
     | rich underground
 

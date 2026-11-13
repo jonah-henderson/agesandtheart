@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.PorousCaves
-import co.voik.agesandtheart.age.language.Speech
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.GreatHalls
@@ -101,15 +100,10 @@ enum class Underground(override val key: String) : AuthoredPreset {
     override val aspect = Aspect.UNDERGROUND
 
     /**
-     * **A vault is a thing with a name**, and so are a tunnel, a lattice and a fissure, so the pages that mean them are minted here
-     * the way a landform's is — `chambered underground` rather than a hopeful pile of adjectives. The other
-     * three stay unnamed and are reached by what they are like, there being nothing to a hollow rock but
-     * its quality.
+     * The four hollows with a name have a page minted here, each saying what the rock is like, as a landform's does —
+     * `chambered underground`, `tunnelled underground`. The other three are reached by what they are like.
      */
-    override val writtenWordFor: String? get() = key.takeIf { this in SIZED }
-
-    /** `tunnels` and `lattice` are things a book's depths hold; the other minted pages say what they are like. */
-    override val writtenSpeech: Speech? get() = Speech.PLURAL.takeIf { this in SAID_AS_THINGS }
+    override val writtenWordFor: String? get() = WRITTEN[this]
 
     /**
      * How big a chamber or a tunnel is — the axis every other size in the language is said on, so
@@ -323,7 +317,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
 
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
         private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
-        private val SAID_AS_THINGS = setOf(TUNNELS, LATTICE)
+        private val WRITTEN = mapOf(CHAMBERED to "chambered", TUNNELS to "tunnelled", LATTICE to "latticed", FISSURED to "fissured")
         private val TAKES_SIZE = SIZED + NOISE_CAVES + POROUS
 
         // Deep enough to hold a surface's dirt and a tree's roots over the void.

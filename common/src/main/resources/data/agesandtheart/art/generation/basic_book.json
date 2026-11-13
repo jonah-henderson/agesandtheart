@@ -133,14 +133,14 @@
       {"produce":["empty","underground"]}
     ],
     "underground_beside_a_sea": [
-      {"weight":4.0,"produce":["tunnels","underground"]},
+      {"weight":4.0,"produce":["tunnelled","underground"]},
       {"weight":4.0,"produce":["fissured","underground"]},
       {"weight":3.0,"produce":["chambered","underground"]},
       {"weight":3.0,"produce":["riddled","rock"]},
-      {"weight":2.0,"produce":["[size]","tunnels","underground"]},
+      {"weight":2.0,"produce":["[size]","tunnelled","underground"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]},
+      {"produce":["latticed","underground"]},
       {"weight":2.0,"produce":["open","underground"]},
       {"produce":["rich","underground"]}
     ],
@@ -469,15 +469,15 @@
       {"produce":["pedestals"]}
     ],
     "underground": [
-      {"weight":4.0,"produce":["tunnels","underground"]},
+      {"weight":4.0,"produce":["tunnelled","underground"]},
       {"weight":4.0,"produce":["fissured","underground"]},
       {"weight":3.0,"produce":["chambered","underground"]},
       {"weight":3.0,"produce":["riddled","rock"]},
       {"produce":["dry","rock"]},
-      {"weight":2.0,"produce":["[size]","tunnels","underground"]},
+      {"weight":2.0,"produce":["[size]","tunnelled","underground"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]},
+      {"produce":["latticed","underground"]},
       {"weight":2.0,"produce":["open","underground"]},
       {"produce":["rich","underground"]}
     ],

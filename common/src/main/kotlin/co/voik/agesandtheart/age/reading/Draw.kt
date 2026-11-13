@@ -123,17 +123,17 @@ private class Drawing(
      * Every word that, laid after [dangling], closes a phrase taking something of it through an acceptance that resolves
      * dangling offers, by name, with that reading.
      */
-    private fun takersOf(dangling: String): List<Pair<String, Reading>> = words.byName.values
+    private fun takersOf(dangling: String): List<Pair<String, Reading>> = words.all
         .filter { it.defaultSense?.behaviour == null && !isGated(it) }
-        .sortedBy { it.name }
         .mapNotNull { taker ->
-            val read = Reader.read(words, listOf(dangling, taker.name), membership, seed)
+            val page = words.pageFor(taker)
+            val read = Reader.read(words, listOf(dangling, page), membership, seed)
             val phrase = read.phrases.singleOrNull { it.head == 1 } ?: return@mapNotNull null
             val sense = read.pages[1].sense?.let(taker.senses::getOrNull) ?: taker.defaultSense
             fun resolvesIt(placement: Placement) =
                 placement.from == 0 && sense?.acceptanceOf(placement.offer.concept)?.canResolveDanglingOffers == true
             val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
-            if (resolving.placements.isEmpty()) null else taker.name to read.copy(phrases = listOf(resolving))
+            if (resolving.placements.isEmpty()) null else page to read.copy(phrases = listOf(resolving))
         }
 
     // ----- Landings -----
@@ -164,7 +164,26 @@ private class Drawing(
             joined = phrase.joined,
             sitedIn = phrase.sitedIn,
             everywhere = phrase.everywhere,
+            biome = biomeNamedBy(phrase),
         )
+    }
+
+    /** The biome a phrase's thing names, where it is one: what is said of a biome is said in it. */
+    private fun biomeNamedBy(phrase: Phrase): Identifier? {
+        if (phrase.part != Aspect.BIOMES) return null
+        val chosen = phrase.own.filterIsInstance<Effect.Chooses>().singleOrNull { it.aspect == Aspect.BIOMES } ?: return null
+        return Identifier.tryParse(chosen.member)
+    }
+
+    /** Whether [effect] may be sited in one biome on [aspect]: a setting that may, or a population that may be. */
+    private fun isConfinable(effect: Effect, aspect: Aspect): Boolean {
+        val parameter = when (effect) {
+            is Effect.Sets -> effect.parameter.name
+            is Effect.Bends -> effect.parameter.name
+            is Effect.Chooses, is Effect.Admits, is Effect.Excludes, is Effect.Restricts, is Effect.Leans -> return aspect.confinablePool != null
+            else -> return false
+        }
+        return aspect.confinableParameters.any { it.name == parameter }
     }
 
     /** The members a phrase is said of: the member it took, or those its own meaning names or mints, or null for all of its part. */
@@ -231,6 +250,8 @@ private class Drawing(
         val joined: Int?,
         val sitedIn: Identifier?,
         val everywhere: Boolean,
+        /** The biome it names, in which what it takes is said, or null where it is no biome. */
+        val biome: Identifier?,
     ) {
         /**
          * Its own meaning and [landing] of its placements, said of its members. A negated or `only` thing is one claim,
@@ -245,7 +266,8 @@ private class Drawing(
             val bringsABody = members is Members.Body
             val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)
                 else said(own, word, head, CERTAIN, joined)
-            return ownLandings + landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.offer.chance, placement.joined) }
+            val taken = landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.offer.chance, placement.joined) }
+            return ownLandings + taken.mapNotNull(::sitedInItsBiome)
         }
 
         private fun said(effects: List<Effect>, by: String, page: Int, chance: Double, joinedBy: Int?, alwaysAtThePart: Boolean = false): List<Landing> {
@@ -253,6 +275,17 @@ private class Drawing(
             return grouped.map { (place, here) ->
                 Landing(here, place, by, page, head, chance, joinedBy, sitedIn, everywhere, polarity)
             }
+        }
+
+        /**
+         * [landing] said in the biome this names, where it is said of some other part: what may be sited there, and
+         * nothing where nothing may — a biome never turns a setting for the whole Age. What lands on the biome itself is its own.
+         */
+        private fun sitedInItsBiome(landing: Landing): Landing? {
+            val biome = biome ?: return landing
+            if (landing.place.aspect == part) return landing
+            val confined = landing.effects.filter { isConfinable(it, landing.place.aspect) }
+            return if (confined.isEmpty()) null else landing.copy(effects = confined, sitedIn = biome)
         }
     }
 

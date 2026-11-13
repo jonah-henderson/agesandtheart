@@ -9,10 +9,8 @@
     "there is: a set of blocks and a radius."
   ],
   "values": [
-    "minecraft:fire",
-    "minecraft:soul_fire",
-    "minecraft:campfire",
-    "minecraft:soul_campfire",
+    "#minecraft:fire",
+    "#minecraft:campfires",
     "minecraft:lava",
     "minecraft:magma_block",
     "agesandtheart:lava_tube"

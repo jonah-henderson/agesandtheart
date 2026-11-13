@@ -127,7 +127,7 @@ object DerivedWords {
     fun designs(): List<Word> = Aspect.entries.flatMap { aspect ->
         aspect.authored.mapNotNull { preset ->
             val said = preset.writtenWordFor ?: return@mapNotNull null
-            choosing(said.location(), aspect, preset.key, preset.writtenSpeech)
+            choosing(said.location(), aspect, preset.key, Speech.ADJECTIVE)
         }
     }
 

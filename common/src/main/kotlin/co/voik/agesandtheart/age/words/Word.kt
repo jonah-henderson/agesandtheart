@@ -35,6 +35,18 @@ data class Word(
     /** The sense read where its neighbours fit more than one: the one marked, or its only one. */
     val defaultSense: Sense? get() = senses.singleOrNull(Sense::isDefault) ?: senses.singleOrNull()
 
+    /**
+     * This word with every sense of [other] the neighbours could tell from its own ([Sense.readsLike]) after them, its own
+     * default still the default.
+     */
+    fun withSensesOf(other: Word): Word {
+        val added = other.senses.filter { theirs -> senses.none { it.readsLike(theirs) } }.map { it.copy(isDefault = false) }
+        if (added.isEmpty()) return this
+        val default = defaultSense
+        val own = if (default != null && !default.isDefault) senses.map { it.copy(isDefault = it === default) } else senses
+        return copy(senses = own + added, speech = speech ?: other.speech)
+    }
+
     companion object {
         private const val SENSES_KEY = "senses"
 

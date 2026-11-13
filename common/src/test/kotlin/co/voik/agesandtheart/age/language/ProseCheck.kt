@@ -36,7 +36,7 @@ class ProseCheck : FunSpec({
     private companion object {
         val BOOKS = listOf(
             "age large insular landmass tunnels underground" to
-                "An Age. Its landmass is large and insular. Its underground holds tunnels.",
+                "An Age. Its landmass is large and insular. Its underground is tunnelled.",
             "age uncanny landmass" to "An Age. Its landmass is uncanny.",
             "age large spider large beasts" to "An Age. Its spiders are large. Its beasts are large.",
             "age teeming large spider" to "An Age. Its spiders are teeming and large.",

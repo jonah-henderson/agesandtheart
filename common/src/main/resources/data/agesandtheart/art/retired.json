@@ -24,7 +24,9 @@
     "minecraft:cherry_checked": "cherry",
     "minecraft:dark_oak_checked": "dark_oak",
     "minecraft:mangrove_checked": "mangrove",
-    "minecraft:pale_oak_checked": "pale_oak"
+    "minecraft:pale_oak_checked": "pale_oak",
+    "tunnels": "tunnelled",
+    "lattice": "latticed"
   },
   "phrases": {
     "rising_north": "north rising",

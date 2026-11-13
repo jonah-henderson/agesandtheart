@@ -56,6 +56,16 @@ data class Sense(
 
     fun withKind(kind: Kind): Sense = copy(inherited = kind)
 
+    /**
+     * Whether the neighbours could never choose between this and [other]: both things or both not, of one part and one
+     * kind, offering the same concepts — two blocks, two creatures. Their values may differ; what reads them may not.
+     */
+    fun readsLike(other: Sense): Boolean {
+        fun offered(sense: Sense) = sense.offers.map(Offer::concept).toSet()
+        val sameRole = endsAPhrase == other.endsAPhrase && speaksFor == other.speaksFor && kind == other.kind
+        return sameRole && offered(this) == offered(other)
+    }
+
     companion object {
         /** An own meaning is fixed: there is no offer for it to take a value from. */
         private val MEANS: Codec<List<Effect>> = EffectTemplate.LIST_CODEC.flatXmap(

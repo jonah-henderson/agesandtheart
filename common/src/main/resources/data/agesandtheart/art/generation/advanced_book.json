@@ -137,7 +137,7 @@
       {"produce":["age","only","badlands","red_sand","surface","sandfall","orange","sky"]},
       {"produce":["age","snow_block","surface","inferno","phenomena","only","snowy_plains"]},
       {"produce":["age","prismatic","rainbow","purple","sky","only","cherry_grove"]},
-      {"produce":["age","[land]","lattice","underground","glowstone","and","shroomlight","veins"]},
+      {"produce":["age","[land]","latticed","underground","glowstone","and","shroomlight","veins"]},
       {"produce":["age","[land]","delved","underground","glowstone","and","shroomlight","veins"]},
       {"produce":["age","colossal","chambered","underground","only","lush_caves"]},
       {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains"]},

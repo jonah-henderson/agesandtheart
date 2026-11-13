@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "A creature: one member of the inhabitants, said as itself (`zombie`). What is said of it is said of that creature",
+    "alone: its colour, its size and its pace, and how many of it there are."
+  ],
+  "terminal": true,
+  "part": "inhabitants",
+  "accepts": [
+    { "concept": "colour", "becomes": [ { "sets": "colour" } ] },
+    { "concept": "size", "becomes": [ { "sets": "size" } ] },
+    { "concept": "pace", "becomes": [ { "sets": "pace" } ] },
+    { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
+  ]
+}
