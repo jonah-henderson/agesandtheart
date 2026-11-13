@@ -1,0 +1,174 @@
+{
+  "_comment": [
+    "The land: what it is shaped as, how high and worn it stands, which way it runs, and what it is made of."
+  ],
+  "terminal": true,
+  "part": "landmass",
+  "accepts": [
+    {
+      "concept": "torn",
+      "becomes": [
+        {
+          "sets": {
+            "torn": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "incongruous",
+      "becomes": [
+        {
+          "sets": {
+            "incongruous": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "variety",
+      "becomes": [
+        {
+          "sets": "variety"
+        }
+      ]
+    },
+    {
+      "concept": "patchwork",
+      "becomes": [
+        {
+          "sets": {
+            "patchwork": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_rock"
+      ],
+      "becomes": [
+        {
+          "sets": "stone"
+        }
+      ]
+    },
+    {
+      "concept": "mingling",
+      "becomes": [
+        {
+          "sets": "mingling"
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "wear"
+        }
+      ]
+    },
+    {
+      "concept": "terracing",
+      "becomes": [
+        {
+          "sets": "terracing"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "relief"
+        }
+      ]
+    },
+    {
+      "concept": "arrangement",
+      "becomes": [
+        {
+          "sets": "arrangement"
+        }
+      ]
+    },
+    {
+      "concept": "spacing",
+      "becomes": [
+        {
+          "sets": "spacing"
+        }
+      ]
+    },
+    {
+      "concept": "shape",
+      "becomes": [
+        {
+          "sets": "shape"
+        }
+      ]
+    },
+    {
+      "concept": "direction",
+      "becomes": [
+        {
+          "sets": "bearing",
+          "as": {
+            "north": "-1.0..-1.0",
+            "south": "-1.0..-1.0",
+            "northeast": "0.5..0.5",
+            "southwest": "0.5..0.5",
+            "east": "0.0..0.0",
+            "west": "0.0..0.0",
+            "southeast": "-0.5..-0.5",
+            "northwest": "-0.5..-0.5"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "chooses": "landmass"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "landmass"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "landmass"
+        }
+      ]
+    }
+  ]
+}

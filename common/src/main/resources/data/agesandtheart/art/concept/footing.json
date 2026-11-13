@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Whether the biomes follow the shape of the land."
+  ],
+  "value": "option",
+  "price": 4
+}

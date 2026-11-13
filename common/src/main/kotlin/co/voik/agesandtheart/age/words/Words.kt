@@ -39,7 +39,7 @@ data class Words(
     companion object {
         const val CONCEPT_DIRECTORY = "art/concept"
         const val KIND_DIRECTORY = "art/kind"
-        const val WORD_DIRECTORY = "art/word"
+        const val WORD_DIRECTORY = "art/words"
 
         /**
          * What the packs in [resources] define, checked; [behaviours] are the structure words' code there is, and

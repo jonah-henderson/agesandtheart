@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "The grass's colour."
+  ],
+  "terminal": true,
+  "part": "grass",
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "The water: how murky, what colour, and what it holds."
+  ],
+  "terminal": true,
+  "part": "waters",
+  "accepts": [
+    {
+      "concept": "murk",
+      "becomes": [
+        {
+          "sets": "murk"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "treasure",
+      "becomes": [
+        {
+          "sets": {
+            "treasure": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

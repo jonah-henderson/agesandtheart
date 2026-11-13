@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Widens the thing before it to every place: `cats everywhere`."
+  ],
+  "behaviour": "everywhere",
+  "price": 2
+}

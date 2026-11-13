@@ -1,0 +1,117 @@
+{
+  "_comment": [
+    "The clouds: how high, how much of the sky they cover, and how they move."
+  ],
+  "terminal": true,
+  "part": "clouds",
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "ceiling"
+        }
+      ]
+    },
+    {
+      "concept": "absent",
+      "becomes": [
+        {
+          "sets": {
+            "absent": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    },
+    {
+      "concept": "cover",
+      "becomes": [
+        {
+          "sets": "cover"
+        }
+      ]
+    },
+    {
+      "concept": "clumping",
+      "becomes": [
+        {
+          "sets": "clumping"
+        }
+      ]
+    },
+    {
+      "concept": "torn",
+      "becomes": [
+        {
+          "sets": {
+            "torn": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    }
+  ]
+}

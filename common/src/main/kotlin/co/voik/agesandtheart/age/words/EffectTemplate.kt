@@ -31,10 +31,15 @@ sealed interface EffectTemplate {
         override fun applied(value: Value, part: Aspect?): Effect = fencedTo(effect, part)
     }
 
-    /** An effect made of the offer's value: [target] is a parameter, a part's page, or [THE_VALUE] where neither is needed. */
-    data class Taking(val verb: Verb, val target: String) : EffectTemplate {
+    /**
+     * An effect made of the offer's value: [target] is a parameter, a part's page, or [THE_VALUE] where neither is needed.
+     * A parameter set from a value of another kind reads it through [values] — a compass point as a land's bearing — and
+     * takes nothing the table does not name.
+     */
+    data class Taking(val verb: Verb, val target: String, val values: Map<String, String> = emptyMap()) : EffectTemplate {
         override fun applied(value: Value, part: Aspect?): Effect? {
-            val text = (value as? Value.Text)?.text
+            val given = (value as? Value.Text)?.text
+            val text = if (values.isEmpty()) given else values[given]
             return when (verb) {
                 Verb.SETS -> text?.let { Effect.Sets(parameterOf(part), it) }
                 Verb.BENDS -> text?.let { Effect.Bends(parameterOf(part), it) }
@@ -135,12 +140,17 @@ private data class EffectSpelling(
     val madeOf: String? = null,
     val bans: String? = null,
     val abundance: Either<String, Double>? = null,
+    /** What a taking `sets` or `bends` reads each value as. */
+    val readAs: Map<String, String>? = null,
 ) {
     fun read(): DataResult<List<EffectTemplate>> {
         val templates = mutableListOf<EffectTemplate>()
         val problems = mutableListOf<String>()
+        val takesAParameter = sets?.left()?.isPresent == true || bends?.left()?.isPresent == true
+        if (readAs != null && !takesAParameter) problems += "'as' reads a value only for a taking 'sets' or 'bends'"
         fun taking(verb: EffectTemplate.Verb, target: String) {
-            if (verb.targets.admits(target)) templates += EffectTemplate.Taking(verb, target) else problems += "'$target' is no target for ${verb.key}"
+            val values = if (verb.targets == EffectTemplate.Targets.PARAMETER) readAs.orEmpty() else emptyMap()
+            if (verb.targets.admits(target)) templates += EffectTemplate.Taking(verb, target, values) else problems += "'$target' is no target for ${verb.key}"
         }
         fun <T> either(spelled: Either<String, T>?, verb: EffectTemplate.Verb, fixed: (T) -> List<Effect>) {
             spelled?.ifLeft { taking(verb, it) }?.ifRight { value -> templates += fixed(value).map(EffectTemplate::Fixed) }
@@ -189,9 +199,10 @@ private data class EffectSpelling(
 
         private fun taking(template: EffectTemplate.Taking): EffectSpelling {
             val target = template.target
+            val readAs = template.values.ifEmpty { null }
             return when (template.verb) {
-                EffectTemplate.Verb.SETS -> EffectSpelling(sets = Either.left(target))
-                EffectTemplate.Verb.BENDS -> EffectSpelling(bends = Either.left(target))
+                EffectTemplate.Verb.SETS -> EffectSpelling(sets = Either.left(target), readAs = readAs)
+                EffectTemplate.Verb.BENDS -> EffectSpelling(bends = Either.left(target), readAs = readAs)
                 EffectTemplate.Verb.CHOOSES -> EffectSpelling(chooses = Either.left(target))
                 EffectTemplate.Verb.ADMITS -> EffectSpelling(admits = Either.left(target))
                 EffectTemplate.Verb.EXCLUDES -> EffectSpelling(excludes = Either.left(target))
@@ -242,11 +253,12 @@ private data class EffectSpelling(
                 Codec.STRING.optionalFieldOf("made_of").forGetter { Optional.ofNullable(it.madeOf) },
                 Codec.STRING.optionalFieldOf("bans").forGetter { Optional.ofNullable(it.bans) },
                 targetOr(Codec.DOUBLE).optionalFieldOf("abundance").forGetter { it.abundance.optional() },
-            ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, madeOf, bans, abundance ->
+                STRINGS.optionalFieldOf("as").forGetter { Optional.ofNullable(it.readAs) },
+            ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, madeOf, bans, abundance, readAs ->
                 EffectSpelling(
                     sets.orElse(null), bends.orElse(null), chooses.orElse(null), admits.orElse(null), excludes.orElse(null),
                     restricts.orElse(null), leans.orElse(null), mints.orElse(null), template.orElse(null), madeOf.orElse(null),
-                    bans.orElse(null), abundance.orElse(null),
+                    bans.orElse(null), abundance.orElse(null), readAs.orElse(null),
                 )
             }
         }

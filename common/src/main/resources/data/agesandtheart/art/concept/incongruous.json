@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Whether patches of the ground are the Age's own terrain read from far away."
+  ],
+  "value": "flag",
+  "price": 4
+}

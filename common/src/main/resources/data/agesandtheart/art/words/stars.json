@@ -1,0 +1,87 @@
+{
+  "_comment": [
+    "The stars: how many and how bright, their colour, and how they wheel."
+  ],
+  "terminal": true,
+  "part": "stars",
+  "accepts": [
+    {
+      "concept": "density",
+      "becomes": [
+        {
+          "sets": "density"
+        }
+      ]
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "fades",
+      "becomes": [
+        {
+          "sets": "fades"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    }
+  ]
+}

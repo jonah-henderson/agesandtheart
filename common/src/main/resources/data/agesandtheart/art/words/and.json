@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Joins like with like, so both values arrive together: `red and blue sky`, `trees and villages`."
+  ],
+  "behaviour": "and",
+  "price": 2
+}

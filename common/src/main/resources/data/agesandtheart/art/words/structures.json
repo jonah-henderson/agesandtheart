@@ -1,0 +1,140 @@
+{
+  "_comment": [
+    "What was built: which, of what, how worn and how high. Their size, height, wear and the rest are said of the structures themselves, never of the whole Age."
+  ],
+  "terminal": true,
+  "part": "structures",
+  "accepts": [
+    {
+      "concept": "abandoned",
+      "becomes": [
+        {
+          "sets": {
+            "abandoned": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "incongruous",
+      "becomes": [
+        {
+          "sets": {
+            "incongruous": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_world"
+      ],
+      "becomes": [
+        {
+          "sets": "material"
+        }
+      ]
+    },
+    {
+      "concept": "spacing",
+      "becomes": [
+        {
+          "sets": "spacing"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "height"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "charred",
+      "becomes": [
+        {
+          "sets": {
+            "charred": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "variety",
+      "becomes": [
+        {
+          "sets": "variety"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "admits": "structures"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "structures"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "structures"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
+  ]
+}

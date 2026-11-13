@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "The Age itself: what reaches it, it hands to every part that takes it. It takes a template and a ban itself."
+  ],
+  "behaviour": "age",
+  "terminal": true,
+  "price": 1,
+  "accepts": [
+    {
+      "concept": "template",
+      "becomes": [
+        {
+          "template": "$"
+        }
+      ]
+    },
+    {
+      "concept": "ban",
+      "becomes": [
+        {
+          "bans": "$"
+        }
+      ]
+    }
+  ]
+}

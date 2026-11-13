@@ -1,0 +1,43 @@
+{
+  "_comment": [
+    "How hot and how wet the Age is, and how many climates it holds."
+  ],
+  "terminal": true,
+  "part": "climate",
+  "accepts": [
+    {
+      "concept": "temperature",
+      "becomes": [
+        {
+          "sets": "temperature"
+        }
+      ]
+    },
+    {
+      "concept": "humidity",
+      "becomes": [
+        {
+          "sets": "humidity"
+        }
+      ]
+    },
+    {
+      "concept": "evaporation",
+      "becomes": [
+        {
+          "sets": {
+            "evaporation": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "cast",
+      "becomes": [
+        {
+          "sets": "cast"
+        }
+      ]
+    }
+  ]
+}

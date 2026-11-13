@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Sites the thing before it in a biome: `plants in jungle`."
+  ],
+  "behaviour": "in",
+  "price": 2
+}

@@ -1,0 +1,65 @@
+{
+  "_comment": [
+    "A rainbow in the sky, and how it shows. Said of anything whose colours may turn, it turns them, as `prismatic` does: `rainbow sky`."
+  ],
+  "terminal": true,
+  "part": "rainbow",
+  "means": [
+    {
+      "admits": {
+        "phenomena": [
+          "rainbow"
+        ]
+      }
+    }
+  ],
+  "offers": [
+    {
+      "concept": "colours_cycling"
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "rain",
+      "becomes": [
+        {
+          "sets": "rain"
+        }
+      ]
+    }
+  ]
+}

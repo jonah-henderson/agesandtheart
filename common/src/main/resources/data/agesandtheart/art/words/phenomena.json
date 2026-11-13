@@ -1,0 +1,99 @@
+{
+  "_comment": [
+    "What happens in the Age: storms and curtains and falls, how often and how strongly."
+  ],
+  "terminal": true,
+  "part": "phenomena",
+  "accepts": [
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    },
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "strength"
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "admits": "phenomena"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "phenomena"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "phenomena"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
+  ]
+}

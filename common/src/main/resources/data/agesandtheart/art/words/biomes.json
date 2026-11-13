@@ -1,0 +1,57 @@
+{
+  "_comment": [
+    "The biomes the Age is made of: which, how many, and how freely they lie."
+  ],
+  "terminal": true,
+  "part": "biomes",
+  "accepts": [
+    {
+      "concept": "footing",
+      "becomes": [
+        {
+          "sets": "footing"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "admits": "biomes"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "biomes"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "biomes"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
+  ]
+}

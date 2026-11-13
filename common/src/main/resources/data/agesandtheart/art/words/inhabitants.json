@@ -1,0 +1,146 @@
+{
+  "_comment": [
+    "What lives in the Age: which creatures, how many, how strong, how they bear themselves."
+  ],
+  "terminal": true,
+  "part": "inhabitants",
+  "accepts": [
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "charged",
+      "becomes": [
+        {
+          "sets": {
+            "charged": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "herd",
+      "becomes": [
+        {
+          "sets": "herd"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "strength"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "incongruous",
+      "becomes": [
+        {
+          "sets": {
+            "incongruous": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "none_below",
+      "becomes": [
+        {
+          "sets": {
+            "none_below": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "variety",
+      "becomes": [
+        {
+          "sets": "variety"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        },
+        {
+          "sets": "wool"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "disposition",
+      "becomes": [
+        {
+          "sets": "disposition"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "admits": "inhabitants"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "inhabitants"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "inhabitants"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
+  ]
+}

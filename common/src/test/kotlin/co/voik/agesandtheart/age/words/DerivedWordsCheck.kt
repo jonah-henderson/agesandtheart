@@ -36,33 +36,12 @@ import kotlin.io.path.nameWithoutExtension
 @Tags(NEEDS_REGISTRIES)
 class DerivedWordsCheck : FunSpec({
 
-    fun <T> shipped(directory: String, codecFor: (Identifier) -> MapCodec<T>): List<T> =
-        MinecraftRegistries.resourceRoot().resolve("data/agesandtheart/$directory").listDirectoryEntries()
-            .filter { it.extension == "json" }
-            .map { file ->
-                codecFor(file.nameWithoutExtension.location()).codec().parse(JsonOps.INSTANCE, JsonParser.parseString(Files.readString(file)))
-                    .getOrThrow { IllegalStateException("${file.fileName} does not read: $it") }
-            }
+    fun <T> shipped(directory: String, codecFor: (Identifier) -> MapCodec<T>): List<T> = ShippedWords.shipped(directory, codecFor)
 
-    fun <T> read(codec: Codec<T>, json: String): T = codec.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).getOrThrow()
+    fun <T> read(codec: Codec<T>, json: String): T = ShippedWords.read(codec, json)
 
-    /** A few words of the kind step 6 writes, so that phrases of derived words have an `age` and a land to read against. */
-    val written = mapOf(
-        "age" to """{ "behaviour": "age", "terminal": true }""",
-        "landmass" to """{ "terminal": true, "part": "landmass", "accepts": [ { "concept": "member", "becomes": [ { "chooses": "landmass" } ] } ] }""",
-        "red" to """{ "offers": [ { "concept": "colour", "value": "red" } ] }""",
-    )
-
-    val derived by lazy {
-        val worldgen = MinecraftRegistries.worldgen
-        DerivedWords.blocks() + DerivedWords.biomes(worldgen) + DerivedWords.features(worldgen) + DerivedWords.structures(worldgen) +
-            DerivedWords.creatures(ShippedCorpus.vocabulary.spawning.writable) + DerivedWords.designs()
-    }
-
-    val words by lazy {
-        val authored = written.map { (name, json) -> read(Word.mapCodec(name.location()).codec(), json) }
-        Words.of(shipped(Words.CONCEPT_DIRECTORY, Concept::mapCodec), shipped(Words.KIND_DIRECTORY, Kind::mapCodec), authored, StructureWords.IDS, derived)
-    }
+    /** A describing word of the kind a later batch writes, beside what we ship. */
+    val words by lazy { ShippedWords.with(mapOf("red" to """{ "offers": [ { "concept": "colour", "value": "red" } ] }""")) }
 
     val membership by lazy { WorldMembership(ShippedCorpus.vocabulary) }
 

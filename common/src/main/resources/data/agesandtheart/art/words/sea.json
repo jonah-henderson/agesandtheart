@@ -1,0 +1,80 @@
+{
+  "_comment": [
+    "The sea: how deep it stands, whether it climbs, what fills it. A block that can be a sea is one."
+  ],
+  "terminal": true,
+  "part": "sea",
+  "accepts": [
+    {
+      "concept": "depth",
+      "becomes": [
+        {
+          "sets": "depth"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "depth"
+        }
+      ]
+    },
+    {
+      "concept": "climbing",
+      "becomes": [
+        {
+          "sets": {
+            "climbing": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_sea"
+      ],
+      "becomes": [
+        {
+          "chooses": "sea"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "chooses": "sea"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "sea"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "sea"
+        }
+      ]
+    }
+  ]
+}

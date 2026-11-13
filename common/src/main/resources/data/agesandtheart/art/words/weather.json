@@ -1,0 +1,33 @@
+{
+  "_comment": [
+    "How often it storms and thunders, and how quickly the weather turns."
+  ],
+  "terminal": true,
+  "part": "weather",
+  "accepts": [
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ]
+    },
+    {
+      "concept": "thunder",
+      "becomes": [
+        {
+          "sets": "thunder"
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    }
+  ]
+}

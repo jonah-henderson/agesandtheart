@@ -1,0 +1,43 @@
+{
+  "_comment": [
+    "The rock and what is carved through it."
+  ],
+  "terminal": true,
+  "part": "rock",
+  "accepts": [
+    {
+      "concept": "dry",
+      "becomes": [
+        {
+          "sets": {
+            "dry": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "chooses": "rock"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "rock"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "rock"
+        }
+      ]
+    }
+  ]
+}

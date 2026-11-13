@@ -1,0 +1,184 @@
+{
+  "_comment": [
+    "What stands on the land: which, how thick, tall and worn, how laid out, and what its leaves are made of."
+  ],
+  "terminal": true,
+  "part": "features",
+  "accepts": [
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "ore_size",
+      "becomes": [
+        {
+          "sets": "ore_size"
+        }
+      ]
+    },
+    {
+      "concept": "density",
+      "becomes": [
+        {
+          "sets": "thickness"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "height"
+        }
+      ]
+    },
+    {
+      "concept": "uniform",
+      "becomes": [
+        {
+          "sets": {
+            "uniform": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "bare",
+      "becomes": [
+        {
+          "sets": {
+            "bare": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "fallen",
+      "becomes": [
+        {
+          "sets": {
+            "fallen": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_world"
+      ],
+      "becomes": [
+        {
+          "sets": "foliage"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "incongruous",
+      "becomes": [
+        {
+          "sets": {
+            "incongruous": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble"
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "depth",
+      "becomes": [
+        {
+          "sets": "depth"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "tallness"
+        }
+      ]
+    },
+    {
+      "concept": "arrangement",
+      "becomes": [
+        {
+          "sets": "arrangement"
+        }
+      ]
+    },
+    {
+      "concept": "spacing",
+      "becomes": [
+        {
+          "sets": "spacing"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "admits": "features"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "features"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "features"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    }
+  ]
+}

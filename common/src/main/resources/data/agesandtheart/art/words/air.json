@@ -1,0 +1,97 @@
+{
+  "_comment": [
+    "The air: its colour and light, what drifts in it, how hazed, and where the wind blows from."
+  ],
+  "terminal": true,
+  "part": "air",
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "tint",
+      "becomes": [
+        {
+          "sets": "tint"
+        }
+      ]
+    },
+    {
+      "concept": "motes",
+      "becomes": [
+        {
+          "sets": "motes"
+        }
+      ]
+    },
+    {
+      "concept": "haze",
+      "becomes": [
+        {
+          "sets": "haze"
+        }
+      ]
+    },
+    {
+      "concept": "drained",
+      "becomes": [
+        {
+          "sets": {
+            "drained": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "wind",
+      "becomes": [
+        {
+          "sets": "wind"
+        }
+      ]
+    },
+    {
+      "concept": "direction",
+      "becomes": [
+        {
+          "sets": "from"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "light_colour_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "light_colour_cycling": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

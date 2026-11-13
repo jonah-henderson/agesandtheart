@@ -1,0 +1,81 @@
+{
+  "_comment": [
+    "The vault of the sky: its colour, how it turns, and whether it is whole."
+  ],
+  "terminal": true,
+  "part": "sky",
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "fades",
+      "becomes": [
+        {
+          "sets": "fades"
+        }
+      ]
+    },
+    {
+      "concept": "sealed",
+      "becomes": [
+        {
+          "sets": {
+            "sealed": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "torn",
+      "becomes": [
+        {
+          "sets": {
+            "torn": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "shifting",
+      "becomes": [
+        {
+          "sets": {
+            "shifting": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

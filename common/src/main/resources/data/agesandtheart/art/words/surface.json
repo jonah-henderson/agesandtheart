@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "The skin of the ground: what it is made of, and whether it is bare or pitted."
+  ],
+  "terminal": true,
+  "part": "surface",
+  "accepts": [
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_world"
+      ],
+      "becomes": [
+        {
+          "sets": "material"
+        }
+      ]
+    },
+    {
+      "concept": "bare",
+      "becomes": [
+        {
+          "sets": {
+            "bare": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    }
+  ]
+}

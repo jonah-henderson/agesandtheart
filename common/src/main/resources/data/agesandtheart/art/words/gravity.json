@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "How hard the Age pulls. Said only of gravity itself, never of the whole Age, since a lighter world is a gift no broad word should give."
+  ],
+  "terminal": true,
+  "part": "gravity",
+  "accepts": [
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "pull"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "pull"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    }
+  ]
+}

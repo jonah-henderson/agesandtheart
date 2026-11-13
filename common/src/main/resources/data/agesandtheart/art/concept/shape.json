@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "The formation whose shapes the landform is built of, as the placed feature that lays it."
+  ],
+  "value": "option",
+  "price": 4
+}

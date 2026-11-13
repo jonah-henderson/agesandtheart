@@ -1,0 +1,141 @@
+{
+  "_comment": [
+    "The moon: whether there is one, how big and bright, how hard it pulls the tide, and how it moves."
+  ],
+  "terminal": true,
+  "part": "moon",
+  "accepts": [
+    {
+      "concept": "absent",
+      "becomes": [
+        {
+          "sets": {
+            "absent": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "rising",
+      "becomes": [
+        {
+          "sets": "rising"
+        }
+      ]
+    },
+    {
+      "concept": "setting",
+      "becomes": [
+        {
+          "sets": "setting"
+        }
+      ]
+    },
+    {
+      "concept": "path",
+      "becomes": [
+        {
+          "sets": "path"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "pull"
+        }
+      ]
+    },
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "unlit",
+      "becomes": [
+        {
+          "sets": {
+            "unlit": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "light"
+        }
+      ]
+    },
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ]
+    },
+    {
+      "concept": "cast",
+      "becomes": [
+        {
+          "sets": "cast"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

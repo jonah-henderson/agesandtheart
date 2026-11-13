@@ -1,0 +1,94 @@
+{
+  "_comment": [
+    "An aurora in the sky, and how it hangs: bright, high, wide, warm or cold."
+  ],
+  "terminal": true,
+  "part": "aurora",
+  "means": [
+    {
+      "admits": {
+        "phenomena": [
+          "aurora"
+        ]
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "altitude"
+        }
+      ]
+    },
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "warmth",
+      "becomes": [
+        {
+          "sets": "warmth"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

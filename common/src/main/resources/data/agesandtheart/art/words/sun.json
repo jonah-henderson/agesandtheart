@@ -1,0 +1,121 @@
+{
+  "_comment": [
+    "The sun: whether there is one, how big and bright, where it rises and sets, and how it moves."
+  ],
+  "terminal": true,
+  "part": "sun",
+  "accepts": [
+    {
+      "concept": "absent",
+      "becomes": [
+        {
+          "sets": {
+            "absent": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "rising",
+      "becomes": [
+        {
+          "sets": "rising"
+        }
+      ]
+    },
+    {
+      "concept": "setting",
+      "becomes": [
+        {
+          "sets": "setting"
+        }
+      ]
+    },
+    {
+      "concept": "path",
+      "becomes": [
+        {
+          "sets": "path"
+        }
+      ]
+    },
+    {
+      "concept": "still",
+      "becomes": [
+        {
+          "sets": {
+            "still": "true"
+          }
+        }
+      ],
+      "can_take_offers_from_whole_age": false,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "light"
+        }
+      ]
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "light"
+        }
+      ]
+    },
+    {
+      "concept": "cast",
+      "becomes": [
+        {
+          "sets": "cast"
+        }
+      ]
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ]
+    }
+  ]
+}

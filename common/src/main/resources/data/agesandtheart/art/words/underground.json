@@ -1,0 +1,65 @@
+{
+  "_comment": [
+    "The hollows under the ground: where they lie, how big and how close, and what veins them."
+  ],
+  "terminal": true,
+  "part": "underground",
+  "accepts": [
+    {
+      "concept": "depth",
+      "becomes": [
+        {
+          "sets": "depth"
+        }
+      ]
+    },
+    {
+      "concept": "veins",
+      "becomes": [
+        {
+          "sets": "veins"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "density",
+      "becomes": [
+        {
+          "sets": "density"
+        }
+      ]
+    },
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "chooses": "underground"
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "underground"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "underground"
+        }
+      ]
+    }
+  ]
+}
