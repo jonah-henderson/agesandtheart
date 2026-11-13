@@ -16,15 +16,19 @@ import java.util.Optional
  * { "concept": "member", "only": { "woody": ">0.3" }, "becomes": [ { "chooses": "features" } ] }
  * { "concept": "block", "only": [ "#agesandtheart:whole_blocks" ], "becomes": [ { "made_of": "$" } ] }
  * { "concept": "direction", "folds": true }
- * { "concept": "porous", "becomes": [ … ], "can_take_offers_from_whole_age": false, "can_resolve_dangling_offers": false }
+ * { "concept": "strength", "becomes": [ … ], "chance_from_whole_age": 0, "can_resolve_dangling_offers": false }
  * ```
  */
 data class Acceptance(
     val concept: Identifier,
     val only: ValueFilter = ValueFilter.Anything,
     val outcome: Outcome,
-    /** Whether `age` hands this what reaches it: not where a word said of the whole Age would surprise, or give too much. */
-    val canTakeOffersFromWholeAge: Boolean = true,
+    /**
+     * How willing this part is to take the concept from what `age` hands out, the offer's own chance from the whole Age
+     * multiplied by it: none where a word said of the whole Age would surprise, or give too much — `weak age` never
+     * lightens gravity.
+     */
+    val chanceFromWholeAge: Double = Offer.CERTAIN,
     /** Whether a dangling page may be drawn onto this. */
     val canResolveDanglingOffers: Boolean = true,
 ) {
@@ -71,7 +75,7 @@ private data class AcceptanceSpelling(
     val renames: Identifier?,
     val scales: Double?,
     val drops: Boolean,
-    val canTakeOffersFromWholeAge: Boolean,
+    val chanceFromWholeAge: Double,
     val canResolveDanglingOffers: Boolean,
 ) {
     fun read(): DataResult<Acceptance> {
@@ -85,7 +89,7 @@ private data class AcceptanceSpelling(
         val outcome = outcomes.singleOrNull()
             ?: return DataResult.error { "an acceptance of ${PackNames.spell(concept)} names ${outcomes.size} outcomes, where it takes exactly one" }
         val filter = only?.map({ ValueFilter.OneOf(it.toSet()) }, { ValueFilter.Clearing(it) }) ?: ValueFilter.Anything
-        return DataResult.success(Acceptance(concept, filter, outcome, canTakeOffersFromWholeAge, canResolveDanglingOffers))
+        return DataResult.success(Acceptance(concept, filter, outcome, chanceFromWholeAge, canResolveDanglingOffers))
     }
 
     companion object {
@@ -104,7 +108,7 @@ private data class AcceptanceSpelling(
                 renames = (outcome as? Outcome.Renames)?.concept,
                 scales = (outcome as? Outcome.Scales)?.factor,
                 drops = outcome == Outcome.Drops,
-                canTakeOffersFromWholeAge = acceptance.canTakeOffersFromWholeAge,
+                chanceFromWholeAge = acceptance.chanceFromWholeAge,
                 canResolveDanglingOffers = acceptance.canResolveDanglingOffers,
             )
         }
@@ -121,7 +125,7 @@ private data class AcceptanceSpelling(
                 PackNames.CODEC.optionalFieldOf("renames").forGetter { Optional.ofNullable(it.renames) },
                 Codec.DOUBLE.optionalFieldOf("scales").forGetter { Optional.ofNullable(it.scales) },
                 Codec.BOOL.optionalFieldOf("drops", false).forGetter(AcceptanceSpelling::drops),
-                Codec.BOOL.optionalFieldOf("can_take_offers_from_whole_age", true).forGetter(AcceptanceSpelling::canTakeOffersFromWholeAge),
+                Codec.doubleRange(0.0, Offer.CERTAIN).optionalFieldOf("chance_from_whole_age", Offer.CERTAIN).forGetter(AcceptanceSpelling::chanceFromWholeAge),
                 Codec.BOOL.optionalFieldOf("can_resolve_dangling_offers", true).forGetter(AcceptanceSpelling::canResolveDanglingOffers),
             ).apply(instance) { concept, only, becomes, folds, renames, scales, drops, fromWholeAge, resolvesDangling ->
                 AcceptanceSpelling(

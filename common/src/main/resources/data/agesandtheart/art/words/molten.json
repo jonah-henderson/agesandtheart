@@ -1,0 +1,72 @@
+{
+  "_comment": [
+    "Fire under and around: a sea of lava, and everything leaning molten. Said of the rock or the ground it builds them",
+    "of what burns (`#molten`), two Ages in three when said of the whole Age; a red or an orange sky and light, two in",
+    "three. Said of the underground it opens magma chambers in it -- features, built where the underground is meant.",
+    "No embers in the air: they are the inferno's warning that an Age burns now."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "molten": ">0.7"
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#molten": 0.8
+      }
+    },
+    {
+      "concept": "block",
+      "value": "#molten",
+      "chance_from_whole_age": 0.67
+    },
+    {
+      "concept": "colour",
+      "value": "red",
+      "for": "sky",
+      "chance": 0.67
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "sky",
+      "chance": 0.67
+    },
+    {
+      "concept": "tint",
+      "value": "red",
+      "chance": 0.67
+    },
+    {
+      "concept": "tint",
+      "value": "orange",
+      "chance": 0.67
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "admits": {
+            "features": [
+              "agesandtheart:magma_chamber"
+            ]
+          }
+        },
+        {
+          "leans": {
+            "features": {
+              "agesandtheart:magma_chamber": 1.0,
+              "#molten": 0.8
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

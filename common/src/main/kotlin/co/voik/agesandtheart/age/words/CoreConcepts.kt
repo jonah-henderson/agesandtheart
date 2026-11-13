@@ -18,6 +18,9 @@ object CoreConcepts {
     val LEAN: Identifier = "lean".location()
     val BAR: Identifier = "bar".location()
 
+    /** What a reading offers in place of a concept: it is taken by its part's words alone, and carries its own effects. */
+    val READING: Identifier = "reading".location()
+
     /** What a negated or `only` phrase keeps of its description: what picks out member kinds, never a dial. */
     val NARROWING: Set<Identifier> = setOf(MEMBER, LEAN, BAR)
 }

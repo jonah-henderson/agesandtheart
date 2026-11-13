@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.resolution.WorldFacts
 import co.voik.agesandtheart.age.resolution.clashesAmong
 import co.voik.agesandtheart.age.resolution.flawsOf
 import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.JoinedPair
 import co.voik.agesandtheart.age.words.Value
 import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.words.Words
@@ -39,7 +40,8 @@ data class Dangled(val page: Int, val written: String, val drawnOnto: String?)
  * A reading settled and drawn off the seed (`notes/the-word-rework.md`):
  *
  * - where two things that could land clash, the weaker comes to nothing there ([clashesAmong]);
- * - everything placed lands on its offer's chance, and a page `age` handed out lands somewhere at least;
+ * - everything placed lands on its chance, a page's offers of one concept to one part as alternatives drawn once, and a
+ *   page `age` handed out lands somewhere at least;
  * - a page that placed nothing, or all of whose landings were overruled, is drawn onto one word that takes it, never a
  *   gated one, and that word's phrase lands whole.
  */
@@ -67,8 +69,8 @@ private class Drawing(
         val overruled = clashes.map { whereSaid(it.weaker) }.toSet()
         fun stands(landing: Landing) = whereSaid(landing) !in overruled
 
-        val handedOutLanding = thatLand(reading.handedOut)
-        val landed = sayings.flatMap { it.landings(it.placements.filter(::lands)) } +
+        val handedOutLanding = thatLandFromTheAge(reading.handedOut)
+        val landed = sayings.flatMap { it.landings(thatLand(it.placements)) } +
             handedOutLanding.flatMap(::landingsHandedOut) + ofTheWholeAge(handedOutLanding)
         val overruledWhole = possible.groupBy { it.page }.filterValues { ofThePage -> ofThePage.none(::stands) }.keys
         val dangling = (reading.dangling.map(PageRead::index) + overruledWhole).distinct().sorted().map(::drawnOnto)
@@ -95,12 +97,42 @@ private class Drawing(
 
     private val pageRandoms = mutableMapOf<Int, Random>()
 
-    private fun lands(placement: Placement): Boolean =
-        pageRandoms.getOrPut(placement.from) { randomFor(placement.from) }.nextDouble() < placement.offer.chance
+    private fun randomOf(page: Int): Random = pageRandoms.getOrPut(page) { randomFor(page) }
 
-    /** What `age` handed out that lands, each on its chance, and a page all of whose chances missed at its likeliest. */
-    private fun thatLand(handedOut: List<Placement>): List<Placement> = handedOut.groupBy { it.at to it.from }.values
-        .flatMap { ofThePage -> ofThePage.filter(::lands).ifEmpty { listOf(ofThePage.maxBy { it.offer.chance }) } }
+    /**
+     * Those of [placements] that land, each on its own chance — but a page's offers of one concept to one part are
+     * alternatives, `frozen`'s white or grey sky: drawn once at the likeliest's chance, then one of them by their chances.
+     */
+    private fun thatLand(placements: List<Placement>): List<Placement> = placements.groupBy(::alternativesKey).values.flatMap { alternatives ->
+        val random = randomOf(alternatives.first().from)
+        when {
+            alternatives.size == 1 -> alternatives.filter { random.nextDouble() < it.chance }
+            random.nextDouble() >= alternatives.maxOf { it.chance } -> emptyList()
+            else -> listOf(pickedFrom(alternatives, random))
+        }
+    }
+
+    /**
+     * What makes placements alternatives: one page, one part, one concept. Each reading stands alone, and so does each
+     * value of a concept a part holds several of — `volcanic`'s four features, a member each.
+     */
+    private fun alternativesKey(placement: Placement): Any {
+        val holdsSeveral = words.concepts[placement.offer.concept]?.joined == JoinedPair.DIVIDE
+        return if (placement.offer.isAReading || holdsSeveral) placement else Triple(placement.from, placement.part, placement.offer.concept)
+    }
+
+    private fun pickedFrom(alternatives: List<Placement>, random: Random): Placement {
+        var roll = random.nextDouble() * alternatives.sumOf { it.chance }
+        for (alternative in alternatives) {
+            roll -= alternative.chance
+            if (roll <= 0.0) return alternative
+        }
+        return alternatives.last()
+    }
+
+    /** What `age` handed out that lands, and a page all of whose chances missed at its likeliest. */
+    private fun thatLandFromTheAge(handedOut: List<Placement>): List<Placement> = handedOut.groupBy { it.at to it.from }.values
+        .flatMap { ofThePage -> thatLand(ofThePage).ifEmpty { listOf(ofThePage.maxBy { it.chance }) } }
 
     // ----- Dangling -----
 
@@ -115,7 +147,7 @@ private class Drawing(
         val (taker, read) = takers[randomFor(page, DANGLING_SALT).nextInt(takers.size)]
         val phrase = read.phrases.first()
         val saying = sayingOf(phrase, page = page, takerWord = taker)
-        val landing = saying.placements.filter(::lands).ifEmpty { listOf(saying.placements.maxBy { it.offer.chance }) }
+        val landing = thatLand(saying.placements).ifEmpty { listOf(saying.placements.maxBy { it.chance }) }
         return Dangled(page, written[page], taker) to saying.landings(landing)
     }
 
@@ -130,8 +162,11 @@ private class Drawing(
             val read = Reader.read(words, listOf(dangling, page), membership, seed)
             val phrase = read.phrases.singleOrNull { it.head == 1 } ?: return@mapNotNull null
             val sense = read.pages[1].sense?.let(taker.senses::getOrNull) ?: taker.defaultSense
-            fun resolvesIt(placement: Placement) =
-                placement.from == 0 && sense?.acceptanceOf(placement.offer.concept)?.canResolveDanglingOffers == true
+            fun resolvesIt(placement: Placement): Boolean {
+                val acceptance = sense?.acceptanceOf(placement.offer.concept)
+                val resolves = placement.offer.isAReading || acceptance?.canResolveDanglingOffers == true
+                return placement.from == 0 && resolves
+            }
             val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
             if (resolving.placements.isEmpty()) null else page to read.copy(phrases = listOf(resolving))
         }
@@ -222,7 +257,7 @@ private class Drawing(
     private fun landingsHandedOut(placement: Placement): List<Landing> {
         val part = placement.part ?: return emptyList()
         return landingsOf(placement.effects, part, Members.All).map { (place, effects) ->
-            Landing(effects, place, written[placement.from], placement.from, placement.at, placement.offer.chance, joined = placement.joined)
+            Landing(effects, place, written[placement.from], placement.from, placement.at, placement.chance, joined = placement.joined)
         }
     }
 
@@ -230,7 +265,7 @@ private class Drawing(
     private fun ofTheWholeAge(handedOut: List<Placement>): List<Landing> {
         val bans = handedOut.filter { it.part == null }.mapNotNull { placement ->
             val banned = placement.effects.filterIsInstance<Effect.Bans>().ifEmpty { return@mapNotNull null }
-            Landing(banned, WHOLE_AGE, written[placement.from], placement.from, placement.at, placement.offer.chance)
+            Landing(banned, WHOLE_AGE, written[placement.from], placement.from, placement.at, placement.chance)
         }
         val arrival = reading.arrival?.let { arrival ->
             Landing(listOf(Effect.LinksIn(arrival.anchor)), Place(arrival.anchor.aspect), written[arrival.page], arrival.page, arrival.page, CERTAIN)
@@ -266,7 +301,7 @@ private class Drawing(
             val bringsABody = members is Members.Body
             val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)
                 else said(own, word, head, CERTAIN, joined)
-            val taken = landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.offer.chance, placement.joined) }
+            val taken = landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.chance, placement.joined) }
             return ownLandings + taken.mapNotNull(::sitedInItsBiome)
         }
 

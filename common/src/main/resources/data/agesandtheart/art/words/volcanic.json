@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "A world with fire under it, four things under one word: the mountains, the small craters that shell open country,",
+    "the deep magma nobody sees until they dig into it, and the tubes seeded through the rock. Each has its own page;",
+    "this is the page for wanting the set, admitted by name (none grows anywhere on its own) and leaned toward by tag.",
+    "Said of the land it is the land they stand in, of molten rock; said of the rock alone, its stone."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "agesandtheart:volcano"
+    },
+    {
+      "concept": "member",
+      "value": "agesandtheart:firespout"
+    },
+    {
+      "concept": "member",
+      "value": "agesandtheart:magma_chamber"
+    },
+    {
+      "concept": "member",
+      "value": "agesandtheart:lava_tubes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#molten": 1.0
+      },
+      "for": "features"
+    },
+    {
+      "concept": "block",
+      "value": "#molten",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "landmass",
+      "means": [
+        {
+          "admits": {
+            "features": [
+              "agesandtheart:volcano",
+              "agesandtheart:firespout",
+              "agesandtheart:magma_chamber",
+              "agesandtheart:lava_tubes"
+            ]
+          }
+        },
+        {
+          "leans": {
+            "features": {
+              "#molten": 1.0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

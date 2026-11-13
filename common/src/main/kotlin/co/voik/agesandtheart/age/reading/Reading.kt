@@ -68,8 +68,9 @@ data class Phrase(
 )
 
 /**
- * One offer taken: whose it was, the word that took it, the part it lands on, and the effects it became — none, where
- * it was taken and dropped. [carrying] are the pages a describing word folded into this offer on its way.
+ * One offer taken: whose it was, the word that took it, the part it lands on, the effects it became — none, where it
+ * was taken and dropped — and the chance it applies at. [carrying] are the pages a describing word folded into this
+ * offer on its way.
  */
 data class Placement(
     val from: Int,
@@ -80,4 +81,6 @@ data class Placement(
     val carrying: List<Int> = emptyList(),
     /** The first page of the `and` that joined its offer to others, so that both values arrive together. */
     val joined: Int? = null,
+    /** The offer's chance where it was said of a thing, and its chance from the whole Age, times the part's, where `age` handed it out. */
+    val chance: Double = offer.chance,
 )

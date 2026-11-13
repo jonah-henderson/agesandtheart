@@ -1,10 +1,21 @@
 {
   "_comment": [
-    "The rock and what is carved through it."
+    "The rock and what is carved through it. A block said of it is the stone the land is made of."
   ],
   "terminal": true,
   "part": "rock",
   "accepts": [
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_rock"
+      ],
+      "becomes": [
+        {
+          "sets": "landmass.stone"
+        }
+      ]
+    },
     {
       "concept": "dry",
       "becomes": [

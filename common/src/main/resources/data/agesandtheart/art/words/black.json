@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `black sky` the vault, `black sun` the",
+    "star, `black sheep` their wool -- and `black age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of black blocks (`#black`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "black"
+    },
+    {
+      "concept": "block",
+      "value": "#black",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:dark_forest": 0.5,
+        "minecraft:deep_dark": 0.5,
+        "minecraft:basalt_deltas": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:sculk_patch_deep_dark": 0.4,
+        "minecraft:sculk_vein": 0.3,
+        "minecraft:dark_oak_leaf_litter": 0.3
+      },
+      "for": "features"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `purple sky` the vault, `purple sun` the",
+    "star, `purple sheep` their wool -- and `purple age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of purple blocks (`#purple`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "purple"
+    },
+    {
+      "concept": "block",
+      "value": "#purple",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:flower_forest": 0.4,
+        "minecraft:meadow": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:amethyst_geode": 0.5,
+        "minecraft:flower_meadow": 0.4,
+        "minecraft:flower_flower_forest": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Without colour. The air drained, the whole Age seen in grey; everything that holds a colour white -- the vault, the",
+    "air, the water, the sun and moon, the grass and leaves, the clouds; the flowers gone. Said of the rock, the ground",
+    "or what is built, it builds them black, grey or white, one Age in ten when said of the whole Age."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "drained"
+    },
+    {
+      "concept": "colour",
+      "value": "white"
+    },
+    {
+      "concept": "block",
+      "value": "#black",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "block",
+      "value": "#grey",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "block",
+      "value": "#white",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "flowering": "<0.01"
+      },
+      "for": "features"
+    }
+  ]
+}

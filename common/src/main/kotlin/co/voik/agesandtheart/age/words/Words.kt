@@ -144,6 +144,7 @@ private class Checking(
     }
 
     private fun offer(offer: Offer, where: String) {
+        if (offer.isAReading) return
         val concept = known(offer.concept, where) ?: return
         if (!concept.values.admits(offer.value)) {
             problems += "$where offers ${PackNames.spell(concept.id)} a value of the wrong kind: ${offer.value} is no ${concept.values.serializedName}"

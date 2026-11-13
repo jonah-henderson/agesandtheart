@@ -40,6 +40,29 @@ class DrawCheck : FunSpec({
         check(everywhere > 0) { "an even chance never reached two parts" }
     }
 
+    test("a reading is what only its word means of one part: `fiery underground` opens magma chambers, and `fiery sky` does not") {
+        val chambers = Effect.Admits(Aspect.FEATURES, setOf("agesandtheart:magma_chamber"))
+        check(chambers in drawn("fiery underground age").landed.flatMap { it.effects }) { "fiery underground opened no chamber" }
+        check(chambers in drawn("fiery age").landed.flatMap { it.effects }) { "fiery age opened no chamber" }
+        check(chambers !in drawn("fiery sky age").landed.flatMap { it.effects }) { "fiery sky opened a chamber" }
+    }
+
+    test("a page's offers of one concept to one part are alternatives: one is drawn, on the likeliest's chance") {
+        val colours = seeds.map { seed -> drawn("pale sky age", seed).of("pale").filter { it.place.aspect == Aspect.SKY } }
+        check(colours.all { it.size <= 1 }) { "pale gave the sky two colours: ${colours.first { it.size > 1 }}" }
+        val drawnColours = colours.flatten().flatMap { it.effects }.filterIsInstance<Effect.Sets>().map { it.value }.toSet()
+        check(drawnColours == setOf("white", "grey")) { "pale's sky was only ever $drawnColours" }
+        check(colours.count { it.isNotEmpty() } in 90..150) { "pale coloured the sky at ${colours.count { it.isNotEmpty() }} seeds" }
+    }
+
+    test("a meaning incidental to its word is certain said of a thing, and rare said of the whole Age") {
+        fun stone(row: String, seed: Long) = drawn(row, seed).of("ruddy").any { landing -> landing.effects.any { it is Effect.Sets && it.parameter.name == "stone" } }
+        check(seeds.all { stone("ruddy landmass age", it) }) { "ruddy landmass was not always of its stone" }
+        val fromTheAge = seeds.count { stone("ruddy age", it) }
+        check(fromTheAge in 5..45) { "ruddy age built its stone at $fromTheAge seeds of ${seeds.count()}, where one in ten is meant" }
+        check(seeds.all { seed -> drawn("ruddy age", seed).of("ruddy").any { it.place.aspect == Aspect.SKY } }) { "ruddy age did not always colour the sky" }
+    }
+
     test("where two clash, the firmer holds, and a page whose every landing was overruled is drawn elsewhere, for one flaw") {
         val skyPhrase = 2
         val winners = seeds.map { seed ->

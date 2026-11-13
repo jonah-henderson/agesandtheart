@@ -58,7 +58,15 @@ class WordModelCheck : FunSpec({
         check(forTheMoon.audience == Audience.Part(Aspect.MOON) && forTheMoon.chance == 0.6) { "read as $forTheMoon" }
         check(read(Offer.CODEC, """{ "concept": "template", "value": "nether", "for": "age" }""").audience == Audience.TheAge)
         check(read(Offer.CODEC, """{ "concept": "porous" }""").value == Value.None) { "a flag concept's offer carries a value" }
+        check(forTheMoon.chanceFromWholeAge == 0.6) { "an offer's chance from the whole Age is not its own chance by default" }
+        val incidental = read(Offer.CODEC, """{ "concept": "block", "value": "#red", "chance_from_whole_age": 0.1 }""")
+        check(incidental.chance == 1.0 && incidental.chanceFromWholeAge == 0.1 && roundTrips(Offer.CODEC, incidental)) { "read as $incidental" }
         check(refuses(Offer.CODEC, """{ "concept": "colour", "value": "red", "chance": 1.5 }""")) { "a chance above one was read" }
+        val reading = read(Offer.CODEC, """{ "for": "underground", "means": [ { "admits": { "features": [ "agesandtheart:magma_chamber" ] } } ] }""")
+        check(reading.isAReading && reading.audience == Audience.Part(Aspect.UNDERGROUND) && roundTrips(Offer.CODEC, reading)) { "read as $reading" }
+        check(refuses(Offer.CODEC, """{ "means": [ { "sets": { "colour": "red" } } ] }""")) { "a reading for no part was read" }
+        check(refuses(Offer.CODEC, """{ "concept": "colour", "for": "sky", "means": [ { "sets": { "colour": "red" } } ] }""")) { "an offer of a concept and a reading was read" }
+        check(refuses(Offer.CODEC, """{ "for": "sky" }""")) { "an offer of nothing was read" }
         check(refuses(Offer.CODEC, """{ "concept": "colour", "value": "red", "for": "nowhere" }""")) { "an audience that is no part was read" }
     }
 
@@ -72,12 +80,12 @@ class WordModelCheck : FunSpec({
         val whole = read(Acceptance.CODEC, """{ "concept": "block", "only": [ "#agesandtheart:whole_blocks" ], "becomes": [ { "made_of": "$" } ] }""")
         check(whole.only == ValueFilter.OneOf(setOf("#agesandtheart:whole_blocks"))) { "a block filter read as ${whole.only}" }
         check(roundTrips(Acceptance.CODEC, group) && roundTrips(Acceptance.CODEC, whole)) { "an acceptance does not write back as it was read" }
-        check(group.canTakeOffersFromWholeAge && group.canResolveDanglingOffers) { "an acceptance refused the Age or what dangles unasked" }
+        check(group.chanceFromWholeAge == 1.0 && group.canResolveDanglingOffers) { "an acceptance refused the Age or what dangles unasked" }
         val closed = read(
             Acceptance.CODEC,
-            """{ "concept": "pull", "becomes": [ { "sets": "pull" } ], "can_take_offers_from_whole_age": false, "can_resolve_dangling_offers": false }""",
+            """{ "concept": "pull", "becomes": [ { "sets": "pull" } ], "chance_from_whole_age": 0.0, "can_resolve_dangling_offers": false }""",
         )
-        check(!closed.canTakeOffersFromWholeAge && !closed.canResolveDanglingOffers && roundTrips(Acceptance.CODEC, closed)) { "read as $closed" }
+        check(closed.chanceFromWholeAge == 0.0 && !closed.canResolveDanglingOffers && roundTrips(Acceptance.CODEC, closed)) { "read as $closed" }
     }
 
     test("a taking effect puts the value in, a bare parameter landing on the accepting sense's part") {

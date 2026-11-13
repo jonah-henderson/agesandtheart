@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `red sky` the vault, `red sun` the",
+    "star, `red sheep` their wool -- and `red age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of red blocks (`#red`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "red"
+    },
+    {
+      "concept": "block",
+      "value": "#red",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:badlands": 0.5,
+        "minecraft:eroded_badlands": 0.4,
+        "minecraft:wooded_badlands": 0.4,
+        "minecraft:crimson_forest": 0.3
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:red_mushroom_normal": 0.6,
+        "minecraft:flower_default": 0.4,
+        "minecraft:patch_berry_common": 0.4,
+        "minecraft:red_poplar_leaf_litter": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}

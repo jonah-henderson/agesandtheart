@@ -15,7 +15,9 @@ import net.minecraft.tags.TagKey
  * What the reader asks of the world, answered by [vocabulary]: the members each part has and what they are like, and
  * what a block is in. A block's [MATERIAL_TAGS] are worked out from its shape, so every block in the game answers them,
  * a mod's as much as vanilla's; any other namespaced `#tag` is the game's own block tag, which only binds on a server;
- * a `#tag` with no namespace is one of the tag layer's, carried by a member.
+ * a `#tag` with no namespace is one of the tag layer's, carried by a member. A tag of blocks asked for as a material
+ * (`#red`) is in [MAKES_A_WORLD] and [MAKES_A_ROCK]: which of its blocks is drawn at resolution, among those the setting
+ * may be made of.
  */
 class WorldMembership(private val vocabulary: Vocabulary) : Membership {
 
@@ -28,6 +30,8 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
     override fun isIn(value: String, keyOrTag: String): Boolean {
         if (!keyOrTag.startsWith(TAG_MARK)) return value == keyOrTag
         val tag = keyOrTag.drop(TAG_MARK.length)
+        val isATagOfBlocks = value.startsWith(TAG_MARK)
+        if (isATagOfBlocks) return tag in DRAWN_WITHIN
         MATERIAL_TAGS[tag]?.let { answers -> return answers(value) }
         val asABlockTag = Identifier.tryParse(tag)?.takeIf { NAMESPACE_MARK in tag }
         if (asABlockTag != null) return isInBlockTag(value, asABlockTag)
@@ -63,6 +67,9 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
 
         /** What a sea may be made of ([Materials.makesASea]). */
         val MAKES_A_SEA: Identifier = "makes_a_sea".location()
+
+        /** The shape tags a tag of blocks passes, its block being drawn later among the setting's own materials. */
+        private val DRAWN_WITHIN: Set<String> = setOf(MAKES_A_WORLD.toString(), MAKES_A_ROCK.toString())
 
         /** The tags a block is in by its shape, answered here rather than listed in a pack. */
         private val MATERIAL_TAGS: Map<String, (String) -> Boolean> = mapOf(

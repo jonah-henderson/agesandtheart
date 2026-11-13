@@ -44,13 +44,14 @@ object FixtureWords {
         "landmass" to """{ "terminal": true, "part": "landmass", "accepts": [
             { "concept": "member", "becomes": [ { "chooses": "landmass" } ] },
             { "concept": "cratered", "becomes": [ { "chooses": { "landmass": "cratered" } } ] },
-            { "concept": "size", "becomes": [ { "sets": "size" } ] } ] }""",
+            { "concept": "size", "becomes": [ { "sets": "size" } ] },
+            { "concept": "block", "becomes": [ { "sets": "stone" } ] } ] }""",
         "features" to """{ "terminal": true, "part": "features", "accepts": [
             { "concept": "member", "becomes": [ { "admits": "features" } ] },
             { "concept": "cratered", "becomes": [ { "admits": { "features": [ "agesandtheart:craters" ] } } ] },
             { "concept": "lean", "becomes": [ { "leans": "features" } ] },
             { "concept": "porous", "becomes": [ { "sets": { "porosity": "0.5..1.0" } } ],
-              "can_take_offers_from_whole_age": false, "can_resolve_dangling_offers": false } ] }""",
+              "chance_from_whole_age": 0.0, "can_resolve_dangling_offers": false } ] }""",
         "rock" to """{ "terminal": true, "part": "rock", "accepts": [
             { "concept": "porous", "becomes": [ { "chooses": { "rock": "porous" } } ] } ] }""",
         "inhabitants" to """{ "terminal": true, "part": "inhabitants", "accepts": [
@@ -64,6 +65,7 @@ object FixtureWords {
         "moon" to """{ "terminal": true, "part": "moon", "accepts": [
             { "concept": "colour", "becomes": [ { "sets": "colour" } ] }, { "concept": "absent", "becomes": [ { "sets": { "moon.absent": "true" } } ] } ] }""",
         "sea" to """{ "terminal": true, "part": "sea", "accepts": [ { "concept": "rising", "becomes": [ { "sets": { "sea.tide": "rising" } } ] } ] }""",
+        "underground" to """{ "terminal": true, "part": "underground" }""",
         "clouds" to """{ "terminal": true, "part": "clouds", "accepts": [ { "concept": "absent", "becomes": [ { "sets": { "clouds.absent": "true" } } ] } ] }""",
 
         // Things.
@@ -110,6 +112,11 @@ object FixtureWords {
         "red" to """{ "offers": [ { "concept": "colour", "value": "red" }, { "concept": "block", "value": "#agesandtheart:red" },
             { "concept": "lean", "value": { "#red": 1.0 } } ] }""",
         "blue" to """{ "offers": [ { "concept": "colour", "value": "blue" } ] }""",
+        "ruddy" to """{ "offers": [ { "concept": "colour", "value": "red" },
+            { "concept": "block", "value": "minecraft:stone", "chance_from_whole_age": 0.1 } ] }""",
+        "fiery" to """{ "offers": [ { "concept": "colour", "value": "orange" },
+            { "for": "underground", "means": [ { "admits": { "features": [ "agesandtheart:magma_chamber" ] } } ] } ] }""",
+        "pale" to """{ "offers": [ { "concept": "colour", "value": "white", "chance": 0.6 }, { "concept": "colour", "value": "grey", "chance": 0.6 } ] }""",
         "gloomy" to """{ "offers": [ { "concept": "colour", "value": "grey", "chance": 0.5 } ] }""",
         "porous" to """{ "offers": [ { "concept": "porous" } ] }""",
         "colossal" to """{ "offers": [ { "concept": "size", "value": "0.8..1.0" } ] }""",
@@ -138,7 +145,8 @@ object FixtureWords {
     )
 
     val words: Words by lazy {
-        val concepts = CONCEPTS.map { (name, values) -> Concept(name.location(), values, JoinedPair.EITHER) }
+        val holdingSeveral = setOf("member", "ban")
+        val concepts = CONCEPTS.map { (name, values) -> Concept(name.location(), values, if (name in holdingSeveral) JoinedPair.DIVIDE else JoinedPair.EITHER) }
         val creature = read(Kind.mapCodec("creature".location()).codec(), CREATURE)
         val words = WORDS.map { (name, json) -> read(Word.mapCodec(name.location()).codec(), json) }
         Words.of(concepts, listOf(creature), words, StructureWords.IDS).also {

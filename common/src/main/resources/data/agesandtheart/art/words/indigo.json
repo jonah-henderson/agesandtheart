@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `indigo sky` the vault, `indigo sun` the",
+    "star, `indigo sheep` their wool -- and `indigo age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of indigo blocks (`#indigo`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "indigo"
+    },
+    {
+      "concept": "block",
+      "value": "#indigo",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:deep_ocean": 0.4,
+        "minecraft:dark_forest": 0.3,
+        "minecraft:deep_dark": 0.3
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:amethyst_geode": 0.5,
+        "minecraft:sculk_vein": 0.3
+      },
+      "for": "features"
+    }
+  ]
+}

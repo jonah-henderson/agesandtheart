@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.words
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.resolution.Effect
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -9,10 +10,18 @@ import java.util.Optional
 
 /**
  * One meaning a sense offers the words after it: a concept, its value, how likely it is to apply, and who may take it.
+ * It applies on [chance] where a thing or a part's page takes it, and on [chanceFromWholeAge] where `age` hands it
+ * out, which is the same unless the meaning is incidental to the word: `red`'s stone, one Age in ten.
+ *
+ * **A reading** is the last resort, for what only this word means of one part and no shared concept says: it carries
+ * its own effects ([reading]) in place of a concept, and is taken by that part's page or any thing of it — `molten`
+ * said of the underground opens magma chambers.
  *
  * ```json
  * { "concept": "colour", "value": "red" }
  * { "concept": "colour", "value": "dark_red", "for": "moon", "chance": 0.6 }
+ * { "concept": "block", "value": "#red", "chance_from_whole_age": 0.1 }
+ * { "for": "underground", "means": [ { "admits": { "features": [ "agesandtheart:magma_chamber" ] } } ] }
  * ```
  */
 data class Offer(
@@ -20,17 +29,46 @@ data class Offer(
     val value: Value = Value.None,
     val chance: Double = CERTAIN,
     val audience: Audience = Audience.Anyone,
+    private val ownChanceFromWholeAge: Double? = null,
+    val reading: List<Effect> = emptyList(),
 ) {
+    val chanceFromWholeAge: Double get() = ownChanceFromWholeAge ?: chance
+
+    val isAReading: Boolean get() = reading.isNotEmpty()
+
     companion object {
         const val CERTAIN = 1.0
 
-        val CODEC: Codec<Offer> = RecordCodecBuilder.create<Offer> { instance ->
+        /** A reading for [part]: what this word means of it, carried whole. */
+        fun reading(part: Aspect, effects: List<Effect>, chance: Double = CERTAIN, chanceFromWholeAge: Double? = null) =
+            Offer(CoreConcepts.READING, Value.None, chance, Audience.Part(part), chanceFromWholeAge, effects)
+
+        private val CHANCE: Codec<Double> = Codec.doubleRange(0.0, CERTAIN)
+
+        private val SPELLING: Codec<Offer> = RecordCodecBuilder.create<Offer> { instance ->
             instance.group(
-                PackNames.CODEC.fieldOf("concept").forGetter(Offer::concept),
+                PackNames.CODEC.optionalFieldOf("concept").forGetter { Optional.ofNullable(it.concept.takeUnless { _ -> it.isAReading }) },
                 Value.CODEC.optionalFieldOf("value").forGetter { Optional.ofNullable(it.value.takeIf { value -> value != Value.None }) },
-                Codec.doubleRange(0.0, CERTAIN).optionalFieldOf("chance", CERTAIN).forGetter(Offer::chance),
+                CHANCE.optionalFieldOf("chance", CERTAIN).forGetter(Offer::chance),
                 Audience.CODEC.optionalFieldOf("for", Audience.Anyone).forGetter(Offer::audience),
-            ).apply(instance) { concept, value, chance, audience -> Offer(concept, value.orElse(Value.None), chance, audience) }
+                CHANCE.optionalFieldOf("chance_from_whole_age").forGetter { Optional.ofNullable(it.ownChanceFromWholeAge) },
+                Sense.FIXED_EFFECTS.optionalFieldOf("means", emptyList()).forGetter(Offer::reading),
+            ).apply(instance) { concept, value, chance, audience, fromWholeAge, reading ->
+                Offer(concept.orElse(CoreConcepts.READING), value.orElse(Value.None), chance, audience, fromWholeAge.orElse(null), reading)
+            }
+        }
+
+        val CODEC: Codec<Offer> = SPELLING.validate(::wellFormed)
+
+        /** An offer names a concept or carries a reading, never both, and a reading is for one part. */
+        private fun wellFormed(offer: Offer): DataResult<Offer> {
+            val namesItsConcept = offer.concept != CoreConcepts.READING
+            return when {
+                offer.isAReading && namesItsConcept -> DataResult.error { "an offer names a concept or carries a reading, not both" }
+                !offer.isAReading && !namesItsConcept -> DataResult.error { "an offer names neither a concept nor a reading" }
+                offer.isAReading && offer.audience !is Audience.Part -> DataResult.error { "a reading is for one part: say which with 'for'" }
+                else -> DataResult.success(offer)
+            }
         }
     }
 }

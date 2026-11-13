@@ -6,8 +6,8 @@ import net.minecraft.resources.Identifier
 
 /**
  * What a word costs to write, the same in any sentence: what its file says, or its dearest sense's — the price of each
- * concept it offers for certain, and [INK_PER_NARROWED_PART] for each part its own meaning narrows — never below
- * [FLOOR_PRICE].
+ * concept it offers for certain, and [INK_PER_NARROWED_PART] for each part its own meaning or a certain reading narrows —
+ * never below [FLOOR_PRICE].
  */
 object Price {
     const val INK_PER_NARROWED_PART = 4
@@ -17,8 +17,9 @@ object Price {
         word.price ?: word.senses.maxOf { sense -> ofSense(sense, concepts) }.coerceAtLeast(FLOOR_PRICE)
 
     private fun ofSense(sense: Sense, concepts: Map<Identifier, Concept>): Int {
-        val offered = sense.offers.filter { it.chance == Offer.CERTAIN }.sumOf { concepts[it.concept]?.price ?: 0 }
-        val narrowing = sense.means.filter(Effect::narrows)
+        val certain = sense.offers.filter { it.chance == Offer.CERTAIN }
+        val offered = certain.filterNot(Offer::isAReading).sumOf { concepts[it.concept]?.price ?: 0 }
+        val narrowing = (sense.means + certain.flatMap(Offer::reading)).filter(Effect::narrows)
         val parts = narrowing.flatMap { partsNarrowedBy(it, sense.speaksFor) }.toSet()
         return offered + INK_PER_NARROWED_PART * (parts.size + narrowing.count { it is Effect.Template })
     }

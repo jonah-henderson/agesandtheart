@@ -64,7 +64,7 @@
           }
         }
       ],
-      "can_take_offers_from_whole_age": false,
+      "chance_from_whole_age": 0.0,
       "can_resolve_dangling_offers": false
     },
     {

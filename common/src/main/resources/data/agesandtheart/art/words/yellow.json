@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `yellow sky` the vault, `yellow sun` the",
+    "star, `yellow sheep` their wool -- and `yellow age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of yellow blocks (`#yellow`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "yellow"
+    },
+    {
+      "concept": "block",
+      "value": "#yellow",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:desert": 0.5,
+        "minecraft:sunflower_plains": 0.6,
+        "minecraft:savanna": 0.3
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:patch_sunflower": 0.6,
+        "minecraft:flower_default": 0.4,
+        "minecraft:wildflowers_meadow": 0.4,
+        "minecraft:yellow_poplar_leaf_litter": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}

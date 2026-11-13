@@ -151,8 +151,9 @@ private class Pass(
             for (part in Aspect.entries) {
                 val page = words.partPage(part)?.defaultSense ?: continue
                 val acceptance = acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
-                if (!acceptance.canTakeOffersFromWholeAge || !valueFits(page, acceptance, reaching.offer)) continue
-                handedOut += placementOf(at, part, acceptance, reaching)
+                val chance = reaching.offer.chanceFromWholeAge * acceptance.chanceFromWholeAge
+                if (chance <= 0.0 || !valueFits(page, acceptance, reaching.offer)) continue
+                handedOut += placementOf(at, part, acceptance, reaching).copy(chance = chance)
                 placed += reaching.page
             }
         }
@@ -164,8 +165,15 @@ private class Pass(
         return Placement(reaching.page, reaching.offer, at, part, effects, reaching.carrying.map(Travelling::page), reaching.joined)
     }
 
-    /** How [sense] accepts [offer], if it may: the concept, and an audience that admits it. */
+    /**
+     * How [sense] accepts [offer], if it may: the concept, and an audience that admits it. A reading is taken by any
+     * word of its part, as the effects it carries.
+     */
     private fun acceptanceFor(sense: Sense, offer: Offer, isTheAge: Boolean = false): Acceptance? {
+        if (offer.isAReading) {
+            val isOfItsPart = sense.speaksFor == (offer.audience as? Audience.Part)?.aspect
+            return Acceptance(CoreConcepts.READING, outcome = Outcome.Becomes(offer.reading.map(EffectTemplate::Fixed))).takeIf { isOfItsPart }
+        }
         val acceptance = sense.acceptanceOf(offer.concept) ?: return null
         val admitted = when (val audience = offer.audience) {
             Audience.Anyone -> true

@@ -67,8 +67,8 @@ data class Sense(
     }
 
     companion object {
-        /** An own meaning is fixed: there is no offer for it to take a value from. */
-        private val MEANS: Codec<List<Effect>> = EffectTemplate.LIST_CODEC.flatXmap(
+        /** An own meaning, or a reading, is fixed: there is no offer for it to take a value from. */
+        internal val FIXED_EFFECTS: Codec<List<Effect>> = EffectTemplate.LIST_CODEC.flatXmap(
             { templates ->
                 val fixed = templates.filterIsInstance<EffectTemplate.Fixed>()
                 if (fixed.size == templates.size) DataResult.success(fixed.map(EffectTemplate.Fixed::effect))
@@ -81,7 +81,7 @@ data class Sense(
             instance.group(
                 Codec.BOOL.optionalFieldOf("terminal").forGetter { Optional.ofNullable(it.terminal) },
                 Parts.CODEC.optionalFieldOf("part").forGetter { Optional.ofNullable(it.part) },
-                MEANS.optionalFieldOf("means", emptyList()).forGetter(Sense::means),
+                FIXED_EFFECTS.optionalFieldOf("means", emptyList()).forGetter(Sense::means),
                 Offer.CODEC.listOf().optionalFieldOf("offers", emptyList()).forGetter(Sense::offers),
                 Acceptance.CODEC.listOf().optionalFieldOf("accepts", emptyList()).forGetter(Sense::accepts),
                 PackNames.CODEC.optionalFieldOf("kind").forGetter { Optional.ofNullable(it.kind) },

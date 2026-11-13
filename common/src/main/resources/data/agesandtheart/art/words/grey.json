@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `grey sky` the vault, `grey sun` the",
+    "star, `grey sheep` their wool -- and `grey age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of grey blocks (`#grey`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "grey"
+    },
+    {
+      "concept": "block",
+      "value": "#grey",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:stony_peaks": 0.5,
+        "minecraft:stony_shore": 0.5,
+        "minecraft:windswept_gravelly_hills": 0.5,
+        "minecraft:windswept_hills": 0.4,
+        "minecraft:pale_garden": 0.5,
+        "minecraft:dripstone_caves": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:pale_moss_patch": 0.4,
+        "minecraft:pale_garden_vegetation": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}

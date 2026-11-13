@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "One of the twelve plain colours. Every part with a colour takes it as its own -- `orange sky` the vault, `orange sun` the",
+    "star, `orange sheep` their wool -- and `orange age` all of them at once. Said of the rock, the ground or what is built, it",
+    "builds them of orange blocks (`#orange`: dyed concrete and terracotta, and the natural blocks of the colour); said of the",
+    "whole Age, only one Age in ten, so a coloured Age is not a world of concrete. It leans the biomes and what grows",
+    "toward those of its colour, by name, since no tag carries a colour but a block's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "orange"
+    },
+    {
+      "concept": "block",
+      "value": "#orange",
+      "chance_from_whole_age": 0.1
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:savanna": 0.5,
+        "minecraft:savanna_plateau": 0.4,
+        "minecraft:badlands": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:patch_pumpkin": 0.6,
+        "minecraft:pile_pumpkin": 0.4,
+        "minecraft:orange_poplar_leaf_litter": 0.4
+      },
+      "for": "features"
+    }
+  ]
+}
