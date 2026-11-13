@@ -13,4 +13,11 @@ object CoreConcepts {
 
     /** A block the Age never places. */
     val BAN: Identifier = "ban".location()
+
+    /** A nudge toward members carrying tags, and the tags a member must clear: the descriptions a polarity can narrow by. */
+    val LEAN: Identifier = "lean".location()
+    val BAR: Identifier = "bar".location()
+
+    /** What a negated or `only` phrase keeps of its description: what picks out member kinds, never a dial. */
+    val NARROWING: Set<Identifier> = setOf(MEMBER, LEAN, BAR)
 }

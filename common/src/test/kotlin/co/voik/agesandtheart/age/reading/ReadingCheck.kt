@@ -95,13 +95,23 @@ class ReadingCheck : FunSpec({
         check(sunFaster == listOf(Effect.Sets(ParameterKey("pace", Aspect.SUN), "0.7..1.0"))) { "prismatic swift sun: $sunFaster" }
     }
 
-    test("`no` and `only` stand before the thing; `no` before a block bans it, and before a describing word binds nothing") {
+    test("`no` and `only` put a polarity on the next thing; before a block `no` bans it, and with nothing after it binds nothing") {
         check(read("no villages age").phrase("villages")?.polarity == Polarity.EXCEPT)
         check(read("only villages age").phrase("villages")?.polarity == Polarity.ONLY)
         val bans = read("no snow and powder_snow age").handedOut.flatMap { it.effects }
         check(Effect.Bans("minecraft:snow") in bans && Effect.Bans("minecraft:powder_snow") in bans) { "no snow and powder_snow banned $bans" }
-        check(read("no red trees age").fateOf("no") == Fate.Dangles) { "`no` before a describing word bound something" }
         check(read("no age").fateOf("no") == Fate.Dangles) { "`no` before the Age bound something" }
+    }
+
+    test("a negated thing is struck as described where the description picks out kinds; a dial dangles") {
+        val reading = read("no red trees age")
+        val trees = reading.phrase("trees") ?: error("trees closed no phrase")
+        check(trees.polarity == Polarity.EXCEPT) { "`no` did not reach the trees past red" }
+        check(trees.placements.map { it.offer.concept.path } == listOf("lean")) { "the struck trees kept more than red's lean: ${trees.placements}" }
+        check(reading.fateOf("red") == Fate.Placed) { "red was ${reading.fateOf("red")}" }
+        val big = read("no colossal trees age")
+        check(big.fateOf("colossal") == Fate.Dangles) { "a size narrowed a strike: ${big.fateOf("colossal")}" }
+        check(big.phrase("trees")?.polarity == Polarity.EXCEPT)
     }
 
     test("`and` joins like with like, the joined sharing what reaches them, and dangles between unlike words") {

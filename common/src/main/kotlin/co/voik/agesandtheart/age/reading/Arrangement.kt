@@ -90,20 +90,18 @@ class Arranging internal constructor(val pages: List<String>, private val words:
     }
 
     /**
-     * A plain word, as a term of its own, taking any polarity waiting for it: a thing takes it, and a block takes `no` as
-     * a ban (`no snow`). Before anything else, the polarity binds nothing.
+     * A plain word, as a term of its own, taking any polarity waiting for it: a thing takes it, and a word offering only
+     * blocks takes `no` as a ban (`no snow`). A describing word lets it pass on to the thing it describes: `no red trees`.
      */
     fun addWord(at: Int) {
-        val waiting = pendingPolarity
-        pendingPolarity = null
         val sense = senseAt(at)
-        val polarity = waiting?.let { (from, polarity) ->
-            val isAThing = sense?.endsAPhrase == true
-            val offersOnlyBlocks = sense != null && sense.offers.isNotEmpty() && sense.offers.all { it.concept == CoreConcepts.BLOCK }
-            val isABannedBlock = polarity == Polarity.EXCEPT && offersOnlyBlocks
-            if (isAThing || isABannedBlock) polarity else null.also { dangles(from) }
-        } ?: Polarity.ASSERTED
-        terms += Term(listOf(at), polarity = polarity)
+        val waiting = pendingPolarity
+        val isAThing = sense?.endsAPhrase == true
+        val offersOnlyBlocks = sense != null && sense.offers.isNotEmpty() && sense.offers.all { it.concept == CoreConcepts.BLOCK }
+        val isABannedBlock = waiting?.second == Polarity.EXCEPT && offersOnlyBlocks
+        val takesIt = waiting != null && (isAThing || isABannedBlock)
+        if (takesIt) pendingPolarity = null
+        terms += Term(listOf(at), polarity = if (takesIt && waiting != null) waiting.second else Polarity.ASSERTED)
     }
 
     internal fun finish() {

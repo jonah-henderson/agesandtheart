@@ -102,7 +102,8 @@ object FixtureWords {
               "accepts": [ { "concept": "colour", "becomes": [ { "sets": "bed_colour" } ] } ] } ] }""",
 
         // Describing words.
-        "red" to """{ "offers": [ { "concept": "colour", "value": "red" }, { "concept": "block", "value": "#agesandtheart:red" } ] }""",
+        "red" to """{ "offers": [ { "concept": "colour", "value": "red" }, { "concept": "block", "value": "#agesandtheart:red" },
+            { "concept": "lean", "value": { "#red": 1.0 } } ] }""",
         "blue" to """{ "offers": [ { "concept": "colour", "value": "blue" } ] }""",
         "colossal" to """{ "offers": [ { "concept": "size", "value": "0.8..1.0" } ] }""",
         "teeming" to """{ "offers": [ { "concept": "amount", "value": 4.0 } ] }""",

@@ -115,7 +115,11 @@ private class Pass(
     private fun close(at: Int, sense: Sense, term: Term, reaching: List<Travelling>): List<Travelling> {
         fates[at] = Fate.Closed
         placed += at
-        val placements = reaching.flatMap { take(at, sense, it) }
+        val taken = reaching.flatMap { take(at, sense, it) }
+        // A negated or `only` thing is struck or kept as described, and only a description of member kinds can say which.
+        val isNarrowed = term.polarity != Polarity.ASSERTED
+        val placements = if (isNarrowed) taken.filter { it.offer.concept in CoreConcepts.NARROWING } else taken
+        placed += placements.flatMap { listOf(it.from) + it.carrying }
         val tookFrom = placements.flatMap { listOf(it.from) + it.carrying }.toSet()
         val tookAMember = placements.any { it.offer.concept == CoreConcepts.MEMBER }
         val named = if (tookAMember) sense.means.filterNot { namesMembersOf(it, sense.speaksFor) } else sense.means
@@ -130,8 +134,6 @@ private class Pass(
     private fun take(at: Int, sense: Sense, reaching: Travelling): List<Placement> {
         val acceptance = acceptanceFor(sense, reaching.offer) ?: return emptyList()
         if (!valueFits(sense, acceptance, reaching.offer)) return emptyList()
-        placed += reaching.page
-        placed += reaching.carrying.map(Travelling::page)
         val carried = reaching.carrying.flatMap { take(at, sense, it) }
         return listOf(placementOf(at, sense.speaksFor, acceptance, reaching)) + carried
     }
