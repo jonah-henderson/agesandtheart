@@ -152,6 +152,7 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
     "meanings" to listOf(
         "co.voik.agesandtheart.age.language.*",
         "co.voik.agesandtheart.age.resolution.*",
+        "co.voik.agesandtheart.age.reading.*",
         "co.voik.agesandtheart.preview.meanings.*",
     ),
     "terrain" to listOf(

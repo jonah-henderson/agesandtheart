@@ -28,7 +28,7 @@ sealed interface EffectTemplate {
     fun applied(value: Value, part: Aspect?): Effect?
 
     data class Fixed(val effect: Effect) : EffectTemplate {
-        override fun applied(value: Value, part: Aspect?): Effect = effect
+        override fun applied(value: Value, part: Aspect?): Effect = fencedTo(effect, part)
     }
 
     /** An effect made of the offer's value: [target] is a parameter, a part's page, or [THE_VALUE] where neither is needed. */
@@ -93,6 +93,17 @@ sealed interface EffectTemplate {
     }
 
     companion object {
+        /** [effect] with a bare parameter given to [part]: in a word file, an unfenced parameter is its own part's. */
+        fun fencedTo(effect: Effect, part: Aspect?): Effect {
+            if (part == null) return effect
+            fun ParameterKey.given() = if (fencedTo == null) ParameterKey(name, part) else this
+            return when (effect) {
+                is Effect.Sets -> effect.copy(parameter = effect.parameter.given())
+                is Effect.Bends -> effect.copy(parameter = effect.parameter.given())
+                else -> effect
+            }
+        }
+
         /** The target of a taking effect that needs none: the value goes in whole. */
         const val THE_VALUE = "$"
 

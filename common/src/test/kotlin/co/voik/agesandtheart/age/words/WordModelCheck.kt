@@ -135,6 +135,21 @@ class WordModelCheck : FunSpec({
         check(loaded.problems.size == 5) { "expected five problems, found ${loaded.problems}" }
     }
 
+    test("a thing turns what it takes into effects, a describing word passes it on, and a flag's translation is fixed") {
+        val porous = Concept("porous".location(), ValueType.FLAG, JoinedPair.EITHER)
+        val words = listOf(
+            word("describing", """{ "accepts": [ { "concept": "colour", "becomes": [ { "sets": "colour" } ] } ] }"""),
+            word("thing", """{ "terminal": true, "accepts": [ { "concept": "colour", "folds": true } ] }"""),
+            word("taking", """{ "terminal": true, "accepts": [ { "concept": "porous", "becomes": [ { "sets": "porosity" } ] } ] }"""),
+            word("fixed", """{ "terminal": true, "accepts": [ { "concept": "porous", "becomes": [ { "sets": { "porosity": "0.5..1.0" } } ] } ] }"""),
+        )
+        val problems = Words.of(concepts + porous, emptyList(), words, behaviours = emptySet()).problems
+        check(problems.any { "describing" in it && "only a thing" in it }) { "a describing word turning a colour into effects went unreported: $problems" }
+        check(problems.any { "thing" in it && "ends the phrase" in it }) { "a thing folding a colour went unreported: $problems" }
+        check(problems.any { "taking" in it && "carries none" in it }) { "a flag's taking translation went unreported: $problems" }
+        check(problems.none { "agesandtheart:fixed" in it }) { "a flag's fixed translation was reported: $problems" }
+    }
+
     test("every shipped concept reads") {
         val directory = MinecraftRegistries.resourceRoot().resolve("data/agesandtheart/${Words.CONCEPT_DIRECTORY}")
         val files = directory.listDirectoryEntries().filter { it.extension == "json" }

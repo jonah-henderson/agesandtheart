@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.words
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.MapCodec
 import net.minecraft.resources.Identifier
@@ -18,6 +20,9 @@ data class Words(
     val problems: List<String>,
 ) {
     fun word(name: String): Word? = byName[name]
+
+    /** The word that is [part]'s own page — `sky`, `landmass` — which `age` hands what it takes to. */
+    fun partPage(part: Aspect): Word? = byName[part.page]?.takeIf { it.id.namespace == Constants.MOD_ID }
 
     companion object {
         const val CONCEPT_DIRECTORY = "art/concept"
@@ -91,6 +96,8 @@ private class Checking(
     private fun sense(sense: Sense, where: String): Sense {
         sense.offers.forEach { offer(it, where) }
         sense.accepts.forEach { acceptance(it, where) }
+        val resolved = sense.kind?.let(kinds::get)?.let(sense::withKind) ?: sense
+        resolved.acceptances.forEach { outcomeFits(it, resolved.endsAPhrase, where) }
         sense.behaviour?.takeIf { it !in behaviours }?.let { problems += "$where runs as '${PackNames.spell(it)}', which no structure word is" }
         val kindId = sense.kind ?: return sense
         val kind = kinds[kindId]
@@ -108,8 +115,22 @@ private class Checking(
         }
     }
 
+    /** A thing turns what it takes into effects or drops it; a describing word folds, renames, scales or drops it. */
+    private fun outcomeFits(acceptance: Acceptance, endsAPhrase: Boolean, where: String) {
+        val outcome = acceptance.outcome
+        val thingsOnly = outcome is Outcome.Becomes
+        val describingOnly = outcome == Outcome.Folds || outcome is Outcome.Renames || outcome is Outcome.Scales
+        val concept = PackNames.spell(acceptance.concept)
+        if (thingsOnly && !endsAPhrase) problems += "$where describes, and so cannot turn $concept into effects: only a thing does"
+        if (describingOnly && endsAPhrase) problems += "$where is a thing, and so cannot pass $concept on: a thing ends the phrase"
+    }
+
     private fun acceptance(acceptance: Acceptance, where: String) {
-        known(acceptance.concept, where)
+        val concept = known(acceptance.concept, where)
+        val takesAValue = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().any { it is EffectTemplate.Taking }
+        if (concept?.values == ValueType.FLAG && takesAValue) {
+            problems += "$where takes a value from ${PackNames.spell(concept.id)}, which carries none: its translation must be fixed"
+        }
         (acceptance.outcome as? Outcome.Renames)?.let { known(it.concept, where) }
     }
 
