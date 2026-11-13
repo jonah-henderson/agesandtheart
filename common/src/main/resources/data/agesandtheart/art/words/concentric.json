@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Laid out in rings about the middle of the world: what the land's patterned landforms and the formations are laid out in -- `concentric pyramidal landmass`,",
+    "`concentric obelisks`. Said of them alone, never of the whole Age."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "arrangement",
+      "value": "rings",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

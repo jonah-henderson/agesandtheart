@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Few things, thinly: what grows thinned out, the hollows and the stars set far apart, what stands set far apart,",
+    "the clouds covering less of the sky, half the creatures, and every part leaning barren and scattered and away from",
+    "the lush. `open` is the shape of the land and the sky; this is how little is on it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "density",
+      "value": "-0.8..-0.4"
+    },
+    {
+      "concept": "spacing",
+      "value": "0.4..1.0"
+    },
+    {
+      "concept": "amount",
+      "value": 0.5,
+      "for": "inhabitants"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#barren": 0.8,
+        "#scattered": 0.6,
+        "#lush": -0.5
+      }
+    }
+  ]
+}

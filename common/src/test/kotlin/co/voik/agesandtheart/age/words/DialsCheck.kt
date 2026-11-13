@@ -26,7 +26,7 @@ class DialsCheck : FunSpec({
     }
 
     fun set(row: String, part: Aspect, parameter: String, seed: Long = 0L): List<String> =
-        effects(row, seed).filterIsInstance<Effect.Sets>().filter { it.parameter == ParameterKey(parameter, part) }.map { it.value }
+        effects(row, seed).mapNotNull(ShippedWords::turned).filter { (key, _) -> key == ParameterKey(parameter, part) }.map { (_, value) -> value }
 
     fun seedsSetting(row: String, part: Aspect, parameter: String): Int = seeds.count { set(row, part, parameter, it).isNotEmpty() }
 

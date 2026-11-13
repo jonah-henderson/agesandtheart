@@ -88,8 +88,10 @@ private class Drawing(
         )
     }
 
-    /** What a clash overrules: what one page said of one thing at one place. */
-    private fun whereSaid(landing: Landing) = Triple(landing.page, landing.saidOf, landing.place)
+    /** What a clash overrules: the one landing that clashed — what one page said of one thing at one place — and no other. */
+    private fun whereSaid(landing: Landing) = OverruledAt(landing.page, landing.saidOf, landing.place, landing.effects)
+
+    private data class OverruledAt(val page: Int, val saidOf: Int, val place: Place, val effects: List<Effect>)
 
     // ----- Chance -----
 

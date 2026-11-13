@@ -37,7 +37,7 @@ class PartPagesCheck : FunSpec({
     }
 
     fun sets(row: String, part: Aspect, parameter: String): List<String> = landed(row).flatMap { it.effects }
-        .filterIsInstance<Effect.Sets>().filter { it.parameter == ParameterKey(parameter, part) }.map { it.value }
+        .mapNotNull(ShippedWords::turned).filter { (key, _) -> key == ParameterKey(parameter, part) }.map { (_, value) -> value }
 
     test("the part pages, structure words and concepts we ship load, and fit together") {
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }

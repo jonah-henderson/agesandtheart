@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Low and gentle: the height taken out of the land, and everything leaning flat and away from the sheer and the",
+    "mountainous."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "-1.0..-0.4",
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#flat": 1.0,
+        "#sheer": -0.8,
+        "#mountainous": -0.5
+      }
+    }
+  ]
+}

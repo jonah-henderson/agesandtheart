@@ -1,0 +1,94 @@
+{
+  "_comment": [
+    "Wide and unobstructed: flat open country with little standing on it, few trees, nothing sheer or high, and",
+    "what there is set far apart. Offered, yielding to the book: clear air, a high cloud and a blue sky over it. An open",
+    "sea is a fair depth over barren water; an open underground is big caves."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "spacing",
+      "value": "0.3..1.0"
+    },
+    {
+      "concept": "height",
+      "value": "-0.8..-0.2",
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#flat": 1.0,
+        "#wooded": -0.6,
+        "#sheer": -0.6,
+        "#mountainous": -0.5
+      }
+    },
+    {
+      "concept": "haze",
+      "value": "-0.4",
+      "chance": 0.67
+    },
+    {
+      "concept": "height",
+      "value": "+0.4",
+      "for": "clouds",
+      "chance": 0.67
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.67
+    },
+    {
+      "concept": "depth",
+      "value": "0.2..0.45",
+      "for": "sea",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "sea",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "#aquatic": -0.8,
+              "#barren": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "value": "0.3..0.8",
+      "for": "underground",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "cavernous": ">0.5"
+      },
+      "for": "underground",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "underground",
+      "chance": 0.6,
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "chooses": {
+            "rock": "caves"
+          }
+        }
+      ]
+    }
+  ]
+}

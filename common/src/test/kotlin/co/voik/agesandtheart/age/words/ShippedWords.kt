@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.words
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.reading.StructureWords
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.location
 import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
@@ -39,6 +41,13 @@ object ShippedWords {
         val worldgen = MinecraftRegistries.worldgen
         DerivedWords.blocks() + DerivedWords.biomes(worldgen) + DerivedWords.features(worldgen) + DerivedWords.structures(worldgen) +
             DerivedWords.creatures(ShippedCorpus.vocabulary.spawning.writable) + DerivedWords.designs()
+    }
+
+    /** A setting turned, set or bent, with the value it was turned to. */
+    fun turned(effect: Effect): Pair<ParameterKey, String>? = when (effect) {
+        is Effect.Sets -> effect.parameter to effect.value
+        is Effect.Bends -> effect.parameter to effect.value
+        else -> null
     }
 
     /** Every word we ship, with [extra] written beside them, a name of theirs replacing ours. */

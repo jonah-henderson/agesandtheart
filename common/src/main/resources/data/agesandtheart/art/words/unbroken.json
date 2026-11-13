@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Whole: solid rock and a solid underground, and now and then the rest leaning solid and away from caves.",
+    "`unbroken clouds`: the sky overcast but for a few gaps."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "solid": ">0.7"
+      },
+      "for": "rock"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "solid": ">0.7"
+      },
+      "for": "underground"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#solid": 0.6,
+        "#cavernous": -0.8
+      },
+      "chance_from_whole_age": 0.3
+    },
+    {
+      "concept": "cover",
+      "value": "0.85..1.0",
+      "for": "clouds"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Many things, thickly: what grows thickened, the hollows and the stars set close, what stands set close together,",
+    "the clouds covering more of the sky, twice the creatures, and every part leaning lush and away from the barren and",
+    "the scattered. `sparse` mirrored. Said of a grid or rings (`dense gridded obelisks`), the rows set closer."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "density",
+      "value": "0.4..0.8"
+    },
+    {
+      "concept": "spacing",
+      "value": "-1.0..-0.4"
+    },
+    {
+      "concept": "amount",
+      "value": 2.0,
+      "for": "inhabitants"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#lush": 0.8,
+        "#barren": -0.5,
+        "#scattered": -0.6
+      }
+    }
+  ]
+}

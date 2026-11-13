@@ -73,6 +73,14 @@
       ]
     },
     {
+      "concept": "density",
+      "becomes": [
+        {
+          "sets": "cover"
+        }
+      ]
+    },
+    {
       "concept": "cover",
       "becomes": [
         {

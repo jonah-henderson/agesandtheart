@@ -39,7 +39,7 @@
       "concept": "variety",
       "becomes": [
         {
-          "sets": "variety"
+          "bends": "variety"
         }
       ]
     },
@@ -84,7 +84,7 @@
       "concept": "wear",
       "becomes": [
         {
-          "sets": "wear"
+          "bends": "wear"
         }
       ]
     },
@@ -100,7 +100,7 @@
       "concept": "height",
       "becomes": [
         {
-          "sets": "relief"
+          "bends": "relief"
         }
       ]
     },
@@ -116,7 +116,7 @@
       "concept": "spacing",
       "becomes": [
         {
-          "sets": "spacing"
+          "bends": "spacing"
         }
       ]
     },

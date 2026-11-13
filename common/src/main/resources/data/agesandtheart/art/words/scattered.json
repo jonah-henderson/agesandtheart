@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Broken into pieces and strewn: a landmass in scattered parts, every part leaning scattered, whatever stands",
+    "set further apart. `scattered clouds`: less of the sky in cloud, and that in small bits. The land's patterned",
+    "landforms are laid out unevenly rather than in a grid or rings."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "spacing",
+      "value": "0.3..1.0"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "scattered": ">0.3"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#scattered": 0.8
+      }
+    },
+    {
+      "concept": "cover",
+      "value": "-0.5..-0.2",
+      "for": "clouds"
+    },
+    {
+      "concept": "clumping",
+      "value": "-1.0..-0.6",
+      "for": "clouds"
+    },
+    {
+      "concept": "arrangement",
+      "value": "varied",
+      "for": "landmass"
+    }
+  ]
+}

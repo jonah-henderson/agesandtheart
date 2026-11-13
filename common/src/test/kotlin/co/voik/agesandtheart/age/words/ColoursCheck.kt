@@ -29,7 +29,7 @@ class ColoursCheck : FunSpec({
     fun effects(row: String, seed: Long = 0L): List<Effect> = landed(row, seed).flatMap { it.effects }
 
     fun set(row: String, part: Aspect, parameter: String, seed: Long = 0L): List<String> =
-        effects(row, seed).filterIsInstance<Effect.Sets>().filter { it.parameter == ParameterKey(parameter, part) }.map { it.value }
+        effects(row, seed).mapNotNull(ShippedWords::turned).filter { (key, _) -> key == ParameterKey(parameter, part) }.map { (_, value) -> value }
 
     test("what we ship loads and fits") {
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }

@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Laid out in rows and columns: what the land's patterned landforms and the formations are laid out in -- `gridded pyramidal landmass`, `gridded obelisks`. Said of",
+    "them alone, never of the whole Age; `sparse` and `dense` reach the grid through it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "arrangement",
+      "value": "grid",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

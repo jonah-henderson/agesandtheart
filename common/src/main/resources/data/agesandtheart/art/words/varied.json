@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Never the same twice: the land changing more as it is crossed, the creatures and what is built varying more,",
+    "the biomes in small patches. The plain word against `uniform`."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "variety",
+      "value": "0.4..1.0"
+    },
+    {
+      "concept": "size",
+      "value": "-0.6..-0.3",
+      "for": "biomes"
+    }
+  ]
+}

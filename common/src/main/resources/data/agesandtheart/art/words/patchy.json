@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "In blotches rather than mingled: two rocks lying in broad patches, you can see where one stops; the biomes in",
+    "small patches; the clouds in clumps with sky between."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "mingling",
+      "value": "0.1..0.7"
+    },
+    {
+      "concept": "size",
+      "value": "-0.9..-0.6",
+      "for": "biomes"
+    },
+    {
+      "concept": "cover",
+      "value": "-0.1..0.2",
+      "for": "clouds"
+    },
+    {
+      "concept": "clumping",
+      "value": "0.6..1.0",
+      "for": "clouds"
+    }
+  ]
+}

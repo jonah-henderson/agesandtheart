@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "All alike: every tree and boulder stamped from one shape, the land unworn and kept to the landforms laid out",
+    "on a plan or flat, the creatures and what is built never varying, the biomes in great patches. The strange word,",
+    "where `ordered` is the plain one."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "uniform"
+    },
+    {
+      "concept": "wear",
+      "value": "-1.0..-0.6"
+    },
+    {
+      "concept": "variety",
+      "value": "-1.0..-1.0"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "ordered": ">0.55",
+        "flat": ">0.9",
+        "eroded": "<0.5"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "size",
+      "value": "0.5..1.0",
+      "for": "biomes"
+    }
+  ]
+}

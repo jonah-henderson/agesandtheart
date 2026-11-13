@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Stepped into terraces wherever the land slopes, however little it is worn. The mountains, the cleft and the",
+    "pyramids are not terraced."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "terracing",
+      "value": "0.6..1.0"
+    }
+  ]
+}
