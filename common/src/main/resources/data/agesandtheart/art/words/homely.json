@@ -1,0 +1,87 @@
+{
+  "_comment": [
+    "Lived in, level and green, its biomes, features and structures leaning that way, and the weather of a good",
+    "summer: three of a blue sky, white cloud, green grass, green or turning leaves, fireflies, and the odd rainbow",
+    "are offered to every homely Age, each yielding to anything the book says."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "lean",
+      "value": {
+        "#inhabited": 0.8,
+        "#flat": 0.8,
+        "#lush": 0.6,
+        "#grown": 0.4,
+        "#hostile": -0.8,
+        "#sheer": -0.5
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#inhabited": 0.8,
+        "#flat": 0.8,
+        "#lush": 0.6,
+        "#grown": 0.4,
+        "#hostile": -0.8,
+        "#sheer": -0.5
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#inhabited": 0.8,
+        "#flat": 0.8,
+        "#lush": 0.6,
+        "#grown": 0.4,
+        "#hostile": -0.8,
+        "#sheer": -0.5
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "grass",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "leaves",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "leaves",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "firefly",
+      "chance": 0.5
+    },
+    {
+      "concept": "frequency",
+      "value": "0.3..0.6",
+      "for": "rainbow",
+      "chance": 0.5
+    }
+  ]
+}

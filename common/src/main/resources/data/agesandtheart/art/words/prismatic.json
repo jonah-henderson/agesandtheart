@@ -1,0 +1,102 @@
+{
+  "_comment": [
+    "Light split into colour, and the air doing it of its own accord: bows stand with no rain to make them and",
+    "come more days than not, and the land and what grows on it lean colourful.",
+    "",
+    "The dial rather than the phenomenon, and that is the whole trick: setting any dial on an aspect that",
+    "holds nothing is a writer saying the Age has one (`Sky.rainbowIn`), so this asserts bows and severs",
+    "them from the weather in a single word. Naming the phenomenon would have brought",
+    "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means.",
+    "",
+    "Everything with a colour turns round the colour wheel over time, each part on a cycle of its own, in step unless",
+    "a word says otherwise (`Prism`): the sky, the fog, the clouds, the suns and moons, the stars, the aurora and the",
+    "water. The light turns only where the air is named (Jonah). Before a body, several of it in odd colours too."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "rain",
+      "value": "-1.0..-1.0"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#colourful": 0.8
+      }
+    },
+    {
+      "concept": "frequency",
+      "value": "0.4..1.0",
+      "for": "rainbow"
+    },
+    {
+      "concept": "colours_cycling"
+    },
+    {
+      "concept": "light_colour_cycling"
+    },
+    {
+      "concept": "cast",
+      "value": "3",
+      "for": "sun",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.15
+    },
+    {
+      "concept": "colour",
+      "value": "magenta",
+      "for": "sun",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "sun",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "cast",
+      "value": "3",
+      "for": "moon",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.15
+    },
+    {
+      "concept": "colour",
+      "value": "magenta",
+      "for": "moon",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "moon",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "brightness",
+      "value": "+0.6",
+      "for": "aurora",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.6..1.0",
+      "for": "aurora",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "brightness",
+      "value": "0.7..0.9",
+      "for": "stars",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

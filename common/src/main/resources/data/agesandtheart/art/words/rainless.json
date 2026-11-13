@@ -1,0 +1,15 @@
+{
+  "_comment": [],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "-1.0..-0.7",
+      "for": "weather"
+    },
+    {
+      "concept": "thunder",
+      "value": "-1.0..-0.7"
+    }
+  ]
+}

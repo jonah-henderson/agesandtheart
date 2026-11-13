@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Nothing grows: every growing feature struck out, every part leaning barren and away from the lush, and what",
+    "lives leaning away from what would graze."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "for": "features",
+      "means": [
+        {
+          "excludes": {
+            "features": [
+              "#grown"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#barren": 0.6,
+        "#lush": -1.0,
+        "#grazing": -0.6
+      }
+    }
+  ]
+}

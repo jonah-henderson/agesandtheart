@@ -1,0 +1,76 @@
+{
+  "_comment": [
+    "`",
+    "s",
+    "e",
+    "t",
+    "t",
+    "l",
+    "e",
+    "d",
+    " ",
+    "w",
+    "e",
+    "a",
+    "t",
+    "h",
+    "e",
+    "r",
+    "`",
+    " ",
+    "i",
+    "s",
+    " ",
+    "s",
+    "e",
+    "l",
+    "d",
+    "o",
+    "m",
+    " ",
+    "w",
+    "e",
+    "t",
+    " ",
+    "a",
+    "n",
+    "d",
+    " ",
+    "n",
+    "e",
+    "v",
+    "e",
+    "r",
+    " ",
+    "s",
+    "t",
+    "o",
+    "r",
+    "m",
+    "y",
+    "."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "inhabited": ">0.3",
+        "built": ">0.6"
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "frequency",
+      "value": "-0.6..-0.2",
+      "for": "weather",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "thunder",
+      "value": "-1.0..-0.6",
+      "for": "weather",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

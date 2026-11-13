@@ -1,0 +1,88 @@
+{
+  "_comment": [
+    "A world given over to water: a sea of it and rock running wet, flooded caves and drowned halls, and the",
+    "biomes, features and structures leaning to water \u2014 oceans and swamps, kelp and coral, drowned ruins. Offered,",
+    "yielding to the book: a deeper sea, and rain more of the time.",
+    "",
+    "It absorbed `drowned`, whose watery sea is this word's sea half (retired.json).",
+    "",
+    "`flooded underground` is wet rock, and `flooded landmass` a sea risen over it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "watery": ">0.3"
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "watery": ">0.7"
+      },
+      "for": "rock"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 0.8,
+        "#aquatic": 0.6
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 0.8,
+        "#aquatic": 0.6
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 0.8,
+        "#aquatic": 0.6
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "depth",
+      "value": "+0.3",
+      "for": "sea",
+      "chance": 0.5
+    },
+    {
+      "concept": "frequency",
+      "value": "0.3..0.7",
+      "for": "weather",
+      "chance": 0.5
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "restricts": {
+            "rock": {
+              "watery": ">0.7"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "sea.depth": "0.3..0.6"
+          }
+        }
+      ]
+    }
+  ]
+}

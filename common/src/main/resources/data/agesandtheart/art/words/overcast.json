@@ -1,0 +1,66 @@
+{
+  "_comment": [
+    "A low grey lid and a little haze under it, and no rain asked for. Milder than `smothered` on",
+    "both dials, which is where the two words are told apart."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "-0.6..-0.2",
+      "for": "clouds"
+    },
+    {
+      "concept": "haze",
+      "value": "0.1..0.4",
+      "for": "air"
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds"
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "clouds.ceiling": "-0.6..-0.2"
+          }
+        },
+        {
+          "sets": {
+            "air.haze": "0.1..0.4"
+          }
+        },
+        {
+          "sets": {
+            "clouds.colour": "grey"
+          }
+        }
+      ]
+    },
+    {
+      "for": "weather",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "clouds.ceiling": "-0.6..-0.2"
+          }
+        },
+        {
+          "sets": {
+            "air.haze": "0.1..0.4"
+          }
+        },
+        {
+          "sets": {
+            "clouds.colour": "grey"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "_comment": [
+    "The far end of not seeing, as `constant` is the far end of frequency: air you can barely see through, cloud",
+    "down on the ground and water as murky. `overcast` is the mild lid. Offered, yielding to the book: the cloud",
+    "grey or black, or smoke or ash hanging in it.",
+    "",
+    "Before the sky, a body, the stars or the aurora, it is half hidden in the haze."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "haze",
+      "value": "0.85..1.0",
+      "for": "air"
+    },
+    {
+      "concept": "height",
+      "value": "-1.0..-0.85"
+    },
+    {
+      "concept": "murk",
+      "value": "0.55..1.0"
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "black",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "smoke",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "ash",
+      "chance": 0.5
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.haze": "0.85..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "sun",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.haze": "0.85..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "moon",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.haze": "0.85..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "stars",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.haze": "0.85..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "for": "aurora",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.haze": "0.85..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "sky",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "sky",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "clouds.ceiling": "-1.0..-0.85"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "value": "red",
+      "for": "sun",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "moon",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "brightness",
+      "value": "-0.8..-0.5",
+      "for": "aurora",
+      "chance": 0.6,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "density",
+      "value": "-0.8..-0.5",
+      "for": "stars",
+      "chance": 0.6,
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "_comment": [
+    "B",
+    "e",
+    "f",
+    "o",
+    "r",
+    "e",
+    " ",
+    "a",
+    " ",
+    "p",
+    "l",
+    "a",
+    "c",
+    "e",
+    ",",
+    " ",
+    "n",
+    "o",
+    "t",
+    "h",
+    "i",
+    "n",
+    "g",
+    " ",
+    "l",
+    "i",
+    "v",
+    "e",
+    "s",
+    " ",
+    "t",
+    "h",
+    "e",
+    "r",
+    "e",
+    " ",
+    "(",
+    "J",
+    "o",
+    "n",
+    "a",
+    "h",
+    ")",
+    ":",
+    " ",
+    "`",
+    "l",
+    "i",
+    "f",
+    "e",
+    "l",
+    "e",
+    "s",
+    "s",
+    " ",
+    "s",
+    "e",
+    "a",
+    "`",
+    " ",
+    "h",
+    "a",
+    "s",
+    " ",
+    "n",
+    "o",
+    " ",
+    "f",
+    "i",
+    "s",
+    "h",
+    " ",
+    "b",
+    "u",
+    "t",
+    " ",
+    "t",
+    "h",
+    "e",
+    " ",
+    "u",
+    "n",
+    "d",
+    "e",
+    "a",
+    "d",
+    ",",
+    " ",
+    "`",
+    "l",
+    "i",
+    "f",
+    "e",
+    "l",
+    "e",
+    "s",
+    "s",
+    " ",
+    "l",
+    "a",
+    "n",
+    "d",
+    "m",
+    "a",
+    "s",
+    "s",
+    "`",
+    " ",
+    "n",
+    "o",
+    "t",
+    "h",
+    "i",
+    "n",
+    "g",
+    " ",
+    "b",
+    "u",
+    "t",
+    " ",
+    "t",
+    "h",
+    "e",
+    " ",
+    "u",
+    "n",
+    "d",
+    "e",
+    "a",
+    "d",
+    "."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "-0.9..-0.4"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.9..-0.4"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "barren": ">0.7"
+      },
+      "for": "climate"
+    },
+    {
+      "for": "sea",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "inhabitants": [
+              "#aquatic",
+              "!#undead"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "for": "waters",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "inhabitants": [
+              "#aquatic",
+              "!#undead"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "inhabitants": [
+              "#mobs",
+              "!#undead"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "inhabitants": [
+              "#cavernous"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

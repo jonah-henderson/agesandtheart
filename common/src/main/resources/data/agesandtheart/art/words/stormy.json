@@ -1,0 +1,135 @@
+{
+  "_comment": [
+    "Rain most of the time and thunder in most of it, under low grey cloud. Said of the phenomena, or laid on the",
+    "whole Age, it may bring a storm too -- a gale, a tempest, a blizzard or, more rarely, a tornado (Jonah); said of the sky, the sea or the",
+    "waters it is the weather alone."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "0.6..1.0",
+      "for": "weather"
+    },
+    {
+      "concept": "thunder",
+      "value": "0.6..1.0"
+    },
+    {
+      "concept": "height",
+      "value": "-0.7..-0.3",
+      "for": "clouds"
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds"
+    },
+    {
+      "concept": "member",
+      "value": "gale",
+      "for": "phenomena",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.25
+    },
+    {
+      "concept": "member",
+      "value": "tempest",
+      "for": "phenomena",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.25
+    },
+    {
+      "concept": "member",
+      "value": "blizzard",
+      "for": "phenomena",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.25
+    },
+    {
+      "concept": "member",
+      "value": "tornado",
+      "for": "phenomena",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.15
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "weather.frequency": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "weather.thunder": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "clouds.ceiling": "-0.7..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "clouds.colour": "grey"
+          }
+        }
+      ]
+    },
+    {
+      "for": "sea",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "weather.frequency": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "weather.thunder": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "clouds.ceiling": "-0.7..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "clouds.colour": "grey"
+          }
+        }
+      ]
+    },
+    {
+      "for": "waters",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "weather.frequency": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "weather.thunder": "0.6..1.0"
+          }
+        },
+        {
+          "sets": {
+            "clouds.ceiling": "-0.7..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "clouds.colour": "grey"
+          }
+        }
+      ]
+    }
+  ]
+}

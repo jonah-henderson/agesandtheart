@@ -1,0 +1,94 @@
+{
+  "_comment": [
+    "Without water: rock with no aquifers, wet pockets, perched pools or springs (`Carvers.DRY`, which the hollows",
+    "an underground cuts answer to as well, so `dry rock` dries a great hall too), and on the whole Age the biomes",
+    "leaning dry and the sea leaning away. A cave under a sea still meets the sea, and the lava at the bottom stays.",
+    "",
+    "It bars rock that is mostly water as well as drying what is left, so `dry flooded rock` is two words that cannot",
+    "both hold and is charged as the contradiction it is, where porous rock, wet only near the surface, dries.",
+    "Offered too, yielding to anything the book says: drier air, less rain.",
+    "",
+    "Before the land, the ground or the air, it is the climate that is dry."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "dry"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "watery": "<0.5"
+      },
+      "for": "rock"
+    },
+    {
+      "for": "features",
+      "means": [
+        {
+          "excludes": {
+            "features": [
+              "minecraft:spring_water"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#empty": 0.3
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 0.6
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.3"
+    },
+    {
+      "concept": "frequency",
+      "value": "-0.6..-0.2",
+      "for": "weather"
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.7..-0.3"
+          }
+        }
+      ]
+    },
+    {
+      "for": "surface",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.7..-0.3"
+          }
+        }
+      ]
+    },
+    {
+      "for": "air",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.7..-0.3"
+          }
+        }
+      ]
+    }
+  ]
+}

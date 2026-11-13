@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "Unworn and laid out, and clean: two of clear air, clear water, a blue sky, white cloud and bright stars",
+    "are offered to every pristine Age, each yielding to anything the book says."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "wear",
+      "value": {
+        "amount": "-1.0..-0.55"
+      }
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#ordered": 0.9,
+        "#monumental": 0.6,
+        "#sheer": 0.4,
+        "#eroded": -0.9
+      }
+    },
+    {
+      "concept": "haze",
+      "value": "-1.0..-0.5",
+      "for": "air",
+      "chance": 0.4
+    },
+    {
+      "concept": "murk",
+      "value": "-1.0..-0.55",
+      "chance": 0.4
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.4
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "clouds",
+      "chance": 0.4
+    },
+    {
+      "concept": "brightness",
+      "value": "0.15..1.0",
+      "for": "stars",
+      "chance": 0.4
+    }
+  ]
+}

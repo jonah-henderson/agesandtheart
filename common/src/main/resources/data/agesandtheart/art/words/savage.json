@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "Hostile and sheer, and burning at the edges: two of a red, orange or black sky, a red light, ash in the",
+    "air, haze, more thunder, and a dark rock are offered to every savage Age, each yielding to a page aimed",
+    "there. Embers are the inferno's alone."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "lean",
+      "value": {
+        "#hostile": 1.0,
+        "#sheer": 0.6,
+        "#inhabited": -0.8,
+        "#flat": -0.5
+      }
+    },
+    {
+      "concept": "colour",
+      "value": "red",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "black",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "tint",
+      "value": "red",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "tint",
+      "value": "orange",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "motes",
+      "value": "ash",
+      "chance": 0.33
+    },
+    {
+      "concept": "haze",
+      "value": "+0.3",
+      "chance": 0.33
+    },
+    {
+      "concept": "thunder",
+      "value": "+0.3",
+      "chance": 0.33
+    },
+    {
+      "concept": "block",
+      "value": "#dark",
+      "for": "landmass",
+      "chance": 0.33
+    }
+  ]
+}

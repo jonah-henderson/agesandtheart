@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "Sheer and high, and pressing down: two of low cloud, grey or black cloud, closing fog and a grey sky are",
+    "offered to every looming Age, each yielding to anything the book says."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "height",
+      "value": "0.35..1.0"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#sheer": 1.0,
+        "#monumental": 0.7,
+        "#mountainous": 0.6,
+        "#flat": -0.7
+      }
+    },
+    {
+      "concept": "height",
+      "value": "-0.4",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "black",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "haze",
+      "value": "+0.3",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "size",
+      "value": "0.5..1.0",
+      "for": "sun",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.5..1.0",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

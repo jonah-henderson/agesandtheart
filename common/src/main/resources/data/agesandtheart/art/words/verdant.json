@@ -1,0 +1,103 @@
+{
+  "_comment": [
+    "Green and growing, and a narrowing word about all three places growth lives: the biomes, the climate",
+    "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
+    "things are drawn for every verdant Age; a rainbow is only offered.",
+    "",
+    "`verdant landmass` is lush country on it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "0.0..0.6"
+    },
+    {
+      "concept": "humidity",
+      "value": "0.3..0.9"
+    },
+    {
+      "concept": "density",
+      "value": "0.5..1.0"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "lush": ">0.3"
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "lush": ">0.3"
+      },
+      "for": "climate"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "lush": ">0.3"
+      },
+      "for": "features"
+    },
+    {
+      "concept": "frequency",
+      "value": "0.3..0.8",
+      "for": "weather",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "grass",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "leaves",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "spore_blossom",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "cherry_petals",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "firefly",
+      "chance": 0.5
+    },
+    {
+      "concept": "frequency",
+      "value": "0.4..0.8",
+      "for": "rainbow"
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "restricts": {
+            "biomes": {
+              "lush": ">0.3"
+            }
+          }
+        },
+        {
+          "restricts": {
+            "features": {
+              "lush": ">0.3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

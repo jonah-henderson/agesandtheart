@@ -1,0 +1,178 @@
+{
+  "_comment": [
+    "Of the poles, and the first word written to be felt differently said of the whole Age than aimed (`unaimed`). It",
+    "decides two things -- a cold temperature and a polar path, a circle held just over the horizon -- and",
+    "attachment decides which lands: `polar climate` the cold, `polar sun` and `polar moon` the path. Laid",
+    "bare, the sun and the moon each feel it one Age in four, so a polar Age is always cold and now and then",
+    "has a polar sun: the paper tree's sky (design 7.1.2), stumbled into.",
+    "",
+    "Everything else is leaned, bent or offered, so it costs nothing and gives way to the book. The aurora is",
+    "the pole's own light, offered whole rather than drawn and stronger than `frozen`'s. The creatures are the",
+    "ones a snowfield holds -- the bear first, the stray, the fox and the hare, the wolf, a goat off the",
+    "slopes. The sea and the biomes lean frozen, the coasts to icebergs and igloos, and a blizzard now and",
+    "then. The humidity is bent dry, because a pole is a desert: cold air holds no water.",
+    "",
+    "**No refusal of a molten sea** (Jonah, 2026-09-30): a polar Age with a lava sea is fine so long as the",
+    "rest of it is plainly polar, and the refusal is `frozen`'s to make.",
+    "",
+    "`polar weather` is snow."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "-0.95..-0.45"
+    },
+    {
+      "concept": "path",
+      "value": "polar",
+      "chance_from_whole_age": 0.25
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.8..-0.2"
+    },
+    {
+      "concept": "member",
+      "value": "aurora",
+      "for": "phenomena"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": 0.5
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": 0.8,
+        "minecraft:snowy_plains": 0.7,
+        "minecraft:frozen_ocean": 0.6,
+        "minecraft:ice_spikes": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:igloos": 0.8
+      },
+      "for": "structures"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:iceberg_packed": 1.0,
+        "minecraft:ice_spike": 0.5,
+        "minecraft:freeze_top_layer": 0.8
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:polar_bear": 1.0,
+        "minecraft:stray": 0.8,
+        "minecraft:fox": 0.7,
+        "minecraft:rabbit": 0.7,
+        "minecraft:wolf": 0.5,
+        "minecraft:goat": 0.3
+      },
+      "for": "inhabitants"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "aurora": 1.0,
+        "blizzard": 0.4
+      },
+      "for": "phenomena"
+    },
+    {
+      "concept": "frequency",
+      "value": "0.85..1",
+      "for": "aurora"
+    },
+    {
+      "concept": "brightness",
+      "value": "+0.8",
+      "for": "aurora"
+    },
+    {
+      "concept": "size",
+      "value": "0.85..1",
+      "for": "aurora"
+    },
+    {
+      "concept": "motes",
+      "value": "snow",
+      "for": "air",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "default",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "brightness",
+      "value": "0.15..1.0",
+      "for": "stars",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "for": "weather",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": "-0.95..-0.45"
+          }
+        }
+      ]
+    },
+    {
+      "for": "sea",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": "-0.95..-0.45"
+          }
+        }
+      ]
+    },
+    {
+      "for": "waters",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": "-0.95..-0.45"
+          }
+        }
+      ]
+    }
+  ]
+}

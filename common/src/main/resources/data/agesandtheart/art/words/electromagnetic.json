@@ -1,0 +1,64 @@
+{
+  "_comment": [
+    "An Age with a charged sky: storms that never leave it, and curtains standing over ground that has no",
+    "business showing them. It is the gate the magnetic ore reads (design 7.1.2).",
+    "",
+    "**No phenomenon was invented for this, and that was the point** (Jonah, 2026-09-08). What a charged",
+    "sky *is* comes out as two things that already exist turned up -- which is exactly what a word is for.",
+    "The ore itself is an entity rather than a phenomenon, and it gates on finding tempests in the Age.",
+    "",
+    "**It means neither of them, and cannot.** `tempest` already means one and an aurora is had by describing",
+    "it, and `VocabularyCheck` refuses a second page meaning a preset -- which is the right rule and the right answer",
+    "here: this narrows the Age's phenomena to the two and leans hard on both, and a writer who wants the",
+    "storms guaranteed writes `tempest` beside it. Words composing is how the Art says a compound thing.",
+    "",
+    "**It touches one aspect, deliberately**, which is the rule `sandfall.json` records: a climate nudge or a",
+    "weather bound here would make it a word about that other thing as well. Everything below is phenomena",
+    "or the aurora's own dials.",
+    "",
+    "`aurora.warmth` is new and is the whole reason the aurora needed touching at all: the cold was only",
+    "ever a proxy for a latitude an Age does not carry, and a charged Age has no reason to be a cold one.",
+    "Asked near the top of its band, the curtains stand over temperate ground as well as ice."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "tempest",
+      "for": "phenomena"
+    },
+    {
+      "concept": "member",
+      "value": "aurora",
+      "for": "phenomena"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "tempest": 1.0,
+        "aurora": 1.0
+      },
+      "for": "phenomena"
+    },
+    {
+      "concept": "frequency",
+      "value": "0.75..1",
+      "for": "aurora"
+    },
+    {
+      "concept": "brightness",
+      "value": "+0.6",
+      "for": "aurora"
+    },
+    {
+      "concept": "size",
+      "value": "0.5..1",
+      "for": "aurora"
+    },
+    {
+      "concept": "warmth",
+      "value": "0.6..1",
+      "for": "aurora"
+    }
+  ]
+}

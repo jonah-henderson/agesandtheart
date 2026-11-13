@@ -1,0 +1,139 @@
+{
+  "_comment": [
+    "Great, sheer, floating, lit and coloured, and a sky to match: two of a second sun, a purple or deep blue",
+    "vault, starlight in the air, brighter and denser stars, and a colourful rock are offered to every",
+    "wondrous Age, each yielding to anything the book says.",
+    "",
+    "Before the sun, the moon or the aurora: larger, stranger in colour, or oftener; a second moon only said of the whole Age."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "lean",
+      "value": {
+        "#monumental": 1.0,
+        "#sheer": 0.8,
+        "#floating": 0.7,
+        "#glowing": 0.5,
+        "#colourful": 0.4
+      }
+    },
+    {
+      "concept": "cast",
+      "value": "2",
+      "for": "sun",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.165
+    },
+    {
+      "concept": "colour",
+      "value": "purple",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "motes",
+      "value": "starlight",
+      "chance": 0.33
+    },
+    {
+      "concept": "motes",
+      "value": "glimmer",
+      "chance": 0.33
+    },
+    {
+      "concept": "brightness",
+      "value": "0.2..1.0",
+      "for": "stars",
+      "chance": 0.33
+    },
+    {
+      "concept": "density",
+      "value": "+0.3",
+      "for": "stars",
+      "chance": 0.33
+    },
+    {
+      "concept": "block",
+      "value": "#colourful",
+      "for": "landmass",
+      "chance": 0.33
+    },
+    {
+      "concept": "cast",
+      "value": "2",
+      "for": "moon",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.2
+    },
+    {
+      "concept": "size",
+      "value": "0.4..0.8",
+      "for": "moon",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "moon",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "purple",
+      "for": "moon",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "brightness",
+      "value": "+0.6",
+      "for": "aurora",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.7..1.0",
+      "for": "aurora",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "frequency",
+      "value": "0.6..1.0",
+      "for": "aurora",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "size",
+      "value": "0.4..0.8",
+      "for": "sun",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "cyan",
+      "for": "sun",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "colour",
+      "value": "purple",
+      "for": "sun",
+      "chance": 0.3,
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

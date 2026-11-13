@@ -1,0 +1,293 @@
+{
+  "_comment": [
+    "A world held at the cold end, and the clearest case of a word meaning its own part of whatever it is",
+    "laid on (world model 3). Temperature is what makes an Age frozen at all and is the core; everything",
+    "else is what *this* frozen Age happens to be like, drawn from the pool.",
+    "",
+    "It declares no aspects, so it reaches whatever its claims reach -- the climate, the air, the sky. That",
+    "is the whole of what attachment then does: `frozen climate` lands the temperature and nothing else,",
+    "`frozen sky` a pale vault and a small distant sun, and `a frozen Age` puts every one of them in play.",
+    "One word rather than four, and no rule anywhere had to say so.",
+    "",
+    "`colour` is one name across every aspect that has one, so the pale draw reaches the vault, the air and",
+    "the clouds together. The small draw is the sun's and the moon's alone, a quarter to a third of vanilla's,",
+    "which is a far one: a bare `size` reached everything with a size, and a frozen Age came out with",
+    "minuscule land and minuscule creatures.",
+    "",
+    "The ground may be frozen too, drawn by tag from whatever a world can be made of that is -- snow and ice,",
+    "never the packed or blue ice a broad word is fenced from. The rock is only offered, since a world built",
+    "of ice is a stronger thing to have said than a world dressed in snow. The sea and biomes lean cold.",
+    "",
+    "**`icy` folded in** (the readings spike, 2026-09-29): its aurora, its refusal of a hot sea, its lean to",
+    "ice spikes and its offers across the rainbow, the air, the vault and the aurora are frozen's now. Two words",
+    "that looked as though they should differ and did not, which is the case for having one.",
+    "",
+    "`frozen rock` is rock of ice."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "-0.95..-0.45"
+    },
+    {
+      "concept": "member",
+      "value": "aurora",
+      "for": "phenomena"
+    },
+    {
+      "for": "sea",
+      "means": [
+        {
+          "excludes": {
+            "sea": [
+              "#hot"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": 0.5
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": 0.8,
+        "minecraft:ice_spikes": 1.0,
+        "minecraft:frozen_ocean": 0.2
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.3..0.3",
+      "chance": 0.4
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "chance": 0.4
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "chance": 0.4
+    },
+    {
+      "for": "sun",
+      "chance": 0.4,
+      "means": [
+        {
+          "sets": {
+            "sun.size": "-1.0..-0.7"
+          }
+        },
+        {
+          "sets": {
+            "moon.size": "-1.0..-0.7"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "haze",
+      "value": "0.2..0.6",
+      "chance": 0.4
+    },
+    {
+      "for": "structures",
+      "chance": 0.4,
+      "means": [
+        {
+          "sets": {
+            "material": "#frozen"
+          }
+        },
+        {
+          "sets": {
+            "material": "#frozen"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "block",
+      "value": "#frozen",
+      "for": "landmass",
+      "chance": 0.33
+    },
+    {
+      "concept": "motes",
+      "value": "snow",
+      "chance": 0.33
+    },
+    {
+      "concept": "brightness",
+      "value": "0.1..1.0",
+      "for": "stars",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "haze",
+      "value": "+0.4",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "motes",
+      "value": "snow",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "height",
+      "value": "-0.3",
+      "for": "clouds",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "default",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "sky",
+      "chance": 0.33
+    },
+    {
+      "concept": "tint",
+      "value": "white",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "tint",
+      "value": "grey",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "tint",
+      "value": "blue",
+      "for": "air",
+      "chance": 0.33
+    },
+    {
+      "concept": "frequency",
+      "value": "0.7..1",
+      "for": "aurora",
+      "chance": 0.33
+    },
+    {
+      "concept": "brightness",
+      "value": "+0.5",
+      "for": "aurora",
+      "chance": 0.33
+    },
+    {
+      "concept": "size",
+      "value": "0.8..1",
+      "for": "aurora",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "clouds",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds",
+      "chance": 0.33
+    },
+    {
+      "concept": "brightness",
+      "value": "0.1..1.0",
+      "for": "stars",
+      "chance": 0.33
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": 0.8
+      },
+      "for": "inhabitants"
+    },
+    {
+      "concept": "block",
+      "value": "#frozen",
+      "for": "features",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "rock",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "stone": "#frozen"
+          }
+        }
+      ]
+    },
+    {
+      "for": "rainbow",
+      "chance": 0.33,
+      "means": [
+        {
+          "sets": {
+            "rainbow.rain": "-1..-1",
+            "rainbow.frequency": "0.7..1",
+            "rainbow.size": "-0.6..-0.2"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "rainbow",
+      "chance": 0.33
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "rainbow",
+      "chance": 0.33
+    }
+  ]
+}

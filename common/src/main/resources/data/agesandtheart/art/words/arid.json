@@ -1,0 +1,77 @@
+{
+  "_comment": [
+    "Drought underfoot, where `parched` is drought overhead: dry, bare country, and the ground it is made",
+    "of. Every arid Age is dressed in something sandy -- sand, red sand, sandstone, gravel, terracotta --",
+    "drawn by tag, and its rock is offered the same; the rain is offered away."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "0.2..0.8"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.95..-0.5"
+    },
+    {
+      "concept": "block",
+      "value": "#sandy",
+      "for": "surface"
+    },
+    {
+      "concept": "block",
+      "value": "#sandy",
+      "for": "structures",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "dry": ">0.3",
+        "barren": ">0.5"
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "dry": ">0.3",
+        "barren": ">0.5"
+      },
+      "for": "climate"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 1.0,
+        "#sandy": 1.0
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 1.0
+      },
+      "for": "features"
+    },
+    {
+      "concept": "block",
+      "value": "#sandy",
+      "for": "landmass"
+    },
+    {
+      "concept": "frequency",
+      "value": "-1.0..-0.5",
+      "for": "weather"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 0.8
+      },
+      "for": "inhabitants"
+    }
+  ]
+}

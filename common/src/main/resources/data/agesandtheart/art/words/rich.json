@@ -1,0 +1,89 @@
+{
+  "_comment": [
+    "What a world holds in the ground, and its waters give up to a line: treasure far oftener (Jonah, 2026-10-21). Bigger only where it is said of ore, since rich trees are not. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
+    "",
+    "`rich underground` and `rich rock` are thick with ore, in bigger patches, and on vanilla's rock its large veins come far oftener."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:ore_diamond": 1.0,
+        "minecraft:ore_emerald": 0.95,
+        "minecraft:ore_gold": 0.8
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#ore": 1.0,
+        "#buried": 0.6,
+        "#barren": -0.5
+      }
+    },
+    {
+      "concept": "treasure",
+      "for": "waters"
+    },
+    {
+      "for": "features",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "features.size": "0.5..1.0"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "veins",
+      "value": "0.5..1.0",
+      "for": "underground",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "features.ore_size": "0.5..1.0"
+          }
+        },
+        {
+          "leans": {
+            "features": {
+              "#ore": 1.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "for": "rock",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "features.ore_size": "0.5..1.0"
+          }
+        },
+        {
+          "leans": {
+            "features": {
+              "#ore": 1.0
+            }
+          }
+        },
+        {
+          "sets": {
+            "underground.veins": "0.5..1.0"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "_comment": [
+    "A floor rather than a band, like warm and higher: hot says 'at least this' and yields to anything hotter, so",
+    "it costs a scorching Age nothing. The floor sits in the upper part of vanilla's warm band, so a hot Age is",
+    "jungle where the air is wet as well as desert, badlands and savanna where it is not; scorching is the word",
+    "for the hot band alone.",
+    "",
+    "Everything past the temperature is only offered, since scorching is the word for burnt country under a",
+    "furnace sky and hot only the heat: an orange light, an orange or red sun, a shimmer of haze, and",
+    "a lean away from the frozen.",
+    "",
+    "`hot underground` and `hot rock` lean to lava and magma, and may be rock of it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "0.4..1.0"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#frozen": -1.0
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "tint",
+      "value": "orange",
+      "for": "air",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "sun",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "red",
+      "for": "sun",
+      "chance": 0.33
+    },
+    {
+      "concept": "haze",
+      "value": "+0.2",
+      "chance": 0.5
+    },
+    {
+      "for": "weather",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": ">0.4"
+          }
+        }
+      ]
+    },
+    {
+      "for": "sea",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": ">0.4"
+          }
+        }
+      ]
+    },
+    {
+      "for": "waters",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.temperature": ">0.4"
+          }
+        }
+      ]
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "#molten": 0.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "for": "rock",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "#molten": 0.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "for": "underground",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "stone": "#molten"
+          }
+        }
+      ]
+    },
+    {
+      "for": "rock",
+      "chance": 0.5,
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "stone": "#molten"
+          }
+        }
+      ]
+    }
+  ]
+}

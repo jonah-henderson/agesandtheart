@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Burnt out: grey wherever there is a colour, ash falling through a haze, and only the barren biomes.",
+    "`dusty` is the dry sister, all sand and yellow light.",
+    "",
+    "`ashen structures` are burned: logs to basalt, wood to blackstone, the rest of what burns gone (R5, Jonah)."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "colour",
+      "value": "grey"
+    },
+    {
+      "concept": "haze",
+      "value": "0.4..0.8",
+      "for": "air"
+    },
+    {
+      "concept": "motes",
+      "value": "ash"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "barren": ">0.37"
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "charred",
+      "for": "structures",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

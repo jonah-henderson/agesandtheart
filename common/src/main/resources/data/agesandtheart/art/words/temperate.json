@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "The middle of the climate, and the nearest thing to the overworld a word can ask for. The band is the",
+    "core; what it offers is the weather of an ordinary spring -- showers, white cloud, a blue sky, the odd",
+    "rainbow -- and a lean towards green country and away from the extremes."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "-0.25..0.45"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.2..0.5"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#lush": 0.8,
+        "#flowering": 0.6,
+        "#frozen": -1.0,
+        "#hot": -0.2
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "frequency",
+      "value": "0.2..0.6",
+      "for": "weather",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "blue",
+      "for": "sky",
+      "chance": 0.5
+    },
+    {
+      "concept": "frequency",
+      "value": "0.3..0.7",
+      "for": "rainbow",
+      "chance": 0.5
+    }
+  ]
+}

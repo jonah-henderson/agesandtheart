@@ -1,0 +1,80 @@
+{
+  "_comment": [
+    "Wet through: rain most of the time over wet country, water standing in it and everything that grows leaning",
+    "lush. Offered, yielding to the book: a low grey sky to rain from.",
+    "",
+    "Before the land, the ground or the air, it is the climate that is wet."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "frequency",
+      "value": "0.6..1.0",
+      "for": "weather"
+    },
+    {
+      "concept": "humidity",
+      "value": "+0.4"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "watery": ">0.3"
+      },
+      "for": "features"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 0.6,
+        "#lush": 0.4
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "concept": "height",
+      "value": "-0.3",
+      "for": "clouds",
+      "chance": 0.5
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "climate.humidity": "+0.4"
+          }
+        }
+      ]
+    },
+    {
+      "for": "surface",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "climate.humidity": "+0.4"
+          }
+        }
+      ]
+    },
+    {
+      "for": "air",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "bends": {
+            "climate.humidity": "+0.4"
+          }
+        }
+      ]
+    }
+  ]
+}

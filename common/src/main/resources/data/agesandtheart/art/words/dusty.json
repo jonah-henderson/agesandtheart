@@ -1,0 +1,83 @@
+{
+  "_comment": [
+    "Dry and blown: sand on the wind, a haze of it in the air, a yellow light, the ground barren and dry. Offered,",
+    "yielding to the book: a yellow or orange sky, sandy ground, yellowed grass. `ashen` is the burnt sister.",
+    "",
+    "`dusty weather` is grit on the wind."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "motes",
+      "value": "grit"
+    },
+    {
+      "concept": "haze",
+      "value": "0.3..0.7",
+      "for": "air"
+    },
+    {
+      "concept": "tint",
+      "value": "yellow",
+      "for": "air"
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "barren": ">0.3",
+        "dry": ">0.43"
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "sky",
+      "chance": 0.67
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "sky",
+      "chance": 0.67
+    },
+    {
+      "for": "structures",
+      "chance": 0.67,
+      "means": [
+        {
+          "sets": {
+            "material": "#sandy"
+          }
+        },
+        {
+          "sets": {
+            "material": "#sandy"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "grass",
+      "chance": 0.67
+    },
+    {
+      "for": "weather",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "air.motes": "grit"
+          }
+        },
+        {
+          "sets": {
+            "air.haze": "0.3..0.7"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "_comment": [
+    "Warm and wet, and the rain is the point: two of the storm, the thunder, the close air and the lit",
+    "insects are drawn for every tropical Age, so no two are quite alike and none is dry. What grows leans",
+    "wooded, flowering and lush, and the water leans towards being water.",
+    "",
+    "Warm, not hot (Jonah, walked 2026-10-01: an island under it grew mostly badlands). Vanilla grows jungle only",
+    "in its warm band, 0.2..0.55, and files desert and badlands above it however wet the air -- so this asked",
+    "for 0.45..0.9 and got a wooded-badlands Age. Inside the warm band the humidity is what picks jungle.",
+    "",
+    "The biomes are named rather than queried, because `tropical biomes` keeps only this lean and `#wooded`",
+    "promoted snowy taiga as much as jungle. The palm beach is let in, being in no Age until something asks.",
+    "",
+    "Its creatures are the jungle's."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "0.22..0.54"
+    },
+    {
+      "concept": "humidity",
+      "value": "0.4..0.9"
+    },
+    {
+      "concept": "member",
+      "value": "agesandtheart:palm_beach",
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#watery": 1.0,
+        "#frozen": -1.0
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:jungle": 1.0,
+        "minecraft:bamboo_jungle": 1.0,
+        "minecraft:sparse_jungle": 0.8,
+        "minecraft:mangrove_swamp": 0.8,
+        "agesandtheart:palm_beach": 0.8,
+        "minecraft:warm_ocean": 0.6,
+        "#lush": 0.3
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#wooded": 1.0,
+        "#flowering": 0.9
+      },
+      "for": "features"
+    },
+    {
+      "concept": "frequency",
+      "value": "0.5..1.0",
+      "for": "weather",
+      "chance": 0.5
+    },
+    {
+      "concept": "thunder",
+      "value": "0.3..0.8",
+      "chance": 0.5
+    },
+    {
+      "concept": "haze",
+      "value": "0.2..0.5",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "firefly",
+      "chance": 0.5
+    },
+    {
+      "concept": "motes",
+      "value": "spore_blossom",
+      "chance": 0.5
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "grass"
+    },
+    {
+      "concept": "colour",
+      "value": "green",
+      "for": "leaves"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "minecraft:parrot": 1.0,
+        "minecraft:ocelot": 1.0,
+        "minecraft:panda": 0.8,
+        "minecraft:frog": 0.6,
+        "#lush": 0.6,
+        "#frozen": -1.0
+      },
+      "for": "inhabitants"
+    }
+  ]
+}

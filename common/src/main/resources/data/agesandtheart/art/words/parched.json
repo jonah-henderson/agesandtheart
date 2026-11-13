@@ -1,0 +1,206 @@
+{
+  "_comment": [
+    "Drought seen from overhead, where `arid` is drought underfoot: the two share the dry climate and part",
+    "company over what it looks like. Two of a hard white-gold sun, a bleached sky, heat haze and no rain",
+    "at all are drawn for every parched Age; a golden light is only offered.",
+    "",
+    "Before the land, the ground or the air, it is the climate that is parched."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "temperature",
+      "value": "0.2..0.9"
+    },
+    {
+      "concept": "humidity",
+      "value": "-0.95..-0.3"
+    },
+    {
+      "concept": "frequency",
+      "value": "-1..-0.5",
+      "for": "weather"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#empty": 0.4
+      },
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 1.0,
+        "#barren": 0.7
+      },
+      "for": "biomes"
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sun",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "sun",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "white",
+      "for": "sky",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "sky",
+      "chance": 0.38
+    },
+    {
+      "concept": "haze",
+      "value": "0.2..0.5",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "grass",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "grass",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "grass",
+      "chance": 0.38
+    },
+    {
+      "concept": "evaporation",
+      "for": "climate",
+      "chance": 0.38
+    },
+    {
+      "concept": "size",
+      "value": "+0.3",
+      "for": "sun",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "grey",
+      "for": "leaves",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "yellow",
+      "for": "leaves",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "orange",
+      "for": "leaves",
+      "chance": 0.38
+    },
+    {
+      "concept": "colour",
+      "value": "black",
+      "for": "leaves",
+      "chance": 0.38
+    },
+    {
+      "concept": "tint",
+      "value": "yellow",
+      "for": "air",
+      "chance": 0.38
+    },
+    {
+      "concept": "tint",
+      "value": "red",
+      "for": "air",
+      "chance": 0.38
+    },
+    {
+      "concept": "tint",
+      "value": "orange",
+      "for": "air",
+      "chance": 0.38
+    },
+    {
+      "concept": "tint",
+      "value": "grey",
+      "for": "air",
+      "chance": 0.38
+    },
+    {
+      "concept": "depth",
+      "value": "-0.5..-0.2",
+      "for": "sea"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#dry": 0.8
+      },
+      "for": "inhabitants"
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.95..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "climate.temperature": "0.2..0.9"
+          }
+        }
+      ]
+    },
+    {
+      "for": "surface",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.95..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "climate.temperature": "0.2..0.9"
+          }
+        }
+      ]
+    },
+    {
+      "for": "air",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "climate.humidity": "-0.95..-0.3"
+          }
+        },
+        {
+          "sets": {
+            "climate.temperature": "0.2..0.9"
+          }
+        }
+      ]
+    }
+  ]
+}

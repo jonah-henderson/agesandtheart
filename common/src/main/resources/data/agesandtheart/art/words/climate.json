@@ -38,6 +38,22 @@
           "sets": "cast"
         }
       ]
+    },
+    {
+      "concept": "lean",
+      "becomes": [
+        {
+          "leans": "climate"
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "becomes": [
+        {
+          "restricts": "climate"
+        }
+      ]
     }
   ]
 }
