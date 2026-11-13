@@ -49,6 +49,17 @@
           "restricts": "rock"
         }
       ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "chooses": {
+            "rock": "porous"
+          },
+          "when": "porous"
+        }
+      ]
     }
   ]
 }

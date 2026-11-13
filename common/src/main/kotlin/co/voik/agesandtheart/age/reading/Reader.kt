@@ -127,7 +127,7 @@ private class Pass(
     private fun close(at: Int, sense: Sense, term: Term, reaching: List<Travelling>): List<Travelling> {
         fates[at] = Fate.Closed
         placed += at
-        val taken = reaching.flatMap { take(at, sense, it) }
+        val taken = gathered(sense, reaching).flatMap { take(at, sense, it) }
         // A negated or `only` thing is struck or kept as described, and only a description of member kinds can say which.
         val isNarrowed = term.polarity != Polarity.ASSERTED
         val placements = if (isNarrowed) taken.filter { it.offer.concept in CoreConcepts.NARROWING } else taken
@@ -173,9 +173,40 @@ private class Pass(
     }
 
     private fun placementOf(at: Int, part: Aspect?, acceptance: Acceptance, reaching: Travelling): Placement {
-        val effects = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(reaching.offer.value, part) }
+        val offer = reaching.offer.copy(value = filled(reaching.offer))
+        val effects = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(offer.value, part) }
         val alongWithIt = reaching.carrying.map(Travelling::page) + reaching.reshapedBy
-        return Placement(reaching.page, reaching.offer, at, part, effects, alongWithIt, reaching.joined)
+        return Placement(reaching.page, offer, at, part, effects, alongWithIt, reaching.joined)
+    }
+
+    /** [offer]'s value with every part it does not give at its concept's default, where its concept is made of parts. */
+    private fun filled(offer: Offer): Value {
+        val parts = offer.value as? Value.Parts ?: return offer.value
+        return words.concepts[offer.concept]?.filled(parts) ?: parts
+    }
+
+    /**
+     * What reaches a thing, with the parts several words give one concept made of parts gathered into one offer where
+     * none gives a part twice — `ancient porous landmass` is porous at a great amount — the later pages placed with it.
+     */
+    private fun gathered(sense: Sense, reaching: List<Travelling>): List<Travelling> {
+        val gathering = mutableListOf<Travelling>()
+        for (travelling in reaching) {
+            val parts = travelling.offer.value as? Value.Parts
+            val joinsAt = if (parts == null || acceptanceFor(sense, travelling.offer) == null) -1 else gathering.indexOfFirst { earlier ->
+                val earlierParts = earlier.offer.value as? Value.Parts
+                val isOfOneConcept = earlier.offer.concept == travelling.offer.concept && acceptanceFor(sense, earlier.offer) != null
+                isOfOneConcept && earlierParts?.with(parts) != null
+            }
+            if (joinsAt < 0) {
+                gathering += travelling
+                continue
+            }
+            val earlier = gathering[joinsAt]
+            val together = (earlier.offer.value as? Value.Parts)?.with(parts ?: continue) ?: continue
+            gathering[joinsAt] = earlier.copy(offer = earlier.offer.copy(value = together), reshapedBy = earlier.reshapedBy + travelling.page + travelling.reshapedBy)
+        }
+        return gathering
     }
 
     /**

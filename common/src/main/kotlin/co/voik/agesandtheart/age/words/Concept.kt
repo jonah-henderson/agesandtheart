@@ -9,16 +9,57 @@ import net.minecraft.util.StringRepresentable
 
 /**
  * What an offer and an acceptance meet on — `colour`, `size`, `block` — the kind of value it carries, and the ink a word
- * pays for offering it for certain. Pack data, one file per concept under `art/concept/`.
+ * pays for offering it for certain. Pack data, one file per concept under `art/concept/`. A concept made of [parts]
+ * takes its value a part at a time, each word giving what it gives and the rest its default: wear's way and amount.
  */
-data class Concept(val id: Identifier, val values: ValueType, val joined: JoinedPair, val price: Int = 0) {
+data class Concept(
+    val id: Identifier,
+    val values: ValueType,
+    val joined: JoinedPair,
+    val price: Int = 0,
+    val parts: Map<String, ConceptPart> = emptyMap(),
+) {
+    /** [value] with every part it does not give at its default, and the part a setting takes as its measure. */
+    fun filled(value: Value.Parts): Value.Parts {
+        val whole = parts.mapValues { (name, part) -> value.parts[name] ?: part.default }
+        val measure = parts.entries.firstOrNull { it.value.values == ValueType.SPAN }?.let { whole[it.key] }
+        return Value.Parts(whole, measure)
+    }
+
+    /** What is wrong with [value] as one of this concept's, or null where nothing is. */
+    fun problemWith(value: Value.Parts): String? {
+        val unknown = value.parts.keys - parts.keys
+        if (unknown.isNotEmpty()) return "it has no part ${unknown.joinToString()}"
+        return value.parts.firstNotNullOfOrNull { (name, given) -> parts.getValue(name).problemWith(given)?.let { "its $name $it" } }
+    }
+
     companion object {
         fun mapCodec(id: Identifier): MapCodec<Concept> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 ValueType.CODEC.fieldOf("value").forGetter(Concept::values),
                 JoinedPair.CODEC.optionalFieldOf("joined", JoinedPair.EITHER).forGetter(Concept::joined),
                 Codec.intRange(0, Int.MAX_VALUE).optionalFieldOf("price", 0).forGetter(Concept::price),
-            ).apply(instance) { values, joined, price -> Concept(id, values, joined, price) }
+                Codec.unboundedMap(Codec.STRING, ConceptPart.CODEC).optionalFieldOf("parts", emptyMap()).forGetter(Concept::parts),
+            ).apply(instance) { values, joined, price, parts -> Concept(id, values, joined, price, parts) }
+        }
+    }
+}
+
+/** One part of a concept made of parts: a span or one of its [options], and what it is where no word gives it. */
+data class ConceptPart(val values: ValueType, val default: String, val options: List<String> = emptyList()) {
+    fun problemWith(given: String): String? = when {
+        options.isNotEmpty() && given !in options -> "'$given' is none of ${options.joinToString()}"
+        !values.admits(Value.Text(given)) -> "'$given' is no ${values.serializedName}"
+        else -> null
+    }
+
+    companion object {
+        val CODEC: Codec<ConceptPart> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                ValueType.CODEC.fieldOf("value").forGetter(ConceptPart::values),
+                Codec.STRING.fieldOf("default").forGetter(ConceptPart::default),
+                Codec.STRING.listOf().optionalFieldOf("options", emptyList()).forGetter(ConceptPart::options),
+            ).apply(instance, ::ConceptPart)
         }
     }
 }
@@ -48,6 +89,9 @@ enum class ValueType(private val key: String) : StringRepresentable {
 
     /** No value: the concept is the whole of it, as `porous` is. */
     FLAG("flag"),
+
+    /** Some of the concept's parts, each word giving what it gives: wear's way and amount. */
+    PARTS("parts"),
     ;
 
     /** Whether [value] is one of this type's. */
@@ -59,6 +103,7 @@ enum class ValueType(private val key: String) : StringRepresentable {
         BARS -> value is Value.Bars
         AMOUNT -> value is Value.Amount
         FLAG -> value == Value.None
+        PARTS -> value is Value.Parts
     }
 
     override fun getSerializedName(): String = key

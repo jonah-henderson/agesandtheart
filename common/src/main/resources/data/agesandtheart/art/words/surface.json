@@ -27,14 +27,14 @@
       ]
     },
     {
-      "concept": "porosity",
+      "concept": "wear",
       "becomes": [
         {
-          "sets": "porosity"
+          "sets": "porosity",
+          "when": "porous"
         }
       ],
-      "chance_from_whole_age": 0.0,
-      "can_resolve_dangling_offers": false
+      "chance_from_whole_age": 0.0
     }
   ]
 }

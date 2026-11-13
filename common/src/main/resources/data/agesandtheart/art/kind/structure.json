@@ -53,14 +53,6 @@
       ]
     },
     {
-      "concept": "wear",
-      "becomes": [
-        {
-          "sets": "crumble"
-        }
-      ]
-    },
-    {
       "concept": "charred",
       "becomes": [
         {
@@ -71,18 +63,23 @@
       ]
     },
     {
-      "concept": "porosity",
-      "becomes": [
-        {
-          "sets": "porosity"
-        }
-      ]
-    },
-    {
       "concept": "spacing",
       "becomes": [
         {
           "sets": "spacing"
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble",
+          "when": "eroded"
+        },
+        {
+          "sets": "porosity",
+          "when": "porous"
         }
       ]
     }

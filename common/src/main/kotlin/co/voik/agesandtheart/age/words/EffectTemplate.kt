@@ -38,7 +38,11 @@ sealed interface EffectTemplate {
      */
     data class Taking(val verb: Verb, val target: String, val values: Map<String, String> = emptyMap()) : EffectTemplate {
         override fun applied(value: Value, part: Aspect?): Effect? {
-            val given = (value as? Value.Text)?.text
+            val given = when (value) {
+                is Value.Text -> value.text
+                is Value.Parts -> value.measure
+                else -> null
+            }
             val text = if (values.isEmpty()) given else values[given]
             return when (verb) {
                 Verb.SETS -> text?.let { Effect.Sets(parameterOf(part), it) }
@@ -64,6 +68,15 @@ sealed interface EffectTemplate {
 
         private fun leaning(weights: Map<String, Double>): Effect =
             if (target == EVERY_PART) Effect.LeansEverywhere(weights) else Effect.Leans(partNamed(), weights)
+    }
+
+    /**
+     * [template], only where one of the value's parts is [choice]: `{ "sets": "porosity", "when": "porous" }` turns wear's
+     * amount into holes where its way is porous, and nothing otherwise.
+     */
+    data class When(val choice: String, val template: EffectTemplate) : EffectTemplate {
+        override fun applied(value: Value, part: Aspect?): Effect? =
+            if (value is Value.Parts && value.names(choice)) template.applied(value, part) else null
     }
 
     /** What a taking effect does with the value. */
@@ -142,6 +155,8 @@ private data class EffectSpelling(
     val abundance: Either<String, Double>? = null,
     /** What a taking `sets` or `bends` reads each value as. */
     val readAs: Map<String, String>? = null,
+    /** The part of the value each effect here asks for: `"when": "porous"`. */
+    val whenNamed: String? = null,
 ) {
     fun read(): DataResult<List<EffectTemplate>> {
         val templates = mutableListOf<EffectTemplate>()
@@ -186,6 +201,7 @@ private data class EffectSpelling(
         return when {
             problems.isNotEmpty() -> DataResult.error { problems.joinToString("; ") }
             templates.isEmpty() -> DataResult.error { "an effect object that holds no effect" }
+            whenNamed != null -> DataResult.success(templates.map { EffectTemplate.When(whenNamed, it) })
             else -> DataResult.success(templates)
         }
     }
@@ -195,6 +211,7 @@ private data class EffectSpelling(
         fun of(template: EffectTemplate): EffectSpelling = when (template) {
             is EffectTemplate.Taking -> taking(template)
             is EffectTemplate.Fixed -> fixed(template.effect)
+            is EffectTemplate.When -> of(template.template).copy(whenNamed = template.choice)
         }
 
         private fun taking(template: EffectTemplate.Taking): EffectSpelling {
@@ -254,11 +271,12 @@ private data class EffectSpelling(
                 Codec.STRING.optionalFieldOf("bans").forGetter { Optional.ofNullable(it.bans) },
                 targetOr(Codec.DOUBLE).optionalFieldOf("abundance").forGetter { it.abundance.optional() },
                 STRINGS.optionalFieldOf("as").forGetter { Optional.ofNullable(it.readAs) },
-            ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, madeOf, bans, abundance, readAs ->
+                Codec.STRING.optionalFieldOf("when").forGetter { Optional.ofNullable(it.whenNamed) },
+            ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, madeOf, bans, abundance, readAs, whenNamed ->
                 EffectSpelling(
                     sets.orElse(null), bends.orElse(null), chooses.orElse(null), admits.orElse(null), excludes.orElse(null),
                     restricts.orElse(null), leans.orElse(null), mints.orElse(null), template.orElse(null), madeOf.orElse(null),
-                    bans.orElse(null), abundance.orElse(null), readAs.orElse(null),
+                    bans.orElse(null), abundance.orElse(null), readAs.orElse(null), whenNamed.orElse(null),
                 )
             }
         }

@@ -1,7 +1,24 @@
 {
   "_comment": [
-    "How worn: the land weathered, structures and features crumbled. `ancient`, `worn`, `pristine`."
+    "How blocks are taken away from a thing, and how much: the land weathered, what stands crumbled, round holes cut",
+    "through. Two parts, each word giving what it gives -- `ancient` a great amount, `porous` the way -- and those said of",
+    "one thing combining: `ancient porous landmass` is holed through at a great amount. Eroded where no word says the way,",
+    "and a mild amount where none intensifies. Each part's page says which of its settings each way turns."
   ],
-  "value": "span",
-  "price": 4
+  "value": "parts",
+  "price": 4,
+  "parts": {
+    "way": {
+      "value": "option",
+      "default": "eroded",
+      "options": [
+        "eroded",
+        "porous"
+      ]
+    },
+    "amount": {
+      "value": "span",
+      "default": "0.2..0.5"
+    }
+  }
 }

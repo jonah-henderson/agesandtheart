@@ -161,6 +161,8 @@ private class Checking(
         if (!concept.values.admits(offer.value)) {
             problems += "$where offers ${PackNames.spell(concept.id)} a value of the wrong kind: ${offer.value} is no ${concept.values.serializedName}"
         }
+        val parts = offer.value as? Value.Parts ?: return
+        concept.problemWith(parts)?.let { problems += "$where offers ${PackNames.spell(concept.id)} a value that does not fit: $it" }
     }
 
     /** A thing turns what it takes into effects or drops it; a describing word folds, renames, scales or drops it. */

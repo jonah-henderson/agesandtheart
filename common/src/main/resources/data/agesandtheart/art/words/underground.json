@@ -60,6 +60,18 @@
           "restricts": "underground"
         }
       ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "chooses": {
+            "underground": "porous"
+          },
+          "when": "porous"
+        }
+      ],
+      "chance_from_whole_age": 0.0
     }
   ]
 }

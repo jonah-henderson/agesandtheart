@@ -16,16 +16,6 @@
       ]
     },
     {
-      "concept": "porosity",
-      "becomes": [
-        {
-          "sets": "porosity"
-        }
-      ],
-      "chance_from_whole_age": 0.0,
-      "can_resolve_dangling_offers": false
-    },
-    {
       "concept": "incongruous",
       "becomes": [
         {
@@ -78,14 +68,6 @@
       "becomes": [
         {
           "sets": "mingling"
-        }
-      ]
-    },
-    {
-      "concept": "wear",
-      "becomes": [
-        {
-          "bends": "wear"
         }
       ]
     },
@@ -168,6 +150,19 @@
       "becomes": [
         {
           "restricts": "landmass"
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "bends": "wear",
+          "when": "eroded"
+        },
+        {
+          "sets": "porosity",
+          "when": "porous"
         }
       ]
     }

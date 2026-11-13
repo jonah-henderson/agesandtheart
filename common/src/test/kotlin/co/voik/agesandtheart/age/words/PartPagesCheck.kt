@@ -24,7 +24,8 @@ class PartPagesCheck : FunSpec({
         "high" to """{ "offers": [ { "concept": "height", "value": "0.5..1.0" } ] }""",
         "weak" to """{ "offers": [ { "concept": "strength", "value": "-1.0..-0.3" } ] }""",
         "north" to """{ "offers": [ { "concept": "direction", "value": "north" } ] }""",
-        "ancient" to """{ "offers": [ { "concept": "wear", "value": "0.45..1.0" } ] }""",
+        "ancient" to """{ "offers": [ { "concept": "wear", "value": { "amount": "0.45..1.0" } } ] }""",
+        "porous" to """{ "offers": [ { "concept": "wear", "value": { "way": "porous" } } ] }""",
         "motionless" to """{ "offers": [ { "concept": "still" } ] }""",
         "rising" to """{ "offers": [ { "concept": "climbing" } ], "accepts": [ { "concept": "direction", "renames": "rising" } ] }""",
     )
@@ -48,14 +49,13 @@ class PartPagesCheck : FunSpec({
     test("every setting a word may turn is reachable through its part's page") {
         // Internal (`caps`), or said only by a thing or a reading: a lake's altitude, a sheep's wool, where a feature lies.
         val unreached = setOf("inhabitants.caps", "features.altitude", "inhabitants.wool", "features.height")
+        fun EffectTemplate.turns(parameter: String): Boolean = when (this) {
+            is EffectTemplate.Taking -> ParameterKey.read(target).name == parameter
+            is EffectTemplate.Fixed -> (effect as? Effect.Sets)?.parameter?.name == parameter
+            is EffectTemplate.When -> template.turns(parameter)
+        }
         fun turns(sense: Sense, parameter: String) = sense.acceptances.any { acceptance ->
-            val becomes = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty()
-            becomes.any { template ->
-                when (template) {
-                    is EffectTemplate.Taking -> ParameterKey.read(template.target).name == parameter
-                    is EffectTemplate.Fixed -> (template.effect as? Effect.Sets)?.parameter?.name == parameter
-                }
-            }
+            (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().any { it.turns(parameter) }
         }
         val gaps = Aspect.entries.flatMap { part ->
             val page = words.partPage(part)?.defaultSense ?: return@flatMap listOf("${part.page}: no page")
@@ -89,9 +89,14 @@ class PartPagesCheck : FunSpec({
         check(sets("motionless sun age", Aspect.SUN, "still") == listOf("true")) { "motionless sun did not stand still" }
     }
 
-    test("wear is the land weathered and what was built crumbled") {
-        check(sets("ancient landmass age", Aspect.TERRAIN, "wear") == listOf("0.45..1.0"))
-        check(sets("ancient features age", Aspect.FEATURES, "crumble") == listOf("0.45..1.0"))
+    test("wear is a way and an amount: eroded unless a word says otherwise, mild unless one intensifies, said together of one thing") {
+        check(sets("ancient landmass age", Aspect.TERRAIN, "wear") == listOf("0.45..1.0")) { "ancient landmass: ${landed("ancient landmass age")}" }
+        check(sets("ancient features age", Aspect.FEATURES, "crumble") == listOf("0.45..1.0")) { "ancient features did not crumble" }
+        check(sets("porous landmass age", Aspect.TERRAIN, "porosity") == listOf("0.2..0.5")) { "porous landmass: ${landed("porous landmass age")}" }
+        check(sets("porous landmass age", Aspect.TERRAIN, "wear").isEmpty()) { "porous landmass was eroded too" }
+        val both = landed("ancient porous landmass age")
+        check(sets("ancient porous landmass age", Aspect.TERRAIN, "porosity") == listOf("0.45..1.0")) { "ancient porous landmass: $both" }
+        check(Effect.Chooses(Aspect.CARVERS, "porous") in landed("porous rock age").flatMap { it.effects }) { "porous rock was not the porous rock" }
     }
 
     test("a block is the sea it can be, and `aurora` brings one") {

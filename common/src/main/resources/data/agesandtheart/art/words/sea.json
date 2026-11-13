@@ -33,16 +33,6 @@
       ]
     },
     {
-      "concept": "porosity",
-      "becomes": [
-        {
-          "sets": "porosity"
-        }
-      ],
-      "chance_from_whole_age": 0.0,
-      "can_resolve_dangling_offers": false
-    },
-    {
       "concept": "block",
       "only": [
         "#agesandtheart:makes_a_sea"
@@ -76,6 +66,16 @@
           "restricts": "sea"
         }
       ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "porosity",
+          "when": "porous"
+        }
+      ],
+      "chance_from_whole_age": 0.0
     }
   ]
 }

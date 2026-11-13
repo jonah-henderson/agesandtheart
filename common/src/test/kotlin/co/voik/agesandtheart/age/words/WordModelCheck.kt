@@ -189,6 +189,27 @@ class WordModelCheck : FunSpec({
         check(price("and") == 2) { "a stated price was not kept" }
     }
 
+    test("a concept made of parts takes its value a part at a time, fills the rest, and refuses a part it has not") {
+        val wear = Concept(
+            "wear".location(), ValueType.PARTS, JoinedPair.EITHER,
+            parts = mapOf("way" to ConceptPart(ValueType.OPTION, "eroded", listOf("eroded", "porous")), "amount" to ConceptPart(ValueType.SPAN, "0.2..0.5")),
+        )
+        val porous = read(Offer.CODEC, """{ "concept": "wear", "value": { "way": "porous" } }""")
+        check(porous.value == Value.Parts(mapOf("way" to "porous")) && roundTrips(Offer.CODEC, porous)) { "read as $porous" }
+        check(read(Offer.CODEC, """{ "concept": "bar", "value": { "woody": ">0.3" } }""").value is Value.Bars) { "a bar was read as parts" }
+        val filled = wear.filled(porous.value as Value.Parts)
+        check(filled.parts == mapOf("way" to "porous", "amount" to "0.2..0.5") && filled.measure == "0.2..0.5") { "filled as $filled" }
+        val words = listOf(
+            word("melted", """{ "offers": [ { "concept": "wear", "value": { "way": "melted" } } ] }"""),
+            word("shiny", """{ "offers": [ { "concept": "wear", "value": { "gloss": "high" } } ] }"""),
+        )
+        val problems = Words.of(concepts + wear, emptyList(), words, behaviours = emptySet()).problems
+        check(problems.any { "melted" in it && "none of" in it } && problems.any { "shiny" in it && "no part" in it }) { "a part that does not fit went unreported: $problems" }
+        val holes = read(EffectTemplate.LIST_CODEC, """[ { "sets": "porosity", "when": "porous" } ]""").single()
+        check(holes.applied(filled, Aspect.SURFACE) == Effect.Sets(ParameterKey("porosity", Aspect.SURFACE), "0.2..0.5")) { "the porous way did not hole the ground" }
+        check(holes.applied(wear.filled(Value.Parts(emptyMap())), Aspect.SURFACE) == null) { "the eroded way holed the ground" }
+    }
+
     test("every shipped concept reads") {
         val directory = MinecraftRegistries.resourceRoot().resolve("data/agesandtheart/${Words.CONCEPT_DIRECTORY}")
         val files = directory.listDirectoryEntries().filter { it.extension == "json" }

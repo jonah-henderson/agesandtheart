@@ -83,24 +83,6 @@
       ]
     },
     {
-      "concept": "wear",
-      "becomes": [
-        {
-          "sets": "crumble"
-        }
-      ]
-    },
-    {
-      "concept": "porosity",
-      "becomes": [
-        {
-          "sets": "porosity"
-        }
-      ],
-      "chance_from_whole_age": 0.0,
-      "can_resolve_dangling_offers": false
-    },
-    {
       "concept": "depth",
       "becomes": [
         {
@@ -172,6 +154,20 @@
           "abundance": "$"
         }
       ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble",
+          "when": "eroded"
+        },
+        {
+          "sets": "porosity",
+          "when": "porous"
+        }
+      ],
+      "chance_from_whole_age": 0.35
     }
   ]
 }

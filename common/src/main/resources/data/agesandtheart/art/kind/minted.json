@@ -64,10 +64,12 @@
       ]
     },
     {
-      "concept": "porosity",
+      "concept": "fallen",
       "becomes": [
         {
-          "sets": "porosity"
+          "sets": {
+            "fallen": "true"
+          }
         }
       ]
     },
@@ -75,17 +77,12 @@
       "concept": "wear",
       "becomes": [
         {
-          "sets": "crumble"
-        }
-      ]
-    },
-    {
-      "concept": "fallen",
-      "becomes": [
+          "sets": "crumble",
+          "when": "eroded"
+        },
         {
-          "sets": {
-            "fallen": "true"
-          }
+          "sets": "porosity",
+          "when": "porous"
         }
       ]
     }
