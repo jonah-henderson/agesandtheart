@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "A point of the compass: which way a canyon or a cliff runs, where the wind blows from -- the Age's one wind, which a",
+    "gale, a tornado and a blizzard blow along too -- and, before `rising` or `setting`, which horizon a sun or a moon",
+    "comes up over or goes down under: `southeast rising sun`. A line has no direction, so the opposite point's canyon is the same canyon."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "direction",
+      "value": "southeast"
+    }
+  ]
+}

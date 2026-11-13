@@ -139,6 +139,10 @@
           "sets": "colour_cycle_pace"
         }
       ]
+    },
+    {
+      "concept": "climbing",
+      "drops": true
     }
   ]
 }

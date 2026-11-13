@@ -69,8 +69,8 @@ data class Phrase(
 
 /**
  * One offer taken: whose it was, the word that took it, the part it lands on, the effects it became — none, where it
- * was taken and dropped — and the chance it applies at. [carrying] are the pages a describing word folded into this
- * offer on its way.
+ * was taken and dropped — and the chance it applies at. [carrying] are the pages of the describing words that folded
+ * something into this offer on its way, or reshaped it, each placed with it.
  */
 data class Placement(
     val from: Int,

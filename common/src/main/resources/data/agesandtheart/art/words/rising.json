@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "The sea climbing, as a deluge's does, with none of its rain: `rising sea`, said of the sea alone. Before it, a point of",
+    "the compass says where a sun or a moon comes up: `north rising sun`. Alone before a body it says nothing, since a sun",
+    "already rises."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "climbing",
+      "chance_from_whole_age": 0.0
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "direction",
+      "renames": "rising"
+    }
+  ]
+}

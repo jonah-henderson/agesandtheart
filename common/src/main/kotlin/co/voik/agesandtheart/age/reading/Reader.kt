@@ -30,8 +30,17 @@ object Reader {
     }
 }
 
-/** An offer on its way, with whatever a describing word folded into it. */
-private data class Travelling(val page: Int, val offer: Offer, val carrying: List<Travelling> = emptyList(), val joined: Int? = null)
+/**
+ * An offer on its way, with whatever a describing word folded into it, and the pages of the describing words that
+ * reshaped it on the way — `setting` in `west setting sun` — which are placed where it is.
+ */
+private data class Travelling(
+    val page: Int,
+    val offer: Offer,
+    val carrying: List<Travelling> = emptyList(),
+    val joined: Int? = null,
+    val reshapedBy: List<Int> = emptyList(),
+)
 
 private class Pass(
     private val words: Words,
@@ -96,8 +105,11 @@ private class Pass(
                 placed += reaching.page
                 when (val outcome = acceptance.outcome) {
                     Outcome.Folds -> folded += reaching
-                    is Outcome.Renames -> onward += reaching.copy(offer = reaching.offer.copy(concept = outcome.concept))
-                    is Outcome.Scales -> onward += reaching.copy(offer = reaching.offer.copy(value = scaled(reaching.offer.value, outcome.factor)))
+                    is Outcome.Renames -> onward += reaching.copy(offer = reaching.offer.copy(concept = outcome.concept), reshapedBy = reaching.reshapedBy + at)
+                    is Outcome.Scales -> onward += reaching.copy(
+                        offer = reaching.offer.copy(value = scaled(reaching.offer.value, outcome.factor)),
+                        reshapedBy = reaching.reshapedBy + at,
+                    )
                     is Outcome.Becomes, Outcome.Drops -> Unit
                 }
                 if (sense.consumesWholePage) untaken = untaken.filter { it.page != reaching.page }
@@ -162,7 +174,8 @@ private class Pass(
 
     private fun placementOf(at: Int, part: Aspect?, acceptance: Acceptance, reaching: Travelling): Placement {
         val effects = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(reaching.offer.value, part) }
-        return Placement(reaching.page, reaching.offer, at, part, effects, reaching.carrying.map(Travelling::page), reaching.joined)
+        val alongWithIt = reaching.carrying.map(Travelling::page) + reaching.reshapedBy
+        return Placement(reaching.page, reaching.offer, at, part, effects, alongWithIt, reaching.joined)
     }
 
     /**

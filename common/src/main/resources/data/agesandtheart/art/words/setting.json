@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Where a sun or a moon goes down, said by the point of the compass before it: `west setting sun`, `north rising east",
+    "setting moon`. It means nothing alone; a point speaks through it."
+  ],
+  "speech": "adjective",
+  "accepts": [
+    {
+      "concept": "direction",
+      "renames": "setting"
+    }
+  ]
+}
