@@ -33,7 +33,8 @@
             "incongruous": "true"
           }
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.0
     },
     {
       "concept": "variety",

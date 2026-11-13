@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "A world begun from the nether: its biomes, its roof, its air and, where no other land is named, its rock -- `nether",
+    "gentle` is the nether over gentle hills. `nether landmass` is the nether's own land in an Age that is otherwise its own."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "template",
+      "value": "infernal",
+      "for": "age"
+    },
+    {
+      "concept": "member",
+      "value": "nether",
+      "for": "landmass",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

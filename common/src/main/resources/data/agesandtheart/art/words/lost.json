@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Sealed off from everything: the sky closed over. `lost structures` (Jonah) are abandoned, half of them sunk one to",
+    "three blocks: nobody left in them."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "sealed"
+    },
+    {
+      "concept": "abandoned",
+      "for": "structures",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "concept": "height",
+      "value": "-0.08..-0.08",
+      "for": "structures",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

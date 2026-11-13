@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "No moon: the sun's own word, said about the other body."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "absent",
+      "for": "moon"
+    }
+  ]
+}

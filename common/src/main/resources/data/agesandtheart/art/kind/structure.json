@@ -1,14 +1,90 @@
 {
   "_comment": [
     "A structure set: one member of the structures, said as the many it holds (`villages`). What is said of it is said",
-    "of those structures alone: what they are built of, never a block they could not stand as; how far they sprawl;",
-    "and how many of them there are."
+    "of those structures alone: what they are built of, never a block they could not stand as; how far they sprawl, how",
+    "high they stand, how worn, charred or holed, how far apart, whether anyone is left in them; and how many there are."
   ],
   "terminal": true,
   "part": "structures",
   "accepts": [
-    { "concept": "block", "only": [ "#agesandtheart:makes_a_world" ], "becomes": [ { "sets": "material" } ] },
-    { "concept": "size", "becomes": [ { "sets": "size" } ] },
-    { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
+    {
+      "concept": "block",
+      "only": [
+        "#agesandtheart:makes_a_world"
+      ],
+      "becomes": [
+        {
+          "sets": "material"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    },
+    {
+      "concept": "abandoned",
+      "becomes": [
+        {
+          "sets": {
+            "abandoned": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "height"
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble"
+        }
+      ]
+    },
+    {
+      "concept": "charred",
+      "becomes": [
+        {
+          "sets": {
+            "charred": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ]
+    },
+    {
+      "concept": "spacing",
+      "becomes": [
+        {
+          "sets": "spacing"
+        }
+      ]
+    }
   ]
 }

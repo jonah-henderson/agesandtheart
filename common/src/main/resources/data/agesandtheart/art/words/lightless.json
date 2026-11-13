@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "A world nothing shines on: sealed overhead, no sun and no stars. `lightless underground` has nothing glowing",
+    "in it, and a `lightless moon` stays new all month."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "sealed"
+    },
+    {
+      "concept": "absent",
+      "for": "sun"
+    },
+    {
+      "concept": "density",
+      "value": "-1.0..-1.0",
+      "for": "stars"
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "leans": {
+            "features": {
+              "#glowing": -1.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "concept": "unlit",
+      "for": "moon",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

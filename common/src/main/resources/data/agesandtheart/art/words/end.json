@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "A world begun from the end: its biomes, its void and its air, and where no other land is named, its rock. `end",
+    "landmass` is the end's own land in an Age that is otherwise its own."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "template",
+      "value": "dark_void",
+      "for": "age"
+    },
+    {
+      "concept": "member",
+      "value": "end",
+      "for": "landmass",
+      "chance_from_whole_age": 0.0
+    }
+  ]
+}

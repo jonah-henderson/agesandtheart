@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "No stars: a night sky with nothing in it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "density",
+      "value": "-1.0..-1.0",
+      "for": "stars"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "_comment": [
+    "Nothing there: a sea of empty air under the land, so what falls off falls forever. `empty sky` has no cloud, no",
+    "stars and no moon; `empty underground` (Jonah) is perhaps hollow, never a mineshaft, little growing down there and no",
+    "monster coming of itself under the rock; `empty landmass` (Jonah) is no land at all, nothing built, and a small platform",
+    "for a link to arrive on."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "bar",
+      "value": {
+        "empty": ">0.3"
+      },
+      "for": "sea"
+    },
+    {
+      "for": "sky",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "sets": {
+            "clouds.absent": "true",
+            "stars.density": "-1.0..-1.0",
+            "moon.absent": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "cavernous": ">0.6"
+      },
+      "for": "underground",
+      "chance": 0.4,
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "underground",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "structures": [
+              "minecraft:mineshafts"
+            ]
+          }
+        },
+        {
+          "leans": {
+            "features": {
+              "#buried": -1.0,
+              "#cavernous": -0.8,
+              "#barren": 0.8
+            }
+          }
+        },
+        {
+          "sets": {
+            "inhabitants.none_below": "true"
+          }
+        }
+      ]
+    },
+    {
+      "concept": "bar",
+      "value": {
+        "empty": ">0.3"
+      },
+      "for": "landmass",
+      "chance_from_whole_age": 0.0
+    },
+    {
+      "for": "landmass",
+      "chance_from_whole_age": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "structures": [
+              "#built"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

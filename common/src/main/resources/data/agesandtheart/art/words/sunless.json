@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "No sun at all: the one word that empties the sky of its star rather than describing it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "absent",
+      "for": "sun"
+    }
+  ]
+}

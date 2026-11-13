@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Nobody here: a deserted Age builds nothing anybody lives in and nothing living walks it. Said of villages it",
+    "keeps them and empties them -- `deserted villages` are vanilla's abandoned ones, cobwebs and zombie villagers."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "abandoned"
+    },
+    {
+      "for": "structures",
+      "chance": 0.0,
+      "means": [
+        {
+          "excludes": {
+            "structures": [
+              "#inhabited"
+            ]
+          }
+        }
+      ],
+      "chance_from_whole_age": 1.0
+    },
+    {
+      "for": "inhabitants",
+      "means": [
+        {
+          "excludes": {
+            "inhabitants": [
+              "#mobs"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

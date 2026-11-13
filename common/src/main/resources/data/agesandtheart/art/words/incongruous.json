@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Where it does not belong, and visibly (Jonah, 2026-10-16): what is built, what grows and what lives found",
+    "anywhere, and the biomes no longer following the shape of the land -- ocean biomes on hilltops. Said of the land itself,",
+    "patches of the Age's own terrain read from far away, the land breaking off at a patch's edge."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "incongruous"
+    },
+    {
+      "concept": "footing",
+      "value": "free",
+      "for": "biomes"
+    }
+  ]
+}
