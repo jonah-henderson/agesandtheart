@@ -69,22 +69,8 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
     fun speakingTo(aspect: Aspect): List<Landing> =
         said.filter { it.aspect == aspect && mintingClauseOf(it, mintingClauses) == null }
 
-    /**
-     * Firmest first: choosing and settling before barring before leaning, then aimed before bare, then the likelier,
-     * then the higher bar — and where all of that ties, the seed, never the order the pages were laid in.
-     */
-    fun ranked(aspect: Aspect, landings: List<Landing>): List<Landing> = landings.sortedWith(
-        compareByDescending<Landing> { it.firmness }
-            .thenByDescending { it.aimed }
-            .thenByDescending { it.chance }
-            .thenByDescending { it.highestBar }
-            .thenBy { tieBreak(aspect, it) },
-    )
-
-    /** A stable, unpredictable ordering key — how the seed arbitrates between equally firm landings. */
-    fun tieBreak(aspect: Aspect, landing: Landing): Long =
-        XoroshiroRandomSource(draw xor (aspect.ordinal * ASPECT_STRIDE) xor (landing.word.hashCode().toLong() * WORD_MIXER))
-            .nextLong()
+    /** [landings] firmest first ([firmestFirst]), ties settled by the Age's draw. */
+    fun ranked(aspect: Aspect, landings: List<Landing>): List<Landing> = landings.sortedWith(firmestFirst(aspect, draw))
 
     fun flaw(register: Register, landings: List<Landing>, aspect: Aspect?, tags: List<String> = emptyList()) =
         Flaw(register, landings.map(Landing::word).distinct(), aspect, tags)
@@ -112,3 +98,16 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
         private const val MATERIAL_SALT = 0x3A7E_41A1L
     }
 }
+
+/**
+ * Firmest first: choosing and settling before barring before leaning, then the likelier, then the higher bar — and where
+ * all of that ties, [draw], never the order the pages were laid in.
+ */
+internal fun firmestFirst(aspect: Aspect, draw: Long): Comparator<Landing> =
+    compareByDescending<Landing> { it.firmness }
+        .thenByDescending { it.chance }
+        .thenByDescending { it.highestBar }
+        .thenBy { landing ->
+            XoroshiroRandomSource(draw xor (aspect.ordinal * Resolving.ASPECT_STRIDE) xor (landing.word.hashCode().toLong() * Resolving.WORD_MIXER))
+                .nextLong()
+        }

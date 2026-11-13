@@ -8,42 +8,52 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Setting
 
 /**
- * Every pair of words that could not both be what they said where they landed together (`the-world-model.md`
- * §8), read off what each could have landed before anything was drawn, so the same book is
- * charged the same at every seed. One flaw per pair of words, naming the place they first clashed and what over.
- *
- * Two landings clash where they are at one place and said of members in common, sited alike and not joined by
- * `and`, neither is a bare offer an aimed word overrules nor said of another clause's minting, and: settle one parameter to values that cannot both hold; are made of different things; choose different
- * members of a catalogue; one strikes what the other chooses; one wants or leans toward a tag the other bars or
- * leans against, or toward one opposed to a tag the other wants or leans toward; or one keeps only its own members
- * of a population another adds to. A word never clashes with itself.
+ * Two landings that could not both be what they said where they met (`the-world-model.md` §8), the firmer holding, and
+ * what over. Found among what could land before anything is drawn, so the same book clashes the same at every seed; the
+ * weaker comes to nothing there, and is drawn elsewhere where its page then placed nothing.
  */
-internal fun incoherence(world: WorldFacts, possible: List<Landing>): List<Flaw> {
-    val found = linkedMapOf<Pair<String, String>, Flaw>()
-    val mintingClauses = mintingClausesIn(possible)
-    for ((aspect, here) in possible.groupBy { it.aspect }.toSortedMap(compareBy(Aspect::ordinal))) {
+data class Clash(val firmer: Landing, val weaker: Landing, val aspect: Aspect, val over: List<String>) {
+    /** The flaw it costs, naming the two words in the order they were laid. */
+    val flaw: Flaw get() = Flaw(Register.INCOHERENT, listOf(firmer, weaker).sortedBy { it.page }.map(Landing::word), aspect, over)
+}
+
+/**
+ * Every pair of landings among [possible] that clash, the firmer by [firmestFirst] at [draw] holding. Two clash where
+ * they are at one place and said of members in common, sited alike and not joined by `and`, not said of another clause's
+ * minting, and: settle one parameter to values that cannot both hold; are made of different things; choose different
+ * members of a catalogue; one strikes what the other chooses; one wants or leans toward a tag the other bars or leans
+ * against, or toward one opposed to a tag the other wants or leans toward; or one keeps only its own members of a
+ * population another adds to. A word never clashes with itself, and what is said of the Age whole clashes with nothing.
+ */
+fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<Clash> {
+    val ofItsParts = possible.filter { it.banned.isEmpty() && it.linksIn == null }
+    val mintingClauses = mintingClausesIn(ofItsParts)
+    val found = mutableListOf<Clash>()
+    for ((aspect, here) in ofItsParts.groupBy { it.aspect }.toSortedMap(compareBy(Aspect::ordinal))) {
+        val ranking = firmestFirst(aspect, draw)
         for (first in here.indices) {
             for (second in first + 1..<here.size) {
                 val one = here[first]
                 val other = here[second]
-                val words = listOf(one.word, other.word).sorted().let { it[0] to it[1] }
-                if (one.word == other.word || words in found || !meet(one, other, mintingClauses)) continue
+                if (one.word == other.word || !meet(one, other, mintingClauses)) continue
                 val over = clashBetween(world, aspect, one, other) ?: clashBetween(world, aspect, other, one) ?: continue
-                found[words] = Flaw(Register.INCOHERENT, listOf(one.word, other.word), aspect, over)
+                val (firmer, weaker) = if (ranking.compare(one, other) <= 0) one to other else other to one
+                found += Clash(firmer, weaker, aspect, over)
             }
         }
     }
-    return found.values.toList()
+    return found
 }
+
+/** The flaws [clashes] cost: one per pair of words, at the first place they clashed. */
+fun flawsOf(clashes: List<Clash>): List<Flaw> = clashes.distinctBy { it.flaw.words.toSet() }.map(Clash::flaw)
 
 /**
  * Whether two landings are in one place to disagree: the same members in part, the same body, the same biome,
- * unjoined, neither a bare offer yielding to the other aimed there, and in one clause where either was said of
+ * unjoined, and in one clause where either was said of
  * what a clause minted — `deep ink lakes, shallow lava lakes` are two lakes.
  */
 private fun meet(one: Landing, other: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Boolean {
-    fun yieldsTo(offer: Landing, aimed: Landing) = offer.isAnOffer && !offer.aimed && aimed.aimed
-    if (yieldsTo(one, other) || yieldsTo(other, one)) return false
     if (mintingClauseOf(one, mintingClauses) != mintingClauseOf(other, mintingClauses)) return false
     if (one.isJoinedTo(other) || one.sitedIn != other.sitedIn) return false
     val oneMembers = one.members

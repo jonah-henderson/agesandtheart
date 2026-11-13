@@ -24,7 +24,7 @@ internal val Landing.mints: Boolean get() = effects.any { it is Effect.Mints }
 
 /** The part of the world and the clause of each minting in [landings] that was taken in a clause. */
 internal fun mintingClausesIn(landings: List<Landing>): Set<Pair<Aspect, Int>> =
-    landings.filter { it.mints }.mapNotNull { minting -> minting.clause?.let { minting.aspect to it } }.toSet()
+    landings.filter { it.mints }.map { minting -> minting.aspect to minting.saidOf }.toSet()
 
 /**
  * The minting clause [landing] was said in beside its minting, among [mintingClauses], or null where it was not —
@@ -32,16 +32,13 @@ internal fun mintingClausesIn(landings: List<Landing>): Set<Pair<Aspect, Int>> =
  */
 internal fun mintingClauseOf(landing: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Pair<Aspect, Int>? {
     if (landing.mints) return null
-    val clause = landing.clause ?: return null
-    return (landing.aspect to clause).takeIf { it in mintingClauses }
+    return (landing.aspect to landing.saidOf).takeIf { it in mintingClauses }
 }
 
 /** Every minting that landed, with the clause it was laid in. */
 private fun Resolving.mintings(): List<Minting> = said.mapNotNull { landing ->
     val mints = landing.effects.filterIsInstance<Effect.Mints>().firstOrNull() ?: return@mapNotNull null
-    val clause = if (landing.clause == null) emptyList() else said.filter { other ->
-        other !== landing && other.aspect == landing.aspect && other.clause == landing.clause
-    }
+    val clause = said.filter { other -> other !== landing && other.aspect == landing.aspect && other.saidOf == landing.saidOf }
     Minting(mints, landing, clause)
 }
 

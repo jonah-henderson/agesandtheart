@@ -21,8 +21,8 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * A book in, a world out (`the-world-model.md` §5). What landed fills the catalogues, steers the parameters,
- * weighs the populations and mints the features, the template lies underneath what the book spoke to, and every
- * disagreement between words is charged as incoherence. A pure function of (world, book, seed): an Age is rebuilt
+ * weighs the populations and mints the features, and the template lies underneath what the book spoke to. What clashed
+ * was settled and charged before ([clashesAmong]); what only the composed world shows to be at odds is charged here. A pure function of (world, book, seed): an Age is rebuilt
  * from its recipe on every open.
  */
 object Resolver {
@@ -32,8 +32,7 @@ object Resolver {
         // part resolves.
         val (ofTheWholeAge, landings) = book.landings.partition { it.banned.isNotEmpty() || it.linksIn != null }
         val resolving = Resolving(world, landings, draw = seed xor saltOf(book.landings))
-        resolving.flaws += book.chargedByTheReading
-        resolving.flaws += incoherence(world, book.possible.filter { it.banned.isEmpty() && it.linksIn == null })
+        resolving.flaws += book.chargedBeforeResolving
         resolving.flaws += bannedButAskedFor(book.possible)
         val filled = Aspect.entries.associateWith { resolving.fill(it) }
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }

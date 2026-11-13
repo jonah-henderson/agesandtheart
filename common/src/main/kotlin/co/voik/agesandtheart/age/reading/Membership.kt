@@ -4,7 +4,8 @@ import co.voik.agesandtheart.age.aspect.Aspect
 
 /**
  * What the reader asks the world about a value, so that it stays a pure function of the words, the pages and these
- * answers: whether a block or member is in a tag, what part a member belongs to, and whether it clears a group's bars.
+ * answers: whether a block or member is in a tag, what part a member belongs to, whether it clears a group's bars, and
+ * whether it is in a world nobody asked for it in.
  */
 interface Membership {
     /** Whether [value] is [keyOrTag], or in it where it is a `#tag`. */
@@ -15,4 +16,7 @@ interface Membership {
 
     /** Whether [member]'s tags clear [bars]. */
     fun clears(member: String, bars: Map<String, Double>): Boolean
+
+    /** Whether [member] of [part] is there in a world that never named it, so naming it beside a description only describes it. */
+    fun isThereByDefault(part: Aspect, member: String): Boolean
 }

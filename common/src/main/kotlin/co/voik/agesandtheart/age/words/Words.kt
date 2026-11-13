@@ -21,6 +21,9 @@ data class Words(
 ) {
     fun word(name: String): Word? = byName[name]
 
+    /** What [word] costs to write ([Price]). */
+    fun priceOf(word: Word): Int = Price.of(word, concepts)
+
     /** The word that is [part]'s own page — `sky`, `landmass` — which `age` hands what it takes to. */
     fun partPage(part: Aspect): Word? = byName[part.page]?.takeIf { it.id.namespace == Constants.MOD_ID }
 

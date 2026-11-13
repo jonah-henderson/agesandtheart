@@ -8,16 +8,17 @@ import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 
 /**
- * What an offer and an acceptance meet on — `colour`, `size`, `block` — and the kind of value it carries. Pack data,
- * one file per concept under `art/concept/`.
+ * What an offer and an acceptance meet on — `colour`, `size`, `block` — the kind of value it carries, and the ink a word
+ * pays for offering it for certain. Pack data, one file per concept under `art/concept/`.
  */
-data class Concept(val id: Identifier, val values: ValueType, val joined: JoinedPair) {
+data class Concept(val id: Identifier, val values: ValueType, val joined: JoinedPair, val price: Int = 0) {
     companion object {
         fun mapCodec(id: Identifier): MapCodec<Concept> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 ValueType.CODEC.fieldOf("value").forGetter(Concept::values),
                 JoinedPair.CODEC.optionalFieldOf("joined", JoinedPair.EITHER).forGetter(Concept::joined),
-            ).apply(instance) { values, joined -> Concept(id, values, joined) }
+                Codec.intRange(0, Int.MAX_VALUE).optionalFieldOf("price", 0).forGetter(Concept::price),
+            ).apply(instance) { values, joined, price -> Concept(id, values, joined, price) }
         }
     }
 }

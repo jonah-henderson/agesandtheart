@@ -16,7 +16,7 @@ data class Reading(
     val phrases: List<Phrase>,
     /** Each meaning that reached an `age`, at each part that took it, and what the Age took itself. */
     val handedOut: List<Placement>,
-    val arrival: LinkAnchor? = null,
+    val arrival: Arrival? = null,
 ) {
     /** The pages that placed nothing anywhere: misplaced, charged one flaw each, and drawn somewhere at random. */
     val dangling: List<PageRead> get() = pages.filter { it.fate == Fate.Dangles }
@@ -24,6 +24,9 @@ data class Reading(
     /** Every placement there is, a phrase's and the Age's. */
     val placements: List<Placement> get() = phrases.flatMap(Phrase::placements) + handedOut
 }
+
+/** Where a link into the Age arrives, and the page of the `link` that said so. */
+data class Arrival(val page: Int, val anchor: LinkAnchor)
 
 /** One page, the sense it was read in where it has more than one, and what became of it. */
 data class PageRead(val index: Int, val written: String, val sense: Int?, val fate: Fate)

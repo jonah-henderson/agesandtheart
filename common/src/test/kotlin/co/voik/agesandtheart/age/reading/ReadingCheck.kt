@@ -127,7 +127,7 @@ class ReadingCheck : FunSpec({
 
     test("`in` sites the thing before it, and `link in` sets where a link arrives") {
         check(read("beautiful plants in jungle age").phrase("plants")?.sitedIn == Identifier.parse("minecraft:jungle"))
-        check(read("link in jungle age").arrival == LinkAnchor(Aspect.BIOMES, setOf("minecraft:jungle")))
+        check(read("link in jungle age").arrival?.anchor == LinkAnchor(Aspect.BIOMES, setOf("minecraft:jungle")))
         check(read("everywhere age").fateOf("everywhere") == Fate.Dangles) { "`everywhere` with nothing before it bound something" }
     }
 

@@ -117,7 +117,7 @@ class InertPhrases(private val vocabulary: Vocabulary) {
         val acceptance = vocabulary.lexicon.acceptance(noun) ?: return null
         val nounParts = setOfNotNull(acceptance.place.aspect, acceptance.companion?.place?.aspect)
         // A word that took the pages before it lands through them, as `villagers` does in `small villagers`.
-        val landed = reading.possible.filter { it.page == page || it.clause == page }
+        val landed = reading.possible.filter { it.page == page || it.saidOf == page }
         if (landed.any { it.place.aspect in nounParts }) return null
         val landsOn = landed.map { it.place.aspect }.toSet()
         val takenByTheNoun = reading.pages[page].fate == Fate.TakenBy(nounAt)

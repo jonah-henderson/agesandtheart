@@ -1,0 +1,310 @@
+package co.voik.agesandtheart.age.reading
+
+import co.voik.agesandtheart.age.Flaw
+import co.voik.agesandtheart.age.Register
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.Landing
+import co.voik.agesandtheart.age.resolution.Members
+import co.voik.agesandtheart.age.resolution.Place
+import co.voik.agesandtheart.age.resolution.WorldFacts
+import co.voik.agesandtheart.age.resolution.clashesAmong
+import co.voik.agesandtheart.age.resolution.flawsOf
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.Word
+import co.voik.agesandtheart.age.words.Words
+import co.voik.agesandtheart.math.mix64
+import net.minecraft.resources.Identifier
+import kotlin.random.Random
+
+/** What lands of a reading once its clashes are settled and its chances drawn, what could have, and what it cost. */
+data class Drawn(
+    val landed: List<Landing>,
+    /** Everything the reading placed, before anything was settled or drawn. */
+    val possible: List<Landing>,
+    val dangling: List<Dangled>,
+    /** One per clash and one per page that dangled for any other reason. */
+    val flaws: List<Flaw>,
+    /** The world the Age starts from, where the Age took a template. */
+    val template: String?,
+)
+
+/** A page that placed nothing, and the word its meaning was drawn onto, or null where no word takes it. */
+data class Dangled(val page: Int, val written: String, val drawnOnto: String?)
+
+/**
+ * A reading settled and drawn off the seed (`notes/the-word-rework.md`):
+ *
+ * - where two things that could land clash, the weaker comes to nothing there ([clashesAmong]);
+ * - everything placed lands on its offer's chance, and a page `age` handed out lands somewhere at least;
+ * - a page that placed nothing, or all of whose landings were overruled, is drawn onto one word that takes it, never a
+ *   gated one, and that word's phrase lands whole.
+ */
+object Draw {
+    fun of(reading: Reading, words: Words, membership: Membership, world: WorldFacts, isGated: (Word) -> Boolean, seed: Long): Drawn =
+        Drawing(reading, words, membership, world, isGated, seed).drawn()
+}
+
+private class Drawing(
+    private val reading: Reading,
+    private val words: Words,
+    private val membership: Membership,
+    private val world: WorldFacts,
+    private val isGated: (Word) -> Boolean,
+    private val seed: Long,
+) {
+    private val written = reading.pages.map { it.written }
+    private val bodies = mutableMapOf<Aspect, Int>()
+
+    fun drawn(): Drawn {
+        val sayings = reading.phrases.map(::sayingOf)
+        val possible = sayings.flatMap { it.landings(it.placements) } +
+            reading.handedOut.flatMap(::landingsHandedOut) + ofTheWholeAge(reading.handedOut)
+        val clashes = clashesAmong(world, possible, seed)
+        val overruled = clashes.map { whereSaid(it.weaker) }.toSet()
+        fun stands(landing: Landing) = whereSaid(landing) !in overruled
+
+        val handedOutLanding = thatLand(reading.handedOut)
+        val landed = sayings.flatMap { it.landings(it.placements.filter(::lands)) } +
+            handedOutLanding.flatMap(::landingsHandedOut) + ofTheWholeAge(handedOutLanding)
+        val overruledWhole = possible.groupBy { it.page }.filterValues { ofThePage -> ofThePage.none(::stands) }.keys
+        val dangling = (reading.dangling.map(PageRead::index) + overruledWhole).distinct().sorted().map(::drawnOnto)
+        val danglingFlaws = dangling.filter { (dangled, _) -> dangled.page !in overruledWhole }.map { (dangled, drawnLandings) ->
+            Flaw(Register.DANGLES, listOfNotNull(dangled.written, dangled.drawnOnto), drawnLandings.firstOrNull()?.place?.aspect, emptyList())
+        }
+        val template = handedOutLanding.filter { it.part == null }.flatMap { it.effects }
+            .filterIsInstance<Effect.Template>().firstOrNull()?.name
+        return Drawn(
+            landed = landed.filter(::stands) + dangling.flatMap { it.second },
+            possible = possible,
+            dangling = dangling.map { it.first },
+            flaws = flawsOf(clashes) + danglingFlaws,
+            template = template,
+        )
+    }
+
+    /** What a clash overrules: what one page said of one thing at one place. */
+    private fun whereSaid(landing: Landing) = Triple(landing.page, landing.saidOf, landing.place)
+
+    // ----- Chance -----
+
+    private fun randomFor(page: Int, salt: Long = 0L) = Random(mix64(seed xor (page * PAGE_STRIDE) xor salt))
+
+    private val pageRandoms = mutableMapOf<Int, Random>()
+
+    private fun lands(placement: Placement): Boolean =
+        pageRandoms.getOrPut(placement.from) { randomFor(placement.from) }.nextDouble() < placement.offer.chance
+
+    /** What `age` handed out that lands, each on its chance, and a page all of whose chances missed at its likeliest. */
+    private fun thatLand(handedOut: List<Placement>): List<Placement> = handedOut.groupBy { it.at to it.from }.values
+        .flatMap { ofThePage -> ofThePage.filter(::lands).ifEmpty { listOf(ofThePage.maxBy { it.offer.chance }) } }
+
+    // ----- Dangling -----
+
+    /**
+     * Where the dangling page at [page] is said instead: one word drawn from every word that would take something of it
+     * laid after it, never a structure word or a gated one, read with it — the drawn word's phrase lands whole.
+     */
+    private fun drawnOnto(page: Int): Pair<Dangled, List<Landing>> {
+        val word = words.word(written[page])
+        val takers = if (word == null || word.defaultSense?.behaviour != null) emptyList() else takersOf(written[page])
+        if (takers.isEmpty()) return Dangled(page, written[page], null) to emptyList()
+        val (taker, read) = takers[randomFor(page, DANGLING_SALT).nextInt(takers.size)]
+        val phrase = read.phrases.first()
+        val saying = sayingOf(phrase, page = page, takerWord = taker)
+        val landing = saying.placements.filter(::lands).ifEmpty { listOf(saying.placements.maxBy { it.offer.chance }) }
+        return Dangled(page, written[page], taker) to saying.landings(landing)
+    }
+
+    /**
+     * Every word that, laid after [dangling], closes a phrase taking something of it through an acceptance that resolves
+     * dangling offers, by name, with that reading.
+     */
+    private fun takersOf(dangling: String): List<Pair<String, Reading>> = words.byName.values
+        .filter { it.defaultSense?.behaviour == null && !isGated(it) }
+        .sortedBy { it.name }
+        .mapNotNull { taker ->
+            val read = Reader.read(words, listOf(dangling, taker.name), membership, seed)
+            val phrase = read.phrases.singleOrNull { it.head == 1 } ?: return@mapNotNull null
+            val sense = read.pages[1].sense?.let(taker.senses::getOrNull) ?: taker.defaultSense
+            fun resolvesIt(placement: Placement) =
+                placement.from == 0 && sense?.acceptanceOf(placement.offer.concept)?.canResolveDanglingOffers == true
+            val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
+            if (resolving.placements.isEmpty()) null else taker.name to read.copy(phrases = listOf(resolving))
+        }
+
+    // ----- Landings -----
+
+    /**
+     * A phrase as what it says: its own meaning and what it took, said of its members. Read at [page] where it is a
+     * dangling page's drawn phrase, its word [takerWord].
+     */
+    private fun sayingOf(phrase: Phrase, page: Int? = null, takerWord: String? = null): Saying {
+        val part = phrase.part
+        val placements = page?.let { at -> phrase.placements.map { it.copy(from = at, at = at, carrying = it.carrying.map { at }) } }
+            ?: phrase.placements
+        val named = namedMembersOf(phrase)
+        val own = if (onlyDescribes(phrase, named)) phrase.own.filterNot(::namesMembers) else phrase.own
+        val members = when {
+            named != null -> Members.Named(named)
+            part?.holds == Holds.POPULATION -> Members.Body(bodies.getOrDefault(part, 0).also { bodies[part] = it + 1 })
+            else -> Members.All
+        }
+        return Saying(
+            head = page ?: phrase.head,
+            word = takerWord ?: written[phrase.head],
+            part = part,
+            members = members,
+            own = own,
+            placements = placements,
+            polarity = phrase.polarity,
+            joined = phrase.joined,
+            sitedIn = phrase.sitedIn,
+            everywhere = phrase.everywhere,
+        )
+    }
+
+    /** The members a phrase is said of: the member it took, or those its own meaning names or mints, or null for all of its part. */
+    private fun namedMembersOf(phrase: Phrase): Set<String>? {
+        val taken = phrase.placements.filter { it.offer.concept == CoreConcepts.MEMBER }
+            .mapNotNull { (it.offer.value as? Value.Text)?.text }
+        val own = phrase.own.mapNotNull { effect ->
+            when (effect) {
+                is Effect.Chooses -> effect.member.takeIf { effect.aspect == phrase.part }
+                is Effect.Mints -> effect.pattern
+                else -> null
+            }
+        } + phrase.own.filterIsInstance<Effect.Admits>().filter { it.aspect == phrase.part }.flatMap { it.members }
+        return (taken + own).toSet().ifEmpty { null }
+    }
+
+    /**
+     * Whether a phrase naming members only describes them, asking for none: `deserted villages` is about the villages
+     * there are. Not where it asks an amount or a polarity, nor where its members are not there until something brings them.
+     */
+    private fun onlyDescribes(phrase: Phrase, named: Set<String>?): Boolean {
+        val part = phrase.part ?: return false
+        val namesMembers = named != null && phrase.own.any(::namesMembers)
+        val effects = phrase.placements.flatMap { it.effects }
+        val describes = effects.any { it !is Effect.Abundance }
+        val asksForAnAmount = effects.any { it is Effect.Abundance }
+        val isAPopulationOfMembers = part.holds == Holds.WEIGHTED_SET && part.pool?.startsEmpty != true
+        val namedAreThereAnyway = named.orEmpty().all { membership.isThereByDefault(part, it) }
+        val isAsserted = phrase.polarity == Polarity.ASSERTED
+        return namesMembers && describes && !asksForAnAmount && isAsserted && isAPopulationOfMembers && namedAreThereAnyway
+    }
+
+    private fun namesMembers(effect: Effect) = effect is Effect.Chooses || effect is Effect.Restricts
+
+    /** What `age` handed to a part, said of all of it. */
+    private fun landingsHandedOut(placement: Placement): List<Landing> {
+        val part = placement.part ?: return emptyList()
+        return landingsOf(placement.effects, part, Members.All).map { (place, effects) ->
+            Landing(effects, place, written[placement.from], placement.from, placement.at, placement.offer.chance, joined = placement.joined)
+        }
+    }
+
+    /** What the Age took itself that is said of it whole: a ban, and where a link arrives. */
+    private fun ofTheWholeAge(handedOut: List<Placement>): List<Landing> {
+        val bans = handedOut.filter { it.part == null }.mapNotNull { placement ->
+            val banned = placement.effects.filterIsInstance<Effect.Bans>().ifEmpty { return@mapNotNull null }
+            Landing(banned, WHOLE_AGE, written[placement.from], placement.from, placement.at, placement.offer.chance)
+        }
+        val arrival = reading.arrival?.let { arrival ->
+            Landing(listOf(Effect.LinksIn(arrival.anchor)), Place(arrival.anchor.aspect), written[arrival.page], arrival.page, arrival.page, CERTAIN)
+        }
+        return bans + listOfNotNull(arrival)
+    }
+
+    /** What a thing says, ready to become landings for whichever of its placements land. */
+    private inner class Saying(
+        val head: Int,
+        val word: String,
+        val part: Aspect?,
+        val members: Members,
+        val own: List<Effect>,
+        val placements: List<Placement>,
+        val polarity: Polarity,
+        val joined: Int?,
+        val sitedIn: Identifier?,
+        val everywhere: Boolean,
+    ) {
+        /**
+         * Its own meaning and [landing] of its placements, said of its members. A negated or `only` thing is one claim,
+         * struck or kept as described: what it took narrows it, a lean toward a tag becoming a bar on it.
+         */
+        fun landings(landing: List<Placement>): List<Landing> {
+            val isNarrowed = polarity != Polarity.ASSERTED
+            if (isNarrowed) {
+                val described = own + landing.flatMap { it.effects }.map(::asANarrowing)
+                return said(described, word, head, CERTAIN, joined)
+            }
+            val bringsABody = members is Members.Body
+            val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)
+                else said(own, word, head, CERTAIN, joined)
+            return ownLandings + landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.offer.chance, placement.joined) }
+        }
+
+        private fun said(effects: List<Effect>, by: String, page: Int, chance: Double, joinedBy: Int?, alwaysAtThePart: Boolean = false): List<Landing> {
+            val grouped = if (alwaysAtThePart && part != null) listOf(Place(part, members) to effects) else landingsOf(effects, part, members)
+            return grouped.map { (place, here) ->
+                Landing(here, place, by, page, head, chance, joinedBy, sitedIn, everywhere, polarity)
+            }
+        }
+    }
+
+    /** A lean toward tags, in a negated or `only` phrase, as the bar it narrows by: carrying the tag at all. */
+    private fun asANarrowing(effect: Effect): Effect {
+        if (effect !is Effect.Leans) return effect
+        val towardTags = effect.weights.filter { (named, weight) -> named.startsWith(TAG_MARK) && weight > 0.0 }
+        if (towardTags.isEmpty()) return effect
+        return Effect.Restricts(effect.aspect, towardTags.keys.associate { it.drop(1) to CARRIES_IT })
+    }
+
+    /**
+     * [effects] grouped by the part each lands on: [part] for what it does not say otherwise, with [members] where it is
+     * that part — a parameter fenced elsewhere, a lean on another part, is said of all of that one.
+     */
+    private fun landingsOf(effects: List<Effect>, part: Aspect?, members: Members): List<Pair<Place, List<Effect>>> {
+        val placed = effects.flatMap { effect -> aspectsOf(effect, part).map { aspect -> aspect to localised(effect, aspect) } }
+        return placed.groupBy({ it.first }, { it.second }).toSortedMap(compareBy(Aspect::ordinal)).map { (aspect, here) ->
+            Place(aspect, if (aspect == part) members else Members.All) to here.distinct()
+        }
+    }
+
+    /** The parts [effect], said of a thing of [part], lands on; none for what is said of the Age whole. */
+    private fun aspectsOf(effect: Effect, part: Aspect?): List<Aspect> = when (effect) {
+        is Effect.Sets -> listOfNotNull(effect.parameter.fencedTo ?: part)
+        is Effect.Bends -> listOfNotNull(effect.parameter.fencedTo ?: part)
+        is Effect.Chooses -> listOf(effect.aspect)
+        is Effect.Admits -> listOf(effect.aspect)
+        is Effect.Excludes -> listOf(effect.aspect)
+        is Effect.Restricts -> listOf(effect.aspect)
+        is Effect.Leans -> listOf(effect.aspect)
+        is Effect.LeansEverywhere -> Aspect.entries.filter { it.holds == Holds.CATALOGUE || it.holds == Holds.WEIGHTED_SET }
+        is Effect.Mints -> listOf(part ?: Aspect.FEATURES)
+        is Effect.Abundance, is Effect.MadeOf -> listOfNotNull(part)
+        is Effect.Template, is Effect.Bans, is Effect.LinksIn -> emptyList()
+    }
+
+    private fun localised(effect: Effect, aspect: Aspect): Effect = if (effect is Effect.LeansEverywhere) Effect.Leans(aspect, effect.weights) else effect
+
+    companion object {
+        private const val CERTAIN = 1.0
+
+        /** What a bar made of a lean asks: that a member carry the tag at all, as a group's bars ask. */
+        private const val CARRIES_IT = 0.3
+
+        private const val TAG_MARK = "#"
+
+        /** Where what is said of the whole Age lands, set aside by the resolver before any part is resolved. */
+        private val WHOLE_AGE = Place(Aspect.TERRAIN)
+
+        // Arbitrary large odds, only so that neighbouring pages draw apart.
+        private const val PAGE_STRIDE = -0x61c8_8646_80b5_83ebL
+        private const val DANGLING_SALT = 0x0DA6_611EL
+    }
+}

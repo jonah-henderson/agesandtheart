@@ -151,7 +151,7 @@ private class Pass(
             for (part in Aspect.entries) {
                 val page = words.partPage(part)?.defaultSense ?: continue
                 val acceptance = acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
-                if (!valueFits(page, acceptance, reaching.offer)) continue
+                if (!acceptance.canTakeOffersFromWholeAge || !valueFits(page, acceptance, reaching.offer)) continue
                 handedOut += placementOf(at, part, acceptance, reaching)
                 placed += reaching.page
             }

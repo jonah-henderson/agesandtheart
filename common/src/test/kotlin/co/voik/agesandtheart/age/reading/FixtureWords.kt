@@ -48,7 +48,11 @@ object FixtureWords {
         "features" to """{ "terminal": true, "part": "features", "accepts": [
             { "concept": "member", "becomes": [ { "admits": "features" } ] },
             { "concept": "cratered", "becomes": [ { "admits": { "features": [ "agesandtheart:craters" ] } } ] },
-            { "concept": "lean", "becomes": [ { "leans": "features" } ] } ] }""",
+            { "concept": "lean", "becomes": [ { "leans": "features" } ] },
+            { "concept": "porous", "becomes": [ { "sets": { "porosity": "0.5..1.0" } } ],
+              "can_take_offers_from_whole_age": false, "can_resolve_dangling_offers": false } ] }""",
+        "rock" to """{ "terminal": true, "part": "rock", "accepts": [
+            { "concept": "porous", "becomes": [ { "chooses": { "rock": "porous" } } ] } ] }""",
         "inhabitants" to """{ "terminal": true, "part": "inhabitants", "accepts": [
             { "concept": "member", "becomes": [ { "admits": "inhabitants" } ] }, { "concept": "amount", "becomes": [ { "abundance": "$" } ] } ] }""",
         "sun" to """{ "terminal": true, "part": "sun", "accepts": [
@@ -75,7 +79,8 @@ object FixtureWords {
         "birch" to """{ "terminal": true, "part": "features", "means": [ { "chooses": { "features": "minecraft:birch" } } ],
             "offers": [ { "concept": "member", "value": "minecraft:birch" } ] }""",
         "arches" to """{ "terminal": true, "part": "features", "means": [ { "mints": { "pattern": "arch" } } ], "accepts": [
-            { "concept": "block", "only": [ "#agesandtheart:whole" ], "becomes": [ { "made_of": "$" } ] } ] }""",
+            { "concept": "block", "only": [ "#agesandtheart:whole" ], "becomes": [ { "made_of": "$" } ] },
+            { "concept": "porous", "becomes": [ { "sets": { "porosity": "0.5..1.0" } } ] } ] }""",
         "villages" to """{ "terminal": true, "part": "structures", "means": [ { "chooses": { "structures": "minecraft:villages" } } ], "accepts": [
             { "concept": "size", "becomes": [ { "sets": "size" } ] },
             { "concept": "block", "only": [ "#agesandtheart:whole" ], "becomes": [ { "sets": "material" } ] } ] }""",
@@ -105,7 +110,10 @@ object FixtureWords {
         "red" to """{ "offers": [ { "concept": "colour", "value": "red" }, { "concept": "block", "value": "#agesandtheart:red" },
             { "concept": "lean", "value": { "#red": 1.0 } } ] }""",
         "blue" to """{ "offers": [ { "concept": "colour", "value": "blue" } ] }""",
+        "gloomy" to """{ "offers": [ { "concept": "colour", "value": "grey", "chance": 0.5 } ] }""",
+        "porous" to """{ "offers": [ { "concept": "porous" } ] }""",
         "colossal" to """{ "offers": [ { "concept": "size", "value": "0.8..1.0" } ] }""",
+        "huge" to """{ "offers": [ { "concept": "size", "value": "0.6..0.9" } ] }""",
         "teeming" to """{ "offers": [ { "concept": "amount", "value": 4.0 } ] }""",
         "swift" to """{ "offers": [ { "concept": "pace", "value": "0.7..1.0" } ] }""",
         "prismatic" to """{ "offers": [ { "concept": "colours_cycling" } ], "accepts": [ { "concept": "pace", "renames": "colour_pace" } ] }""",
@@ -145,6 +153,7 @@ object FixtureWords {
             Aspect.FEATURES to setOf("minecraft:oak", "minecraft:birch"),
             Aspect.SPAWNS to setOf("minecraft:zombie", "minecraft:sheep", "minecraft:warden"),
             Aspect.BIOMES to setOf("minecraft:jungle"),
+            Aspect.STRUCTURES to setOf("minecraft:villages"),
         )
         private val memberTags = mapOf(
             "minecraft:oak" to mapOf("woody" to 1.0), "minecraft:birch" to mapOf("woody" to 1.0),
@@ -156,6 +165,8 @@ object FixtureWords {
         override fun isMemberOf(part: Aspect, member: String): Boolean = member in members[part].orEmpty()
 
         override fun clears(member: String, bars: Map<String, Double>): Boolean = Bars.cleared(memberTags[member].orEmpty(), bars)
+
+        override fun isThereByDefault(part: Aspect, member: String): Boolean = isMemberOf(part, member)
     }
 
     private fun <T> read(codec: com.mojang.serialization.Codec<T>, json: String): T =

@@ -15,16 +15,12 @@ data class Landing(
     /** Where in the book its page was laid, counting from nought. */
     val page: Int,
     /**
-     * The page of the word that took it, or its own page where it said something of itself — what tells two clauses
-     * apart that land on the same place, as two kinds of obelisk do. Null for a page laid bare.
+     * The page of the thing it was said of, or its own where it is the thing — what tells two clauses apart that land on
+     * the same place, as two kinds of obelisk do.
      */
-    val clause: Int?,
-    /** Whether its page was aimed here, rather than laid bare and drawn here — aimed wins where two disagree. */
-    val aimed: Boolean,
-    /** The chance it had to apply, which ranks it below an aimed landing and above a less likely one. */
+    val saidOf: Int,
+    /** The chance it had to apply, which ranks it below a likelier landing. */
     val chance: Double,
-    /** Whether its meaning only might apply, being neither certain nor bound to land: laid bare, it yields to an aimed word. */
-    val isAnOffer: Boolean = false,
     /** The `and` joining it to others, where one does: a division the writer asked for. */
     val joined: Int? = null,
     /** The biome it is sited in: `in jungle`. */

@@ -11,7 +11,7 @@ import co.voik.agesandtheart.age.aspect.Taggable
 data class Book(
     /** What landed, once the reading drew it. */
     val landings: List<Landing>,
-    /** Everything that could have landed, before the draw — what incoherence is charged from. */
+    /** Everything that could have landed, before the draw. */
     val possible: List<Landing>,
     /** The world the book starts from, by its key, or null for the ordinary one. */
     val template: String?,
@@ -19,8 +19,8 @@ data class Book(
     val cost: Int,
     /** How many pages were laid, which caps how far its instability may reach. */
     val pagesLaid: Int,
-    /** What the reading charged: pages laid on the Age with nowhere to land, and structure that bound nothing. */
-    val chargedByTheReading: List<Flaw> = emptyList(),
+    /** What was charged before resolution: every clash, and every page that dangled. */
+    val chargedBeforeResolving: List<Flaw> = emptyList(),
     /** Pages that are no word at all. */
     val unread: List<String> = emptyList(),
 )

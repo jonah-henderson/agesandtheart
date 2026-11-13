@@ -1,12 +1,16 @@
 package co.voik.agesandtheart.age.words
 
 import co.voik.agesandtheart.age.language.Speech
-import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
+import com.mojang.serialization.DynamicOps
 import com.mojang.serialization.MapCodec
+import com.mojang.serialization.MapLike
+import com.mojang.serialization.RecordBuilder
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
 import java.util.Optional
+import java.util.stream.Stream
 
 /**
  * A page of the Art: the senses it can be read in. A word of one sense writes it at the top of its file; a word of several
@@ -32,16 +36,30 @@ data class Word(
     val defaultSense: Sense? get() = senses.singleOrNull(Sense::isDefault) ?: senses.singleOrNull()
 
     companion object {
-        private val SENSES: MapCodec<Either<List<Sense>, Sense>> =
-            Codec.mapEither(Sense.MAP_CODEC.codec().listOf().fieldOf("senses"), Sense.MAP_CODEC)
+        private const val SENSES_KEY = "senses"
+
+        /** Its senses: listed under [SENSES_KEY] where the file has one, so that a list that does not read is reported, else the one at the top. */
+        private val SENSES: MapCodec<List<Sense>> = object : MapCodec<List<Sense>>() {
+            private val listed = Sense.MAP_CODEC.codec().listOf().fieldOf(SENSES_KEY)
+
+            override fun <T> keys(ops: DynamicOps<T>): Stream<T> = Stream.concat(listed.keys(ops), Sense.MAP_CODEC.keys(ops))
+
+            override fun <T> decode(ops: DynamicOps<T>, input: MapLike<T>): DataResult<List<Sense>> =
+                if (input.get(SENSES_KEY) != null) listed.decode(ops, input) else Sense.MAP_CODEC.decode(ops, input).map(::listOf)
+
+            override fun <T> encode(senses: List<Sense>, ops: DynamicOps<T>, prefix: RecordBuilder<T>): RecordBuilder<T> {
+                val only = senses.singleOrNull() ?: return listed.encode(senses, ops, prefix)
+                return Sense.MAP_CODEC.encode(only, ops, prefix)
+            }
+        }
 
         fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                SENSES.forGetter { word -> word.senses.singleOrNull()?.let { Either.right(it) } ?: Either.left(word.senses) },
+                SENSES.forGetter(Word::senses),
                 Speech.CODEC.optionalFieldOf("speech").forGetter { Optional.ofNullable(it.speech) },
                 Codec.intRange(0, Int.MAX_VALUE).optionalFieldOf("price").forGetter { Optional.ofNullable(it.price) },
             ).apply(instance) { senses, speech, price ->
-                Word(id, senses.map({ it }, ::listOf), speech.orElse(null), price.orElse(null))
+                Word(id, senses, speech.orElse(null), price.orElse(null))
             }
         }
     }

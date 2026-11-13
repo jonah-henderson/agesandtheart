@@ -6,6 +6,8 @@ import co.voik.agesandtheart.age.resolution.Book
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.resolution.Resolver
 import co.voik.agesandtheart.age.resolution.WorldFacts
+import co.voik.agesandtheart.age.resolution.clashesAmong
+import co.voik.agesandtheart.age.resolution.flawsOf
 
 /** A row of pages made into an Age: read against the lexicon, then resolved against the world. */
 object Writing {
@@ -16,17 +18,18 @@ object Writing {
 
     /** A book already read, resolved at the [seed] it was read at. */
     fun resolve(lexicon: Lexicon, world: WorldFacts, reading: Reading, seed: Long): Resolution =
-        Resolver.resolve(world, bookOf(lexicon, reading), seed)
+        Resolver.resolve(world, bookOf(lexicon, world, reading, seed), seed)
 
     /** What resolution is handed of [reading]: what landed, what could have, its cost, and what the reading charged. */
-    fun bookOf(lexicon: Lexicon, reading: Reading): Book = Book(
+    fun bookOf(lexicon: Lexicon, world: WorldFacts, reading: Reading, seed: Long): Book = Book(
         landings = reading.landings,
         possible = reading.possible,
         template = reading.template,
         cost = costOf(lexicon, reading),
         pagesLaid = reading.pages.size,
-        chargedByTheReading = reading.moved.map { page -> moved(reading, page) } +
-            reading.impossible.map { Flaw(Register.IMPOSSIBLE, listOf(it.written), aspect = null, tags = emptyList()) },
+        chargedBeforeResolving = flawsOf(clashesAmong(world, reading.possible, seed)) +
+            reading.moved.map { page -> moved(reading, page) } +
+            reading.impossible.map { Flaw(Register.DANGLES, listOf(it.written), aspect = null, tags = emptyList()) },
         unread = reading.unread.map { it.written },
     )
 

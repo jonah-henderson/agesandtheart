@@ -329,20 +329,15 @@ object AgeCommand {
     private fun reportReading(report: Report, read: Reading) {
         report.fact("readout", read.readout) { read.readout.lines().joinToString("\n") { "  $it" } }
         for (landing in read.landings) {
-            val how = when {
-                landing.aimed -> "aimed"
-                else -> "laid bare"
-            }
             val fields = mapOf(
                 "word" to landing.word,
                 "page" to landing.page,
                 "reaches" to listOf(landing.aspect().page),
                 "polarity" to landing.polarity.name.lowercase(),
                 "joined" to (landing.joined != null),
-                "aimed" to landing.aimed,
                 "chance" to landing.chance,
             )
-            report.entry("said", fields) { "    ${landing.word} → ${landing.aspect().page} ($how)" }
+            report.entry("said", fields) { "    ${landing.word} → ${landing.aspect().page}" }
         }
         val moved = read.moved.map { it.written }
         report.only("moved", moved)

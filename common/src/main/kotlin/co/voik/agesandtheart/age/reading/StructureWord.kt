@@ -111,7 +111,7 @@ sealed interface StructureWord {
                 return 0
             }
             val members = anchor.means.filterIsInstance<Effect.Chooses>().filter { it.aspect == part }.map { it.member }.toSet()
-            row.arrival = LinkAnchor(part, members)
+            row.arrival = Arrival(at, LinkAnchor(part, members))
             row.binds(at, at + 1, anchorAt)
             return 2
         }

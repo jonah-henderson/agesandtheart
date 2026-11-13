@@ -17,10 +17,8 @@ import java.util.Optional
  */
 enum class Register(val key: String) : StringRepresentable {
     /**
-     * A page could not be read where it was laid, so the Art moved it somewhere it could (world model §3).
-     *
-     * **Every one in a book counts one between them** (Jonah, 2026-10-14): small, but enough that the
-     * linking panel shows a book that did not read as written was not written right.
+     * A page the old reader moved to where it could be read. Never charged now; read so a saved Age keeps the index it
+     * was written with, every one in a book counting one between them.
      */
     REHOMED("rehomed"),
 
@@ -40,11 +38,10 @@ enum class Register(val key: String) : StringRepresentable {
     INCOHERENT("incoherent"),
 
     /**
-     * A page there was nowhere for **in any sentence at all** — a second `Age`, or an `and` with nothing
-     * on one side of it (world model §3). The only register that costs a writer a page outright: everything else
-     * here is a world at odds with itself, where this is a book that was not one.
+     * A page that placed nothing where it was laid (`the-word-rework.md`): a meaning nothing took, a thing a group refused,
+     * a structure word that bound nothing. Its meaning is drawn onto a word that takes it, and every one counts one.
      */
-    IMPOSSIBLE("impossible"),
+    DANGLES("dangles"),
     ;
 
 
@@ -54,8 +51,12 @@ enum class Register(val key: String) : StringRepresentable {
         /** The registers every disagreement between words was once charged under, which saved flaws still name. */
         private val FOLDED_INTO_INCOHERENT = setOf("tension", "opposed", "fracture", "displaced")
 
+        /** A page there was nowhere for in any sentence, which dangles now. */
+        private const val IMPOSSIBLE = "impossible"
+
         private fun byKey(key: String): DataResult<Register> {
-            val register = entries.firstOrNull { it.key == key } ?: INCOHERENT.takeIf { key in FOLDED_INTO_INCOHERENT }
+            val folded = INCOHERENT.takeIf { key in FOLDED_INTO_INCOHERENT } ?: DANGLES.takeIf { key == IMPOSSIBLE }
+            val register = entries.firstOrNull { it.key == key } ?: folded
             return register?.let { DataResult.success(it) } ?: DataResult.error { "no register is called '$key'" }
         }
 
@@ -93,9 +94,15 @@ data class Flaw(
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
                 "a gap in the vocabulary, not something you did"
             Register.INCOHERENT -> "$both cannot both be what they said in $where$over"
-            Register.IMPOSSIBLE -> "there is nowhere in a sentence for ${quoted.firstOrNull() ?: "that page"}, " +
-                "so it was spent for nothing"
+            Register.DANGLES -> danglingDescribed(quoted)
         }
+    }
+
+    /** A dangling page, and the word it was drawn onto where one took it. */
+    private fun danglingDescribed(quoted: List<String>): String {
+        val page = quoted.firstOrNull() ?: "a page"
+        val drawnOnto = quoted.getOrNull(1) ?: return "nothing could read $page where you laid it, so it was spent for nothing"
+        return "nothing could read $page where you laid it, so the Art said it of $drawnOnto"
     }
 
     override fun toString(): String = "${register.key}: ${describe()}"
@@ -153,7 +160,7 @@ data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
         fun forced(index: Int): Instability = if (index <= 0) {
             NONE
         } else {
-            val flaws = (1..index).map { Flaw(Register.IMPOSSIBLE, listOf("$BY_HAND $it"), null, emptyList()) }
+            val flaws = (1..index).map { Flaw(Register.DANGLES, listOf("$BY_HAND $it"), null, emptyList()) }
             Instability(flaws, pages = LONG_ENOUGH_FOR_ANY_TIER)
         }
 

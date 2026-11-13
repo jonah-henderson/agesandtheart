@@ -197,7 +197,7 @@ object Prose {
 
         /** Whether anything [page] landed in the clause [clause] held — every page landed somewhere, or it is not said. */
         private fun heldIn(page: Int, clause: Int?): Boolean {
-            val landed = reading.landings.filter { it.page == page && it.clause == clause }
+            val landed = reading.landings.filter { it.page == page && it.saidOf == clause }
             return landed.any { it.at !in resolution.cameToNothing }
         }
 
@@ -209,7 +209,7 @@ object Prose {
 
         /** The share of a divided part [page] went to in [clause], where it went to one. */
         private fun shareOf(page: Int, clause: Int?): Int? =
-            reading.landings.filter { it.page == page && it.clause == clause }.firstNotNullOfOrNull { resolution.divided[it.at] }
+            reading.landings.filter { it.page == page && it.saidOf == clause }.firstNotNullOfOrNull { resolution.divided[it.at] }
 
         /** The word an `of` joins [taker] to as what it comes in — `herds` before `of warden` — where one does. */
         private fun collectiveBefore(taker: PageRead): PageRead? {
@@ -237,7 +237,7 @@ object Prose {
             val ownHeld = heldAnywhere(taker.index)
             if (!ownHeld && taken.isEmpty()) return null
             val (amounts, described) = taken.partition(::isAQuantifier)
-            val landed = reading.landings.filter { it.clause == taker.index }
+            val landed = reading.landings.filter { it.saidOf == taker.index }
             val confinedTo = landed.firstNotNullOfOrNull { it.sitedIn }?.let(::biomeTerm)
             val everywhere = landed.any { it.everywhere }
             val body = (place.members as? Members.Body)?.index

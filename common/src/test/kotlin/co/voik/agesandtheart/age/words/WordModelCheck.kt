@@ -48,6 +48,9 @@ class WordModelCheck : FunSpec({
         check(beds.senses.size == 2 && beds.defaultSense == beds.senses[1]) { "beds read as ${beds.senses}" }
         check(roundTrips(Word.mapCodec("red".location()).codec(), red)) { "red does not write back as it was read" }
         check(roundTrips(Word.mapCodec("beds".location()).codec(), beds)) { "beds does not write back as it was read" }
+        check(refuses(Word.mapCodec("broken".location()).codec(), """{ "senses": [ { "means": [ { "chooses": { "nowhere": "x" } } ] } ] }""")) {
+            "a list of senses that does not read was read as a word of one empty sense"
+        }
     }
 
     test("an offer names who may take it: anyone, the Age, or one part") {
@@ -69,6 +72,12 @@ class WordModelCheck : FunSpec({
         val whole = read(Acceptance.CODEC, """{ "concept": "block", "only": [ "#agesandtheart:whole_blocks" ], "becomes": [ { "made_of": "$" } ] }""")
         check(whole.only == ValueFilter.OneOf(setOf("#agesandtheart:whole_blocks"))) { "a block filter read as ${whole.only}" }
         check(roundTrips(Acceptance.CODEC, group) && roundTrips(Acceptance.CODEC, whole)) { "an acceptance does not write back as it was read" }
+        check(group.canTakeOffersFromWholeAge && group.canResolveDanglingOffers) { "an acceptance refused the Age or what dangles unasked" }
+        val closed = read(
+            Acceptance.CODEC,
+            """{ "concept": "pull", "becomes": [ { "sets": "pull" } ], "can_take_offers_from_whole_age": false, "can_resolve_dangling_offers": false }""",
+        )
+        check(!closed.canTakeOffersFromWholeAge && !closed.canResolveDanglingOffers && roundTrips(Acceptance.CODEC, closed)) { "read as $closed" }
     }
 
     test("a taking effect puts the value in, a bare parameter landing on the accepting sense's part") {
@@ -148,6 +157,28 @@ class WordModelCheck : FunSpec({
         check(problems.any { "thing" in it && "ends the phrase" in it }) { "a thing folding a colour went unreported: $problems" }
         check(problems.any { "taking" in it && "carries none" in it }) { "a flag's taking translation went unreported: $problems" }
         check(problems.none { "agesandtheart:fixed" in it }) { "a flag's fixed translation was reported: $problems" }
+    }
+
+    test("a word costs its dearest sense: the concepts it offers for certain, and the parts its own meaning narrows") {
+        val priced = listOf(
+            Concept("colour".location(), ValueType.OPTION, JoinedPair.BLEND, price = 4),
+            Concept("lean".location(), ValueType.WEIGHTS, JoinedPair.BLEND, price = 0),
+        )
+        val words = listOf(
+            word("red", """{ "offers": [ { "concept": "colour", "value": "red" }, { "concept": "lean", "value": { "#red": 1.0 } } ] }"""),
+            word("gloomy", """{ "offers": [ { "concept": "colour", "value": "grey", "chance": 0.5 } ] }"""),
+            word("villages", """{ "terminal": true, "part": "structures", "means": [ { "chooses": { "structures": "minecraft:villages" } } ] }"""),
+            word("beds", """{ "senses": [ { "offers": [ { "concept": "colour", "value": "red" } ] },
+                { "default": true, "means": [ { "chooses": { "features": "minecraft:oak" } }, { "chooses": { "inhabitants": "minecraft:cow" } } ] } ] }"""),
+            word("and", """{ "price": 2 }"""),
+        )
+        val loaded = Words.of(concepts + priced, emptyList(), words, behaviours = emptySet())
+        fun price(name: String) = loaded.priceOf(loaded.word(name) ?: error("no $name"))
+        check(price("red") == 4) { "red costs ${price("red")}" }
+        check(price("gloomy") == Price.FLOOR_PRICE) { "a colour only likely to land cost ${price("gloomy")}" }
+        check(price("villages") == Price.INK_PER_NARROWED_PART) { "villages costs ${price("villages")}" }
+        check(price("beds") == 2 * Price.INK_PER_NARROWED_PART) { "beds costs ${price("beds")}, not its dearest sense" }
+        check(price("and") == 2) { "a stated price was not kept" }
     }
 
     test("every shipped concept reads") {

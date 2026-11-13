@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.reading
 
-import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.resolution.Effect
@@ -28,7 +27,7 @@ data class Term(
 }
 
 /** A row of pages arranged into terms by its structure words, before anything travels. */
-data class Arrangement(val terms: List<Term>, val fates: Map<Int, Fate>, val arrival: LinkAnchor?) {
+data class Arrangement(val terms: List<Term>, val fates: Map<Int, Fate>, val arrival: Arrival?) {
     companion object {
         fun of(pages: List<String>, words: Words): Arrangement {
             val arranging = Arranging(pages, words)
@@ -52,7 +51,7 @@ data class Arrangement(val terms: List<Term>, val fates: Map<Int, Fate>, val arr
 class Arranging internal constructor(val pages: List<String>, private val words: Words) {
     val terms = mutableListOf<Term>()
     val fates = mutableMapOf<Int, Fate>()
-    var arrival: LinkAnchor? = null
+    var arrival: Arrival? = null
     private var pendingPolarity: Pair<Int, Polarity>? = null
 
     fun word(at: Int): Word? = pages.getOrNull(at)?.let(words::word)
