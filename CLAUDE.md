@@ -23,6 +23,9 @@ something lands, delete the narrative of building it; a choice between genuinely
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
   what a word costs. **Built**, normative and current — it supersedes `the-art-design.md` §3 and §4. Its §3 is
   words as meanings and how a row of pages is read; `in <biome>` siting is built, its widening is not.
+- **`notes/the-word-rework.md`** — **settled and unbuilt**: words as offers, acceptances and terminals, replacing how
+  a word says what it means and how the reader reads a row (§3 of the world model). Read it before changing a word's
+  format, `Acceptance` or the `Reader`; what is built there now is what it replaces.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, consequences, book editing, the economy.
   Normative for §1–§2 and §5–§9; what was its §3 and §4 is the world model above, and only §3's two disciplines
   and §4's found books, failure channels and pipeline remain. §5.0 is the instability tiers (the strange tier
