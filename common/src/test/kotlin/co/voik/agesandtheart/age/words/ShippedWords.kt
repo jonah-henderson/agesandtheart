@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.words
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.ShippedCorpus
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.reading.StructureWords
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey
@@ -39,7 +40,10 @@ object ShippedWords {
 
     val derived: List<Word> by lazy {
         val worldgen = MinecraftRegistries.worldgen
-        DerivedWords.blocks() + DerivedWords.biomes(worldgen) + DerivedWords.features(worldgen) + DerivedWords.structures(worldgen) +
+        val vocabulary = ShippedCorpus.vocabulary
+        val features = vocabulary.candidatesFor(Aspect.FEATURES).associateBy { it.key }
+        fun tagsOf(feature: String) = features[feature]?.let(vocabulary::tagsOf).orEmpty()
+        DerivedWords.blocks() + DerivedWords.biomes(worldgen) + DerivedWords.features(worldgen, ::tagsOf) + DerivedWords.structures(worldgen) +
             DerivedWords.creatures(ShippedCorpus.vocabulary.spawning.writable) + DerivedWords.designs()
     }
 

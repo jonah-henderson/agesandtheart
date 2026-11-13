@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "The sky falls on the Age in showers (design 5.2). One part, and the sky is not touched: a clear night to see",
+    "them by is the writer's to ask for."
+  ],
+  "speech": "plural",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "meteors"
+      }
+    }
+  ]
+}

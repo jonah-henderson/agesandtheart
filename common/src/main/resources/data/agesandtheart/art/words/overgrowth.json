@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "An Age that grows over itself (design 5.2.2). It wants no weather of its own; a wet jungle is `verdant` and",
+    "`drenched`."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "overgrowth"
+      }
+    }
+  ]
+}

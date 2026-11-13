@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "A phenomenon: something that happens in the Age, said as itself (`gale`). What is said of it is said of it",
+    "alone: how often and how strongly it comes, how fast and how large, its colour, how many, and, for what blows, the",
+    "quarter it blows from (`north gale`)."
+  ],
+  "terminal": true,
+  "part": "phenomena",
+  "accepts": [
+    {
+      "concept": "frequency",
+      "becomes": [
+        {
+          "sets": "frequency"
+        }
+      ]
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "strength"
+        }
+      ]
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "pace"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    },
+    {
+      "concept": "direction",
+      "becomes": [
+        {
+          "sets": "air.from"
+        }
+      ]
+    }
+  ]
+}

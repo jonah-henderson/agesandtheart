@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Wind turned up until it pushes, in spells of its own (design 5.2.2). The frequency words make it blow more of the",
+    "time, `constant gale` never drops; a point of the compass says where it blows from. `windy` is only to look at; this leans on you."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "gale"
+      }
+    }
+  ]
+}

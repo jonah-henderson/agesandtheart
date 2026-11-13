@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Columns of sand that walk the Age (design 5.2.2)."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "sandfall"
+      }
+    }
+  ]
+}

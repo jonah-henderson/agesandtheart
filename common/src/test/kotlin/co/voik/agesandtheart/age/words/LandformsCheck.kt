@@ -36,6 +36,16 @@ class LandformsCheck : FunSpec({
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }
     }
 
+    test("no landform stands alone: every word offering a member of the land is said of something, and alone it dangles") {
+        val standing = words.all.filter { word ->
+            word.senses.any { sense -> sense.endsAPhrase && sense.offers.any { it.concept == CoreConcepts.MEMBER && membership.isMemberOf(Aspect.TERRAIN, (it.value as? Value.Text)?.text.orEmpty()) } }
+        }
+        check(standing.isEmpty()) { "landforms that stand alone: ${standing.map { it.name }}" }
+        for (landform in listOf("windswept", "cratered", "pillared", "pyramidal")) {
+            check(drawn("age $landform").dangling.any { it.written == landform }) { "$landform stood alone" }
+        }
+    }
+
     test("`cratered` is the landform said of the land, the craters said of the features, and of the Age both, the craters half the time") {
         check(Effect.Chooses(Aspect.TERRAIN, "cratered") in effects("cratered landmass age") && craters !in effects("cratered landmass age"))
         check(craters in effects("cratered features age") && effects("cratered features age").none { it is Effect.Chooses }) {

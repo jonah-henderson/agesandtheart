@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Tornadoes that come down out of the Age's thunderstorms and tear across it (design 5.2.2), the thunderstorms",
+    "they need coming with them. A tornado's width is its strength, so its size is how strong it is: `colossal tornado` the",
+    "strongest there is, `small` a weak one, as `strong` and `weak` say it too."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "tornado"
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "strength"
+        }
+      ]
+    }
+  ]
+}

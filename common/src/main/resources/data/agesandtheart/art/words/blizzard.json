@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Snow driven sideways (design 5.2), inferno's inverse: it insists on cold and on snow falling, so a blizzard",
+    "written into a hot Age clashes, as a writer asking for two things that cannot both be true should."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "blizzard"
+      }
+    },
+    {
+      "sets": {
+        "air.motes": "snow"
+      }
+    },
+    {
+      "sets": {
+        "climate.temperature": "-1.0..-0.5"
+      }
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.4..1.0"
+      }
+    }
+  ]
+}

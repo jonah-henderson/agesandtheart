@@ -44,9 +44,32 @@ object DerivedWords {
     /** Every biome in [registries], which are datapack content and so want the server's. */
     fun biomes(registries: HolderLookup.Provider): List<Word> = thingsOf(registries, Registries.BIOME, Aspect.BIOMES, BIOME, Speech.NOUN)
 
-    /** Every placed feature, the unit a biome's list holds. */
-    fun features(registries: HolderLookup.Provider): List<Word> =
-        thingsOf(registries, Registries.PLACED_FEATURE, Aspect.FEATURES, FEATURE, Speech.NOUN)
+    /**
+     * Every placed feature, the unit a biome's list holds: a thing, but for a kind of tree named for its wood (`oak`,
+     * `spruce`, `red_poplar`), which is a quality said of what holds it — `oak trees`, `oak age` — and never stands alone.
+     * [tagsOf] answers a feature's tags, by key.
+     */
+    fun features(registries: HolderLookup.Provider, tagsOf: (String) -> Map<String, Double> = { emptyMap() }): List<Word> =
+        thingsOf(registries, Registries.PLACED_FEATURE, Aspect.FEATURES, FEATURE, Speech.NOUN).map { word ->
+            val member = word.id.toString()
+            if (readsAsAQuality(word.name, tagsOf(member))) quality(word.id, member) else word
+        }
+
+    /** Whether a feature of [name] carrying [tags] is said of a thing rather than being one: wooded, and naming no thing. */
+    private fun readsAsAQuality(name: String, tags: Map<String, Double>): Boolean {
+        val isWooded = (tags[WOODED] ?: 0.0) > 0.0
+        val namesAThing = name.split(NAME_SEPARATOR).any { it in NOUNS }
+        return isWooded && !namesAThing
+    }
+
+    private fun quality(id: Identifier, member: String) =
+        Word(id, listOf(Sense(offers = listOf(Offer(CoreConcepts.MEMBER, Value.Text(member))))), Speech.ADJECTIVE)
+
+    private const val WOODED = "wooded"
+    private const val NAME_SEPARATOR = '_'
+
+    /** The words in a feature's name that make it a thing however wooded it is: `jungle_tree`, `trees_plains`, `jungle_bush`. */
+    private val NOUNS = setOf("tree", "trees", "bush", "vegetation", "litter")
 
     /** Every structure set, named for the many it holds. */
     fun structures(registries: HolderLookup.Provider): List<Word> =

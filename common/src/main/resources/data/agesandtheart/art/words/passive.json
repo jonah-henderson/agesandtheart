@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Leaves well alone: a passive creature starts no fight, and fights back only against what hit it, for as long as it remembers. `passive monsters` wait to be provoked; said of the whole Age, every creature in it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "disposition",
+      "value": "passive"
+    }
+  ]
+}

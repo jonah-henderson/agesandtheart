@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Ground that gives way under itself (design 5.3): the one hazard that takes the world rather than acting on",
+    "what is in it, survivable because it announces itself."
+  ],
+  "speech": "mass",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "tectonics"
+      }
+    }
+  ]
+}

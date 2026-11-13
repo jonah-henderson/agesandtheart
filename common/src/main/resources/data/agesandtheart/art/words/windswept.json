@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "The windswept country, the yardangs: said of the land the landform, and said of the whole Age the landform",
+    "and now and then the wind that carved it still blowing -- a gale, or more rarely a blizzard or a tornado (Jonah)."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "windswept"
+    },
+    {
+      "concept": "member",
+      "value": "gale",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.4
+    },
+    {
+      "concept": "member",
+      "value": "blizzard",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.15
+    },
+    {
+      "concept": "member",
+      "value": "tornado",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.15
+    }
+  ]
+}

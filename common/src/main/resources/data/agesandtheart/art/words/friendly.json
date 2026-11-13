@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Never a fight: a friendly creature attacks nothing, not even what hits it. `friendly monsters` are monsters you can walk among; said of the whole Age, every creature in it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "disposition",
+      "value": "friendly"
+    }
+  ]
+}

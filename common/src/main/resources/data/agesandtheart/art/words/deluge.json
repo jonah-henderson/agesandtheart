@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "The sea comes up, under rain that will not stop (design 5.2) -- the blizzard's opposite number, and the second",
+    "gate on the deep-ocean material. It asks for rain and says nothing of temperature: a warm drowned world and a cold one",
+    "are both a deluge."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "deluge"
+      }
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.7..1.0"
+      }
+    }
+  ]
+}

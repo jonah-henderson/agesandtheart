@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Can be won over: a tamable creature comes to whoever holds what it wants (`art/temptations.json`) and will not attack them while they hold it; given it, one in three is tamed. `tamable monsters` is a country of pets in waiting; said of the whole Age, every creature in it."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "disposition",
+      "value": "tamable"
+    }
+  ]
+}

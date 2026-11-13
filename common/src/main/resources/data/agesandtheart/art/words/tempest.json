@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Lightning that comes down on the Age in storms of its own: the bolts, and what they strike."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "tempest"
+      }
+    }
+  ]
+}
