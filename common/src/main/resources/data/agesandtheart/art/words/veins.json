@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "An ore vein as vanilla lays its big iron ones, a ribbon of ore strung through tuff deep in the rock, of whatever",
+    "the phrase names: `gold_ore veins`. Iron when nothing is named."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:veins",
+        "unstated": "minecraft:deepslate_iron_ore"
+      }
+    }
+  ]
+}

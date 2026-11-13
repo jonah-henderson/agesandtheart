@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "What grows close to the ground. A tree is a plant, but a writer asking for plants means the undergrowth."
+  ],
+  "speech": "plural",
+  "kind": "features",
+  "means": [
+    {
+      "restricts": {
+        "features": {
+          "undergrowth": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "undergrowth": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "features"
+        }
+      ]
+    }
+  ]
+}

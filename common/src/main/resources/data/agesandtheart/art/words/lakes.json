@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "A lake shaped like vanilla's surface lava lake, filled with whatever the phrase names: `ink lakes`. Named alone it",
+    "is a lake of water. Its height is where it lies: `high lakes` up on the high ground."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:lake_lava_surface",
+        "unstated": "minecraft:water"
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "altitude"
+        }
+      ]
+    }
+  ]
+}

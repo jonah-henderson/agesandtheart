@@ -1,0 +1,66 @@
+{
+  "_comment": [
+    "Shapes built at a scale nobody would build them: every monumental formation, and every monumental thing leaned",
+    "toward. `gold_block monuments` are all of gold."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.7
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:arches",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.6
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.5
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pedestals",
+        "unstated": "minecraft:sandstone",
+        "frequency": 0.2
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:spikes",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.2
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.2
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:boulders",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.1
+      }
+    },
+    {
+      "leans": {
+        "features": {
+          "#monumental": 1.0
+        }
+      }
+    }
+  ]
+}

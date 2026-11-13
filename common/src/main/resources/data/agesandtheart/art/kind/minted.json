@@ -1,0 +1,93 @@
+{
+  "_comment": [
+    "A shape minted into the features, made of whatever its phrase names (`gold_block obelisks`), or of its own substance",
+    "where nothing is. What its phrase says is said of it alone: its size and height, how deep it goes, how far apart",
+    "and how it is laid out, how many, how holed, how worn, whether it lies fallen."
+  ],
+  "terminal": true,
+  "part": "features",
+  "accepts": [
+    {
+      "concept": "block",
+      "becomes": [
+        {
+          "made_of": "$"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ]
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "tallness"
+        }
+      ]
+    },
+    {
+      "concept": "depth",
+      "becomes": [
+        {
+          "sets": "depth"
+        }
+      ]
+    },
+    {
+      "concept": "spacing",
+      "becomes": [
+        {
+          "sets": "spacing"
+        }
+      ]
+    },
+    {
+      "concept": "arrangement",
+      "becomes": [
+        {
+          "sets": "arrangement"
+        }
+      ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ]
+    },
+    {
+      "concept": "porosity",
+      "becomes": [
+        {
+          "sets": "porosity"
+        }
+      ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "crumble"
+        }
+      ]
+    },
+    {
+      "concept": "fallen",
+      "becomes": [
+        {
+          "sets": {
+            "fallen": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

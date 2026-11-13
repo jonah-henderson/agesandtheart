@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A geode lined with whatever the phrase names, shaped and placed like vanilla's amethyst one: `diamond_block",
+    "geodes`. Amethyst when the phrase names nothing."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:amethyst_geode",
+        "unstated": "minecraft:amethyst_block"
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A wall with a way through it, its opening reaching the ground: a thing you walk under."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:arches",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

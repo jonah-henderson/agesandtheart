@@ -68,7 +68,7 @@ data class Words(
         ): Words {
             val problems = alreadyFound.toMutableList()
             val conceptsById = concepts.associateBy(Concept::id)
-            val kindsById = kinds.associateBy(Kind::id)
+            val kindsById = (words.mapNotNull(::asAKind) + kinds).associateBy(Kind::id)
             val check = Checking(conceptsById, kindsById, behaviours, problems)
             kinds.forEach(check::kind)
             val byName = mutableMapOf<String, Word>()
@@ -86,6 +86,16 @@ data class Words(
                 byName[word.id.toString()] = if (existing?.id == word.id) joined else byName[word.id.toString()]?.withSensesOf(word) ?: word
             }
             return Words(conceptsById, kindsById, byName, problems)
+        }
+
+        /**
+         * A part's own page as a kind of its own name — `"kind": "features"` — so a group, which is its part narrowed to
+         * some of its members, takes whatever its part takes: `trees` everything the features do.
+         */
+        private fun asAKind(word: Word): Kind? {
+            val part = Aspect.byPage(word.name)?.takeIf { word.id.namespace == Constants.MOD_ID } ?: return null
+            val page = word.senses.singleOrNull()?.takeIf { it.part == part } ?: return null
+            return Kind(word.id, page.accepts, terminal = true, part = part)
         }
 
         /** Vanilla's first, then ours, then every other pack's, each by id: whose sense a shared name is read in by default. */

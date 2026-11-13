@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Cherry: vanilla's own tree, as its sapling grows it, said of what holds it -- `cherry trees`, `cherry features`,",
+    "`cherry age` -- and never standing alone. The word derived as `cherry_checked`, renamed."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "minecraft:cherry_checked"
+    }
+  ]
+}

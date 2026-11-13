@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A cone standing on its base, taller than it is wide: `ice spikes` says with two pages what vanilla ships as a",
+    "whole biome."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:spikes",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

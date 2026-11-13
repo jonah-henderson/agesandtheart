@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Mangrove: vanilla's own tree, as its sapling grows it, said of what holds it -- `mangrove trees`, `mangrove features`,",
+    "`mangrove age` -- and never standing alone. The word derived as `mangrove_checked`, renamed."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "minecraft:mangrove_checked"
+    }
+  ]
+}

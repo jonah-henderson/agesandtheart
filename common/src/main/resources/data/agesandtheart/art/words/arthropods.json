@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "The spiders, the bees, the silverfish and their kin."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "arthropod": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "arthropod": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    }
+  ]
+}

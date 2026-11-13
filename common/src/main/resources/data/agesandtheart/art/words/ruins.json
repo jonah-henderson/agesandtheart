@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Somebody built here and is gone: what nobody keeps up, beside `settled` rather than under it."
+  ],
+  "speech": "plural",
+  "kind": "structures",
+  "means": [
+    {
+      "restricts": {
+        "structures": {
+          "ruined": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "ruined": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "structures"
+        }
+      ]
+    }
+  ]
+}

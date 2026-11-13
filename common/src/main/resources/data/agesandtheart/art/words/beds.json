@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A bed of whatever the phrase names laid over a sea or river floor, like vanilla's sand disks: `clay beds`,",
+    "`gravel beds`. Sand when the phrase names nothing."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:disk_sand",
+        "unstated": "minecraft:sand"
+      }
+    }
+  ]
+}

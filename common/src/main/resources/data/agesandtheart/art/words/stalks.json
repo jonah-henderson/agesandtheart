@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A column of whatever the phrase names standing up out of the ground, as vanilla's cactus stands: `cactus",
+    "stalks`, `obsidian stalks`."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:patch_cactus",
+        "unstated": "minecraft:cactus"
+      }
+    }
+  ]
+}

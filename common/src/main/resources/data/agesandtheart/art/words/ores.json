@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "A deposit of ore, and nothing about whether it is worth having: `rich` is the word that means that."
+  ],
+  "speech": "plural",
+  "kind": "features",
+  "means": [
+    {
+      "restricts": {
+        "features": {
+          "ore": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "ore": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "features"
+        }
+      ]
+    }
+  ]
+}

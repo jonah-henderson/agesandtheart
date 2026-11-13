@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Pale oak: vanilla's own tree, as its sapling grows it, said of what holds it -- `pale_oak trees`, `pale_oak features`,",
+    "`pale_oak age` -- and never standing alone. The word derived as `pale_oak_checked`, renamed."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "minecraft:pale_oak_checked"
+    }
+  ]
+}

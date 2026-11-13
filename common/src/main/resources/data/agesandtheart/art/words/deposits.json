@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A deposit of something that is not an ore, in the small clusters ores come in underground, shaped like",
+    "vanilla's gold: `gold_block deposits`, `ancient_debris deposits`."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:ore_gold"
+      }
+    }
+  ]
+}

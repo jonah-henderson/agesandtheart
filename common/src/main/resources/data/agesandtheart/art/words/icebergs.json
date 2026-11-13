@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "An iceberg of whatever the phrase names, raised from the sea as often as a frozen ocean has them: `blue_ice",
+    "icebergs`. Packed ice when the phrase names nothing."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:iceberg_packed",
+        "unstated": "minecraft:packed_ice"
+      }
+    }
+  ]
+}

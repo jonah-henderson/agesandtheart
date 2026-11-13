@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "Great stones laid out as somebody meant them: every formation that is ordered, and every ordered thing leaned toward."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.8
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.7
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.6
+      }
+    },
+    {
+      "leans": {
+        "features": {
+          "#ordered": 1.0
+        }
+      }
+    }
+  ]
+}

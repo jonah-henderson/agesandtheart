@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Dark oak: vanilla's own tree, as its sapling grows it, said of what holds it -- `dark_oak trees`, `dark_oak features`,",
+    "`dark_oak age` -- and never standing alone. The word derived as `dark_oak_checked`, renamed."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "minecraft:dark_oak_checked"
+    }
+  ]
+}

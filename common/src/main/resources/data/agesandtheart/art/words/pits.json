@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A funnel of loose ground cut into the surface, the one shape that goes down: `mud pits`, `sand pits`."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:pits",
+        "unstated": "#agesandtheart:pit_substance"
+      }
+    }
+  ]
+}

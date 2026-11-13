@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Every feature that flowers."
+  ],
+  "speech": "plural",
+  "kind": "features",
+  "means": [
+    {
+      "restricts": {
+        "features": {
+          "flowering": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "flowering": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "features"
+        }
+      ]
+    }
+  ]
+}

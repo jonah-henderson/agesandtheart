@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "What grows in the water -- kelp, seagrass, coral, sea pickles -- named for the community rather than the coral."
+  ],
+  "speech": "plural",
+  "kind": "features",
+  "means": [
+    {
+      "restricts": {
+        "features": {
+          "aquatic": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "aquatic": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "features"
+        }
+      ]
+    }
+  ]
+}

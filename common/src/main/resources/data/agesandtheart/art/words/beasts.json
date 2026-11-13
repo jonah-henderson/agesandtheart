@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Every animal that is not hunting you -- what vanilla calls a creature. `herds` is the narrower word, for the ones that graze."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "fauna": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "fauna": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    }
+  ]
+}

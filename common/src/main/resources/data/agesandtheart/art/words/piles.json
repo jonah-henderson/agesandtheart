@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A heap of whatever the phrase names, shaped like the piles a village leaves by its farms: `hay_block piles`,",
+    "`pumpkin and melon piles`."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:piles",
+        "unstated": "#agesandtheart:pile_substance"
+      }
+    }
+  ]
+}

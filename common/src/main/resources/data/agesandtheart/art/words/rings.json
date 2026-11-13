@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A low ring lying on the ground. Flat on purpose: a ring stood on edge is an arch that closed."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

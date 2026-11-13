@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A shaft under a pointed cap, made of whatever the phrase names: `gold_block obelisks`. A shape is all it is, so",
+    "anything a world can be made of can be one."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A spring of something the world does not have one of, shaped like vanilla's own and running with whatever the",
+    "phrase names: `ink springs`."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "minecraft:spring_water",
+        "flows": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A patch of moss on the open ground, its ground whatever the phrase names: `moss`, `pale_moss_block moss`."
+  ],
+  "speech": "mass",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:moss_patch",
+        "unstated": "minecraft:moss_block"
+      }
+    }
+  ]
+}

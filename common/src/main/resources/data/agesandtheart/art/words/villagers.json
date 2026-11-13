@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "The people of the villages and their like."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "inhabited": ">0.3",
+          "built": ">0.5"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "inhabited": ">0.3",
+        "built": ">0.5"
+      },
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    }
+  ]
+}

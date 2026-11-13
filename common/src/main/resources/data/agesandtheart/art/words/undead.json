@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Every creature that died and walks."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "undead": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "undead": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "A patch of whatever the phrase names, vanilla's scatter of one plant: `pumpkin patches`, `poppy and dandelion",
+    "patches`. Joined with `and`, the blocks mingle in one patch."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:patches",
+        "unstated": "#agesandtheart:patch_substance"
+      }
+    }
+  ]
+}

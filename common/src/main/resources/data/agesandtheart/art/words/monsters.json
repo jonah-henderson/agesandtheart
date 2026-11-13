@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Every creature that will hurt you: `no monsters` is a world nothing hunts, `teeming monsters` one everything does."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "hostile": ">0.3"
+        }
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "only": {
+        "hostile": ">0.3"
+      },
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    }
+  ]
+}

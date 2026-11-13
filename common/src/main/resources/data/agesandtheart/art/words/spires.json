@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Sheer shapes standing up out of the land: every formation that is sheer, each as often as its weight says, and",
+    "every sheer thing leaned toward. Not `spired`, which is a whole plain of obelisks."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:spikes",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.9
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.5
+      }
+    },
+    {
+      "mints": {
+        "pattern": "agesandtheart:arches",
+        "unstated": "#agesandtheart:formation_substance",
+        "frequency": 0.4
+      }
+    },
+    {
+      "leans": {
+        "features": {
+          "#sheer": 1.0
+        }
+      }
+    }
+  ]
+}

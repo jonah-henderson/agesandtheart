@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Five courses and nine across: the small stepped kind you walk up to, not the desert's."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

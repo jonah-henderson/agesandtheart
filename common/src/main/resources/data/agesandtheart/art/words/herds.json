@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Grazing animals in herds: alone, more of the cows, sheep and pigs a world already has. A creature before it, or after",
+    "`of`, is what the herds are of: `zombie herds`, `herds of warden`. A size said of herds is how many arrive together:",
+    "`colossal herds` are herds of eight to ten."
+  ],
+  "speech": "plural",
+  "kind": "inhabitants",
+  "means": [
+    {
+      "restricts": {
+        "inhabitants": {
+          "grazing": ">0.3"
+        }
+      }
+    },
+    {
+      "abundance": 2.0
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "member",
+      "becomes": [
+        {
+          "chooses": "inhabitants"
+        }
+      ]
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "herd"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "An irregular lump, roughened rather than cut, so no two faces of it read alike."
+  ],
+  "speech": "plural",
+  "kind": "minted",
+  "means": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:boulders",
+        "unstated": "#agesandtheart:formation_substance"
+      }
+    }
+  ]
+}

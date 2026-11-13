@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Birch: vanilla's own tree, as its sapling grows it, said of what holds it -- `birch trees`, `birch features`,",
+    "`birch age` -- and never standing alone. The word derived as `birch_checked`, renamed."
+  ],
+  "speech": "adjective",
+  "offers": [
+    {
+      "concept": "member",
+      "value": "minecraft:birch_checked"
+    }
+  ]
+}
