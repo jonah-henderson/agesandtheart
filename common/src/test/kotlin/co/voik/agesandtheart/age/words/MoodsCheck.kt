@@ -58,6 +58,14 @@ class MoodsCheck : FunSpec({
         check(colours.isNotEmpty() && colours.all { it in setOf("white", "grey", "blue") }) { "the halo was coloured $colours" }
     }
 
+    test("`frozen rock` is rock of ice, and `hot rock` and `hot underground` now and then of molten rock") {
+        check(set("frozen rock age", Aspect.TERRAIN, "stone") == listOf("#frozen")) { "frozen rock was not of ice: ${drawn("frozen rock age")}" }
+        for (row in listOf("hot rock age", "hot underground age")) {
+            val molten = seeds.count { set(row, Aspect.TERRAIN, "stone", it) == listOf("#molten") }
+            check(molten in 15..45) { "$row was molten at $molten seeds of ${seeds.count()}" }
+        }
+    }
+
     test("`polar` sets the sun on a polar path a quarter of the time from the whole Age, and always said of the sun") {
         check(set("polar sun age", Aspect.SUN, "path") == listOf("polar")) { "polar sun was not polar" }
         val fromTheAge = seeds.count { set("polar age", Aspect.SUN, "path", it).isNotEmpty() }

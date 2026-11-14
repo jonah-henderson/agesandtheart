@@ -113,22 +113,17 @@
       "means": [
         {
           "sets": {
-            "stone": "#molten"
+            "landmass.stone": "#molten"
           }
         }
       ]
     },
     {
+      "concept": "block",
+      "value": "#molten",
       "for": "rock",
       "chance": 0.5,
-      "chance_from_whole_age": 0.0,
-      "means": [
-        {
-          "sets": {
-            "stone": "#molten"
-          }
-        }
-      ]
+      "chance_from_whole_age": 0.0
     }
   ]
 }

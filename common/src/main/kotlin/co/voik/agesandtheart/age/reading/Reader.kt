@@ -11,7 +11,6 @@ import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Outcome
 import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Value
-import co.voik.agesandtheart.age.words.ValueFilter
 import co.voik.agesandtheart.age.words.Words
 import co.voik.agesandtheart.math.mix64
 import kotlin.random.Random
@@ -49,6 +48,7 @@ private class Pass(
     private val membership: Membership,
     private val seed: Long,
 ) {
+    private val matching = Matching(membership)
     private val fates = arrangement.fates.toMutableMap()
     private val senses = mutableMapOf<Int, Int>()
     private val phrases = mutableListOf<Phrase>()
@@ -99,8 +99,8 @@ private class Pass(
         for ((at, sense) in describing) {
             val folded = mutableListOf<Travelling>()
             for (reaching in travelling) {
-                val acceptance = acceptanceFor(sense, reaching.offer) ?: continue
-                if (!valueFits(sense, acceptance, reaching.offer)) continue
+                val acceptance = matching.acceptanceFor(sense, reaching.offer) ?: continue
+                if (!matching.valueFits(sense, acceptance, reaching.offer)) continue
                 untaken = untaken - reaching
                 placed += reaching.page
                 when (val outcome = acceptance.outcome) {
@@ -144,8 +144,8 @@ private class Pass(
 
     /** What [sense] at [at] makes of [reaching] and what it carries: none where it does not take it. */
     private fun take(at: Int, sense: Sense, reaching: Travelling): List<Placement> {
-        val acceptance = acceptanceFor(sense, reaching.offer) ?: return emptyList()
-        if (!valueFits(sense, acceptance, reaching.offer)) return emptyList()
+        val acceptance = matching.acceptanceFor(sense, reaching.offer) ?: return emptyList()
+        if (!matching.valueFits(sense, acceptance, reaching.offer)) return emptyList()
         val carried = reaching.carrying.flatMap { take(at, sense, it) }
         return listOf(placementOf(at, sense.speaksFor, acceptance, reaching)) + carried
     }
@@ -154,7 +154,7 @@ private class Pass(
     private fun handOut(at: Int) {
         val age = words.word(pages[at])?.defaultSense
         for (reaching in travelling.flatMap { listOf(it) + it.carrying }) {
-            val ownAcceptance = age?.let { acceptanceFor(it, reaching.offer, isTheAge = true) }
+            val ownAcceptance = age?.let { matching.acceptanceFor(it, reaching.offer, isTheAge = true) }
             if (ownAcceptance != null) {
                 handedOut += placementOf(at, null, ownAcceptance, reaching)
                 placed += reaching.page
@@ -162,9 +162,9 @@ private class Pass(
             }
             for (part in Aspect.entries) {
                 val page = words.partPage(part)?.defaultSense ?: continue
-                val acceptance = acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
+                val acceptance = matching.acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
                 val chance = reaching.offer.chanceFromWholeAge * acceptance.chanceFromWholeAge
-                if (chance <= 0.0 || !valueFits(page, acceptance, reaching.offer)) continue
+                if (chance <= 0.0 || !matching.valueFits(page, acceptance, reaching.offer)) continue
                 handedOut += placementOf(at, part, acceptance, reaching).copy(chance = chance)
                 placed += reaching.page
             }
@@ -193,9 +193,9 @@ private class Pass(
         val gathering = mutableListOf<Travelling>()
         for (travelling in reaching) {
             val parts = travelling.offer.value as? Value.Parts
-            val joinsAt = if (parts == null || acceptanceFor(sense, travelling.offer) == null) -1 else gathering.indexOfFirst { earlier ->
+            val joinsAt = if (parts == null || matching.acceptanceFor(sense, travelling.offer) == null) -1 else gathering.indexOfFirst { earlier ->
                 val earlierParts = earlier.offer.value as? Value.Parts
-                val isOfOneConcept = earlier.offer.concept == travelling.offer.concept && acceptanceFor(sense, earlier.offer) != null
+                val isOfOneConcept = earlier.offer.concept == travelling.offer.concept && matching.acceptanceFor(sense, earlier.offer) != null
                 isOfOneConcept && earlierParts?.with(parts) != null
             }
             if (joinsAt < 0) {
@@ -210,47 +210,11 @@ private class Pass(
     }
 
     /**
-     * How [sense] accepts [offer], if it may: the concept, and an audience that admits it. A reading is taken by any
-     * word of its part, as the effects it carries.
-     */
-    private fun acceptanceFor(sense: Sense, offer: Offer, isTheAge: Boolean = false): Acceptance? {
-        if (offer.isAReading) {
-            val isOfItsPart = sense.speaksFor == (offer.audience as? Audience.Part)?.aspect
-            return Acceptance(CoreConcepts.READING, outcome = Outcome.Becomes(offer.reading.map(EffectTemplate::Fixed))).takeIf { isOfItsPart }
-        }
-        val acceptance = sense.acceptanceOf(offer.concept) ?: return null
-        val admitted = when (val audience = offer.audience) {
-            Audience.Anyone -> true
-            Audience.TheAge -> isTheAge
-            is Audience.Part -> sense.speaksFor == audience.aspect
-        }
-        return acceptance.takeIf { admitted }
-    }
-
-    /** Whether [offer] is a member of some other part than [sense]'s: an oak is no landform, whatever a landmass takes. */
-    private fun isAMemberOfAnotherPart(sense: Sense, offer: Offer): Boolean {
-        val text = (offer.value as? Value.Text)?.text ?: return false
-        val part = sense.speaksFor ?: return false
-        return offer.concept == CoreConcepts.MEMBER && !membership.isMemberOf(part, text)
-    }
-
-    /** Whether [offer]'s value is one [acceptance] takes: of the sense's own part where it is a member, and through its filter. */
-    private fun valueFits(sense: Sense, acceptance: Acceptance, offer: Offer): Boolean {
-        val text = (offer.value as? Value.Text)?.text
-        if (isAMemberOfAnotherPart(sense, offer)) return false
-        return when (val filter = acceptance.only) {
-            ValueFilter.Anything -> true
-            is ValueFilter.OneOf -> text != null && filter.keys.any { membership.isIn(text, it) }
-            is ValueFilter.Clearing -> text != null && membership.clears(text, filter.bars)
-        }
-    }
-
-    /**
      * Whether any word of [term] has a sense that takes [offer] — the lookahead. It reads the concept and the part a member
      * belongs to, never a group's filter: `sheep fliers` passes the sheep on, to be refused there.
      */
     private fun takenByAnyOf(term: Term, offer: Offer): Boolean = term.pages.any { at ->
-        words.word(pages[at])?.senses.orEmpty().any { acceptanceFor(it, offer) != null && !isAMemberOfAnotherPart(it, offer) }
+        words.word(pages[at])?.senses.orEmpty().any { matching.acceptanceFor(it, offer) != null && !matching.isAMemberOfAnotherPart(it, offer) }
     }
 
     /** What the page at [at] offers in [sense]: a block made a ban for the Age where `no` stood before it. */
@@ -268,7 +232,7 @@ private class Pass(
         val all = words.word(pages[at])?.senses.orEmpty()
         val chosen = if (all.size == 1) 0 else {
             fun fit(sense: Sense): Int {
-                val takes = travelling.count { acceptanceFor(sense, it.offer) != null }
+                val takes = travelling.count { matching.acceptanceFor(sense, it.offer) != null }
                 val passes = next != null && !next.isAge && sense.offers.any { takenByAnyOf(next, it) }
                 return takes + if (passes) 1 else 0
             }

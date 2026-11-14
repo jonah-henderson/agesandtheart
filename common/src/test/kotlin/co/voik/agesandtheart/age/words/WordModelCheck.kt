@@ -139,10 +139,10 @@ class WordModelCheck : FunSpec({
             word("wrong", """{ "offers": [ { "concept": "size", "value": "huge" } ] }"""),
             word("lost", """{ "kind": "machine" }"""),
             word("joins", """{ "behaviour": "and" }"""),
-            word("twice", """{ "senses": [ { "default": true }, { "default": true } ] }"""),
+            word("twice", """{ "senses": [ { "default": true, "kind": "creature" }, { "default": true, "kind": "creature" } ] }"""),
         )
         val loaded = Words.of(concepts, listOf(creature), words, behaviours = emptySet())
-        fun reported(fragment: String) = loaded.problems.any { fragment in it }
+        fun reported(fragment: String) = loaded.problems.any { fragment in it.toString() }
         check(loaded.word("zombie")?.senses?.single()?.endsAPhrase == true) { "zombie was not given its kind" }
         check(reported("'smell'")) { "an unknown concept went unreported: ${loaded.problems}" }
         check(reported("wrong kind")) { "a size of 'huge' went unreported: ${loaded.problems}" }
@@ -160,7 +160,7 @@ class WordModelCheck : FunSpec({
             word("taking", """{ "terminal": true, "accepts": [ { "concept": "porous", "becomes": [ { "sets": "porosity" } ] } ] }"""),
             word("fixed", """{ "terminal": true, "accepts": [ { "concept": "porous", "becomes": [ { "sets": { "porosity": "0.5..1.0" } } ] } ] }"""),
         )
-        val problems = Words.of(concepts + porous, emptyList(), words, behaviours = emptySet()).problems
+        val problems = Words.of(concepts + porous, emptyList(), words, behaviours = emptySet()).problems.map { it.toString() }
         check(problems.any { "describing" in it && "only a thing" in it }) { "a describing word turning a colour into effects went unreported: $problems" }
         check(problems.any { "thing" in it && "ends the phrase" in it }) { "a thing folding a colour went unreported: $problems" }
         check(problems.any { "taking" in it && "carries none" in it }) { "a flag's taking translation went unreported: $problems" }
@@ -203,7 +203,7 @@ class WordModelCheck : FunSpec({
             word("melted", """{ "offers": [ { "concept": "wear", "value": { "way": "melted" } } ] }"""),
             word("shiny", """{ "offers": [ { "concept": "wear", "value": { "gloss": "high" } } ] }"""),
         )
-        val problems = Words.of(concepts + wear, emptyList(), words, behaviours = emptySet()).problems
+        val problems = Words.of(concepts + wear, emptyList(), words, behaviours = emptySet()).problems.map { it.toString() }
         check(problems.any { "melted" in it && "none of" in it } && problems.any { "shiny" in it && "no part" in it }) { "a part that does not fit went unreported: $problems" }
         val holes = read(EffectTemplate.LIST_CODEC, """[ { "sets": "porosity", "when": "porous" } ]""").single()
         check(holes.applied(filled, Aspect.SURFACE) == Effect.Sets(ParameterKey("porosity", Aspect.SURFACE), "0.2..0.5")) { "the porous way did not hole the ground" }

@@ -250,15 +250,10 @@
       "chance_from_whole_age": 0.0
     },
     {
+      "concept": "block",
+      "value": "#frozen",
       "for": "rock",
-      "chance_from_whole_age": 0.0,
-      "means": [
-        {
-          "sets": {
-            "stone": "#frozen"
-          }
-        }
-      ]
+      "chance_from_whole_age": 0.0
     },
     {
       "for": "rainbow",
