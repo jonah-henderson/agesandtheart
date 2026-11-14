@@ -222,7 +222,10 @@ private class Drawing(
         val placements = page?.let { at -> phrase.placements.map { it.copy(from = at, at = at, carrying = it.carrying.map { at }) } }
             ?: phrase.placements
         val named = namedMembersOf(phrase)
-        val own = if (onlyDescribes(phrase, named)) phrase.own.filterNot(::namesMembers) else phrase.own
+        val describesOnly = onlyDescribes(phrase, named)
+        // A description of members asks for none of them, whether the thing names them or a word it took does: `red oak trees`.
+        val own = if (describesOnly) phrase.own.filterNot(::namesMembers) else phrase.own
+        val asking = if (describesOnly) placements.map { it.copy(effects = it.effects.filterNot(::namesMembers)) } else placements
         fun ofThePart(): Members =
             if (part?.holds == Holds.POPULATION) Members.Body(bodies.getOrDefault(part, 0).also { bodies[part] = it + 1 }) else Members.All
         val members = if (named != null) Members.Named(named) else ofThePart()
@@ -236,7 +239,7 @@ private class Drawing(
             membersOfTheNamers = if (namesItselfToo) ofThePart() else members,
             namingPages = namingPages,
             own = own,
-            placements = placements,
+            placements = asking,
             polarity = phrase.polarity,
             joined = phrase.joined,
             sitedIn = phrase.sitedIn,
@@ -295,13 +298,13 @@ private class Drawing(
 
     /**
      * Whether a phrase naming members only describes them, asking for none: `deserted villages` is about the villages
-     * there are. Not where it asks an amount or a polarity, nor where its members are not there until something brings them,
+     * there are, and `red oak trees` about the oaks, though `oak` named them and not `trees`. Not where it asks an amount or a polarity, nor where its members are not there until something brings them,
      * and a bar is no description: `settled ruins` asks for ruins that are lived in.
      */
     private fun onlyDescribes(phrase: Phrase, named: Set<String>?): Boolean {
         val part = phrase.part ?: return false
-        val namesMembers = named != null && phrase.own.any(::namesMembers)
         val effects = phrase.placements.flatMap { it.effects }
+        val namesMembers = named != null && (phrase.own.any(::namesMembers) || effects.any(::namesMembers))
         val describes = effects.any { it !is Effect.Abundance && !namesMembers(it) }
         val asksForAnAmount = effects.any { it is Effect.Abundance }
         val isAPopulationOfMembers = part.holds == Holds.WEIGHTED_SET && part.pool?.startsEmpty != true

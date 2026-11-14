@@ -44,6 +44,7 @@ class ThingsCheck : FunSpec({
         check(set(redOaks, Aspect.FEATURES, "colour") == listOf("red") && set(redOaks, Aspect.LEAVES, "colour").isEmpty()) {
             "red oak trees coloured every tree's leaves: ${effects(redOaks)}"
         }
+        check(effects(redOaks).none { it is Effect.Chooses }) { "red oak trees asked for oaks as well as colouring them: ${effects(redOaks)}" }
         check(set("colossal trees age", Aspect.FEATURES, "size") == listOf("1.0..1.0")) { "colossal trees took nothing of the features' page" }
         check(drawn("bat fish age").dangling.any { it.written == "bat" }) { "bat fish were read as fish" }
         val besideTheTrees = effects("zombie trees age")
