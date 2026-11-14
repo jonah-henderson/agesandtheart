@@ -69,11 +69,7 @@
       "means": [
         {
           "sets": {
-            "air.motes": "grit"
-          }
-        },
-        {
-          "sets": {
+            "air.motes": "grit",
             "air.haze": "0.3..0.7"
           }
         }

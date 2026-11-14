@@ -44,11 +44,7 @@
       "means": [
         {
           "sets": {
-            "rainbow.frequency": "0.7..1.0"
-          }
-        },
-        {
-          "sets": {
+            "rainbow.frequency": "0.7..1.0",
             "rainbow.rain": "-1.0..-0.5"
           }
         }
@@ -60,31 +56,19 @@
       "means": [
         {
           "sets": {
-            "air.tint": "purple"
-          }
-        },
-        {
-          "sets": {
+            "air.tint": "purple",
             "air.haze": "+0.2"
           }
         },
         {
           "sets": {
-            "air.tint": "magenta"
-          }
-        },
-        {
-          "sets": {
+            "air.tint": "magenta",
             "air.haze": "+0.2"
           }
         },
         {
           "sets": {
-            "air.tint": "cyan"
-          }
-        },
-        {
-          "sets": {
+            "air.tint": "cyan",
             "air.haze": "+0.2"
           }
         }
@@ -176,11 +160,7 @@
       "means": [
         {
           "sets": {
-            "stars.glow": ">0.2"
-          }
-        },
-        {
-          "sets": {
+            "stars.glow": ">0.2",
             "stars.density": "+0.3"
           }
         }

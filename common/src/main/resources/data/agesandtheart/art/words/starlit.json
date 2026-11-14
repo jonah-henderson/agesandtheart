@@ -22,11 +22,7 @@
       "means": [
         {
           "sets": {
-            "stars.density": "+0.6"
-          }
-        },
-        {
-          "sets": {
+            "stars.density": "+0.6",
             "stars.glow": ">0.25"
           }
         }

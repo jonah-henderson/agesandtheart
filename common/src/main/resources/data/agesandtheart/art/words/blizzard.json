@@ -13,16 +13,8 @@
     },
     {
       "sets": {
-        "air.motes": "snow"
-      }
-    },
-    {
-      "sets": {
-        "climate.temperature": "-1.0..-0.5"
-      }
-    },
-    {
-      "sets": {
+        "air.motes": "snow",
+        "climate.temperature": "-1.0..-0.5",
         "weather.frequency": "0.4..1.0"
       }
     }

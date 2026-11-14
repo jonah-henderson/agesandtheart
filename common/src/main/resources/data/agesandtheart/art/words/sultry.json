@@ -157,11 +157,7 @@
       "means": [
         {
           "bends": {
-            "climate.temperature": "+0.25"
-          }
-        },
-        {
-          "bends": {
+            "climate.temperature": "+0.25",
             "climate.humidity": "+0.3"
           }
         }
@@ -173,11 +169,7 @@
       "means": [
         {
           "bends": {
-            "climate.temperature": "+0.25"
-          }
-        },
-        {
-          "bends": {
+            "climate.temperature": "+0.25",
             "climate.humidity": "+0.3"
           }
         }

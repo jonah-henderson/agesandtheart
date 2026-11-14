@@ -11,6 +11,7 @@
     {
       "for": "structures",
       "chance": 0.0,
+      "chance_from_whole_age": 1.0,
       "means": [
         {
           "excludes": {
@@ -19,8 +20,7 @@
             ]
           }
         }
-      ],
-      "chance_from_whole_age": 1.0
+      ]
     },
     {
       "for": "inhabitants",

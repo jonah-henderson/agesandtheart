@@ -45,17 +45,18 @@
     },
     {
       "for": "sky",
+      "chance_from_whole_age": 0.0,
       "means": [
         {
           "sets": {
             "air.haze": "-1.0..-0.6"
           }
         }
-      ],
-      "chance_from_whole_age": 0.0
+      ]
     },
     {
       "for": "underground",
+      "chance_from_whole_age": 0.0,
       "means": [
         {
           "leans": {
@@ -64,8 +65,7 @@
             }
           }
         }
-      ],
-      "chance_from_whole_age": 0.0
+      ]
     }
   ]
 }

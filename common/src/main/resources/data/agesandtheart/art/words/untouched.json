@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Never touched by anybody: nothing built or lived in, and the wild leaning in \u2014 lush and wooded biomes,",
+    "Never touched by anybody: nothing built or lived in, and the wild leaning in — lush and wooded biomes,",
     "features and structures. Offered, yielding to the book: air and water clean of anything people put there.",
     "",
     "`untouched landmass` is land nobody has built on."
@@ -72,11 +72,7 @@
             "biomes": {
               "#lush": 0.4,
               "#wooded": 0.3
-            }
-          }
-        },
-        {
-          "leans": {
+            },
             "features": {
               "#lush": 0.4,
               "#wooded": 0.3

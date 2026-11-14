@@ -160,11 +160,7 @@
       "means": [
         {
           "sets": {
-            "climate.humidity": "-0.95..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "climate.humidity": "-0.95..-0.3",
             "climate.temperature": "0.2..0.9"
           }
         }
@@ -176,11 +172,7 @@
       "means": [
         {
           "sets": {
-            "climate.humidity": "-0.95..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "climate.humidity": "-0.95..-0.3",
             "climate.temperature": "0.2..0.9"
           }
         }
@@ -192,11 +184,7 @@
       "means": [
         {
           "sets": {
-            "climate.humidity": "-0.95..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "climate.humidity": "-0.95..-0.3",
             "climate.temperature": "0.2..0.9"
           }
         }

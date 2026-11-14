@@ -261,13 +261,14 @@ private fun pairings(terminal: Terminal, corpus: Corpus, name: String, everyDeri
 
 /** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
 private fun rewrite(terminal: Terminal) {
-    val rewritten = WordFile.authoredNames().filter { name ->
-        val read = WordFile.read(name).getOrElse { failure ->
+    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
+    val rewritten = files.authoredNames().filter { name ->
+        val read = files.read(name).getOrElse { failure ->
             terminal.println(TextColors.brightRed("  $name: ${failure.message}"))
             return@filter false
         }
-        val changes = WordFile.textOf(read) != WordFile.fileFor(name).readText()
-        if (changes) WordFile.write(read)
+        val changes = files.textOf(read) != files.fileFor(name).readText()
+        if (changes) files.write(read)
         changes
     }
     terminal.println(TextColors.green("rewrote ${rewritten.size} word(s)${rewritten.joinToString(" ", ": ").takeIf { rewritten.isNotEmpty() }.orEmpty()}"))

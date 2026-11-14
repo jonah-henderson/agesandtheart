@@ -26,16 +26,8 @@
       "means": [
         {
           "sets": {
-            "clouds.ceiling": "-0.6..-0.2"
-          }
-        },
-        {
-          "sets": {
-            "air.haze": "0.1..0.4"
-          }
-        },
-        {
-          "sets": {
+            "clouds.ceiling": "-0.6..-0.2",
+            "air.haze": "0.1..0.4",
             "clouds.colour": "grey"
           }
         }
@@ -47,16 +39,8 @@
       "means": [
         {
           "sets": {
-            "clouds.ceiling": "-0.6..-0.2"
-          }
-        },
-        {
-          "sets": {
-            "air.haze": "0.1..0.4"
-          }
-        },
-        {
-          "sets": {
+            "clouds.ceiling": "-0.6..-0.2",
+            "air.haze": "0.1..0.4",
             "clouds.colour": "grey"
           }
         }

@@ -135,8 +135,18 @@ sealed interface EffectTemplate {
                 ?: DataResult.error { "an effect object is written one effect at a time" }
         }
 
-        /** A list of effect objects, flattened: what a translation or an own meaning holds. */
-        val LIST_CODEC: Codec<List<EffectTemplate>> = CODEC.listOf().xmap({ it.flatten() }, { templates -> templates.map(::listOf) })
+        /**
+         * A list of effect objects, flattened: what a translation or an own meaning holds. Written back, a run of fixed
+         * effects under one verb is one object again, as a file holds `{ "sets": { … several … } }`.
+         */
+        val LIST_CODEC: Codec<List<EffectTemplate>> = EffectSpelling.CODEC.listOf().flatXmap(
+            { spellings ->
+                val read = spellings.map(EffectSpelling::read)
+                read.firstOrNull { it.isError }?.map { emptyList<EffectTemplate>() }
+                    ?: DataResult.success(read.flatMap { it.getOrThrow() })
+            },
+            { templates -> DataResult.success(EffectSpelling.joined(templates.map(EffectSpelling::of))) },
+        )
     }
 }
 
@@ -207,7 +217,58 @@ private data class EffectSpelling(
         }
     }
 
+    /** This and [next] as one object, where both are fixed effects under the one verb and no key of theirs meets; else null. */
+    private fun joinedWith(next: EffectSpelling): EffectSpelling? {
+        fun <K, V> Either<String, Map<K, V>>?.with(other: Either<String, Map<K, V>>?): Either<String, Map<K, V>>? {
+            val mine = this?.right()?.orElse(null) ?: return null
+            val theirs = other?.right()?.orElse(null) ?: return null
+            return if (mine.keys.none(theirs::containsKey)) Either.right(mine + theirs) else null
+        }
+        val isPlain = readAs == null && whenNamed == null && next.readAs == null && next.whenNamed == null
+        if (!isPlain || verbs() != next.verbs() || verbs().size != 1) return null
+        return when (verbs().single()) {
+            SETS -> sets.with(next.sets)?.let { copy(sets = it) }
+            BENDS -> bends.with(next.bends)?.let { copy(bends = it) }
+            CHOOSES -> chooses.with(next.chooses)?.let { copy(chooses = it) }
+            ADMITS -> admits.with(next.admits)?.let { copy(admits = it) }
+            EXCLUDES -> excludes.with(next.excludes)?.let { copy(excludes = it) }
+            RESTRICTS -> restricts.with(next.restricts)?.let { copy(restricts = it) }
+            LEANS -> leans.with(next.leans)?.let { copy(leans = it) }
+            else -> null
+        }
+    }
+
+    /** The verbs this object holds an effect under. */
+    private fun verbs(): Set<String> = buildSet {
+        if (sets != null) add(SETS)
+        if (bends != null) add(BENDS)
+        if (chooses != null) add(CHOOSES)
+        if (admits != null) add(ADMITS)
+        if (excludes != null) add(EXCLUDES)
+        if (restricts != null) add(RESTRICTS)
+        if (leans != null) add(LEANS)
+        if (mints != null) add("mints")
+        if (template != null) add("template")
+        if (madeOf != null) add("made_of")
+        if (bans != null) add("bans")
+        if (abundance != null) add("abundance")
+    }
+
     companion object {
+        private const val SETS = "sets"
+        private const val BENDS = "bends"
+        private const val CHOOSES = "chooses"
+        private const val ADMITS = "admits"
+        private const val EXCLUDES = "excludes"
+        private const val RESTRICTS = "restricts"
+        private const val LEANS = "leans"
+
+        /** [spellings], each run that [joinedWith] can join written as one object. */
+        fun joined(spellings: List<EffectSpelling>): List<EffectSpelling> = spellings.fold(emptyList()) { laid, next ->
+            val joined = laid.lastOrNull()?.joinedWith(next)
+            if (joined != null) laid.dropLast(1) + joined else laid + next
+        }
+
         /** [template] as an object of its own. Effects with no spelling — a link's arrival — are never written. */
         fun of(template: EffectTemplate): EffectSpelling = when (template) {
             is EffectTemplate.Taking -> taking(template)

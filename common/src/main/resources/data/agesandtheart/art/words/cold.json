@@ -106,11 +106,7 @@
       "means": [
         {
           "sets": {
-            "sun.colour": "white"
-          }
-        },
-        {
-          "sets": {
+            "sun.colour": "white",
             "sun.size": "-0.6..-0.3"
           }
         }

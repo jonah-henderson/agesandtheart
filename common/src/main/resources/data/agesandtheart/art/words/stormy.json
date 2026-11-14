@@ -59,21 +59,9 @@
       "means": [
         {
           "sets": {
-            "weather.frequency": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "weather.thunder": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "clouds.ceiling": "-0.7..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "weather.frequency": "0.6..1.0",
+            "weather.thunder": "0.6..1.0",
+            "clouds.ceiling": "-0.7..-0.3",
             "clouds.colour": "grey"
           }
         }
@@ -85,21 +73,9 @@
       "means": [
         {
           "sets": {
-            "weather.frequency": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "weather.thunder": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "clouds.ceiling": "-0.7..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "weather.frequency": "0.6..1.0",
+            "weather.thunder": "0.6..1.0",
+            "clouds.ceiling": "-0.7..-0.3",
             "clouds.colour": "grey"
           }
         }
@@ -111,21 +87,9 @@
       "means": [
         {
           "sets": {
-            "weather.frequency": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "weather.thunder": "0.6..1.0"
-          }
-        },
-        {
-          "sets": {
-            "clouds.ceiling": "-0.7..-0.3"
-          }
-        },
-        {
-          "sets": {
+            "weather.frequency": "0.6..1.0",
+            "weather.thunder": "0.6..1.0",
+            "clouds.ceiling": "-0.7..-0.3",
             "clouds.colour": "grey"
           }
         }

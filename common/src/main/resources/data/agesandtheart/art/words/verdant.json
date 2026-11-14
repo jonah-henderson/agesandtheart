@@ -87,11 +87,7 @@
           "restricts": {
             "biomes": {
               "lush": ">0.3"
-            }
-          }
-        },
-        {
-          "restricts": {
+            },
             "features": {
               "lush": ">0.3"
             }
