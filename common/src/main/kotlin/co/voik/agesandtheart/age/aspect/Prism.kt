@@ -12,6 +12,9 @@ import kotlin.random.Random
  * Colours turning round the colour wheel over time — `prismatic`, drawn by Ephemeris ([HueCycle]). Each part that holds
  * a colour turns on a cycle of its own, which is the same cycle for all of them unless a word says otherwise: the same
  * Age draws the same pace for every part, so they turn in step, and `swift prismatic sun` puts the sun on its own.
+ *
+ * **A part given several colours turns through them instead** (`red and blue sky`), a day a turn unless a pace says
+ * otherwise. Only the parts Ephemeris recolours one colour at a time can: the sky, the air, the stars and the bodies.
  */
 object Prism {
 
@@ -50,20 +53,27 @@ object Prism {
             val options = parts.optionsFor(aspect, member)
             return if (options.isTrue(COLOURS_CYCLING)) HueCycle(periodOf(options, seed), tinge = tinge) else null
         }
+        fun turningOf(aspect: Aspect, tinge: Float, member: Int = 0): HueCycle? {
+            val options = parts.optionsFor(aspect, member)
+            val colours = options.allOfTheWhole(COLOUR).distinct().mapNotNull(Colour::named)
+            if (colours.size < 2) return cycleOf(aspect, tinge, member)
+            val period = options.steer(COLOUR_CYCLE_PACE, seed)?.let(::periodAt) ?: TICKS_A_DAY.roundToInt()
+            return HueCycle(period, through = colours)
+        }
         val air = parts.optionsFor(Aspect.AIR)
         val bodies = sky.bodies.indices.mapNotNull { index ->
             val isASun = sky.bodies[index].phase == null
             val among = sky.bodies.take(index).count { (it.phase == null) == isASun }
-            val cycle = cycleOf(if (isASun) Aspect.SUN else Aspect.MOON, BODY_TINGE, among) ?: return@mapNotNull null
+            val cycle = turningOf(if (isASun) Aspect.SUN else Aspect.MOON, BODY_TINGE, among) ?: return@mapNotNull null
             index to cycle
         }.toMap()
         return ColourCycles(
-            sky = cycleOf(Aspect.SKY, SKY_TINGE),
-            fog = cycleOf(Aspect.AIR, SKY_TINGE),
+            sky = turningOf(Aspect.SKY, SKY_TINGE),
+            fog = turningOf(Aspect.AIR, SKY_TINGE),
             cloud = cycleOf(Aspect.CLOUD, CLOUD_TINGE),
             light = if (air.isTrue(LIGHT_COLOUR_CYCLING)) HueCycle(periodOf(air, seed), tinge = LIGHT_TINGE) else null,
             waterFog = cycleOf(Aspect.WATERS, WATER_TINGE),
-            stars = cycleOf(Aspect.STARS, BODY_TINGE),
+            stars = turningOf(Aspect.STARS, BODY_TINGE),
             aurora = cycleOf(Aspect.AURORA, NO_TINGE),
             bodies = bodies,
             // The mesh's colours only turn, since every untinted block is a grey a tinge would colour. Grass and leaves
@@ -92,6 +102,9 @@ object Prism {
         val along = (held - from.first) / (to.first - from.first)
         return exp(ln(from.second) + along * (ln(to.second) - ln(from.second))).roundToInt()
     }
+
+    /** Any part's colour, read only to find every one it was given. */
+    private val COLOUR = Sky.colour("colour", "A part's colour.")
 
     private const val UNSAID_SLOWEST = -0.6
     private const val UNSAID_FASTEST = 0.6

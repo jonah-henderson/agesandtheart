@@ -1,8 +1,9 @@
 {
   "_comment": [
-    "A colour, said of whatever has one: the sky, leaves, a creature, the fog."
+    "A colour, said of whatever has one: the sky, leaves, a creature, the fog. Two joined alternate: the sky, the air,",
+    "the stars and the bodies turn through them over a day."
   ],
   "value": "option",
-  "joined": "blend",
+  "joined": "alternate",
   "price": 4
 }

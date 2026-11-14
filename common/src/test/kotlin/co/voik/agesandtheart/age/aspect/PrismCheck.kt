@@ -48,6 +48,14 @@ class PrismCheck : FunSpec({
         check(cycles.sky == null && cycles.stars == null) { "more than the sun turned: $cycles" }
     }
 
+    test("a sky given two colours turns through them over a day, and a sky of one holds still") {
+        val sky = cyclesOf("age red and blue sky").sky
+        check(sky != null) { "red and blue sky stood still" }
+        check(sky.through.toSet() == setOfNotNull(Colour.named("red"), Colour.named("blue"))) { "red and blue sky turned through ${sky.through}" }
+        check(sky.periodTicks == 24_000) { "red and blue sky took ${sky.periodTicks} ticks a turn" }
+        check(cyclesOf("age red sky").sky == null) { "a sky of one colour turned" }
+    }
+
     test("prismatic grass and prismatic leaves turn the ground's mesh only, and prismatic waters the water's") {
         for (row in listOf("age prismatic grass", "age prismatic leaves")) {
             val cycles = cyclesOf(row)

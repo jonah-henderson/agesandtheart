@@ -78,6 +78,11 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun allOf(parameter: Parameter): List<String> =
         chosen[parameter.name].orEmpty().map { Claim.read(it).value }.filter(parameter::accepts)
 
+    /** Every value said of [parameter] for the whole part and everywhere in it, never of one member or one biome. */
+    fun allOfTheWhole(parameter: Parameter): List<String> = chosen[parameter.name].orEmpty().map(Claim::read)
+        .filter { it.members.isEmpty() && it.confinedTo == null && parameter.accepts(it.value) }
+        .map { it.value }
+
     // -- asked of a pool -------------------------------------------------------------------------------
     //
     // A pool holds members where a parameter holds a value, and both are stored under a name, so what
