@@ -2,10 +2,11 @@ package co.voik.agesandtheart.age.readout
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
+import co.voik.agesandtheart.age.reading.Headings
 import co.voik.agesandtheart.age.reading.Trace
+import co.voik.agesandtheart.age.reading.Usage
 import co.voik.agesandtheart.age.reading.WorldMembership
 import co.voik.agesandtheart.age.reading.Writing
-import co.voik.agesandtheart.age.words.Headings
 import co.voik.agesandtheart.age.words.ShippedWords
 import co.voik.agesandtheart.location
 import com.google.gson.JsonParser
@@ -60,7 +61,7 @@ class ReadoutCheck : FunSpec({
     }
 
     test("the headings: a describing word under what takes it, a creature under its part's page") {
-        val applies = Headings.appliesTo(words)
+        val applies = Headings.appliesTo(Usage(words, WorldMembership(ShippedCorpus.vocabulary)))
         fun ours(name: String) = name.location()
         val red = applies[ours("red")].orEmpty()
         check(ours("sky") in red && ours("trees") in red) { "red applies to $red" }

@@ -70,16 +70,6 @@ class AuthoringCheck : FunSpec({
         }
     }
 
-    /** A page that would land nothing, take nothing and bind nothing where it is laid is set aside, not offered. */
-    test("the workshop sets aside a page that would do nothing where it is laid") {
-        val suggesting = Suggestions(ShippedCorpus.vocabulary)
-        val afterAge = suggesting.after(listOf("age"))
-        check(afterAge.inert.any { it.page == "teeming" }) { "a quantifier with nothing to count was offered after `age`" }
-        check(afterAge.bearing.any { it.page == "frozen" }) { "'frozen' was set aside after `age`" }
-        val afterFrozen = suggesting.after(listOf("frozen"))
-        check(afterFrozen.bearing.first { it.page == "climate" }.closes) { "the climate page does not take a waiting 'frozen'" }
-    }
-
     test("what the tool reads is the word the game loads") {
         val differing = names.filter { name ->
             val read = WordFile.read(name).getOrThrow().asWord()

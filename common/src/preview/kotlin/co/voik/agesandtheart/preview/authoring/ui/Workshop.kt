@@ -1,14 +1,15 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.language.Structure
-import co.voik.agesandtheart.age.resolution.Resolution
+import co.voik.agesandtheart.age.reading.StructureWord
+import co.voik.agesandtheart.age.reading.Written
 import co.voik.agesandtheart.preview.authoring.AgeDraft
-import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.GameClient
 import co.voik.agesandtheart.preview.authoring.PreviewServer
 import co.voik.agesandtheart.preview.authoring.Seeding
-import co.voik.agesandtheart.preview.authoring.Suggestions
+import co.voik.agesandtheart.preview.authoring.words.PackLanguage
+import co.voik.agesandtheart.preview.authoring.words.Suggestions
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.mordant.input.enterRawMode
@@ -30,7 +31,7 @@ import com.github.ajalt.mordant.terminal.Terminal
 class Workshop(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private val corpus: Corpus,
+    private val corpus: WordCorpus,
 ) {
 
     private var laid: List<String> = emptyList()
@@ -50,16 +51,16 @@ class Workshop(
     private var saved: Boolean = true
     private var message: String = ""
 
-    private val suggesting = Suggestions(corpus.vocabulary)
+    private val suggesting = Suggestions(corpus)
 
     /** The server this session opened - held across rewrites, so a change is seconds and not a boot. */
     private var server: PreviewServer? = null
     private var client: Process? = null
 
     /** Offers by the row that produced them, so walking back through the row is instant. */
-    private val remembered = mutableMapOf<List<String>, Suggestions.Offers>()
+    private val remembered = mutableMapOf<List<String>, Suggestions.Suggested>()
 
-    private var offers: Suggestions.Offers = Suggestions.Offers(emptyList(), emptyList())
+    private var offers: Suggestions.Suggested = Suggestions.Suggested(emptyList(), emptyList())
     private var closers: List<String> = emptyList()
 
     /**
@@ -76,7 +77,7 @@ class Workshop(
     /** Every page that ends a clause - what the row is coloured by, and it never changes while running. */
     private val closingPages: Set<String> by lazy {
         (Aspect.entries.map { it.page } +
-            corpus.vocabulary.structurePages.filter { it.structure == Structure.AGE }.map { it.name }).toSet()
+            corpus.words.all.filter { it.defaultSense?.behaviour == StructureWord.Age.id }.map { it.name }).toSet()
     }
 
     private fun draft() = AgeDraft(name, laid, seeding, seed)
@@ -87,9 +88,9 @@ class Workshop(
     /** What is being typed. The table owns it, so the row and the filter cannot say different things. */
     private val typed: String get() = table.filter
 
-    private val focused: Suggestions.Offer? get() = table.focused?.let { row -> listed().firstOrNull { it.page == row.key } }
+    private val focused: Suggestions.Suggestion? get() = table.focused?.let { row -> listed().firstOrNull { it.page == row.key } }
 
-    private fun listed(): List<Suggestions.Offer> = if (showingInert) offers.all else offers.bearing
+    private fun listed(): List<Suggestions.Suggestion> = if (showingInert) offers.all else offers.bearing
 
     // -- the drafts ------------------------------------------------------------------------------------
 
@@ -265,7 +266,7 @@ class Workshop(
      */
     private fun lay() {
         val page = exactlyTyped()?.page ?: focused?.page ?: typed.trim().ifEmpty { return }
-        val known = corpus.vocabulary.word(page) != null || corpus.vocabulary.structurePage(page) != null
+        val known = corpus.words.word(page) != null
         if (!known) {
             message = "no word called '$page'"
             return
@@ -284,7 +285,7 @@ class Workshop(
      * conjunction meant typing three letters and then scrolling past a screenful of rock. An exact match
      * is not an ambiguous one, so it wins.
      */
-    private fun exactlyTyped(): Suggestions.Offer? {
+    private fun exactlyTyped(): Suggestions.Suggestion? {
         val said = typed.trim()
         if (said.isEmpty()) return null
         return listed().firstOrNull { it.page.equals(said, ignoreCase = true) }
@@ -359,10 +360,10 @@ class Workshop(
         )
     }
 
-    private fun resolution(): Resolution? {
+    /** The book as it stands, read, drawn and resolved — or null until it reads as laid. */
+    private fun written(): Written? {
         if (!suggesting.isASentence(laid)) return null
-        val read = corpus.vocabulary.read(laid, seedNow()) ?: return null
-        return runCatching { corpus.vocabulary.resolve(read, seedNow()) }.getOrNull()
+        return runCatching { corpus.writing(corpus.words).written(laid, seedNow()) }.getOrNull()
     }
 
     // -- the frame -------------------------------------------------------------------------------------
@@ -520,12 +521,6 @@ class Workshop(
             for ((at, claim) in claims.withIndex()) {
                 val head = if (at == 0) "$label  " else gutter
                 addAll((Line("    ") + Line(head, tone) + Line(claim.said, Palette.faint)).wrapped(width, "    $gutter"))
-                for (member in claim.drawnFrom) {
-                    add(
-                        Line("    ") + Line(gutter, tone) + Line("${Glyph.BAR} ", Palette.rule) +
-                            Line(member, Palette.value),
-                    )
-                }
             }
         }
     }
@@ -612,15 +607,14 @@ class Workshop(
      */
     private fun readingLines(): List<Line> = buildList {
         add(aimLine())
-        val read = if (laid.isEmpty()) null else corpus.vocabulary.read(laid, seedNow())
-        val resolved = resolution()
+        val written = written()
+        val resolved = written?.resolution
         add(
             Line("  reads as         ", Palette.faint) +
                 when {
                     laid.isEmpty() -> Line("nothing yet", Palette.faint)
-                    resolved == null || read == null ->
-                        Line("not a book yet - it wants the `age` page and a close", Palette.warned)
-                    else -> Line(read.readout.lines().joinToString("; "), Palette.value)
+                    written == null -> Line("not a book yet - it wants the `age` page and a close", Palette.warned)
+                    else -> Line(PackLanguage.readout(written, corpus.words).joinToString(" ").ifEmpty { "nothing held" }, Palette.value)
                 },
         )
         if (resolved != null) {
@@ -721,7 +715,7 @@ class Workshop(
      * an address to type is not opening an Age.
      */
     private fun openInMinecraft() {
-        if (resolution() == null) {
+        if (written() == null) {
             message = "not a book yet - it wants the `age` page and a close"
             return
         }

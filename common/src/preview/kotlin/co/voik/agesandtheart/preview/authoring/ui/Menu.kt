@@ -11,6 +11,7 @@ import co.voik.agesandtheart.preview.authoring.Gaps
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
 import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import co.voik.agesandtheart.preview.authoring.words.WordListings
 import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
@@ -71,7 +72,7 @@ class Menu(
                 Errand.GAPS -> fillAGap()
                 Errand.TAGS -> Tags(terminal, canvas, corpus).run()
                 Errand.RULES -> Rules(terminal, canvas, corpus).run()
-                Errand.WORKSHOP -> Workshop(terminal, canvas, corpus).browse()
+                Errand.WORKSHOP -> Workshop(terminal, canvas, WordCorpus(corpus.vocabulary, corpus.snapshot)).browse()
                 Errand.REFRESH -> refresh()
                 Errand.HELP -> Help(terminal, canvas, corpus).run()
                 Errand.LEAVE -> return
