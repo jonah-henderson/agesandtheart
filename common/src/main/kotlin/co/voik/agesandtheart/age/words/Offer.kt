@@ -29,7 +29,8 @@ data class Offer(
     val value: Value = Value.None,
     val chance: Double = CERTAIN,
     val audience: Audience = Audience.Anyone,
-    private val ownChanceFromWholeAge: Double? = null,
+    /** Its chance where `age` hands it out, where it says one; null follows [chance]. */
+    val ownChanceFromWholeAge: Double? = null,
     val reading: List<Effect> = emptyList(),
 ) {
     val chanceFromWholeAge: Double get() = ownChanceFromWholeAge ?: chance
@@ -37,13 +38,14 @@ data class Offer(
     val isAReading: Boolean get() = reading.isNotEmpty()
 
     companion object {
+        const val NEVER = 0.0
         const val CERTAIN = 1.0
 
         /** A reading for [part]: what this word means of it, carried whole. */
         fun reading(part: Aspect, effects: List<Effect>, chance: Double = CERTAIN, chanceFromWholeAge: Double? = null) =
             Offer(CoreConcepts.READING, Value.None, chance, Audience.Part(part), chanceFromWholeAge, effects)
 
-        private val CHANCE: Codec<Double> = Codec.doubleRange(0.0, CERTAIN)
+        private val CHANCE: Codec<Double> = Codec.doubleRange(NEVER, CERTAIN)
 
         private val SPELLING: Codec<Offer> = RecordCodecBuilder.create<Offer> { instance ->
             instance.group(
