@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.preview.authoring.words.WordListings
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
@@ -35,6 +36,9 @@ data class Candidate(
 
     /** What the rarity list and the display names call this word. */
     val listingKey: String get() = derivedFrom?.toString() ?: name
+
+    /** How its listings know it: rarity, ink, the loot fence and the name it is shown as. */
+    val listed: WordListings.Listed get() = WordListings.Listed(listingKey, name, id, tagDirectory)
 
     fun asWord(): Word = Word(id, meanings, speech, takesAs)
 

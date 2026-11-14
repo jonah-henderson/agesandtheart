@@ -69,6 +69,21 @@ object WordFile {
         fileFor(candidate.name).writeText(textOf(candidate))
     }
 
+    /** A word renamed: its file, and everything listed under its name ([WordListings.renamed]). */
+    fun rename(from: String, to: String) {
+        if (from == to) return
+        // Moved rather than dropped: the caller writes the word out afterwards, and a rename that only deleted would lose it
+        // outright if that write then failed.
+        fileFor(from).renameTo(fileFor(to))
+        WordListings.renamed(from, to)
+    }
+
+    /** A word and every trace of it: its file, and everything listed under its name. */
+    fun delete(name: String) {
+        fileFor(name).delete()
+        WordListings.forgotten(name)
+    }
+
     /** [json]'s keys in [order], then any others as they came; its senses, offers and acceptances laid out in theirs. */
     private fun laidOut(json: JsonObject, order: List<String>): JsonObject {
         val laid = JsonObject()

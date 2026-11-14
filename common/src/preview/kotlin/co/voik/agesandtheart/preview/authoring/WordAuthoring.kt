@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.location
 import co.voik.agesandtheart.preview.authoring.ui.Canvas
 import co.voik.agesandtheart.preview.authoring.ui.Editor
 import co.voik.agesandtheart.preview.authoring.ui.style
@@ -56,6 +57,7 @@ fun main(arguments: Array<String>) {
             )
         }
         asked.rewriting -> rewrite(terminal)
+        asked.inTheNewModel != null -> onScreen(terminal) { canvas -> openInTheNewModel(terminal, canvas, corpus, asked.inTheNewModel) }
         // A named word goes straight in, and a bare run offers the menu.
         asked.word != null -> onScreen(terminal) { canvas -> open(terminal, canvas, corpus, asked.word) }
         else -> onScreen(terminal) { canvas -> Menu(terminal, canvas, corpus).run() }
@@ -65,6 +67,8 @@ fun main(arguments: Array<String>) {
 /** What the command line said, read the dull way — there are five options and none of them nest. */
 private data class Arguments(
     val word: String? = null,
+    /** A word to open in the editor over the new word model, until it replaces the old one. */
+    val inTheNewModel: String? = null,
     val auditing: Boolean = false,
     val inert: Boolean = false,
     val pairingsOf: String? = null,
@@ -92,6 +96,7 @@ private data class Arguments(
                     argument == "--members" -> read.copy(withMembers = true)
                     argument == "--sentences" -> read.copy(sentences = arguments.getOrNull(++index)?.toIntOrNull() ?: DEFAULT_SENTENCES)
                     argument == "--rewrite" -> read.copy(rewriting = true)
+                    argument == "--new" -> read.copy(inTheNewModel = arguments.getOrNull(++index))
                     argument == "--refresh" -> read.copy(refreshing = true)
                     argument == "--attach" -> read.copy(attach = arguments.getOrNull(++index))
                     argument == "--help" || argument == "-h" -> read.copy(wantsHelp = true)
@@ -133,6 +138,19 @@ private fun open(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: Strin
         else -> Candidate(name = name)
     }
     Editor(terminal, canvas, corpus, candidate, canLeave = false).run()
+}
+
+/** One word of the new model, opened or begun — a word that will not read is said rather than started from blank. */
+private fun openInTheNewModel(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: String) {
+    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
+    if (!files.couldBeAName(name)) return terminal.println(TextColors.brightRed("'$name' cannot be a word's name"))
+    val candidate = if (files.exists(name)) {
+        files.read(name).getOrElse { failure -> return terminal.println(TextColors.brightRed("'$name' would not read: ${failure.message}")) }
+    } else {
+        co.voik.agesandtheart.preview.authoring.words.Candidate.blank(name.location())
+    }
+    val words = co.voik.agesandtheart.preview.authoring.words.WordCorpus(corpus.vocabulary, corpus.snapshot)
+    co.voik.agesandtheart.preview.authoring.words.ui.WordEditor(terminal, canvas, words, candidate, canLeave = false).run()
 }
 
 /** Every authored word with something against it, worst first, printed rather than shown. */
@@ -307,6 +325,7 @@ private val USAGE = """
     |  scripts/scrivener.sh --pairings <word> [--all]
     |                                         every phrase a word makes, read and built, and what to rule on
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
+    |  scripts/scrivener.sh --new <word>      open a word in the editor over the new word model
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
     |  scripts/scrivener.sh --refresh --attach host:port:password
     |

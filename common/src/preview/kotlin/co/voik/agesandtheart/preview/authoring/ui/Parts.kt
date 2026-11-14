@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.WordListings
 
 /**
  * The sections of the word screen, in the order the decisions fall: what it is called and costs, what it means,
@@ -127,7 +128,7 @@ class Parts(private val corpus: Corpus) {
 
     private fun nameRows(candidate: Candidate): List<Row> {
         val id = candidate.listingKey
-        val called = WordFile.displayOf(id)
+        val called = WordListings.displayOf(id)
         return listOf(
             Row(
                 Handle.Name,
@@ -139,7 +140,7 @@ class Parts(private val corpus: Corpus) {
                 Handle.Display,
                 listOf(
                     Ink("shown as ", Palette.faint),
-                    Ink(called ?: WordFile.fallbackDisplay(id), if (called == null) Palette.faint else Palette.value),
+                    Ink(called ?: WordListings.fallbackDisplay(id), if (called == null) Palette.faint else Palette.value),
                 ),
                 "what a player reads — on the page, the desk and the book",
             ),
@@ -169,16 +170,16 @@ class Parts(private val corpus: Corpus) {
     }
 
     private fun listingRows(candidate: Candidate): List<Row> {
-        val listing = WordFile.listingOf(candidate)
+        val listing = WordListings.listingOf(candidate.listed)
         return listOf(
             Row(
                 Handle.Rarity,
-                listOf(Ink("rarity   ", Palette.faint), Ink(listing.rarity ?: WordFile.defaultBucket() ?: "unlisted", Palette.value)),
+                listOf(Ink("rarity   ", Palette.faint), Ink(listing.rarity ?: WordListings.defaultBucket() ?: "unlisted", Palette.value)),
                 "how often a found page or notebook holds it",
             ),
             Row(
                 Handle.InkQuality,
-                listOf(Ink("ink      ", Palette.faint), Ink(WordFile.inkOf(candidate) ?: "any", Palette.value)),
+                listOf(Ink("ink      ", Palette.faint), Ink(WordListings.inkOf(candidate.listed) ?: "any", Palette.value)),
                 "the least ink that writes it",
             ),
         )

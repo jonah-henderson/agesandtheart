@@ -11,6 +11,7 @@ import co.voik.agesandtheart.preview.authoring.Gaps
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
 import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.WordListings
 import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.enterRawMode
@@ -94,8 +95,8 @@ class Menu(
     /** A word this pack authored: what it is, how hard it is to find, and what it means. */
     private fun openOne() {
         val rowsOf = {
-            val listings = WordFile.everyListing()
-            val keptOut = WordFile.authoredKeptOutOfLoot()
+            val listings = WordListings.everyListing()
+            val keptOut = WordListings.authoredKeptOutOfLoot()
             WordFile.authoredNames().map { authoredRow(it, listings[it], isKeptOutOfLoot = it in keptOut) }
         }
         val table = Table(
@@ -103,8 +104,8 @@ class Menu(
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
                 Table.Column("ink", PRICE_WIDTH),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
-                Table.Column("quality", INK_WIDTH, INK, WordFile.inkTiers()),
+                Table.Column("rarity", RARITY_WIDTH, RARITY, WordListings.rarityChoices()),
+                Table.Column("quality", INK_WIDTH, INK, WordListings.inkTiers()),
                 Table.Column("means", EFFECTS_WIDTH),
             ),
             rows = canvas.whileBusy(work = rowsOf),
@@ -128,14 +129,14 @@ class Menu(
         }
     }
 
-    private fun authoredRow(name: String, listing: WordFile.Listing?, isKeptOutOfLoot: Boolean): Table.Row {
+    private fun authoredRow(name: String, listing: WordListings.Listing?, isKeptOutOfLoot: Boolean): Table.Row {
         val word = corpus.vocabulary.word(name)
         return Table.Row(
             key = name,
             cells = listOf(
                 name,
                 word?.price?.toString().orEmpty(),
-                if (isKeptOutOfLoot) WordFile.NO_LOOT else listing?.rarity.orEmpty(),
+                if (isKeptOutOfLoot) WordListings.NO_LOOT else listing?.rarity.orEmpty(),
                 listing?.ink.orEmpty(),
                 word?.let(::meansIn).orEmpty(),
             ),
@@ -166,10 +167,10 @@ class Menu(
     private fun openADerivedOne() {
         val derived = corpus.vocabulary.derivedWords
         val rowsOf = {
-            val listings = WordFile.everyListing()
-            val inkTags = WordFile.everyInkTag()
-            val lootFence = WordFile.everyIdTagged(CannotAppearInLoot.TAG_NAME)
-            val wordless = WordFile.everyIdTagged(DerivedWords.DOES_NOT_HAVE_A_WORD)
+            val listings = WordListings.everyListing()
+            val inkTags = WordListings.everyInkTag()
+            val lootFence = WordListings.everyIdTagged(CannotAppearInLoot.TAG_NAME)
+            val wordless = WordListings.everyIdTagged(DerivedWords.DOES_NOT_HAVE_A_WORD)
             derived.map { derivedRow(it, listings, inkTags, lootFence, wordless) }
         }
         val table = Table(
@@ -178,9 +179,9 @@ class Menu(
                 Table.Column("word", NAME_WIDTH),
                 Table.Column("kind", KIND_WIDTH),
                 Table.Column("ink", PRICE_WIDTH),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
-                Table.Column("quality", INK_WIDTH, INK, WordFile.inkTiers()),
-                Table.Column("in game", IN_GAME_WIDTH, IN_GAME, listOf(WordFile.NO_WORD)),
+                Table.Column("rarity", RARITY_WIDTH, RARITY, WordListings.rarityChoices()),
+                Table.Column("quality", INK_WIDTH, INK, WordListings.inkTiers()),
+                Table.Column("in game", IN_GAME_WIDTH, IN_GAME, listOf(WordListings.NO_WORD)),
                 Table.Column("from", EFFECTS_WIDTH),
             ),
             rows = canvas.whileBusy(work = rowsOf),
@@ -208,7 +209,7 @@ class Menu(
 
     private fun derivedRow(
         word: Word,
-        listings: Map<String, WordFile.Listing>,
+        listings: Map<String, WordListings.Listing>,
         inkTags: Map<String, Map<String, String>>,
         lootFence: Map<String, Set<String>>,
         wordless: Map<String, Set<String>>,
@@ -217,13 +218,13 @@ class Menu(
         fun isIn(tagged: Map<String, Set<String>>) = page.tagDirectory?.let { word.id.toString() in tagged[it].orEmpty() } == true
         val isKeptOutOfLoot = isIn(lootFence)
         val hasNoWord = isIn(wordless)
-        val rarity = if (isKeptOutOfLoot) WordFile.NO_LOOT else listings[page.listingKey]?.rarity
+        val rarity = if (isKeptOutOfLoot) WordListings.NO_LOOT else listings[page.listingKey]?.rarity
         val ink = page.tagDirectory?.let { inkTags[it]?.get(word.id.toString()) } ?: listings[word.name]?.ink
         return Table.Row(
             key = word.name,
             cells = listOf(
                 word.name, kindOf(word), word.price.toString(), rarity.orEmpty(), ink.orEmpty(),
-                if (hasNoWord) WordFile.NO_WORD else "", word.id.toString(),
+                if (hasNoWord) WordListings.NO_WORD else "", word.id.toString(),
             ),
             tone = when {
                 hasNoWord -> Palette.faint
@@ -239,9 +240,9 @@ class Menu(
         val candidate = if (corpus.vocabulary.isDerived(word)) Candidate.of(word, corpus.vocabulary) else WordFile.read(row.key).getOrNull() ?: return
         val standing = row.cells.getOrElse(at) { "" }.ifEmpty { null }
         when (kind) {
-            RARITY -> WordFile.setRarity(candidate, cycled(listOf(null) + WordFile.rarityChoices(), standing, by))
-            INK -> WordFile.setInk(candidate, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
-            IN_GAME -> WordFile.setHasNoWord(candidate, hasNoWord = standing == null)
+            RARITY -> WordListings.setRarity(candidate.listed, cycled(listOf(null) + WordListings.rarityChoices(), standing, by))
+            INK -> WordListings.setInk(candidate.listed, cycled(listOf(null) + WordListings.inkTiers(), standing, by))
+            IN_GAME -> WordListings.setHasNoWord(candidate.listed, hasNoWord = standing == null)
         }
     }
 

@@ -19,6 +19,7 @@ import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.Trial
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.WordListings
 import co.voik.agesandtheart.preview.authoring.asserting
 import co.voik.agesandtheart.preview.authoring.broadened
 import co.voik.agesandtheart.preview.authoring.changingMeaning
@@ -205,7 +206,7 @@ class Editor(
     private fun filledness(entry: Part): String = when (entry) {
         Part.NAME -> if (candidate.name.isBlank()) "" else Glyph.TICK
         Part.COST -> word().price.toString()
-        Part.LISTING -> if (WordFile.listingOf(candidate).rarity == null) "" else Glyph.TICK
+        Part.LISTING -> if (WordListings.listingOf(candidate.listed).rarity == null) "" else Glyph.TICK
         Part.MEANINGS -> candidate.meanings.size.takeIf { it > 0 }?.toString().orEmpty()
         Part.REVIEW, Part.DELETE -> ""
         Part.COMMENT -> if (candidate.comment.isEmpty()) "" else Glyph.TICK
@@ -1034,8 +1035,8 @@ class Editor(
 
     private fun retitle() {
         val id = candidate.listingKey
-        typeOn(Handle.Display, WordFile.displayOf(id).orEmpty()) { typed ->
-            runCatching { WordFile.setDisplay(id, typed.ifBlank { null }) }
+        typeOn(Handle.Display, WordListings.displayOf(id).orEmpty()) { typed ->
+            runCatching { WordListings.setDisplay(id, typed.ifBlank { null }) }
                 .onSuccess { message = typed.ifBlank { null }?.let { "shown as $it" } ?: "back to the fallback" }
                 .onFailure { message = "could not rename: ${it.message}" }
             judged = null
@@ -1052,10 +1053,10 @@ class Editor(
 
 
     private fun relist() {
-        val default = WordFile.defaultBucket()
-        val standing = WordFile.listingOf(candidate).rarity.takeUnless { it == default }
-        val buckets = WordFile.rarityBuckets().map { Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing) }
-        val keptOut = Picker.Option(WordFile.NO_LOOT, WordFile.NO_LOOT, "never on a found page or in a found notebook", marked = standing == WordFile.NO_LOOT)
+        val default = WordListings.defaultBucket()
+        val standing = WordListings.listingOf(candidate.listed).rarity.takeUnless { it == default }
+        val buckets = WordListings.rarityBuckets().map { Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing) }
+        val keptOut = Picker.Option(WordListings.NO_LOOT, WordListings.NO_LOOT, "never on a found page or in a found notebook", marked = standing == WordListings.NO_LOOT)
         val unset = Picker.Option(UNSET, default ?: UNSET, "every word listed nowhere else", marked = standing == null)
         overlay = Picker("Which rarity?", listOf(unset) + buckets + keptOut, onClear = { writeRarity(null) }) { picked ->
             writeRarity(picked.value.takeIf { it != UNSET })
@@ -1063,18 +1064,18 @@ class Editor(
     }
 
     private fun writeRarity(bucket: String?) {
-        WordFile.setRarity(candidate, bucket)
+        WordListings.setRarity(candidate.listed, bucket)
         message = when (bucket) {
-            null -> "rarity set to ${WordFile.defaultBucket() ?: "the default"}"
-            WordFile.NO_LOOT -> "kept out of loot"
+            null -> "rarity set to ${WordListings.defaultBucket() ?: "the default"}"
+            WordListings.NO_LOOT -> "kept out of loot"
             else -> "rarity set to $bucket"
         }
         judged = null
     }
 
     private fun reink() {
-        val standing = WordFile.inkOf(candidate)
-        val tiers = WordFile.inkTiers().map { Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing) }
+        val standing = WordListings.inkOf(candidate.listed)
+        val tiers = WordListings.inkTiers().map { Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing) }
         overlay = Picker(
             "Which ink quality?",
             listOf(Picker.Option(UNSET, UNSET, "any ink writes it", marked = standing == null)) + tiers,
@@ -1083,7 +1084,7 @@ class Editor(
     }
 
     private fun writeInk(tier: String?) {
-        WordFile.setInk(candidate, tier)
+        WordListings.setInk(candidate.listed, tier)
         message = tier?.let { "ink set to $it" } ?: "ink cleared"
         judged = null
     }
