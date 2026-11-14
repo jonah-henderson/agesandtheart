@@ -93,17 +93,23 @@ something lands, delete the narrative of building it; a choice between genuinely
   notation, and blocks drawn from an entity renderer and stood on, with the one constraint (axis-aligned shapes)
   any further shaped collider must answer. Read it before building a structure, a model, or anything that wants to
   be pack data.
-- **`../ephemeris/notes/sky-limits.md`** — what a per-level sky can and cannot change, in Ephemeris's own notes.
+- **Ephemeris's `notes/sky-limits.md`** — what a per-level sky can and cannot change, in Ephemeris's own notes.
 
 ## What this is
 
 **Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.3**, with 26.2 kept on the `mc-26.2-support` branch on Jonah's other machine, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the three acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) is mostly built — danger scoring, deretheni, the D'ni city, yema, scarab colonies — and a reward never asks who wrote an Age: the Art's own books are kept off reward conditions by their grammars. Phase 8 (book editing) is tabled (design §6.6), and Phase 9 (the asset pass) is under way for items while blocks still borrow vanilla's textures. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
+Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the three acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) is mostly built — danger scoring, deretheni, the D'ni city, yema, scarab colonies — and a reward never asks who wrote an Age: the Art's own books are kept off reward conditions by their grammars. Phase 8 (book editing) is tabled (design §6.6), and Phase 9 (the asset pass) is under way for items while blocks still borrow vanilla's textures. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project beside this one (see "Ephemeris" below).
 
 **26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
 ## Requirements
+
+**The checkouts live under one folder.** `agesandtheart/codebase/` is the main checkout; a long-running branch gets
+a git worktree in `agesandtheart/worktrees/<name>/` (`git worktree add ../worktrees/<name> <branch>` from
+`codebase/`); and `agesandtheart/notes/` is the notes repository, which each checkout reaches through its own
+untracked `notes` link. Ephemeris is the nearest `ephemeris` folder beside a checkout or above it, which is how
+both `codebase/` and a worktree find it.
 
 Java 25 (Temurin, via SDKMAN). Gradle comes from the wrapper — always use `./gradlew`, never a system Gradle. Note that the Java level is real: Dokka 1.x cannot parse a "25.x" version string and fails before reading a line of source, which is why the catalog pins Dokka 2.
 
@@ -123,7 +129,7 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_
 ./gradlew :fabric:runClient
 ./gradlew :neoforge:runClient
 
-# The same, without the Ephemeris version requirement — for when the catalog is ahead of ../ephemeris
+# The same, without the Ephemeris version requirement — for when the catalog is ahead of the Ephemeris checkout
 ./gradlew :fabric:dev
 ./gradlew :neoforge:dev
 
@@ -552,7 +558,8 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event and NeoForge'
 
 ## Ephemeris
 
-**Runtime dimensions are `co.voik.ephemeris`, a separate mod in a separate project at `../ephemeris`.** It
+**Runtime dimensions are `co.voik.ephemeris`, a separate mod in a separate project**, found as the nearest folder
+named `ephemeris` beside the checkout or beside a folder above it (`ephemerisCheckout` in `settings.gradle.kts`). It
 is included as a Gradle **composite build** (`includeBuild` in `settings.gradle.kts`), so editing it
 rebuilds it here and neither project needs the other to build alone. Two things about that wiring are
 easy to get wrong and were:

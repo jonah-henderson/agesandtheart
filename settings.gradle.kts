@@ -34,6 +34,15 @@ plugins {
 }
 
 /**
+ * Ephemeris's checkout: the nearest folder named `ephemeris` beside this checkout or beside a folder above it, so it is
+ * found from `codebase/` and from `worktrees/<name>/` alike, and a release's own copy beside its work tree comes first.
+ */
+val ephemerisCheckout: File = generateSequence(settingsDir.parentFile) { it.parentFile }
+    .map { it.resolve("ephemeris") }
+    .firstOrNull { it.resolve("settings.gradle.kts").exists() }
+    ?: error("No Ephemeris checkout named `ephemeris` beside $settingsDir or any folder above it")
+
+/**
  * Ephemeris, the runtime-dimension library this mod is built on, as a **composite build**.
  *
  * Its own project next door rather than a subtree here, because that is what it is: a library with its own
@@ -45,7 +54,7 @@ plugins {
  * project's `group:name`, which here is `co.voik.ephemeris:common` — not the artifact coordinates the
  * catalog names — so without these the dependency is looked for in a repository and is simply not found.
  */
-includeBuild("../ephemeris") {
+includeBuild(ephemerisCheckout) {
     dependencySubstitution {
         substitute(module("co.voik.ephemeris:ephemeris-common-26.3")).using(project(":common"))
         substitute(module("co.voik.ephemeris:ephemeris-fabric-26.3")).using(project(":fabric"))
@@ -54,7 +63,7 @@ includeBuild("../ephemeris") {
 }
 
 /**
- * Warns when `../ephemeris` is not at the release the catalog names, since the composite build uses whatever is
+ * Warns when [ephemerisCheckout] is not at the release the catalog names, since the composite build uses whatever is
  * checked out there while a release ships the published jar. Only a warning: building against unreleased
  * Ephemeris is the normal loop.
  */
@@ -64,17 +73,16 @@ fun warnWhereEphemerisDrifts() {
     val ephemerisVersion = catalogVersion("ephemeris") ?: return
     val minecraftVersion = catalogVersion("minecraft") ?: return
     val releasedTag = "v$ephemerisVersion-mc$minecraftVersion"
-    val checkout = file("../ephemeris")
-    if (!checkout.resolve(".git").exists()) return
+    if (!ephemerisCheckout.resolve(".git").exists()) return
     val described = providers.exec {
-        workingDir = checkout
+        workingDir = ephemerisCheckout
         commandLine("git", "describe", "--tags", "--long", "--dirty", "--match", "v*-mc$minecraftVersion")
         isIgnoreExitValue = true
     }.standardOutput.asText.get().trim()
     if (described.isEmpty()) return
     val isTheReleasedTag = described.startsWith("$releasedTag-0-g") && !described.endsWith("-dirty")
     if (!isTheReleasedTag) {
-        logger.warn("Ephemeris in ../ephemeris is $described, not the catalog's $releasedTag: this build is not what a release ships")
+        logger.warn("Ephemeris in $ephemerisCheckout is $described, not the catalog's $releasedTag: this build is not what a release ships")
     }
 }
 warnWhereEphemerisDrifts()

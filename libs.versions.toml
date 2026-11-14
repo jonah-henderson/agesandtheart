@@ -40,7 +40,7 @@ kotest = "6.2.3"
 # `authoring-tools.md` Part III is the note that governs here.
 mordant = "3.1.0"
 
-# Ephemeris — the runtime-dimension library, its own project at ../ephemeris. See settings.gradle.kts.
+# Ephemeris — the runtime-dimension library, its own project beside this one. See settings.gradle.kts.
 #
 # **Two ranges, because the two manifests do not share a version grammar** and each rejects the other's.
 # NeoForge parses Maven ranges (`[0.1.0,)`); Fabric parses its own semver predicates (`>=0.1.0`) and reads

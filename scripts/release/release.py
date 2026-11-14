@@ -36,7 +36,18 @@ from pathlib import Path
 import bundles
 
 ROOT = Path(__file__).resolve().parents[2]
-EPHEMERIS = ROOT.parent / "ephemeris"
+
+
+def nearest_ephemeris(checkout: Path) -> Path:
+    """The folder named ephemeris beside the checkout or beside a folder above it, as settings.gradle.kts finds it."""
+    for folder in checkout.parents:
+        candidate = folder / "ephemeris"
+        if (candidate / "settings.gradle.kts").exists():
+            return candidate
+    return checkout.parent / "ephemeris"
+
+
+EPHEMERIS = nearest_ephemeris(ROOT)
 SETTINGS_FILE = ROOT / ".release" / "beta.properties"
 SETTINGS_EXAMPLE = Path(__file__).resolve().parent / "beta.example.properties"
 TESTER_GUIDE = Path(__file__).resolve().parent / "TESTERS.md"
