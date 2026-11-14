@@ -1,16 +1,33 @@
 {
   "_comment": [
-    "A bed of whatever the phrase names laid over a sea or river floor, like vanilla's sand disks: `clay beds`,",
-    "`gravel beds`. Sand when the phrase names nothing."
+    "Two senses. A bed of whatever the phrase names laid over a sea or river floor, like vanilla's sand disks: `clay",
+    "beds`, `gravel beds`, and sand when the phrase names nothing. And the furniture, every bed of every colour, for what",
+    "grows that takes a block: `beds piles`, `teeming large beds piles`; the default, but never said of the whole Age, which",
+    "would build the world of beds, so `beds age` is the ground's."
   ],
   "speech": "plural",
-  "kind": "minted",
-  "means": [
+  "senses": [
     {
-      "mints": {
-        "pattern": "minecraft:disk_sand",
-        "unstated": "minecraft:sand"
-      }
+      "kind": "minted",
+      "means": [
+        {
+          "mints": {
+            "pattern": "minecraft:disk_sand",
+            "unstated": "minecraft:sand"
+          }
+        }
+      ]
+    },
+    {
+      "offers": [
+        {
+          "concept": "block",
+          "value": "#minecraft:beds",
+          "for": "features",
+          "chance_from_whole_age": 0.0
+        }
+      ],
+      "default": true
     }
   ]
 }

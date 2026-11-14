@@ -237,6 +237,17 @@ private class Pass(
         words.word(pages[at])?.senses.orEmpty().any { matching.acceptanceFor(it, offer) != null && !matching.isAMemberOfAnotherPart(it, offer) }
     }
 
+    /**
+     * Whether any word of [term] has a sense that would take [offer] and its value: what choosing a sense asks of the term
+     * after, where the lookahead that passes an offer on does not look at the value.
+     */
+    private fun fitsAnyOf(term: Term, offer: Offer): Boolean = term.pages.any { at ->
+        words.word(pages[at])?.senses.orEmpty().any { sense ->
+            val acceptance = matching.acceptanceFor(sense, offer)
+            acceptance != null && matching.valueFits(sense, acceptance, offer)
+        }
+    }
+
     /** What the page at [at] offers in [sense]: a block made a ban for the Age where `no` stood before it. */
     private fun offersOf(at: Int, sense: Sense, term: Term): List<Travelling> = sense.offers.map { offer ->
         val banned = term.polarity == Polarity.EXCEPT && !sense.endsAPhrase && offer.concept == CoreConcepts.BLOCK
@@ -245,20 +256,37 @@ private class Pass(
     }
 
     /**
-     * The sense [at] is read in: the one its neighbours fit best — what reaches it that it takes, and whether the term after
-     * takes what it offers — then the one marked default, then the seed's.
+     * The sense [at] is read in: the one that places most of the pages reaching it, by taking or letting through to a
+     * term after that would take it; then the one marked default; then whether the term after takes what it offers; then
+     * the seed's. A describing sense nothing after it could take is never chosen: one at the end of the book, or before
+     * an `age` that may not be given what it offers. So `teeming large beds piles` is the furniture, the default, the
+     * piles taking what it lets through; `clay beds` the feature, which alone takes a block; and `beds age` the feature,
+     * since the furniture is never said of the whole Age.
      */
     private fun senseFor(at: Int, next: Term?): Sense {
         val all = words.word(pages[at])?.senses.orEmpty()
         val chosen = if (all.size == 1) 0 else {
-            fun fit(sense: Sense): Int {
-                val takes = travelling.count { matching.acceptanceFor(sense, it.offer) != null }
-                val passes = next != null && !next.isAge && sense.offers.any { takenByAnyOf(next, it) }
-                return takes + if (passes) 1 else 0
+            val nextReads = next != null && !next.isAge
+            fun passes(sense: Sense) = nextReads && sense.offers.any { fitsAnyOf(requireNotNull(next), it) }
+            fun hasAReader(sense: Sense): Boolean {
+                val ageMayBeGivenIt = next?.isAge == true && sense.offers.any { it.chanceFromWholeAge > Offer.NEVER }
+                return sense.endsAPhrase || nextReads || ageMayBeGivenIt
             }
-            val best = all.maxOf(::fit)
-            val fitting = all.indices.filter { fit(all[it]) == best }
-            fitting.firstOrNull { all[it].isDefault } ?: fitting[Random(mix64(seed xor at.toLong())).nextInt(fitting.size)]
+            fun placed(sense: Sense): Int {
+                val letsThrough = nextReads && (!sense.endsAPhrase || passes(sense))
+                fun placesIt(offer: Offer): Boolean {
+                    val takesIt = matching.acceptanceFor(sense, offer) != null
+                    val nextTakesIt = letsThrough && fitsAnyOf(requireNotNull(next), offer)
+                    return takesIt || nextTakesIt
+                }
+                return travelling.filter { placesIt(it.offer) }.map { it.page }.distinct().size
+            }
+            val readable = all.indices.filter { hasAReader(all[it]) }.ifEmpty { all.indices.toList() }
+            val mostPlaced = readable.maxOf { placed(all[it]) }
+            val placingMost = readable.filter { placed(all[it]) == mostPlaced }
+            val passing = placingMost.filter { passes(all[it]) }.ifEmpty { placingMost }
+            placingMost.firstOrNull { all[it].isDefault }
+                ?: passing[Random(mix64(seed xor at.toLong())).nextInt(passing.size)]
         }
         if (all.size > 1) senses[at] = chosen
         return all[chosen]

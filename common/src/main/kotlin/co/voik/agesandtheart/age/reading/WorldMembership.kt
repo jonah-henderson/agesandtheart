@@ -33,7 +33,7 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
         if (!keyOrTag.startsWith(TAG_MARK)) return value == keyOrTag
         val tag = keyOrTag.drop(TAG_MARK.length)
         val isATagOfBlocks = value.startsWith(TAG_MARK)
-        if (isATagOfBlocks) return tag in DRAWN_WITHIN
+        if (isATagOfBlocks) return tag in DRAWN_WITHIN && (Materials.isQuery(value) || everyBlockOf(value, answers = tag))
         MATERIAL_TAGS[tag]?.let { answers -> return answers(value) }
         val asABlockTag = Identifier.tryParse(tag)?.takeIf { NAMESPACE_MARK in tag }
         if (asABlockTag != null) return isInBlockTag(value, asABlockTag)
@@ -68,6 +68,17 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
     private fun honoursItsOwn(part: Aspect, member: Taggable, name: String): Boolean {
         val heldByEachMember = part.understood.firstOrNull { it.name == name && it.ownedByEachMember } ?: return true
         return vocabulary.honours(member, heldByEachMember)
+    }
+
+    /**
+     * Whether every block of the block tag [value] is in the shape tag [answers]: a query's block is drawn later from those
+     * that are, but a block tag's are all used — `#minecraft:beds` heaps every bed, and makes no world.
+     */
+    private fun everyBlockOf(value: String, answers: String): Boolean {
+        val tag = Identifier.tryParse(value.drop(TAG_MARK.length)) ?: return false
+        val shape = MATERIAL_TAGS[answers] ?: return false
+        val blocks = BuiltInRegistries.BLOCK.getTagOrEmpty(TagKey.create(Registries.BLOCK, tag)).toList()
+        return blocks.isNotEmpty() && blocks.all { shape(BuiltInRegistries.BLOCK.getKey(it.value()).toString()) }
     }
 
     private fun isInBlockTag(value: String, tag: Identifier): Boolean {
