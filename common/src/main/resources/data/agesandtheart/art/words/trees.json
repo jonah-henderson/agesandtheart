@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Every tree: the features that are wooded. Said of them, a colour is their leaves' and a block what their leaves are made of; a tree before it says which: `oak trees`."
+    "Every tree: the features that are wooded. Said of them, a colour is their leaves' and a block what their leaves are made of, kind by kind; a tree before it says which: `oak trees`."
   ],
   "speech": "plural",
   "kind": "features",
@@ -29,7 +29,7 @@
       "concept": "colour",
       "becomes": [
         {
-          "sets": "leaves.colour"
+          "sets": "colour"
         }
       ]
     }

@@ -37,9 +37,13 @@ class ThingsCheck : FunSpec({
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }
     }
 
-    test("a group takes what its part takes, of its own members: `oak trees`, `red trees`; `bat fish` refused, `zombie trees` two things") {
+    test("a group takes what its part takes, of its own members: `oak trees`, `red oak trees`; `bat fish` refused, `zombie trees` two things") {
         check(Effect.Chooses(Aspect.FEATURES, "minecraft:oak") in effects("oak trees age")) { "oak trees: ${effects("oak trees age")}" }
-        check(set("red trees age", Aspect.LEAVES, "colour") == listOf("red")) { "red trees: ${effects("red trees age")}" }
+        check(set("red trees age", Aspect.FEATURES, "colour") == listOf("red")) { "red trees: ${effects("red trees age")}" }
+        val redOaks = "red oak trees age"
+        check(set(redOaks, Aspect.FEATURES, "colour") == listOf("red") && set(redOaks, Aspect.LEAVES, "colour").isEmpty()) {
+            "red oak trees coloured every tree's leaves: ${effects(redOaks)}"
+        }
         check(set("colossal trees age", Aspect.FEATURES, "size") == listOf("1.0..1.0")) { "colossal trees took nothing of the features' page" }
         check(drawn("bat fish age").dangling.any { it.written == "bat" }) { "bat fish were read as fish" }
         val besideTheTrees = effects("zombie trees age")

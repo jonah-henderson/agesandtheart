@@ -14,7 +14,11 @@ import co.voik.agesandtheart.age.aspect.SunLight
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelLook
+import co.voik.agesandtheart.worldgen.feature.TreeKinds
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.block.Block
 
 /**
  * What the skies of this server's Ages look like — **the Art's thin end of `LevelAppearance`**.
@@ -46,7 +50,12 @@ object Skies {
     /** Says what an Age looks like, and tells everyone who should know. Silent for a level that is not ours. */
     fun describe(level: ServerLevel) {
         val recipe = Ages.recipeOf(level) ?: return
-        LevelAppearance.give(level, lookOf(recipe, Spending.of(level.server, recipe)))
+        val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
+        fun leavesOf(member: String): Set<Block> = Identifier.tryParse(member)
+            ?.let { placedFeatures.get(ResourceKey.create(Registries.PLACED_FEATURE, it)).orElse(null) }
+            ?.let(TreeKinds::leavesOf)
+            .orEmpty()
+        LevelAppearance.give(level, lookOf(recipe, Spending.of(level.server, recipe), ::leavesOf))
     }
 
     /**
@@ -56,7 +65,11 @@ object Skies {
      * differently and conflating them would make a lost packet look deliberate — which is why the caller
      * decides what "not an Age of ours" means, by having no recipe to hand.
      */
-    fun lookOf(recipe: AgeRecipe, spending: Spending = Spending.NOTHING): LevelLook {
+    fun lookOf(
+        recipe: AgeRecipe,
+        spending: Spending = Spending.NOTHING,
+        leavesOf: (String) -> Set<Block> = { emptySet() },
+    ): LevelLook {
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
         val parts = recipe.composition ?: AgeParts.NONE
@@ -88,7 +101,8 @@ object Skies {
             cycles = Prism.cyclesIn(parts, sky, recipe.seed),
             creatures = Spawns.coloursIn(parts.optionsFor(Aspect.SPAWNS)),
             blocks = Features.algaeColourIn(parts.optionsFor(Aspect.FEATURES))
-                ?.let { mapOf(Identifier.parse(Features.ALGAE) to it) }.orEmpty(),
+                ?.let { mapOf(Identifier.parse(Features.ALGAE) to it) }.orEmpty() +
+                Features.leafColoursIn(parts.optionsFor(Aspect.FEATURES), leavesOf),
         )
     }
 }

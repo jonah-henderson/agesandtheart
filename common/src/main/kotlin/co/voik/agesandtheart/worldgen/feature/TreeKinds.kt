@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.feature
 
 import net.minecraft.core.Holder
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.feature.TreeFeature
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
 import net.minecraft.world.level.levelgen.feature.stateproviders.SimpleStateProvider
@@ -24,6 +25,20 @@ object TreeKinds {
         .filterIsInstance<TreeFeature>()
         .mapNotNull(::logOf)
         .toSet()
+
+    /** The leaves of the trees [feature] grows, wherever they sit among what it chooses between. */
+    fun leavesOf(feature: Holder<PlacedFeature>): Set<Block> = feature.value().getFeatures()
+        .map { it.value() }
+        .toList()
+        .filterIsInstance<TreeFeature>()
+        .mapNotNull { blockOf(it.foliageProvider()) }
+        .toSet()
+
+    /** The leaves vanilla draws with a tint, so a colour can reach them; the rest are coloured in their textures. */
+    val TINTED_LEAVES: Set<Block> = setOf(
+        Blocks.OAK_LEAVES, Blocks.JUNGLE_LEAVES, Blocks.ACACIA_LEAVES, Blocks.DARK_OAK_LEAVES, Blocks.MANGROVE_LEAVES,
+        Blocks.SPRUCE_LEAVES, Blocks.BIRCH_LEAVES,
+    )
 
     fun blockOf(provider: Holder<BlockStateProvider>): Block? = (provider.value() as? SimpleStateProvider)?.state()?.block
 }

@@ -11,6 +11,7 @@ import co.voik.agesandtheart.worldgen.field.Toppled
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
@@ -123,8 +124,18 @@ object Features {
             placed == null || asks(placed, registries)
         }
 
-    /** What colour the algae glows — `red algae`, `blue algae` — or [Parameter.DEFAULT] for its own. Only the algae honours it. */
-    val COLOUR = Sky.colour("colour", "The colour the algae glows.").perMember(MemberHonouring { member, _ -> member.key == ALGAE })
+    private val GROWS_TINTED_LEAVES = honouredWhere { feature, _ ->
+        TreeKinds.leavesOf(feature).any(TreeKinds.TINTED_LEAVES::contains)
+    }
+
+    /**
+     * What colour the algae glows (`blue algae`) or a kind of tree's leaves are (`red oak trees`), or
+     * [Parameter.DEFAULT] for its own. Only the algae and trees whose leaves take a tint honour it.
+     */
+    val COLOUR = Sky.colour("colour", "The colour the algae glows, or a kind of tree's leaves.")
+        .perMember(MemberHonouring { member, registries ->
+            member.key == ALGAE || GROWS_TINTED_LEAVES.honours(member, registries)
+        })
 
     /** The colour [options] say the algae glows, or null where they leave it its own. */
     fun algaeColourIn(options: Options): Rgba? {
@@ -135,6 +146,18 @@ object Features {
             else -> return null
         }
         return Colour.named(said)
+    }
+
+    /**
+     * The colour each kind of tree's leaves were written, by leaf block, where [leavesOf] names the leaves a placed
+     * feature grows. Said of one kind it is that kind's alone; the whole Age's leaf colour is the leaves part's.
+     */
+    fun leafColoursIn(options: Options, leavesOf: (String) -> Set<Block>): Map<Identifier, Rgba> {
+        fun colouredLeavesOf(member: String): List<Pair<Identifier, Rgba>> {
+            val colour = Colour.named(options.of(COLOUR, member = member)) ?: return emptyList()
+            return leavesOf(member).filter(TreeKinds.TINTED_LEAVES::contains).map { BuiltInRegistries.BLOCK.getKey(it) to colour }
+        }
+        return options.holdersOfAny(COLOUR).only.filter { it != ALGAE }.flatMap(::colouredLeavesOf).toMap()
     }
 
     /** The algae, as a feature and as the block it lays. */

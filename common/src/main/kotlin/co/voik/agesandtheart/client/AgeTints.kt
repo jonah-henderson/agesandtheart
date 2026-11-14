@@ -17,7 +17,11 @@ import net.minecraft.client.color.block.BlockTintSources
 import co.voik.agesandtheart.content.DeadPaperTreeSaplingBlock
 import co.voik.agesandtheart.content.PaperTreeHealth
 import co.voik.agesandtheart.content.PaperTreeLeavesBlock
+import co.voik.agesandtheart.worldgen.feature.TreeKinds
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.level.FoliageColor
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.Property
 
@@ -66,6 +70,34 @@ object AgeTints {
         registrar(listOf(BlockTintSources.constant(opaque(PalmBeach.WHITE_SAND_TINT))), PalmBeach.WHITE_SANDSTONE_BLOCK)
         registrar(listOf(BlockTintSources.constant(opaque(CompoundedStone.TINT))), CompoundedStone.BLOCK)
         palm(registrar)
+        for (leaves in TreeKinds.TINTED_LEAVES) registrar(listOf(WrittenLeaves(leaves, vanillaTintOf(leaves))), leaves)
+    }
+
+    /** What vanilla tints [leaves] with, which is what they keep where their Age wrote them no colour. */
+    private fun vanillaTintOf(leaves: Block): BlockTintSource = when (leaves) {
+        Blocks.SPRUCE_LEAVES -> BlockTintSources.constant(FoliageColor.FOLIAGE_EVERGREEN)
+        Blocks.BIRCH_LEAVES -> BlockTintSources.constant(FoliageColor.FOLIAGE_BIRCH)
+        else -> BlockTintSources.foliage()
+    }
+
+    /** A kind of tree's leaves in the colour their Age wrote them (`red oak trees`), or as [vanilla] tints them. */
+    private class WrittenLeaves(leaves: Block, private val vanilla: BlockTintSource) : BlockTintSource {
+        private val id: Identifier = BuiltInRegistries.BLOCK.getKey(leaves)
+
+        private fun writtenIn(level: BlockAndTintGetter): Int? {
+            val dimension = GroundTints.levelBehind(level)?.dimension() ?: return null
+            return LevelLooks.of(dimension)?.blockTint(id)?.packed()?.let(::opaque)
+        }
+
+        override fun color(state: BlockState): Int = vanilla.color(state)
+
+        override fun colorInWorld(state: BlockState, level: BlockAndTintGetter, pos: BlockPos): Int =
+            writtenIn(level) ?: vanilla.colorInWorld(state, level, pos)
+
+        override fun colorAsTerrainParticle(state: BlockState, level: BlockAndTintGetter, pos: BlockPos): Int =
+            writtenIn(level) ?: vanilla.colorAsTerrainParticle(state, level, pos)
+
+        override fun relevantProperties(): Set<Property<*>> = vanilla.relevantProperties()
     }
 
     /**
