@@ -153,6 +153,9 @@ private class Drawing(
      * laid after it, never a structure word or a gated one, read with it — the drawn word's phrase lands whole.
      */
     private fun drawnOnto(page: Int): Pair<Dangled, List<Landing>> {
+        // Read again beside the word drawn, a page written with `no` or `only` would land as the opposite of what it says.
+        val saidWithAPolarity = reading.pages.getOrNull(page)?.polarity?.let { it != Polarity.ASSERTED } == true
+        if (saidWithAPolarity) return Dangled(page, written[page], null) to emptyList()
         val word = words.word(written[page])
         val candidates = if (word == null || word.defaultSense?.behaviour != null) emptyList() else candidatesFor(word)
         val drawn = takerDrawn(written[page], candidates, randomFor(page, DANGLING_SALT))

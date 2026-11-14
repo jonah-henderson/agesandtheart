@@ -31,8 +31,14 @@ data class Reading(
 /** Where a link into the Age arrives, and the page naming it: `jungle` in `link in jungle`, which a flaw against it names. */
 data class Arrival(val page: Int, val anchor: LinkAnchor)
 
-/** One page, the sense it was read in where it has more than one, and what became of it. */
-data class PageRead(val index: Int, val written: String, val sense: Int?, val fate: Fate)
+/** One page, the sense it was read in where it has more than one, what became of it, and the `no` or `only` before it. */
+data class PageRead(
+    val index: Int,
+    val written: String,
+    val sense: Int?,
+    val fate: Fate,
+    val polarity: Polarity = Polarity.ASSERTED,
+)
 
 sealed interface Fate {
     /** No word of that name. */

@@ -68,12 +68,28 @@ private class Pass(
                 reading.takeIf { readTerm(reading, terms.getOrNull(index + 1)) }
             }
         }
+        banTheAgeBefore(terms)
+        val polarities = terms.flatMap { term -> term.pages.map { it to term.polarity } }.toMap()
         return Reading(
-            pages = pages.indices.map { at -> PageRead(at, pages[at], senses[at], fateOf(at)) },
+            pages = pages.indices.map { at ->
+                PageRead(at, pages[at], senses[at], fateOf(at), polarities[at] ?: Polarity.ASSERTED)
+            },
             phrases = phrases.toList(),
             handedOut = handedOut.toList(),
             arrival = arrangement.arrival,
         )
+    }
+
+    /**
+     * A ban still travelling when the book ends is given to the last `age` before it: `age no dirt` is an Age with no
+     * dirt, a ban being said of the whole Age wherever it stands. Nothing else after the last `age` is.
+     */
+    private fun banTheAgeBefore(terms: List<Term>) {
+        val bans = travelling.filter { it.offer.concept == CoreConcepts.BAN }
+        val lastAge = terms.lastOrNull(Term::isAge) ?: return
+        if (bans.isEmpty()) return
+        travelling = bans
+        handOut(lastAge.pages.single())
     }
 
     private fun fateOf(at: Int): Fate = when (val fate = fates[at]) {

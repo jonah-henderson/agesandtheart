@@ -53,6 +53,15 @@ class ThingsCheck : FunSpec({
         check(Effect.Chooses(Aspect.FEATURES, "minecraft:birch_checked") in effects("birch trees age")) { "birch trees: ${effects("birch trees age")}" }
     }
 
+    test("a ban after the last `age` is the Age's, and a page written with `no` that nothing takes lands nothing") {
+        check(Effect.Bans("minecraft:dirt") in effects("age no dirt")) { "age no dirt: ${effects("age no dirt")}" }
+        val stranded = drawn("no sheep fliers age")
+        check(stranded.dangling.singleOrNull()?.let { it.written == "sheep" && it.drawnOnto == null } == true) {
+            "a negated sheep nothing took was drawn as ${stranded.dangling}"
+        }
+        check(stranded.landed.none { it.word == "sheep" }) { "a negated sheep landed: ${stranded.landed}" }
+    }
+
     test("a single tree is said of what holds it, never standing alone: `birch trees`, `birch age`, and `age birch` dangling") {
         check(Effect.Chooses(Aspect.FEATURES, "minecraft:birch_checked") in effects("birch age")) { "birch age: ${effects("birch age")}" }
         check(drawn("age birch").dangling.any { it.written == "birch" }) { "a birch stood alone" }
