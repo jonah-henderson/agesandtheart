@@ -228,3 +228,9 @@ accessible	field	net/minecraft/world/entity/boss/enderdragon/EnderDragon	nodes	[
 
 # The changelog's own dialog screen, registered beside vanilla's so a chat link can open it (`client/ChangelogScreen`).
 accessible	method	net/minecraft/client/gui/screens/dialog/DialogScreens	register	(Lcom/mojang/serialization/MapCodec;Lnet/minecraft/client/gui/screens/dialog/DialogScreens$Factory;)V
+
+# The linking panel's own rain fog (`client/panel/PanelRenderer`). Every `FogRenderer` shares one static list of
+# environments, and the atmospheric one eases a rain-fog multiplier toward whichever level it was last set up
+# for, so a panel over a rainy Age pulled the player's fog in. The panel swaps its own value in around its setup.
+accessible	field	net/minecraft/client/renderer/fog/FogRenderer	FOG_ENVIRONMENTS	Ljava/util/List;
+accessible	field	net/minecraft/client/renderer/fog/environment/AtmosphericFogEnvironment	rainFogMultiplier	F

@@ -10,6 +10,7 @@ import org.joml.Vector4f
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.fog.FogRenderer
+import net.minecraft.client.renderer.fog.environment.AtmosphericFogEnvironment
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.SectionPos
 import net.minecraft.util.ARGB
@@ -30,6 +31,11 @@ object PanelRenderer {
 
     /** Which shot the newest field holds, so a cut is noticed once rather than every frame. */
     private var drawn = NO_SHOT
+
+    /** The Age's rain fog, eased from frame to frame apart from the player's ([withTheAgesRainFog]). */
+    private var rainFogMultiplier = NO_RAIN_FOG
+
+    private const val NO_RAIN_FOG = 0.0f
 
     private const val BEHIND_THE_AGE = 0xFF000000.toInt()
 
@@ -60,6 +66,7 @@ object PanelRenderer {
     /** Forgets what has been drawn, so one book's panel never interlaces with the last one's Age. */
     fun startOver() {
         drawn = NO_SHOT
+        rainFogMultiplier = NO_RAIN_FOG
         PanelTarget.startOver()
     }
 
@@ -130,7 +137,9 @@ object PanelRenderer {
         delta: DeltaTracker,
     ): GpuBufferSlice {
         val partial = delta.getGameTimeDeltaPartialTick(false)
-        state.fogData = fog.setupFog(preview.camera, PanelRing.SHOWN_RADIUS_CHUNKS, delta, 0.0f, preview.level)
+        state.fogData = withTheAgesRainFog {
+            fog.setupFog(preview.camera, PanelRing.SHOWN_RADIUS_CHUNKS, delta, 0.0f, preview.level)
+        }
         state.fogData.skyEnd =
             preview.camera.attributeProbe().getValue(EnvironmentAttributes.SKY_FOG_END_DISTANCE, partial)
         fog.updateBuffer(state.fogData)
@@ -138,6 +147,25 @@ object PanelRenderer {
         val colour = state.fogData.color
         haze = ARGB.colorFromFloat(1.0f, colour.x, colour.y, colour.z)
         return fog.getBuffer(FogRenderer.FogMode.WORLD)
+    }
+
+    /**
+     * Runs [setUp] with the Age's rain fog in the atmospheric environment, and gives the player's back.
+     *
+     * Every `FogRenderer` shares one static list of environments, and the atmospheric one eases its rain fog toward
+     * whichever level it was last set up for, so the panel's own renderer is not enough to keep the two apart.
+     */
+    private fun <T> withTheAgesRainFog(setUp: () -> T): T {
+        val atmosphere = FogRenderer.FOG_ENVIRONMENTS.filterIsInstance<AtmosphericFogEnvironment>().firstOrNull()
+            ?: return setUp()
+        val players = atmosphere.rainFogMultiplier
+        atmosphere.rainFogMultiplier = rainFogMultiplier
+        try {
+            return setUp()
+        } finally {
+            rainFogMultiplier = atmosphere.rainFogMultiplier
+            atmosphere.rainFogMultiplier = players
+        }
     }
 
     /** Colour *and* depth: an uninitialised depth buffer fails every fragment. */
