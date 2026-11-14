@@ -29,6 +29,7 @@ import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
 import co.voik.agesandtheart.desk.ArchiveBlock
 import co.voik.agesandtheart.desk.ArchiveBlockEntity
 import co.voik.agesandtheart.desk.ArchiveItem
+import co.voik.agesandtheart.desk.ArchiveRecipe
 import co.voik.agesandtheart.desk.ArchiveMenu
 import co.voik.agesandtheart.desk.GeologistsToolsBlock
 import co.voik.agesandtheart.desk.SeismographBlock
@@ -2145,6 +2146,7 @@ object AgeContent {
         listOf(
             ShapelessIntoOneBottleRecipe.ID to ShapelessIntoOneBottleRecipe.SERIALIZER,
             ShapelessKeepingRecipe.ID to ShapelessKeepingRecipe.SERIALIZER,
+            ArchiveRecipe.ID to ArchiveRecipe.SERIALIZER,
         ) + StationRecipes.serializers +
             (Compounding.ID to Compounding.SERIALIZER) + (Drying.ID to Drying.SERIALIZER)
 

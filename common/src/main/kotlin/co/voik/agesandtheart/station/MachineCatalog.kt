@@ -9,27 +9,44 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
+import com.mojang.datafixers.util.Either
+import net.minecraft.world.item.crafting.CraftingRecipe
 import net.minecraft.world.item.crafting.Recipe
+import net.minecraft.world.item.crafting.ShapedRecipe
 import net.minecraft.world.item.crafting.ShapelessRecipe
 
 /**
- * A crafting recipe of ours that a recipe viewer can show as the plain shapeless one inside it: what it takes and
- * makes are that recipe's, and only what it hands back differs.
+ * A crafting recipe of ours that a recipe viewer can show as the plain shapeless one inside it: what it takes is
+ * that recipe's, and only what it hands back or what its result carries differs.
  */
 interface ShownAsShapeless {
     val shown: ShapelessRecipe
 }
 
+/** The same, for a recipe wrapping a shaped one. */
+interface ShownAsShaped {
+    val shown: ShapedRecipe
+}
+
 /** One of those, under the id of the recipe it stands for. */
-data class ShownCrafting(val id: Identifier, val recipe: ShapelessRecipe) {
+data class ShownCrafting(val id: Identifier, val shown: Either<ShapelessRecipe, ShapedRecipe>) {
     val key: ResourceKey<Recipe<*>> get() = ResourceKey.create(Registries.RECIPE, id)
+
+    val recipe: CraftingRecipe get() = shown.map({ it }, { it })
 
     companion object {
         val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, ShownCrafting> = StreamCodec.composite(
             Identifier.STREAM_CODEC, ShownCrafting::id,
-            ShapelessRecipe.STREAM_CODEC, ShownCrafting::recipe,
+            ByteBufCodecs.either(ShapelessRecipe.STREAM_CODEC, ShapedRecipe.STREAM_CODEC), ShownCrafting::shown,
             ::ShownCrafting,
         )
+
+        /** What [recipe] shows as, or null where it is not one of ours a viewer needs sending. */
+        fun of(id: Identifier, recipe: Recipe<*>): ShownCrafting? = when (recipe) {
+            is ShownAsShapeless -> ShownCrafting(id, Either.left(recipe.shown))
+            is ShownAsShaped -> ShownCrafting(id, Either.right(recipe.shown))
+            else -> null
+        }
     }
 }
 
@@ -78,9 +95,7 @@ data class MachineCatalogPayload(
             val recipes = server.recipeManager.getRecipes().sortedBy { it.id().identifier().toString() }
             val compounding = recipes.map { it.value() }.filterIsInstance<CompoundingRecipe>()
                 .flatMap { it.display() }.filterIsInstance<CompoundingRecipeDisplay>().filter { it.isAllowed }
-            val crafting = recipes.mapNotNull { holder ->
-                (holder.value() as? ShownAsShapeless)?.let { ShownCrafting(holder.id().identifier(), it.shown) }
-            }
+            val crafting = recipes.mapNotNull { holder -> ShownCrafting.of(holder.id().identifier(), holder.value()) }
             return MachineCatalogPayload(
                 stations = Station.entries.map { station ->
                     StationCatalog(station, MachineRecipeLists.ofStation(server, station).map(MachineRecipe::listed))

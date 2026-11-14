@@ -2,6 +2,7 @@ package co.voik.agesandtheart.station
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.location
+import com.mojang.datafixers.util.Either
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import io.netty.buffer.Unpooled
@@ -14,6 +15,8 @@ import net.minecraft.world.item.crafting.CraftingBookCategory
 import net.minecraft.world.item.crafting.CraftingRecipe
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.item.crafting.Recipe
+import net.minecraft.world.item.crafting.ShapedRecipe
+import net.minecraft.world.item.crafting.ShapedRecipePattern
 import net.minecraft.world.item.crafting.ShapelessRecipe
 import net.minecraft.world.item.crafting.display.SlotDisplay
 import java.util.Optional
@@ -41,12 +44,21 @@ class MachineCatalogCheck : FunSpec({
             ItemStackTemplate(Items.WRITABLE_BOOK),
             listOf(Ingredient.of(Items.BOOK), Ingredient.of(Items.FEATHER)),
         )
+        val bookshelf = ShapedRecipe(
+            Recipe.CommonInfo(true),
+            CraftingRecipe.CraftingBookInfo(CraftingBookCategory.BUILDING, ""),
+            ShapedRecipePattern.of(mapOf('P' to Ingredient.of(Items.OAK_PLANKS), 'B' to Ingredient.of(Items.BOOK)), "PPP", "BBB", "PPP"),
+            ItemStackTemplate(Items.BOOKSHELF),
+        )
         val grinding = MachineRecipe(Ingredient.of(Items.COAL), ItemStackTemplate(Items.CHARCOAL)).listed()
         val sent = MachineCatalogPayload(
             stations = listOf(StationCatalog(Station.GRINDER, listOf(grinding))),
             drying = listOf(grinding),
             compounding = listOf(compounding),
-            crafting = listOf(ShownCrafting("writable_book_from_ink_bottle".location(), bookAndQuill)),
+            crafting = listOf(
+                ShownCrafting("writable_book_from_ink_bottle".location(), Either.left(bookAndQuill)),
+                ShownCrafting("archive".location(), Either.right(bookshelf)),
+            ),
         )
 
         val buffer = RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY))
@@ -56,9 +68,10 @@ class MachineCatalogCheck : FunSpec({
         check(heard.stations == sent.stations) { "the stations' recipes changed in transit" }
         check(heard.drying == sent.drying) { "the drying rack's recipes changed in transit" }
         check(heard.compounding == sent.compounding) { "the compounder's recipes changed in transit" }
-        val crafted = heard.crafting.single()
-        check(crafted.id == sent.crafting.single().id) { "a crafting recipe arrived under ${crafted.id}" }
-        check(crafted.recipe.display() == bookAndQuill.display()) { "a crafting recipe arrived as something else" }
+        check(heard.crafting.map { it.id } == sent.crafting.map { it.id }) { "the crafting recipes arrived under other ids" }
+        val (shapeless, shaped) = heard.crafting
+        check(shapeless.recipe.display() == bookAndQuill.display()) { "a shapeless recipe arrived as something else" }
+        check(shaped.recipe.display() == bookshelf.display()) { "a shaped recipe arrived as something else" }
         check(buffer.readableBytes() == 0) { "${buffer.readableBytes()} bytes were left unread" }
     }
 }) {
