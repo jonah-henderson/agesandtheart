@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.preview.authoring.words.ui
 
+import co.voik.agesandtheart.age.aspect.Bars
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.words.Audience
 import co.voik.agesandtheart.age.words.Offer
+import co.voik.agesandtheart.age.words.Outcome
 import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Speech
 import co.voik.agesandtheart.preview.authoring.ui.Canvas
@@ -12,6 +15,7 @@ import co.voik.agesandtheart.preview.authoring.ui.Leaving
 import co.voik.agesandtheart.preview.authoring.ui.Line
 import co.voik.agesandtheart.preview.authoring.ui.Palette
 import co.voik.agesandtheart.preview.authoring.ui.Picker
+import co.voik.agesandtheart.preview.authoring.ui.Prompt
 import co.voik.agesandtheart.preview.authoring.ui.Questions
 import co.voik.agesandtheart.preview.authoring.ui.Reader
 import co.voik.agesandtheart.preview.authoring.ui.hints
@@ -19,7 +23,19 @@ import co.voik.agesandtheart.preview.authoring.words.Candidate
 import co.voik.agesandtheart.preview.authoring.words.Verdict
 import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import co.voik.agesandtheart.preview.authoring.words.WordFile
+import co.voik.agesandtheart.preview.authoring.words.Trying
 import co.voik.agesandtheart.preview.authoring.words.WordListings
+import co.voik.agesandtheart.preview.authoring.words.changingAcceptance
+import co.voik.agesandtheart.preview.authoring.words.changingEffects
+import co.voik.agesandtheart.preview.authoring.words.changingMeans
+import co.voik.agesandtheart.preview.authoring.words.changingReading
+import co.voik.agesandtheart.preview.authoring.words.removedAt
+import co.voik.agesandtheart.preview.authoring.words.replacedAt
+import co.voik.agesandtheart.preview.authoring.words.withAcceptance
+import co.voik.agesandtheart.preview.authoring.words.withEffect
+import co.voik.agesandtheart.preview.authoring.words.withEntryValue
+import co.voik.agesandtheart.preview.authoring.words.withoutAcceptance
+import co.voik.agesandtheart.preview.authoring.words.withoutEntry
 import co.voik.agesandtheart.preview.authoring.words.changingOffer
 import co.voik.agesandtheart.preview.authoring.words.changingSense
 import co.voik.agesandtheart.preview.authoring.words.withChance
@@ -33,8 +49,10 @@ import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.RawModeScope
 import com.github.ajalt.mordant.input.enterRawMode
+import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.mordant.terminal.Terminal
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.round
 
 /**
@@ -53,6 +71,9 @@ class WordEditor(
     private val sections = Sections(corpus)
     private val questions = Questions()
     private val asking = Asking(corpus, questions)
+    private val effects = EffectAsking(corpus, questions)
+    private val acceptances = AcceptanceAsking(corpus, questions, asking, effects)
+    private val trying = Trying(corpus)
     private val history = mutableListOf(opened)
 
     /** The word as it last stood on disk, so *unsaved* means changed since it was saved. */
@@ -176,6 +197,7 @@ class WordEditor(
         Section.WORD -> corpus.words.priceOf(candidate.word).toString()
         Section.LISTING -> if (WordListings.listingOf(WordListings.Listed.authored(candidate.name)).rarity == null) "" else Glyph.TICK
         Section.SENSES -> candidate.word.senses.size.toString()
+        Section.REVIEW -> ""
         Section.COMMENT -> if (candidate.comment.isEmpty()) "" else Glyph.TICK
         Section.SAVE, Section.SAVE_AND_LEAVE -> if (unsaved) Glyph.WARN else Glyph.TICK
         Section.DELETE -> ""
@@ -245,8 +267,8 @@ class WordEditor(
     private fun gettingAround(): Line = when {
         typing != null -> hints("esc" to "leave it alone")
         questions.isOpen -> questions.gettingAround()
-        !inside -> hints("↑↓" to "section", if (canLeave) "←" to "back" else "" to "", "^f" to "faults", "^z" to "undo", "^s" to "save")
-        else -> hints("↑↓" to "row", "pgup/pgdn" to "a page", "←" to "back", "^f" to "faults", "^z" to "undo", "^s" to "save")
+        !inside -> hints("↑↓" to "section", if (canLeave) "←" to "back" else "" to "", "^t" to "try a book", "^f" to "faults", "^z" to "undo", "^s" to "save")
+        else -> hints("↑↓" to "row", "pgup/pgdn" to "a page", "←" to "back", "^t" to "try a book", "^f" to "faults", "^z" to "undo", "^s" to "save")
     }
 
     // -- keys ----------------------------------------------------------------------------------------
@@ -263,6 +285,7 @@ class WordEditor(
             key.ctrl && key.key == "s" -> save()
             key.ctrl && key.key == "z" -> undo()
             key.ctrl && key.key == "f" -> questions.ask(faults())
+            key.ctrl && key.key == "t" -> askForABook()
             key.key == "ArrowUp" -> if (inside) move(-1) else turnTo(Section.entries[(section.ordinal - 1 + Section.entries.size) % Section.entries.size])
             key.key == "ArrowDown" -> if (inside) move(1) else turnTo(Section.entries[(section.ordinal + 1) % Section.entries.size])
             key.key == "ArrowRight" -> inside = true
@@ -273,8 +296,8 @@ class WordEditor(
             key.key == "Home" -> if (inside) moveTo(0)
             key.key == "End" -> if (inside) moveTo(rows().size - 1)
             !inside -> Unit
-            key.key == "=" -> stepAChance(here, Questions.A_STEP)
-            key.key == "-" -> stepAChance(here, -Questions.A_STEP)
+            key.key == "=" -> step(here, Questions.A_STEP)
+            key.key == "-" -> step(here, -Questions.A_STEP)
             key.key == "a" -> add(here)
             key.key == "d" -> remove(here)
         }
@@ -346,8 +369,14 @@ class WordEditor(
             Spot.InkQuality -> reink()
             is Spot.SenseHead -> askWhatTheSenseIs(spot.sense)
             is Spot.OfferAt -> askAboutTheOffer(spot.sense, spot.offer)
-            is Spot.ReadingEntry, is Spot.MeansEntry, is Spot.AcceptanceAt -> message = "effects and acceptances are edited in the next step of the rework"
+            is Spot.ReadingEntry -> changeAReadingEntry(spot)
+            is Spot.MeansEntry -> changeAMeaning(spot)
+            is Spot.AcceptanceAt -> askAboutTheAcceptance(spot.sense, spot.acceptance)
+            is Spot.AcceptanceEffect -> changeAnAcceptanceEffect(spot)
             is Spot.AddOffer -> addAnOffer(spot.sense)
+            is Spot.AddReading -> addAReading(spot.sense)
+            is Spot.AddAcceptance -> addAnAcceptance(spot.sense)
+            is Spot.AddMeaning -> addAMeaning(spot.sense)
             Spot.AddSense -> addASense()
             Spot.Comment -> openTheEditor()
             is Spot.Save -> {
@@ -362,6 +391,13 @@ class WordEditor(
         is Spot.SenseHead -> addAnOffer(here.sense)
         is Spot.OfferAt -> addAnOffer(here.sense)
         is Spot.AddOffer -> addAnOffer(here.sense)
+        is Spot.ReadingEntry -> addToAReading(here.sense, here.offer)
+        is Spot.AddReading -> addAReading(here.sense)
+        is Spot.AcceptanceAt -> addAnAcceptanceEffect(here.sense, here.acceptance)
+        is Spot.AcceptanceEffect -> addAnAcceptanceEffect(here.sense, here.acceptance)
+        is Spot.AddAcceptance -> addAnAcceptance(here.sense)
+        is Spot.MeansEntry -> addAMeaning(here.sense)
+        is Spot.AddMeaning -> addAMeaning(here.sense)
         Spot.AddSense -> addASense()
         else -> message = "nothing to add here"
     }
@@ -369,16 +405,53 @@ class WordEditor(
     private fun remove(here: Spot?) {
         when (here) {
             is Spot.SenseHead -> edit { it.changingWord { word -> word.withoutSense(here.sense) } }
-            is Spot.OfferAt -> edit { it.changingWord { word -> word.changingSense(here.sense) { sense -> sense.withoutOffer(here.offer) } } }
+            is Spot.OfferAt -> changeTheSense(here.sense) { it.withoutOffer(here.offer) }
+            is Spot.ReadingEntry -> changeTheSense(here.sense) { it.changingReading(here.offer) { reading -> reading.withoutEntry(here.effect, here.key) } }
+            is Spot.MeansEntry -> changeTheSense(here.sense) { it.changingMeans { means -> means.withoutEntry(here.effect, here.key) } }
+            is Spot.AcceptanceAt -> changeTheSense(here.sense) { it.withoutAcceptance(here.acceptance) }
+            is Spot.AcceptanceEffect -> changeTheSense(here.sense) { sense ->
+                sense.changingAcceptance(here.acceptance) { acceptance -> acceptance.changingEffects { made -> made.removedAt(here.effect) } }
+            }
             else -> message = "nothing here to remove"
         }
         moveTo(row())
     }
 
-    private fun stepAChance(here: Spot?, by: Double) {
-        val at = here as? Spot.OfferAt ?: return
-        changeTheOffer(at.sense, at.offer) { offer -> offer.withChance(round((offer.chance + by) * HUNDREDTHS) / HUNDREDTHS) }
+    /** One step of the number under the cursor: an offer's chance, or a lean's weight or a bar in an effect. */
+    private fun step(here: Spot?, by: Double) {
+        when (here) {
+            is Spot.OfferAt -> changeTheOffer(here.sense, here.offer) { offer -> offer.withChance(rounded(offer.chance + by)) }
+            is Spot.ReadingEntry -> {
+                val key = here.key ?: return
+                changeTheSense(here.sense) { it.changingReading(here.offer) { reading -> steppedEntry(reading, here.effect, key, by) } }
+            }
+            is Spot.MeansEntry -> {
+                val key = here.key ?: return
+                changeTheSense(here.sense) { it.changingMeans { means -> steppedEntry(means, here.effect, key, by) } }
+            }
+            else -> Unit
+        }
     }
+
+    /** [effects] with the weight or bar of [key] in the one at [at] moved one step; a bar keeps its sign, as at least or at most. */
+    private fun steppedEntry(effects: List<Effect>, at: Int, key: String, by: Double): List<Effect> {
+        val effect = effects.getOrNull(at) ?: return effects
+        val standing = when (effect) {
+            is Effect.Leans -> effect.weights[key]
+            is Effect.LeansEverywhere -> effect.weights[key]
+            is Effect.Restricts -> effect.bars[key]
+            else -> null
+        } ?: return effects
+        val stepped = if (effect is Effect.Restricts) {
+            val sign = if (Bars.isAtLeast(standing)) 1.0 else -1.0
+            sign * (abs(standing) + by).coerceIn(LOWEST_BAR, Bars.STRICT)
+        } else {
+            standing + by
+        }
+        return effects.withEntryValue(at, key, rounded(stepped))
+    }
+
+    private fun rounded(value: Double) = round(value * HUNDREDTHS) / HUNDREDTHS
 
     private fun changeTheOffer(sense: Int, offer: Int, change: (Offer) -> Offer) =
         edit { it.changingWord { word -> word.changingSense(sense) { held -> held.changingOffer(offer, change) } } }
@@ -449,10 +522,7 @@ class WordEditor(
 
     private fun askAboutTheOffer(sense: Int, at: Int) {
         val offer = candidate.word.senses.getOrNull(sense)?.offers?.getOrNull(at) ?: return
-        if (offer.isAReading) {
-            message = "a reading's effects are edited in the next step of the rework"
-            return
-        }
+        if (offer.isAReading) return askAboutTheReading(sense, at, offer)
         val concept = corpus.words.concepts[offer.concept]
         val options = listOfNotNull(
             Picker.Option(VALUE, "its value", Sections.valueSaid(offer.value).ifEmpty { "none: the concept is the whole of it" }).takeIf { concept != null },
@@ -479,6 +549,107 @@ class WordEditor(
                 ) { chance -> changeTheOffer(sense, at) { held -> held.withChanceFromWholeAge(chance) } }
             }
         })
+    }
+
+    // -- a reading, an own meaning, an acceptance ----------------------------------------------------
+
+    private fun addAReading(sense: Int) {
+        asking.aPart("A reading of which part?", standing = null, noneMeans = null) { part ->
+            part ?: return@aPart
+            effects.anEffect("What it means of the ${part.page}") { made ->
+                changeTheSense(sense) { it.withOffer(Offer.reading(part, made)) }
+                landOn(Spot.OfferAt(sense, candidate.word.senses[sense].offers.lastIndex))
+            }
+        }
+    }
+
+    private fun askAboutTheReading(sense: Int, at: Int, offer: Offer) {
+        val part = (offer.audience as? Audience.Part)?.aspect
+        val options = listOf(
+            Picker.Option(MORE, "another effect", "${offer.reading.size} so far"),
+            Picker.Option(FOR, "of which part", part?.page ?: "none"),
+            Picker.Option(CHANCE, "its chance said of a thing", Sections.percent(offer.chance)),
+            Picker.Option(FROM_THE_AGE, "its chance from the whole Age", offer.ownChanceFromWholeAge?.let(Sections::percent) ?: "as its chance"),
+        )
+        questions.ask(Picker("A reading of the ${part?.page ?: "world"}", options) { picked ->
+            when (picked.value) {
+                MORE -> addToAReading(sense, at)
+                FOR -> asking.aPart("Of which part?", part, noneMeans = null) { chosen ->
+                    chosen?.let { changeTheOffer(sense, at) { held -> held.copy(audience = Audience.Part(it)) } }
+                }
+                CHANCE -> asking.aChance("Its chance, said of a thing", offer.chance, "a share from 0 to 1", mayBeNothing = false) { chance ->
+                    changeTheOffer(sense, at) { held -> held.withChance(chance ?: Offer.CERTAIN) }
+                }
+                FROM_THE_AGE -> asking.aChance("Its chance where `age` hands it out", offer.ownChanceFromWholeAge, "a share from 0 to 1, or nothing to follow its chance", mayBeNothing = true) { chance ->
+                    changeTheOffer(sense, at) { held -> held.withChanceFromWholeAge(chance) }
+                }
+            }
+        })
+    }
+
+    private fun addToAReading(sense: Int, offer: Int) {
+        effects.anEffect("What else it means") { made ->
+            changeTheSense(sense) { it.changingReading(offer) { reading -> made.fold(reading) { held, effect -> held.withEffect(effect) } } }
+        }
+    }
+
+    private fun changeAReadingEntry(spot: Spot.ReadingEntry) {
+        val effect = candidate.word.senses.getOrNull(spot.sense)?.offers?.getOrNull(spot.offer)?.reading?.getOrNull(spot.effect) ?: return
+        effects.again(effect, spot.key, { changed ->
+            changeTheSense(spot.sense) { it.changingReading(spot.offer) { reading -> reading.replacedAt(spot.effect) { changed } } }
+        }, ::say)
+    }
+
+    private fun addAMeaning(sense: Int) {
+        effects.anEffect("What it means itself") { made ->
+            changeTheSense(sense) { it.changingMeans { means -> made.fold(means) { held, effect -> held.withEffect(effect) } } }
+        }
+    }
+
+    private fun changeAMeaning(spot: Spot.MeansEntry) {
+        val effect = candidate.word.senses.getOrNull(spot.sense)?.means?.getOrNull(spot.effect) ?: return
+        effects.again(effect, spot.key, { changed ->
+            changeTheSense(spot.sense) { it.changingMeans { means -> means.replacedAt(spot.effect) { changed } } }
+        }, ::say)
+    }
+
+    /** The part a sense speaks for, its kind's where it names none: where a bare parameter it sets lands. */
+    private fun partOf(sense: Int) = candidate.word.senses.getOrNull(sense)?.let(sections::withItsKind)?.speaksFor
+
+    private fun addAnAcceptance(sense: Int) {
+        acceptances.anAcceptance(partOf(sense)) { acceptance ->
+            changeTheSense(sense) { it.withAcceptance(acceptance) }
+            val at = candidate.word.senses[sense].accepts.indexOfFirst { it.concept == acceptance.concept }
+            landOn(Spot.AcceptanceAt(sense, at))
+        }
+    }
+
+    private fun askAboutTheAcceptance(sense: Int, at: Int) {
+        val acceptance = candidate.word.senses.getOrNull(sense)?.accepts?.getOrNull(at) ?: return
+        acceptances.about(acceptance, partOf(sense), { changed -> changeTheSense(sense) { it.changingAcceptance(at) { changed } } }, ::say)
+    }
+
+    private fun addAnAcceptanceEffect(sense: Int, at: Int) {
+        val acceptance = candidate.word.senses.getOrNull(sense)?.accepts?.getOrNull(at) ?: return
+        val concept = corpus.words.concepts[acceptance.concept] ?: return say("${acceptance.concept} is no concept")
+        effects.aTemplate(concept, partOf(sense)) { template ->
+            changeTheSense(sense) { it.changingAcceptance(at) { held -> held.changingEffects { made -> made + template } } }
+        }
+    }
+
+    private fun changeAnAcceptanceEffect(spot: Spot.AcceptanceEffect) {
+        val acceptance = candidate.word.senses.getOrNull(spot.sense)?.accepts?.getOrNull(spot.acceptance) ?: return
+        val template = (acceptance.outcome as? Outcome.Becomes)?.effects?.getOrNull(spot.effect) ?: return
+        val concept = corpus.words.concepts[acceptance.concept] ?: return say("${acceptance.concept} is no concept")
+        effects.againTemplate(template, concept, partOf(spot.sense), { changed ->
+            changeTheSense(spot.sense) { sense ->
+                sense.changingAcceptance(spot.acceptance) { held -> held.changingEffects { made -> made.replacedAt(spot.effect) { changed } } }
+            }
+        }, ::say)
+    }
+
+    private fun say(said: String) {
+        message = said
     }
 
     private fun audienceNote(offer: Offer): String = when (val audience = offer.audience) {
@@ -628,6 +799,34 @@ class WordEditor(
         }
     }
 
+    /** A book read with this word as it stands, in place of its saved self. */
+    private fun askForABook() {
+        questions.ask(
+            Prompt(
+                title = "Try a book",
+                hint = "words in order: '${candidate.name} sky age', or 'age ${candidate.name} underground'",
+                typed = "${candidate.name} age",
+                complaint = { typed -> if (typed.isBlank()) "type something" else null },
+                onDone = { typed -> questions.ask(tried(typed)) },
+            ),
+        )
+    }
+
+    private fun tried(typed: String): Reader {
+        val pages = typed.trim().split(Regex("\\s+"))
+        val tried = runCatching { trying.of(candidate, pages) }
+            .getOrElse { return Reader("'$typed'", listOf(Line("could not be read: ${it.message}", Palette.refused))) }
+        fun said(lines: List<String>, tone: TextStyle?) = lines.map { Line(it, tone) }
+        val flaws = tried.flaws.map { Line("${Glyph.WARN} ", Palette.warned) + Line(it, Palette.faint) }
+        return Reader(
+            "'$typed' at seed ${Trying.SEED}, ${tried.cost} ink",
+            said(tried.readout.ifEmpty { listOf("nothing held") }, Palette.value) + Line.BLANK +
+                said(tried.trace, Palette.faint) + Line.BLANK +
+                Line(tried.spelled, Palette.faint) + Line.BLANK +
+                flaws.ifEmpty { listOf(Line("coherent", Palette.settled)) },
+        )
+    }
+
     private fun faults(): Reader = Reader(
         "What is said of ${candidate.name}",
         findings.sortedBy { it.standing.ordinal }.map(::findingLine).ifEmpty { listOf(Line("nothing to answer for", Palette.settled)) },
@@ -648,6 +847,9 @@ class WordEditor(
         const val STRIP_LINES = 4
         const val CHROME_LINES = 5 + STRIP_LINES
         const val HUNDREDTHS = 100.0
+
+        /** The lowest a stepped bar sits; a bar of nothing asks for nothing. */
+        const val LOWEST_BAR = 0.05
         const val DEFAULT_EDITOR = "vi"
 
         const val SAVE_AND_LEAVE = "\u0000save"
@@ -669,5 +871,6 @@ class WordEditor(
         const val FOR = "for"
         const val CHANCE = "chance"
         const val FROM_THE_AGE = "from the Age"
+        const val MORE = "more"
     }
 }

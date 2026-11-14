@@ -60,4 +60,14 @@ class WordEditsCheck : FunSpec({
         val leaning = listOf(Effect.Leans(Aspect.BIOMES, mapOf("#frozen" to -1.0))).withEntryValue(0, "#frozen", 0.5)
         check(leaning == listOf(Effect.Leans(Aspect.BIOMES, mapOf("#frozen" to 0.5)))) { "the weight: $leaning" }
     }
+
+    test("a reading is its effects: changed it stays, emptied it goes, and an offer of a concept is never touched") {
+        val chamber = Effect.Admits(Aspect.FEATURES, setOf("agesandtheart:magma_chamber"))
+        val sense = Sense().withOffer(Offer(colour, Value.Text("red"))).withOffer(Offer.reading(Aspect.UNDERGROUND, listOf(chamber)))
+        val warm = Effect.Sets(ParameterKey("temperature"), "0.6")
+        val more = sense.changingReading(1) { it.withEffect(warm) }
+        check(more.offers[1].reading == listOf(chamber, warm)) { "added to the reading: ${more.offers[1]}" }
+        check(sense.changingReading(1) { it.withoutEntry(0, "agesandtheart:magma_chamber") }.offers.size == 1) { "an emptied reading stayed" }
+        check(sense.changingReading(0) { listOf(warm) } == sense) { "an offer of a concept was given a reading" }
+    }
 })

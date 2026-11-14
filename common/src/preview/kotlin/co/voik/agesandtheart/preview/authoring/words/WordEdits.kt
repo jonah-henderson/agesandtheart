@@ -43,6 +43,12 @@ fun Sense.changingMeans(change: (List<Effect>) -> List<Effect>): Sense = copy(me
 
 fun Offer.changingReading(change: (List<Effect>) -> List<Effect>): Offer = copy(reading = change(reading))
 
+/** The reading offered at [at] changed, and taken out where it is left meaning nothing: a reading is its effects. */
+fun Sense.changingReading(at: Int, change: (List<Effect>) -> List<Effect>): Sense {
+    val changed = offers.getOrNull(at)?.takeIf(Offer::isAReading)?.let { change(it.reading) } ?: return this
+    return if (changed.isEmpty()) withoutOffer(at) else changingOffer(at) { it.copy(reading = changed) }
+}
+
 fun Offer.withChance(chance: Double): Offer = copy(chance = chance.asAShare())
 
 /** Its chance from the whole Age, or null to follow its chance said of a thing. */

@@ -2,6 +2,8 @@ package co.voik.agesandtheart.preview.authoring.words.ui
 
 import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.reading.StructureWord
+import co.voik.agesandtheart.age.reading.WordsInTheWorld
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.words.Acceptance
 import co.voik.agesandtheart.age.words.Audience
@@ -31,6 +33,7 @@ enum class Section(
     WORD("word", ""),
     LISTING("listing", "kept away from the word's file: how often it is found, the ink it asks, what it is called"),
     SENSES("senses", "each a way it can be read: what it offers the words after it, what it takes, and what it means itself", startsGroup = true),
+    REVIEW("review", "what takes each offer among every word, and what it becomes there"),
     COMMENT("comment", "", startsGroup = true),
     SAVE("save", "", startsGroup = true),
     SAVE_AND_LEAVE("save & exit", ""),
@@ -72,10 +75,19 @@ sealed interface Spot {
 
     data class AcceptanceAt(val sense: Int, val acceptance: Int) : Spot
 
+    /** One effect an acceptance makes of what it takes. */
+    data class AcceptanceEffect(val sense: Int, val acceptance: Int, val effect: Int) : Spot
+
     /** One entry of what a sense means itself. */
     data class MeansEntry(val sense: Int, val effect: Int, val key: String?) : Spot
 
     data class AddOffer(val sense: Int) : Spot
+
+    data class AddReading(val sense: Int) : Spot
+
+    data class AddAcceptance(val sense: Int) : Spot
+
+    data class AddMeaning(val sense: Int) : Spot
 
     data object AddSense : Spot
 
@@ -86,13 +98,17 @@ sealed interface Spot {
     data object Delete : Spot
 }
 
-/** What each section shows for a word: read-only and pure, so nothing on screen is worked out twice. */
+/** What each section shows for a word: read-only, so nothing on screen is worked out twice. */
 class Sections(private val corpus: WordCorpus) {
+
+    /** The words in the world with the last candidate reviewed beside them, kept while it stands: a review sweeps every taker. */
+    private var reviewed: Pair<Candidate, WordsInTheWorld>? = null
 
     fun rowsOf(section: Section, candidate: Candidate): List<Row> = when (section) {
         Section.WORD -> wordRows(candidate)
         Section.LISTING -> listingRows(candidate)
         Section.SENSES -> senseRows(candidate)
+        Section.REVIEW -> reviewRows(candidate)
         Section.COMMENT -> commentRows(candidate)
         Section.SAVE -> listOf(Row(Spot.Save(andLeave = false), listOf(Ink("write the file", Palette.value))))
         Section.SAVE_AND_LEAVE -> listOf(Row(Spot.Save(andLeave = true), listOf(Ink("write the file and leave", Palette.value))))
@@ -106,8 +122,13 @@ class Sections(private val corpus: WordCorpus) {
         Spot.Speech, Spot.Rarity, Spot.InkQuality -> listOf("enter" to "choose one")
         is Spot.SenseHead -> listOf("enter" to "what it is", "a" to "an offer", "d" to "remove the sense")
         is Spot.OfferAt -> listOf("enter" to "change it", "- =" to "its chance", "d" to "remove it")
-        is Spot.ReadingEntry, is Spot.MeansEntry, is Spot.AcceptanceAt -> listOf("" to "edited in the next step of the rework")
+        is Spot.ReadingEntry, is Spot.MeansEntry -> listOf("enter" to "change it", "a" to "another effect", "- =" to "a weight", "d" to "remove it")
+        is Spot.AcceptanceAt -> listOf("enter" to "change it", "a" to "an effect it makes", "d" to "remove it")
+        is Spot.AcceptanceEffect -> listOf("enter" to "change it", "a" to "another effect", "d" to "remove it")
         is Spot.AddOffer -> listOf("enter" to "a new offer")
+        is Spot.AddReading -> listOf("enter" to "a new reading")
+        is Spot.AddAcceptance -> listOf("enter" to "a new acceptance")
+        is Spot.AddMeaning -> listOf("enter" to "a new meaning of its own")
         Spot.AddSense -> listOf("enter" to "a new sense")
         Spot.Comment -> listOf("enter" to "open \$EDITOR")
         is Spot.Save -> listOf("enter" to "write the file")
@@ -169,23 +190,32 @@ class Sections(private val corpus: WordCorpus) {
                     for ((key, shown) in entriesOf(effect)) add(Row(Spot.ReadingEntry(at, index, effectAt, key), listOf(Ink(INDENT + INDENT)) + shown))
                 }
             }
-            add(Row(Spot.AddOffer(at), listOf(Ink(INDENT), Ink("+ ", Palette.chosen), Ink("an offer", Palette.faint))))
-            if (sense.accepts.isNotEmpty()) {
-                add(heading("takes"))
-                for ((index, acceptance) in sense.accepts.withIndex()) {
-                    add(Row(Spot.AcceptanceAt(at, index), listOf(Ink(INDENT)) + acceptanceSaid(acceptance)))
+            add(adding(Spot.AddOffer(at), "an offer"))
+            add(adding(Spot.AddReading(at), "a reading", "what only this word means of one part, which no concept says"))
+            add(heading("takes"))
+            for ((index, acceptance) in sense.accepts.withIndex()) {
+                add(Row(Spot.AcceptanceAt(at, index), listOf(Ink(INDENT)) + acceptanceSaid(acceptance), ACCEPTANCE_NOTE))
+                val made = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty()
+                for ((effectAt, template) in made.withIndex()) {
+                    add(Row(Spot.AcceptanceEffect(at, index, effectAt), listOf(Ink(INDENT + INDENT), Ink(templateSaid(template), Palette.value))))
                 }
             }
-            if (sense.means.isNotEmpty()) {
-                add(heading("means"))
-                for ((index, effect) in sense.means.withIndex()) {
-                    for ((key, shown) in entriesOf(effect)) add(Row(Spot.MeansEntry(at, index, key), listOf(Ink(INDENT)) + shown))
-                }
+            for (inherited in sense.acceptances.drop(sense.accepts.size)) {
+                add(Row(Spot.Said, listOf(Ink(INDENT)) + acceptanceSaid(inherited) + Ink("  from its kind", Palette.faint)))
             }
+            add(adding(Spot.AddAcceptance(at), "an acceptance", "a concept this takes from the words before it, its own over its kind's"))
+            add(heading("means"))
+            for ((index, effect) in sense.means.withIndex()) {
+                for ((key, shown) in entriesOf(effect)) add(Row(Spot.MeansEntry(at, index, key), listOf(Ink(INDENT)) + shown))
+            }
+            add(adding(Spot.AddMeaning(at), "a meaning of its own", "what it means itself where it ends a phrase"))
             add(Row(Spot.Heading, emptyList()))
         }
         add(Row(Spot.AddSense, listOf(Ink("+ ", Palette.chosen), Ink("a sense", Palette.faint))))
     }
+
+    private fun adding(spot: Spot, what: String, note: String = "") =
+        Row(spot, listOf(Ink(INDENT), Ink("+ ", Palette.chosen), Ink(what, Palette.faint)), note)
 
     /** [sense] with its kind attached, as loading would attach it, so whether it is a thing and its part read true. */
     fun withItsKind(sense: Sense): Sense = sense.kind?.let(corpus.words.kinds::get)?.let(sense::withKind) ?: sense
@@ -246,17 +276,17 @@ class Sections(private val corpus: WordCorpus) {
             is ValueFilter.Clearing -> " only ${filter.bars.entries.joinToString(" ") { (tag, bar) -> "#$tag ${Bars.spell(bar)}" }}"
         }
         val outcome = when (val outcome = acceptance.outcome) {
-            is Outcome.Becomes -> outcome.effects.joinToString("; ") { templateSaid(it) }.ifEmpty { "nothing" }
-            Outcome.Folds -> "folds it into what it offers"
-            is Outcome.Renames -> "passes it on as ${outcome.concept.path}"
-            is Outcome.Scales -> "passes it on scaled by ${outcome.factor}"
-            Outcome.Drops -> "drops it"
+            is Outcome.Becomes -> if (outcome.effects.isEmpty()) "makes nothing" else "makes"
+            else -> AcceptanceAsking.outcomeSaid(outcome)
         }
+        val fromTheAge = if (acceptance.chanceFromWholeAge == Offer.CERTAIN) "" else "  ${percent(acceptance.chanceFromWholeAge)} from the whole Age"
+        val dangling = if (acceptance.canResolveDanglingOffers) "" else "  never a dangling page"
         return listOf(
             Ink(acceptance.concept.path.padEnd(CONCEPT_WIDTH), Palette.parameter),
             Ink(only, Palette.chosen),
             Ink(" → ", Palette.faint),
             Ink(outcome, Palette.value),
+            Ink(fromTheAge + dangling, Palette.faint),
         )
     }
 
@@ -264,6 +294,50 @@ class Sections(private val corpus: WordCorpus) {
         is EffectTemplate.Taking -> "${template.verb.key} ${template.target}" + if (template.values.isEmpty()) "" else " as a table"
         is EffectTemplate.Fixed -> entriesOf(template.effect).joinToString("; ") { (_, shown) -> shown.joinToString(" ") { it.text.trim() } }
         is EffectTemplate.When -> "${templateSaid(template.template)} when ${template.choice}"
+    }
+
+    // -- the review -----------------------------------------------------------------------------------
+
+    /** Each offer of each sense, and every sense among all the words that would take it, with what it would make. */
+    private fun reviewRows(candidate: Candidate): List<Row> = buildList {
+        val world = worldWith(candidate)
+        for ((at, sense) in candidate.word.senses.withIndex()) {
+            add(Row(Spot.Said, listOf(Ink("sense ${at + 1}", Palette.heading))))
+            if (sense.offers.isEmpty()) add(Row(Spot.Said, listOf(Ink("${INDENT}offers nothing", Palette.faint))))
+            for (offer in sense.offers) {
+                add(Row(Spot.Said, listOf(Ink(INDENT)) + offerSaid(offer)))
+                val takers = world.takenAs(offer).map(::takenSaid).distinct()
+                if (takers.isEmpty()) add(Row(Spot.Said, listOf(Ink(INDENT + INDENT), Ink("nothing takes it: it will always dangle", Palette.warned))))
+                for ((who, made) in takers) {
+                    add(Row(Spot.Said, listOf(Ink(INDENT + INDENT), Ink("$who ".padEnd(TAKER_WIDTH), Palette.parameter), Ink(made, Palette.value))))
+                }
+            }
+            add(Row(Spot.Heading, emptyList()))
+        }
+    }
+
+    private fun worldWith(candidate: Candidate): WordsInTheWorld {
+        reviewed?.takeIf { it.first == candidate }?.let { return it.second }
+        val world = WordsInTheWorld(corpus.with(listOf(candidate.word)), corpus.vocabulary, corpus.membership, corpus.tagsOnlyAServerGrants)
+        reviewed = candidate to world
+        return world
+    }
+
+    /** Who takes an offer — the part, and the kind where it is one of its own rather than the part's page — and what it makes. */
+    private fun takenSaid(taken: WordsInTheWorld.Taken): Pair<String, String> {
+        val sense = taken.by
+        val part = sense.speaksFor?.let { "the ${it.page}" }
+        val ownKind = sense.kind?.path?.takeIf { it != sense.speaksFor?.page }
+        val who = when {
+            sense.behaviour == StructureWord.Age.id -> "the Age"
+            else -> listOfNotNull(part ?: "a word of no part", ownKind?.let { "a $it" }).joinToString(", ")
+        }
+        val made = when (val outcome = taken.acceptance.outcome) {
+            is Outcome.Becomes -> taken.effects.flatMap(::entriesOf).joinToString("; ") { (_, shown) -> shown.joinToString(" ") { it.text.trim() } }
+                .ifEmpty { "makes nothing of this value" }
+            else -> AcceptanceAsking.outcomeSaid(outcome)
+        }
+        return who to made
     }
 
     private fun commentRows(candidate: Candidate): List<Row> =
@@ -280,6 +354,9 @@ class Sections(private val corpus: WordCorpus) {
         private const val VERB_WIDTH = 9
         private const val WHERE_WIDTH = 14
         private const val PERCENT = 100
+        private const val TAKER_WIDTH = 28
+        private const val ACCEPTANCE_NOTE = "a concept this takes from the words before it, which of its values, and what it makes of them\n" +
+            "    its own acceptance of a concept wins over its kind's"
 
         fun percent(share: Double) = "${(share * PERCENT).toInt()}%"
 
