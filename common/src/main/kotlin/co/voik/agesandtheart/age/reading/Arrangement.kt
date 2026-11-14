@@ -24,6 +24,16 @@ data class Term(
 ) {
     /** The page of the `and` group, where `and` joined several. */
     val joined: Int? get() = pages.first().takeIf { pages.size > 1 }
+
+    /**
+     * This term closing the phrase [passedOn] handed its pages to, taking what the structure words said of it where it
+     * says nothing of its own: `no zombie inhabitants` strikes the zombies, the head standing last.
+     */
+    fun saidAs(passedOn: Term): Term = copy(
+        polarity = if (polarity == Polarity.ASSERTED) passedOn.polarity else polarity,
+        sitedIn = sitedIn ?: passedOn.sitedIn,
+        everywhere = everywhere || passedOn.everywhere,
+    )
 }
 
 /** A row of pages arranged into terms by its structure words, before anything travels. */

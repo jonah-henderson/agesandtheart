@@ -8,7 +8,7 @@
   "accepts": [
     { "concept": "colour", "becomes": [ { "sets": "colour" } ] },
     { "concept": "size", "becomes": [ { "sets": "size" } ] },
-    { "concept": "block", "only": [ "#agesandtheart:makes_a_world" ], "becomes": [ { "sets": "foliage" } ] },
+    { "concept": "block", "only": [ "#agesandtheart:makes_a_world" ], "becomes": [ { "sets": "foliage" } ], "tags_only_when_offered_for_it": true },
     { "concept": "amount", "becomes": [ { "abundance": "$" } ] }
   ]
 }

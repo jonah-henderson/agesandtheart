@@ -56,6 +56,28 @@
         "#ordered": -0.6
       },
       "for": "structures"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#sheer": 0.5,
+        "#barren": 0.5,
+        "#ruined": 0.4,
+        "#ordered": -0.6
+      },
+      "for": "landmass"
+    },
+    {
+      "concept": "lean",
+      "value": {
+        "#eroded": 1.0,
+        "#sheer": 0.5,
+        "#barren": 0.5,
+        "#ruined": 0.4,
+        "#ordered": -0.6
+      },
+      "for": "underground"
     }
   ]
 }

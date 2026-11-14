@@ -14,10 +14,8 @@
       "chance_from_whole_age": 0.0,
       "means": [
         {
-          "admits": {
-            "phenomena": [
-              "meteors"
-            ]
+          "chooses": {
+            "phenomena": "meteors"
           }
         }
       ]

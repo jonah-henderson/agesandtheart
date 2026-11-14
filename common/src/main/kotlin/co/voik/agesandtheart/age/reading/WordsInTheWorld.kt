@@ -36,7 +36,7 @@ class WordsInTheWorld(
     membership: Membership,
     private val tagsOnlyAServerGrants: Set<String> = vocabulary.tagsOnlyAServerGrants,
 ) {
-    private val matching = Matching(membership)
+    private val matching = Matching(membership, words.concepts)
 
     private val knownTags: Set<String> by lazy { vocabulary.carriedTags + tagsOnlyAServerGrants }
 
@@ -92,7 +92,7 @@ class WordsInTheWorld(
 
     /** What [offer] becomes in each sense that could take it: every effect the acceptance makes, or none where it passes the offer on. */
     fun takenAs(offer: Offer): List<Taken> = sensesTaking(offer).map { (taker, acceptance) ->
-        val value = filled(offer)
+        val value = matching.filled(offer)
         val made = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(value, taker.speaksFor) }
         Taken(taker, acceptance, made)
     }
@@ -102,15 +102,10 @@ class WordsInTheWorld(
 
     /** What [offer]'s value becomes in every sense that could take it, through the acceptance's own taking effects. */
     private fun takenAsEffects(offer: Offer): List<Landable> = sensesTaking(offer).flatMap { (taker, acceptance) ->
-        val value = filled(offer)
+        val value = matching.filled(offer)
         val takenBy = taker.speaksFor?.page ?: "Age"
         takingTemplates(acceptance).mapNotNull { it.applied(value, taker.speaksFor) }
             .map { Landable(it, "its ${offer.concept.path} '${spelled(offer.value)}', as the $takenBy takes it") }
-    }
-
-    private fun filled(offer: Offer): Value {
-        val parts = offer.value as? Value.Parts ?: return offer.value
-        return words.concepts[offer.concept]?.filled(parts) ?: parts
     }
 
     /** The effects of [acceptance] that take the offer's value, a part's choice among them included. */

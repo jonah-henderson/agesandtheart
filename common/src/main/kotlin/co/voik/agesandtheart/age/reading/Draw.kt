@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.resolution.clashesAmong
 import co.voik.agesandtheart.age.resolution.flawsOf
 import co.voik.agesandtheart.age.words.CoreConcepts
 import co.voik.agesandtheart.age.words.JoinedPair
+import co.voik.agesandtheart.age.words.ValueType
 import co.voik.agesandtheart.age.words.Value
 import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.words.Words
@@ -118,10 +119,12 @@ private class Drawing(
 
     /**
      * What makes placements alternatives: one page, one part, one concept. Each reading stands alone, and so does each
-     * value of a concept a part holds several of — `volcanic`'s four features, a member each.
+     * value of a concept a part holds several of — `volcanic`'s four features, a member each — and each lean, since
+     * nudges add up: `rich features` leans toward its ores and toward all it leans toward everywhere.
      */
     private fun alternativesKey(placement: Placement): Any {
-        val holdsSeveral = words.concepts[placement.offer.concept]?.joined == JoinedPair.DIVIDE
+        val concept = words.concepts[placement.offer.concept]
+        val holdsSeveral = concept?.joined == JoinedPair.DIVIDE || concept?.values == ValueType.WEIGHTS
         return if (placement.offer.isAReading || holdsSeveral) placement else Triple(placement.from, placement.part, placement.offer.concept)
     }
 
@@ -187,16 +190,18 @@ private class Drawing(
             ?: phrase.placements
         val named = namedMembersOf(phrase)
         val own = if (onlyDescribes(phrase, named)) phrase.own.filterNot(::namesMembers) else phrase.own
-        val members = when {
-            named != null -> Members.Named(named)
-            part?.holds == Holds.POPULATION -> Members.Body(bodies.getOrDefault(part, 0).also { bodies[part] = it + 1 })
-            else -> Members.All
-        }
+        fun ofThePart(): Members =
+            if (part?.holds == Holds.POPULATION) Members.Body(bodies.getOrDefault(part, 0).also { bodies[part] = it + 1 }) else Members.All
+        val members = if (named != null) Members.Named(named) else ofThePart()
+        val namingPages = placements.filter { it.offer.concept == CoreConcepts.MEMBER }.map { it.from }.toSet()
+        val namesItselfToo = named != null && placements.any { it.from in namingPages && it.offer.concept != CoreConcepts.MEMBER }
         return Saying(
             head = page ?: phrase.head,
             word = takerWord ?: written[phrase.head],
             part = part,
             members = members,
+            membersOfTheNamers = if (namesItselfToo) ofThePart() else members,
+            namingPages = namingPages,
             own = own,
             placements = placements,
             polarity = phrase.polarity,
@@ -284,6 +289,13 @@ private class Drawing(
         val word: String,
         val part: Aspect?,
         val members: Members,
+        /**
+         * What a page naming members says besides is said of: the whole part, since only another page's description is
+         * of the members named — `beautiful biomes` chooses three biomes and leans every one, `large zombie inhabitants`
+         * makes the zombies large.
+         */
+        val membersOfTheNamers: Members,
+        val namingPages: Set<Int>,
         val own: List<Effect>,
         val placements: List<Placement>,
         val polarity: Polarity,
@@ -310,12 +322,23 @@ private class Drawing(
             val bringsABody = members is Members.Body
             val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)
                 else said(own, word, head, CERTAIN, joined)
-            val taken = landing.flatMap { placement -> said(placement.effects, written[placement.from], placement.from, placement.chance, placement.joined) }
+            val taken = landing.flatMap { placement ->
+                val saidOf = if (placement.from in namingPages) membersOfTheNamers else members
+                said(placement.effects, written[placement.from], placement.from, placement.chance, placement.joined, saidOf = saidOf)
+            }
             return ownLandings + taken.mapNotNull(::sitedInItsBiome)
         }
 
-        private fun said(effects: List<Effect>, by: String, page: Int, chance: Double, joinedBy: Int?, alwaysAtThePart: Boolean = false): List<Landing> {
-            val grouped = if (alwaysAtThePart && part != null) listOf(Place(part, members) to effects) else landingsOf(effects, part, members)
+        private fun said(
+            effects: List<Effect>,
+            by: String,
+            page: Int,
+            chance: Double,
+            joinedBy: Int?,
+            alwaysAtThePart: Boolean = false,
+            saidOf: Members = members,
+        ): List<Landing> {
+            val grouped = if (alwaysAtThePart && part != null) listOf(Place(part, saidOf) to effects) else landingsOf(effects, part, saidOf)
             return grouped.map { (place, here) ->
                 Landing(here, place, by, page, head, chance, joinedBy, sitedIn, everywhere, polarity)
             }

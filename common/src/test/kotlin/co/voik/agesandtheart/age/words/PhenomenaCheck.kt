@@ -48,9 +48,9 @@ class PhenomenaCheck : FunSpec({
     test("`no star_fissure` seals the Age; `windswept age` is the landform and now and then the wind still blowing") {
         check(landed("no star_fissure age").any { it.polarity == Polarity.EXCEPT && Effect.Chooses(Aspect.STRUCTURES, "agesandtheart:star_fissure") in it.effects })
         check(seeds.all { Effect.Chooses(Aspect.TERRAIN, "windswept") in effects("windswept age", it) }) { "windswept age lost its landform" }
-        val gales = seeds.count { seed -> effects("windswept age", seed).any { it is Effect.Admits && "gale" in it.members } }
+        val gales = seeds.count { seed -> Effect.Chooses(Aspect.PHENOMENA, "gale") in effects("windswept age", seed) }
         check(gales in 15..50) { "windswept age brought a gale at $gales seeds of ${seeds.count()}" }
-        check(seeds.none { seed -> effects("windswept landmass age", seed).any { it is Effect.Admits && it.aspect == Aspect.PHENOMENA } }) {
+        check(seeds.none { seed -> effects("windswept landmass age", seed).any { it is Effect.Chooses && it.aspect == Aspect.PHENOMENA } }) {
             "windswept landmass brought weather"
         }
     }

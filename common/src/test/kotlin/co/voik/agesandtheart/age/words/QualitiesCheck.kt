@@ -40,8 +40,8 @@ class QualitiesCheck : FunSpec({
 
     test("`fallen` fells trees and stones; `fallen stars` are meteors, and only said of the stars") {
         check(set("fallen trees age", Aspect.FEATURES, "fallen") == listOf("true")) { "fallen trees stood" }
-        check(Effect.Admits(Aspect.PHENOMENA, setOf("meteors")) in effects("fallen stars age")) { "fallen stars brought no meteors" }
-        check(Effect.Admits(Aspect.PHENOMENA, setOf("meteors")) !in effects("fallen age")) { "fallen age brought meteors" }
+        check(Effect.Chooses(Aspect.PHENOMENA, "meteors") in effects("fallen stars age")) { "fallen stars brought no meteors" }
+        check(Effect.Chooses(Aspect.PHENOMENA, "meteors") !in effects("fallen age")) { "fallen age brought meteors" }
     }
 
     test("`porous` is a way of wear: the land holed, `ancient porous` at a great amount, and of the whole Age only the rock") {
@@ -67,7 +67,7 @@ class QualitiesCheck : FunSpec({
     test("`charged`: thunder, the aurora and storms of the whole Age; a charged sky's aurora; a charged creeper, and only that") {
         val age = effects("charged age")
         check(set("charged age", Aspect.WEATHER, "thunder") == listOf("0.7..1.0")) { "charged age did not thunder: $age" }
-        check(Effect.Admits(Aspect.PHENOMENA, setOf("aurora")) in age && Effect.Admits(Aspect.PHENOMENA, setOf("tempest")) in age) { "charged age: $age" }
+        check(Effect.Chooses(Aspect.PHENOMENA, "aurora") in age && Effect.Chooses(Aspect.PHENOMENA, "tempest") in age) { "charged age: $age" }
         check(set("charged sky age", Aspect.AURORA, "frequency") == listOf("0.9..1")) { "a charged sky hung no aurora" }
         check(set("charged creeper age", Aspect.SPAWNS, "charged") == listOf("true")) { "a charged creeper was not charged: ${effects("charged creeper age")}" }
         check(set("charged age", Aspect.SPAWNS, "charged").isEmpty()) { "charged age charged the creepers" }

@@ -50,7 +50,7 @@ class ThingsCheck : FunSpec({
     }
 
     test("a single tree is said of what holds it, never standing alone: `birch trees`, `birch age`, and `age birch` dangling") {
-        check(Effect.Admits(Aspect.FEATURES, setOf("minecraft:birch_checked")) in effects("birch age")) { "birch age: ${effects("birch age")}" }
+        check(Effect.Chooses(Aspect.FEATURES, "minecraft:birch_checked") in effects("birch age")) { "birch age: ${effects("birch age")}" }
         check(drawn("age birch").dangling.any { it.written == "birch" }) { "a birch stood alone" }
         check(drawn("age spruce").dangling.any { it.written == "spruce" }) { "a derived spruce stood alone" }
         check(Effect.Chooses(Aspect.FEATURES, "minecraft:spruce") in effects("spruce trees age")) { "spruce trees: ${effects("spruce trees age")}" }

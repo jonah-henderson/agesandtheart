@@ -30,7 +30,7 @@ class LandformsCheck : FunSpec({
     fun set(row: String, part: Aspect, parameter: String, seed: Long = 0L): List<String> = effects(row, seed)
         .mapNotNull(ShippedWords::turned).filter { (key, _) -> key == ParameterKey(parameter, part) }.map { (_, value) -> value }
 
-    val craters = Effect.Admits(Aspect.FEATURES, setOf("agesandtheart:craters"))
+    val craters = Effect.Chooses(Aspect.FEATURES, "agesandtheart:craters")
 
     test("what we ship loads and fits") {
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }
@@ -48,7 +48,7 @@ class LandformsCheck : FunSpec({
 
     test("`cratered` is the landform said of the land, the craters said of the features, and of the Age both, the craters half the time") {
         check(Effect.Chooses(Aspect.TERRAIN, "cratered") in effects("cratered landmass age") && craters !in effects("cratered landmass age"))
-        check(craters in effects("cratered features age") && effects("cratered features age").none { it is Effect.Chooses }) {
+        check(craters in effects("cratered features age") && Effect.Chooses(Aspect.TERRAIN, "cratered") !in effects("cratered features age")) {
             "cratered features: ${effects("cratered features age")}"
         }
         val withCraters = seeds.count { craters in effects("cratered age", it) }

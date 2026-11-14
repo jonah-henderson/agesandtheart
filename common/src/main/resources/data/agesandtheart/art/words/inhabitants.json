@@ -114,7 +114,7 @@
       "concept": "member",
       "becomes": [
         {
-          "admits": "inhabitants"
+          "chooses": "inhabitants"
         }
       ]
     },

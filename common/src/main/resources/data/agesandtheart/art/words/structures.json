@@ -88,7 +88,7 @@
       "concept": "member",
       "becomes": [
         {
-          "admits": "structures"
+          "chooses": "structures"
         }
       ]
     },

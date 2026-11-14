@@ -43,6 +43,11 @@ class AcceptanceAsking(
                 if (acceptance.canResolveDanglingOffers) "never takes a dangling page" else "may take a dangling page",
                 if (acceptance.canResolveDanglingOffers) "a page nothing took may be drawn onto this" else "no page nothing took is drawn onto this",
             ),
+            Picker.Option(
+                TAGS_FOR_IT,
+                if (acceptance.tagsOnlyWhenOfferedForIt) "takes a #tag from anyone" else "takes a #tag only when offered for it",
+                if (acceptance.tagsOnlyWhenOfferedForIt) "a #tag only from an offer for its part" else "a #tag from any offer",
+            ),
         )
         questions.ask(Picker("The acceptance of ${acceptance.concept.path}", options) { picked ->
             when (picked.value) {
@@ -56,6 +61,7 @@ class AcceptanceAsking(
                     mayBeNothing = false,
                 ) { chance -> then(acceptance.withChanceFromWholeAge(chance ?: Offer.CERTAIN)) }
                 DANGLING -> then(acceptance.copy(canResolveDanglingOffers = !acceptance.canResolveDanglingOffers))
+                TAGS_FOR_IT -> then(acceptance.copy(tagsOnlyWhenOfferedForIt = !acceptance.tagsOnlyWhenOfferedForIt))
             }
         })
     }
@@ -148,6 +154,7 @@ class AcceptanceAsking(
         private const val OUTCOME = "outcome"
         private const val FROM_THE_AGE = "from the Age"
         private const val DANGLING = "dangling"
+        private const val TAGS_FOR_IT = "tags for it"
         private const val BECOMES = "becomes"
         private const val FOLDS = "folds"
         private const val RENAMES = "renames"

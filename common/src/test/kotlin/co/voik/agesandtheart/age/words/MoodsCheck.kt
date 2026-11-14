@@ -66,9 +66,9 @@ class MoodsCheck : FunSpec({
         }
     }
 
-    test("a biome named outright is taken though the curated pool leaves it out: `beautiful biomes` admits the sunflower plains") {
-        val admitted = drawn("beautiful biomes age").landed.flatMap { it.effects }.filterIsInstance<Effect.Admits>().flatMap { it.members }
-        check("minecraft:sunflower_plains" in admitted && "minecraft:jungle" in admitted) { "beautiful biomes admitted $admitted" }
+    test("a biome named outright is taken though the curated pool leaves it out: `beautiful biomes` chooses the sunflower plains") {
+        val chosen = drawn("beautiful biomes age").landed.flatMap { it.effects }.filterIsInstance<Effect.Chooses>().map { it.member }
+        check("minecraft:sunflower_plains" in chosen && "minecraft:jungle" in chosen) { "beautiful biomes chose $chosen" }
     }
 
     test("`polar` sets the sun on a polar path a quarter of the time from the whole Age, and always said of the sun") {

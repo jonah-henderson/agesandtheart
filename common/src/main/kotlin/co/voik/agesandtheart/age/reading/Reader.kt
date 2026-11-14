@@ -48,7 +48,7 @@ private class Pass(
     private val membership: Membership,
     private val seed: Long,
 ) {
-    private val matching = Matching(membership)
+    private val matching = Matching(membership, words.concepts)
     private val fates = arrangement.fates.toMutableMap()
     private val senses = mutableMapOf<Int, Int>()
     private val phrases = mutableListOf<Phrase>()
@@ -58,8 +58,15 @@ private class Pass(
 
     fun read(): Reading {
         val terms = arrangement.terms
+        var passedOnFrom: Term? = null
         for ((index, term) in terms.withIndex()) {
-            if (term.isAge) handOut(term.pages.single()) else readTerm(term, terms.getOrNull(index + 1))
+            val reading = passedOnFrom?.let(term::saidAs) ?: term
+            passedOnFrom = if (term.isAge) {
+                handOut(term.pages.single())
+                null
+            } else {
+                reading.takeIf { readTerm(reading, terms.getOrNull(index + 1)) }
+            }
         }
         return Reading(
             pages = pages.indices.map { at -> PageRead(at, pages[at], senses[at], fateOf(at)) },
@@ -75,21 +82,26 @@ private class Pass(
         else -> fate
     }
 
-    private fun readTerm(term: Term, next: Term?) {
+    /** Reads [term], and says whether its things passed their pages on to [next], which then closes the phrase. */
+    private fun readTerm(term: Term, next: Term?): Boolean {
         val chosen = term.pages.map { at -> at to senseFor(at, next) }
         val (things, describing) = chosen.partition { (_, sense) -> sense.endsAPhrase }
-        if (things.isEmpty()) return describe(term, describing)
+        if (things.isEmpty()) {
+            describe(term, describing)
+            return false
+        }
         val offered = things.flatMap { (at, sense) -> offersOf(at, sense, term) }
         val passesOn = next != null && !next.isAge && offered.any { takenByAnyOf(next, it.offer) }
         if (passesOn && next != null) {
             things.forEach { (at, _) -> fates[at] = Fate.PassedOn(next.pages.first()) }
             travelling = travelling + offered
-            return
+            return true
         }
         val reaching = travelling
         val goingOn = mutableListOf<Travelling>()
         for ((at, sense) in things) goingOn += close(at, sense, term, reaching)
         travelling = goingOn.distinct()
+        return false
     }
 
     /** Describing words, each taking a copy of what reached them; what none took travels on beside their offers. */
@@ -173,16 +185,10 @@ private class Pass(
     }
 
     private fun placementOf(at: Int, part: Aspect?, acceptance: Acceptance, reaching: Travelling): Placement {
-        val offer = reaching.offer.copy(value = filled(reaching.offer))
+        val offer = reaching.offer.copy(value = matching.filled(reaching.offer))
         val effects = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(offer.value, part) }
         val alongWithIt = reaching.carrying.map(Travelling::page) + reaching.reshapedBy
         return Placement(reaching.page, offer, at, part, effects, alongWithIt, reaching.joined)
-    }
-
-    /** [offer]'s value with every part it does not give at its concept's default, where its concept is made of parts. */
-    private fun filled(offer: Offer): Value {
-        val parts = offer.value as? Value.Parts ?: return offer.value
-        return words.concepts[offer.concept]?.filled(parts) ?: parts
     }
 
     /**

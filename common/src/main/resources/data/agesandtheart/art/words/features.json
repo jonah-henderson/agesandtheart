@@ -70,7 +70,8 @@
         }
       ],
       "chance_from_whole_age": 0.0,
-      "can_resolve_dangling_offers": false
+      "can_resolve_dangling_offers": false,
+      "tags_only_when_offered_for_it": true
     },
     {
       "concept": "incongruous",
@@ -127,7 +128,7 @@
       "concept": "member",
       "becomes": [
         {
-          "admits": "features"
+          "chooses": "features"
         }
       ]
     },

@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.age.reading
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.words.Acceptance
 import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Sense
+import co.voik.agesandtheart.age.words.Value
 import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.words.Words
 
@@ -13,7 +15,7 @@ import co.voik.agesandtheart.age.words.Words
  */
 class Usage(val words: Words, membership: Membership) {
 
-    private val matching = Matching(membership)
+    private val matching = Matching(membership, words.concepts)
 
     /** A sense that ends a phrase and takes something, with the word it belongs to. */
     data class Taker(val word: Word, val sense: Sense) {
@@ -28,16 +30,20 @@ class Usage(val words: Words, membership: Membership) {
     }
 
     /** Whether [sense] would take [offer] where the two met: the concept, an audience admitting it, and a value it takes. */
-    fun takes(sense: Sense, offer: Offer): Boolean {
-        val acceptance = matching.acceptanceFor(sense, offer) ?: return false
-        return matching.valueFits(sense, acceptance, offer)
-    }
+    fun takes(sense: Sense, offer: Offer): Boolean = acceptanceTaking(sense, offer) != null
+
+    /** How [sense] would take [offer] where the two met, or null where it would not; [isTheAge] where the sense is the Age's. */
+    fun acceptanceTaking(sense: Sense, offer: Offer, isTheAge: Boolean = false): Acceptance? =
+        matching.acceptanceFor(sense, offer, isTheAge)?.takeIf { matching.valueFits(sense, it, offer) }
 
     /** Whether some sense of [taker] would take something [word] offers. */
     fun takes(taker: Word, word: Word): Boolean = taker.senses.any { sense -> takesAnythingOf(sense, word) }
 
     /** Every other word's thing that would take something [word] offers. */
     fun takersOf(word: Word): List<Taker> = takers.filter { it.word.id != word.id && takesAnythingOf(it.sense, word) }
+
+    /** [offer]'s value as a taker is handed it, a concept of parts filled out with its defaults. */
+    fun filled(offer: Offer): Value = matching.filled(offer)
 
     /** The parts of the world [word] reaches through the things that take it: none for a word only `age` hands out. */
     fun partsReached(word: Word): Set<Aspect> = takersOf(word).mapNotNull(Taker::part).toSet()
