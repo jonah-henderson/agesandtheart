@@ -1,0 +1,3 @@
+[bugfix] buttons on open linking book screens should now work
+[bugfix] crossbows are now placed at a better angle in toolboxes
+[bugfix] found some more actual translations for certain d'ni words
