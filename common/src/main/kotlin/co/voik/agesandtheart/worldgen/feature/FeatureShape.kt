@@ -245,6 +245,10 @@ object FeatureShape {
 
     private const val NO_BUDS = 0.0
 
+    /** [placed] laid through [LaidWhole], so the beds, tall flowers and doors it is made of stand whole. */
+    fun laidWhole(placed: Holder<PlacedFeature>): Holder<PlacedFeature> =
+        Holder.direct(PlacedFeature(Holder.direct(LaidWhole(placed.value().feature())), placed.value().placement()))
+
     /** [blocks] as one provider, drawn evenly where there are several. */
     private fun mingled(blocks: List<Block>): Holder<BlockStateProvider> {
         val states = blocks.map { it.defaultBlockState() }

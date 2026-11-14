@@ -6,6 +6,7 @@ import co.voik.ephemeris.Rgba
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.DeepLake
 import co.voik.agesandtheart.worldgen.feature.FallenTrees
+import co.voik.agesandtheart.worldgen.feature.LaidWhole
 import co.voik.agesandtheart.worldgen.feature.TreeKinds
 import co.voik.agesandtheart.worldgen.field.Toppled
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
@@ -581,7 +582,9 @@ object Features {
                 val kept = claim.territory?.let { FeatureShape.keptToTerritory(confined, it) } ?: confined
                 val knockedOver = if (claim.toppled) FeatureShape.toppled(kept) else kept
                 val felled = shape.felled(knockedOver, named = found)
-                FeatureShape.perforated(FeatureDensity.applied(felled, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
+                val finished = FeatureShape.perforated(FeatureDensity.applied(felled, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
+                // Last, since everything before it knows a feature by its type.
+                if (substances.any(LaidWhole::comesInTwoHalves)) FeatureShape.laidWhole(finished) else finished
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
             clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }
@@ -672,7 +675,7 @@ object Features {
         laid: Holder<VanillaPlacedFeature>,
         clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
     ): Holder<VanillaPlacedFeature>? {
-        val pit = (FeatureShape.underItsHoles(laid).value().feature().value() as? Formation)?.takeIf { it.sunk } ?: return null
+        val pit = (LaidWhole.within(FeatureShape.underItsHoles(laid).value().feature().value()) as? Formation)?.takeIf { it.sunk } ?: return null
         return clearings.computeIfAbsent(laid) {
             Holder.direct(VanillaPlacedFeature(Holder.direct(PitClearing(pit)), laid.value().placement()))
         }
