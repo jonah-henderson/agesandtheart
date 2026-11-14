@@ -272,7 +272,9 @@ private class Drawing(
                 else -> null
             }
         } + phrase.own.filterIsInstance<Effect.Admits>().filter { it.aspect == phrase.part }.flatMap { it.members }
-        return (taken + own).toSet().ifEmpty { null } ?: membersOfItsGroup(phrase)
+        // A struck or kept group is its bar, over every creature the Age could hold: `no monsters` strikes the warden too.
+        val describesItsGroup = phrase.polarity == Polarity.ASSERTED
+        return (taken + own).toSet().ifEmpty { null } ?: membersOfItsGroup(phrase)?.takeIf { describesItsGroup }
     }
 
     /**

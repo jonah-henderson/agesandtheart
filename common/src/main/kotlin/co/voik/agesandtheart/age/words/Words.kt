@@ -21,7 +21,7 @@ data class Words(
     val byName: Map<String, Word>,
     /** What could not be read or did not fit, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<Problem>,
-    /** The ids of the words every block, biome, feature, structure and creature was given, rather than a pack wrote. */
+    /** The ids of the words every block, biome, feature, structure and creature was given, and no pack wrote too. */
     val derived: Set<Identifier> = emptySet(),
 ) {
     fun word(name: String): Word? = byName[name]
@@ -93,7 +93,9 @@ data class Words(
                 byName[word.name] = joined
                 byName[word.id.toString()] = if (existing?.id == word.id) joined else byName[word.id.toString()]?.withSensesOf(word) ?: word
             }
-            return Words(conceptsById, kindsById, byName, problems, derived.map(Word::id).toSet())
+            // Our placed feature `agesandtheart:veins` joins our word of that id, which is still ours.
+            val derivedAlone = derived.map(Word::id).toSet() - words.map(Word::id).toSet()
+            return Words(conceptsById, kindsById, byName, problems, derivedAlone)
         }
 
         /**

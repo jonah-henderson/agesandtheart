@@ -331,19 +331,21 @@ object AgeCommand {
     private fun reportReading(report: Report, written: Written) {
         val readout = Trace.of(written.reading, written.drawn).joinToString("\n")
         report.fact("readout", readout) { readout.lines().joinToString("\n") { "  $it" } }
+        val handedOutBy = written.reading.handedOut.map { it.at }.toSet()
         for (landing in written.drawn.landed) {
             val fields = mapOf(
                 "word" to landing.word,
                 "page" to landing.page,
                 "reaches" to listOf(landing.aspect().page),
+                "aimed" to (landing.saidOf !in handedOutBy),
                 "polarity" to landing.polarity.name.lowercase(),
                 "joined" to (landing.joined != null),
                 "chance" to landing.chance,
             )
             report.entry("said", fields) { "    ${landing.word} → ${landing.aspect().page}" }
         }
+        report.only("dangling", written.drawn.dangling.map { it.written })
         val drawn = written.drawn.dangling.filter { it.drawnOnto != null }
-        report.only("dangling", drawn.map { it.written })
         if (drawn.isNotEmpty()) {
             report.styled {
                 Component.literal("  placed nothing, so drawn onto another word: ")
@@ -378,8 +380,8 @@ object AgeCommand {
         if (vocabulary.allWords.isEmpty()) {
             return report.fail("The Art knows no words at all — is the mod's data pack loaded?")
         }
-        // Authored words are listed; derived ones are counted, since there is one per block in the pack.
-        val authored = vocabulary.authoredWords.filterNot(vocabulary::isAStructureWord)
+        // Our own words are listed, those derived from our blocks among them; other packs' are counted, one per block.
+        val authored = vocabulary.allWords.filter { it.id.namespace == Constants.MOD_ID }.filterNot(vocabulary::isAStructureWord)
         report.fact("words", vocabulary.allWords.size) { "The Art knows ${vocabulary.allWords.size} words." }
         report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {

@@ -17,8 +17,8 @@ import io.kotest.core.spec.style.FunSpec
  * sentence is really asserting on the wording.
  *
  * **Every sentence here carries `age`, and it has to.** The nucleus is mandatory and refused outright
- * without it (design §2), and a page with nowhere to land is moved to the Age. A sentence here that stops
- * reading as laid does not fail loudly; it quietly starts testing the move.
+ * without it (design §2), and a page with nowhere to land dangles. A sentence here that stops reading as laid
+ * does not fail loudly; it quietly starts testing the dangling draw.
  */
 @Tags(NEEDS_SERVER)
 class WritingCheck : FunSpec({
@@ -34,8 +34,8 @@ class WritingCheck : FunSpec({
         check(landed["basalt"] == setOf("landmass" to true) && landed["lava"] == setOf("sea" to true)) {
             "the clauses blurred: $landed\n${written.get("readout").asString}"
         }
-        check(written.getAsJsonArray("moved").isEmpty) {
-            "a page was moved to the Age: ${written.getAsJsonArray("moved")}"
+        check(written.getAsJsonArray("dangling").isEmpty) {
+            "a page dangled: ${written.getAsJsonArray("dangling")}"
         }
     }
 
@@ -65,13 +65,13 @@ class WritingCheck : FunSpec({
         check("where_it_grows" in described) {
             "'teeming trees' asked for trees to be *added* everywhere:\n$described"
         }
-        val named = server.run("age write namedtree 7 age acacia")
+        val named = server.run("age write namedtree 7 age acacia trees")
         check("minecraft:acacia[where_it_grows,introduced_if_absent" in named) {
             "naming a feature put it where it was not:\n$named"
         }
-        val widened = server.run("age write widenedtree 7 age acacia everywhere")
+        val widened = server.run("age write widenedtree 7 age acacia trees everywhere")
         check("minecraft:acacia" in widened && "minecraft:acacia[where_it_grows" !in widened) {
-            "'acacia everywhere' did not put it where it was not:\n$widened"
+            "'acacia trees everywhere' did not put it where it was not:\n$widened"
         }
     }
 
@@ -139,7 +139,7 @@ class WritingCheck : FunSpec({
     test("the pinned parameters can be written") {
         val parameters = listOf(
             Triple("blotchy", "age patchy basalt and deepslate landmass", "mingling=0.1..0.7"),
-            Triple("bareground", "age minecraft:air surface", "surface.material=minecraft:air"),
+            Triple("bareground", "age bare surface", "surface.bare=true"),
         )
         for ((name, sentence, expected) in parameters) {
             server.ask("write", "$name $sentence")

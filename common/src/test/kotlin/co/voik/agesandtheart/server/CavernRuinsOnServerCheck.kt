@@ -18,8 +18,8 @@ class CavernRuinsOnServerCheck : FunSpec({
 
     fun write(name: String, seed: Long, sentence: String): JsonObject {
         val written = server.ask("write", "$name $seed $sentence")
-        check(written.getAsJsonArray("moved").isEmpty) {
-            "'$sentence' did not read as laid, and moved ${written.getAsJsonArray("moved")} to the Age"
+        check(written.getAsJsonArray("dangling").isEmpty) {
+            "'$sentence' did not read as laid, and left ${written.getAsJsonArray("dangling")} dangling"
         }
         return written
     }
@@ -27,7 +27,7 @@ class CavernRuinsOnServerCheck : FunSpec({
     fun hasACity(name: String, sentence: String) = write(name, 7, sentence).get("cavernRuins").asBoolean
 
     test("the reports' words, written out, make an Age with a D'ni city") {
-        val sentence = "age subterranean large chambered algae"
+        val sentence = "subterranean landmass large chambered underground algae age"
         val taught = SurveyReport.entries.flatMap { it.teaches }.map { it.path }
         val untaught = taught.filterNot { it in sentence.split(' ') }
         check(untaught.isEmpty()) { "the sentence leaves out words a report teaches: $untaught" }
@@ -35,7 +35,7 @@ class CavernRuinsOnServerCheck : FunSpec({
     }
 
     test("an unsized chamber has no city") {
-        check(!hasACity("ruinsunsized", "age subterranean chambered algae")) {
+        check(!hasACity("ruinsunsized", "subterranean landmass chambered underground algae age")) {
             "an unsized chamber qualified"
         }
     }

@@ -143,7 +143,11 @@ private class Pass(
         val taken = gathered(sense, reaching).flatMap { take(at, sense, it) }
         // A negated or `only` thing is struck or kept as described, and only a description of member kinds can say which.
         val isNarrowed = term.polarity != Polarity.ASSERTED
-        val placements = if (isNarrowed) taken.filter { it.offer.concept in CoreConcepts.NARROWING } else taken
+        // `only teeming villages` keeps its villages teeming: an amount stacks on what `only` keeps, never on what `no` strikes.
+        fun isAnAmountKept(placement: Placement) =
+            term.polarity == Polarity.ONLY && placement.effects.isNotEmpty() && placement.effects.all { it is Effect.Abundance }
+        fun narrows(placement: Placement) = placement.offer.concept in CoreConcepts.NARROWING || isAnAmountKept(placement)
+        val placements = if (isNarrowed) taken.filter(::narrows) else taken
         placed += placements.flatMap { listOf(it.from) + it.carrying }
         val tookFrom = placements.flatMap { listOf(it.from) + it.carrying }.toSet()
         val tookAMember = placements.any { it.offer.concept == CoreConcepts.MEMBER }

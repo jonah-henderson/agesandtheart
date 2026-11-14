@@ -52,7 +52,7 @@ class StructureMaterialOnServerCheck : FunSpec({
     test("a village whose cats stand outside the chunk being decorated still generates") {
         // This seed's village has a cat in a piece chunks from its start, which the count of its blocks once
         // spawned and so deadlocked the generator: nothing ever came back.
-        server.run("age write bluevillages $CAT_SEED age blue villages structures")
+        server.run("age write bluevillages $CAT_SEED age blue_wool villages structures")
         generatedAround("bluevillages", 0, 0)
         val (x, z) = located("bluevillages", "structure #minecraft:village")
         generatedAround("bluevillages", x, z)

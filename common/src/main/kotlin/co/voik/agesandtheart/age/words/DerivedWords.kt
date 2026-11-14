@@ -48,17 +48,27 @@ object DerivedWords {
     fun referentRegistriesOf(word: Word): Set<ResourceKey<out Registry<*>>> = word.senses.flatMap { sense ->
         val itself = Value.Text(word.id.toString())
         val ofItsKind = sense.kind?.let(REGISTRY_OF_KIND::get)
-        val isABlock = sense.offers.any { it.concept == CoreConcepts.BLOCK && it.value == itself }
-        val isAWood = sense.kind == null && sense.offers.any { it.concept == CoreConcepts.MEMBER && it.value == itself }
+        val isABlock = sense.offers.any { it.value == itself && (it.concept == CoreConcepts.BLOCK || it == asTheSea(word.id)) }
+        val isAWood = sense.kind == null && sense.offers.any { it.concept == CoreConcepts.MEMBER && it.value == itself && it.audience == Audience.Anyone }
         listOfNotNull(ofItsKind, Registries.BLOCK.takeIf { isABlock }, Registries.PLACED_FEATURE.takeIf { isAWood })
     }.toSet()
 
-    /** Every block, offering itself as a material, for whatever takes one to say where it may go. */
+    /**
+     * Every block, offering itself as a material, for whatever takes one to say where it may go; but for one [ONLY_A_SEA],
+     * which offers itself to the sea as what fills it and to nothing else: plasma, stable only in its sea.
+     */
     fun blocks(): List<Word> = BuiltInRegistries.BLOCK.listElements()
         .filter { holder -> !holder.`is`(WORDLESS_BLOCKS) }
-        .map { holder -> holder.key().identifier() }
-        .map { id -> Word(id, listOf(Sense(offers = listOf(Offer(CoreConcepts.BLOCK, Value.Text(id.toString()))))), Speech.MASS) }
+        .map { holder ->
+            val id = holder.key().identifier()
+            val offer = if (holder.`is`(ONLY_A_SEA)) asTheSea(id) else Offer(CoreConcepts.BLOCK, Value.Text(id.toString()))
+            Word(id, listOf(Sense(offers = listOf(offer))), Speech.MASS)
+        }
         .toList()
+
+    private fun asTheSea(id: Identifier) = Offer(CoreConcepts.MEMBER, Value.Text(id.toString()), audience = Audience.Part(Aspect.SEA))
+
+    private val ONLY_A_SEA: TagKey<Block> = TagKey.create(Registries.BLOCK, "only_a_sea".location())
 
     /** Every biome in [registries], which are datapack content and so want the server's. */
     fun biomes(registries: HolderLookup.Provider): List<Word> = thingsOf(registries, Registries.BIOME, Aspect.BIOMES, BIOME, Speech.NOUN)

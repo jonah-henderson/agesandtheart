@@ -73,9 +73,9 @@ class VocabularyOnServerCheck : FunSpec({
         check(unreadable.isEmpty()) {
             "the server's dynamic registries did not reach the corpus — unread: $unreadable"
         }
-        // And neither was moved: a word read but with nowhere to land would pass the check above too.
-        val moved = written.getAsJsonArray("moved").map { it.asString }
-        check(moved.isEmpty()) { "the book did not read as laid, and moved $moved to the Age" }
+        // And none dangled: a word read but with nowhere to land would pass the check above too.
+        val dangling = written.getAsJsonArray("dangling").map { it.asString }
+        check(dangling.isEmpty()) { "the book did not read as laid, and left $dangling dangling" }
     }
 
     /**

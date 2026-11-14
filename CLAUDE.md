@@ -23,9 +23,9 @@ something lands, delete the narrative of building it; a choice between genuinely
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
   what a word costs. **Built**, normative and current — it supersedes `the-art-design.md` §3 and §4. Its §3 is
   words as meanings and how a row of pages is read; `in <biome>` siting is built, its widening is not.
-- **`notes/the-word-rework.md`** — **settled and unbuilt**: words as offers, acceptances and terminals, replacing how
-  a word says what it means and how the reader reads a row (§3 of the world model). Read it before changing a word's
-  format, `Acceptance` or the `Reader`; what is built there now is what it replaces.
+- **`notes/the-word-rework.md`** — **built, and to be folded into the world model's §3 and `decisions.md`**: words
+  as offers, acceptances and terminals, and how the reader reads a row. Read it before changing a word's format,
+  `Acceptance` or the `Reader`.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, consequences, book editing, the economy.
   Normative for §1–§2 and §5–§9; what was its §3 and §4 is the world model above, and only §3's two disciplines
   and §4's found books, failure channels and pipeline remain. §5.0 is the instability tiers (the strange tier
@@ -512,17 +512,21 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
-- **`age/language/`** — **words, and how a book is read** (`notes/the-world-model.md` §3). A `Word` carries
-  **meanings**, each one idea of one or more `Effect`s with its chance to apply where aimed, laid bare, or
-  always; its price is read off them. `Acceptance` is derived, never written: an aspect's page takes what its
-  part of the world owns, a member word what its preset honours, a minting a substance, and blocks take
-  nothing. `Reader` reads a row of pages — a page is taken whole by the first word that accepts any of its
-  meanings, a page nothing takes lands what it asserts or is moved to `age`, and `Draw` decides, page by page
-  off the seed, which candidates land — into a `Reading`: each page's `Fate`, what could land and what did.
-  `Reading.readout` says it back page by page; `Prose.of` is what a book *reads* as, clauses stored on the book
-  and written into English by `ProseWriting` on the client. `DerivedWords` gives **every block and biome in the
-  pack a word of its own**, so the corpus is ~1100 offline and more on a server.
-- **`age/resolution/`** — **landed claims in, `Resolution` out**, and it never imports `age/language/`: a
+- **`age/words/`** — **what a word is** (`notes/the-word-rework.md`): a `Word` is senses, and a `Sense` offers
+  meanings to the words after it (`Offer`: a concept, a value, its chances and who may take it), takes what reaches
+  it (`Acceptance`: which values, and what it makes of them — effects, a fold, a rename, a scaling), and means
+  something itself. A thing or a part's page ends a phrase; a describing word passes on. A `Kind` is a template a
+  word refers to (`creature`, `minted`), `Concept`s are what offers are made of, and `Words` loads and checks them
+  all. `DerivedWords` gives **every block, biome, placed feature, structure set and creature a word of its own**.
+- **`age/reading/`** — **how a row of pages is read**. `Arrangement` lays the row into terms with the structure
+  words (`StructureWord`: `age`, `and`, `of`, `in`, `no`, `only`, `link`, `everywhere`); `Reader` carries each
+  offer forward until something takes it, into a `Reading` of phrases and what `age` handed out; `Matching` is
+  the rule for whether a sense takes an offer, asking the world through `Membership`. `Draw` turns a reading
+  into landings off the seed and draws a page nothing took onto a word that could (`Dangled`); `Writing` is
+  read, draw and resolve in one, and `Trace` says it back page by page. `Usage` and `Headings` answer what takes
+  what for the tools and the word lists; `age/readout/` is what a book *reads* as, clauses written into English
+  on the client.
+- **`age/resolution/`** — **landed claims in, `Resolution` out**, and it never imports `age/reading/` or `age/words/`: a
   `Book` of `Landing`s and the `WorldFacts` it is resolved against become a composition, a cost and an
   instability (`Resolver`). Incoherence is charged from what words *could* land, before the draw, one flaw per
   pair. Resolution is a **pure function of (vocabulary, pages, seed)**; the resolved composition is what
@@ -539,7 +543,7 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 > longer disagree: `Domain` is gone — an aspect *is* its own page, so `art/domain/` no longer exists — and
 > so are `Scope` and both `Kind` enums, replaced by `Holds`. There are no counts, `sky` became the vault
 > against `sun`, `moon` and `stars`, and `in <biome>` (world model §3) is built. Read that document before changing
-> anything under `age/aspect/`, `age/language/` or `age/resolution/`; it is normative and current, not a plan.
+> anything under `age/aspect/`, `age/reading/` or `age/resolution/`; it is normative and current, not a plan.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`, authored as `src/main/generation/<name>.gen` and exported by
   `:common:grammars`): `basic_book`, `advanced_book` and `unstable_book` write the three kinds of found
