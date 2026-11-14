@@ -16,6 +16,7 @@ import co.voik.agesandtheart.client.panel.PanelTarget
 import co.voik.agesandtheart.client.ui.ParchmentSurface
 import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.content.AgeComponents
+import com.mojang.blaze3d.platform.InputConstants
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.Button
@@ -442,7 +443,7 @@ class BookScreen(
     override fun mouseClicked(event: net.minecraft.client.input.MouseButtonEvent, doubleClick: Boolean): Boolean {
         // **Right-click shuts the book, wherever it lands.** The book was opened with a right-click and
         // closing it the same way is what a hand does; escape alone left the only way out on the keyboard.
-        if (event.button() == RIGHT_BUTTON) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             onClose()
             return true
         }
@@ -478,9 +479,6 @@ class BookScreen(
         /** The gloss under a word the server no longer has: the script is still on the page, and means nothing. */
         val UNINTELLIGIBLE: Component =
             Component.translatable("book.agesandtheart.unintelligible_word").withStyle(ChatFormatting.UNDERLINE)
-
-        /** GLFW's right button, which is what a book is opened with and now what closes it. */
-        const val RIGHT_BUTTON = 1
 
         const val WIDTH = 256
         const val HEIGHT = 180
