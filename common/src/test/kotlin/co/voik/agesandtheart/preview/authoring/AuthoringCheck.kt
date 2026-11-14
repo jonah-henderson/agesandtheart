@@ -62,14 +62,6 @@ class AuthoringCheck : FunSpec({
         }
     }
 
-    test("what the corpus cannot say is worked out, and a word begun for each is one the tool can read") {
-        val corpus = Corpus(ShippedCorpus.vocabulary, snapshot = null)
-        for (gap in Gaps.of(corpus)) {
-            val begun = Gaps.wordFor(gap, corpus)
-            check(begun.meanings.single().effects.isNotEmpty()) { "the word begun for ${gap.key} says nothing" }
-        }
-    }
-
     test("what the tool reads is the word the game loads") {
         val differing = names.filter { name ->
             val read = WordFile.read(name).getOrThrow().asWord()

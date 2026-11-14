@@ -7,11 +7,12 @@ import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
-import co.voik.agesandtheart.preview.authoring.Gaps
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
 import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.Gaps
 import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.ui.WordEditor
 import co.voik.agesandtheart.preview.authoring.words.WordListings
 import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
@@ -247,9 +248,10 @@ class Menu(
         }
     }
 
-    /** What the Art cannot yet say, and a word begun for whatever you pick. */
+    /** What the Art cannot yet say, and a word begun for whatever you pick that a word could fill. */
     private fun fillAGap() {
-        val rowsOf = { canvas.whileBusy("Looking for what nothing reaches") { Gaps.of(corpus) }.map(::gapRow) }
+        var gaps = Gaps(WordCorpus(corpus.vocabulary, corpus.snapshot))
+        val rowsOf = { canvas.whileBusy("Looking for what nothing reaches") { gaps.all }.map(::gapRow) }
         val table = Table(
             title = "things that can't be expressed with the current corpus",
             columns = listOf(
@@ -259,13 +261,21 @@ class Menu(
                 Table.Column("", EFFECTS_WIDTH),
             ),
             rows = rowsOf(),
-            whenEmpty = "nothing in the world is out of reach — every tag, parameter and value has a word",
+            whenEmpty = "nothing in the world is out of reach — every concept, setting, value and tag has a word",
         )
         while (true) {
             val chosen = walk(table, rowsOf) ?: return
-            val gap = Gaps.of(corpus).firstOrNull { it.key == chosen.key } ?: continue
-            edit(Gaps.wordFor(gap, corpus))
-            table.withRows(canvas.whileBusy(work = rowsOf))
+            val gap = gaps.all.firstOrNull { it.key == chosen.key } ?: continue
+            val begun = gaps.wordFor(gap)
+            if (begun == null) {
+                val why = "Not a word's to fill: it wants an acceptance, in a part's word or a kind's file, that takes or turns it."
+                Dialogs.read(terminal, canvas, Reader("${gap.kind.title} '${gap.what}'", listOf(Line(why, Palette.faint))))
+                continue
+            }
+            val words = WordCorpus(corpus.vocabulary, corpus.snapshot)
+            WordEditor(terminal, canvas, words, begun, canLeave = true).run()
+            gaps = Gaps(WordCorpus(corpus.vocabulary, corpus.snapshot))
+            table.withRows(rowsOf())
         }
     }
 

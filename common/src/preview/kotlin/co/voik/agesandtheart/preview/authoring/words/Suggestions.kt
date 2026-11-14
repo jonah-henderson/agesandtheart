@@ -6,8 +6,6 @@ import co.voik.agesandtheart.age.reading.Reader
 import co.voik.agesandtheart.age.reading.Reading
 import co.voik.agesandtheart.age.reading.StructureWord
 import co.voik.agesandtheart.age.reading.Usage
-import co.voik.agesandtheart.age.resolution.Effect
-import co.voik.agesandtheart.age.words.Audience
 import co.voik.agesandtheart.age.words.CoreConcepts
 import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Word
@@ -145,44 +143,16 @@ class Suggestions(private val corpus: WordCorpus) {
             says = when {
                 behaviour != null -> "structure — runs as ${behaviour.path}"
                 word == null -> ""
-                else -> (offers.map(::offerSaid) + means.map(::said)).joinToString(", ")
+                else -> (offers.map(Sections::offerSpelled) + means.map(Sections::effectSpelled)).joinToString(", ")
             },
             authored = word != null && word.id !in words.derived,
             firmness = if (takes) "takes" else "",
             targets = word?.let(usage::partsReached).orEmpty().sortedBy { it.ordinal }.joinToString(" ") { it.page },
             isMaterial = offers.any { it.concept == CoreConcepts.BLOCK },
-            required = certain.map { Claim(offerSaid(it)) } + means.map { Claim(said(it)) },
-            requested = byChance.map { Claim("${offerSaid(it)} ${Sections.percent(it.chance)}") },
+            required = certain.map { Claim(Sections.offerSpelled(it)) } + means.map { Claim(Sections.effectSpelled(it)) },
+            requested = byChance.map { Claim("${Sections.offerSpelled(it)} ${Sections.percent(it.chance)}") },
             closes = closes || behaviour == StructureWord.Age.id,
         )
-    }
-
-    private fun offerSaid(offer: Offer): String {
-        val audience = when (val said = offer.audience) {
-            Audience.Anyone -> ""
-            Audience.TheAge -> " for the Age"
-            is Audience.Part -> " for the ${said.aspect.page}"
-        }
-        val what = if (offer.isAReading) "a reading of ${offer.reading.joinToString(" ", transform = ::said)}" else
-            "${offer.concept.path} ${Sections.valueSaid(offer.value)}".trim()
-        return what + audience
-    }
-
-    private fun said(effect: Effect): String = when (effect) {
-        is Effect.Sets -> "${effect.parameter.spelled}=${effect.value}"
-        is Effect.Bends -> "bends ${effect.parameter.spelled} toward ${effect.value}"
-        is Effect.Chooses -> "chooses ${effect.member} in ${effect.aspect.page}"
-        is Effect.Admits -> "adds ${effect.members.sorted().joinToString(" ")} to ${effect.aspect.page}"
-        is Effect.Excludes -> "removes ${effect.members.sorted().joinToString(" ")} from ${effect.aspect.page}"
-        is Effect.Restricts -> "keeps ${effect.bars.keys.joinToString(" ") { "#$it" }} in ${effect.aspect.page}"
-        is Effect.Leans -> "leans the ${effect.aspect.page}"
-        is Effect.LeansEverywhere -> "leans everything"
-        is Effect.Mints -> "mints ${effect.pattern}"
-        is Effect.Template -> "begins the Age from ${effect.name}"
-        is Effect.Abundance -> "${effect.rung} times as many"
-        is Effect.MadeOf -> "made of ${effect.substance}"
-        is Effect.Bans -> "never ${effect.block}"
-        is Effect.LinksIn -> "a link arrives in ${effect.anchor.aspect.page}"
     }
 
     private companion object {

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.preview.authoring.words.Pairings
 import co.voik.agesandtheart.preview.authoring.ui.Canvas
 import co.voik.agesandtheart.preview.authoring.ui.Editor
 import co.voik.agesandtheart.preview.authoring.ui.style
@@ -48,8 +49,7 @@ fun main(arguments: Array<String>) {
     )
     when {
         asked.auditing -> audit(terminal, corpus)
-        asked.inert -> inert(terminal, corpus, asked.withMembers, asked.sentences)
-        asked.pairingsOf != null -> pairings(terminal, corpus, asked.pairingsOf, asked.everyDerived)
+        asked.pairingsOf != null -> pairings(terminal, corpus, asked.pairingsOf)
         asked.sentence != null -> for (sentence in asked.sentence.split(SENTENCES_APART).map(String::trim)) {
             terminal.println(TextColors.cyan("» $sentence"))
             terminal.println(
@@ -70,12 +70,8 @@ private data class Arguments(
     /** A word to open in the editor over the new word model, until it replaces the old one. */
     val inTheNewModel: String? = null,
     val auditing: Boolean = false,
-    val inert: Boolean = false,
     val pairingsOf: String? = null,
-    val everyDerived: Boolean = false,
     val sentence: String? = null,
-    val withMembers: Boolean = false,
-    val sentences: Int = DEFAULT_SENTENCES,
     val rewriting: Boolean = false,
     val refreshing: Boolean = false,
     val attach: String? = null,
@@ -89,12 +85,8 @@ private data class Arguments(
                 val argument = arguments[index]
                 read = when {
                     argument == "--audit" -> read.copy(auditing = true)
-                    argument == "--inert" -> read.copy(inert = true)
                     argument == "--pairings" -> read.copy(pairingsOf = arguments.getOrNull(++index))
-                    argument == "--all" -> read.copy(everyDerived = true)
                     argument == "--read" -> read.copy(sentence = arguments.getOrNull(++index))
-                    argument == "--members" -> read.copy(withMembers = true)
-                    argument == "--sentences" -> read.copy(sentences = arguments.getOrNull(++index)?.toIntOrNull() ?: DEFAULT_SENTENCES)
                     argument == "--rewrite" -> read.copy(rewriting = true)
                     argument == "--new" -> read.copy(inTheNewModel = arguments.getOrNull(++index))
                     argument == "--refresh" -> read.copy(refreshing = true)
@@ -179,102 +171,31 @@ private fun audit(terminal: Terminal, corpus: Corpus) {
 
 private const val NAME_COLUMN = 24
 
-private const val DEFAULT_SENTENCES = 20_000
-
-/** How many members a report names before it only counts the rest. */
-private const val MEMBERS_NAMED = 6
-
 /**
- * Every phrase that lands nothing on what it names, written to [InertPhrases.REPORT]: each word before each part of
- * the world, before every member word with [withMembers], and the words random sentences found landing nothing
- * beside another though they land alone.
+ * What becomes of each of [name]'s offers, and what it takes, written to [Pairings.reportFor]: every taker, what it
+ * makes, and whether that holds; and the offers nothing takes.
  */
-private fun inert(terminal: Terminal, corpus: Corpus, withMembers: Boolean, sentences: Int) {
-    val phrases = InertPhrases(corpus.vocabulary)
-    val ruledOut = InertPhrases.reviewed()
-    fun keep(gaps: List<InertPhrases.Gap>) = gaps.filterNot(ruledOut)
-    terminal.println(TextColors.gray("${phrases.modifiers.size} words before ${phrases.partsOfTheWorld.size} parts of the world…"))
-    val alone = phrases.pairs(phrases.partsOfTheWorld)
-    val beforeMembers = if (withMembers) {
-        terminal.println(TextColors.gray("…and before ${phrases.members.size} member words…"))
-        phrases.pairs(phrases.members)
-    } else {
-        emptyList()
-    }
-    val nouns = phrases.partsOfTheWorld + if (withMembers) phrases.members else emptyList()
-    terminal.println(TextColors.gray("…and $sentences random sentences."))
-    val aloneGaps = (alone + beforeMembers).map { it.phrase }.toSet()
-    val inSentences = phrases.sentences(nouns, sentences, seed = 1L, aloneGaps = aloneGaps)
-
-    val report = buildString {
-        appendLine("# Inert phrases\n")
-        appendLine("Phrases that land nothing on what they name. Rule one out by adding `word noun`, `word *` or `* noun` to")
-        appendLine("`${InertPhrases.REVIEWED.path}`.\n")
-        appendLine("## A word before a part of the world\n")
-        val parts = phrases.partsOfTheWorld.map { it.name }
-        val missedByWord = alone.groupBy { it.word }
-        keep(alone).groupBy { it.word }.toSortedMap().forEach { (word, gaps) ->
-            val missed = missedByWord[word].orEmpty().map { it.noun }.toSet()
-            val landsOn = parts.filterNot { it in missed }.sorted().joinToString(" ").ifEmpty { "nothing" }
-            val byWhy = gaps.groupBy { it.why }.entries.sortedBy { it.key.ordinal }.joinToString(" · ") { (why, missed) ->
-                "${why.said}: ${missed.map { it.noun }.sorted().joinToString(" ")}"
-            }
-            appendLine("- **$word** (taken by $landsOn) — $byWhy")
-        }
-        if (withMembers) {
-            appendLine("\n## A word before the members of a part of the world\n")
-            val membersOf = phrases.members.groupBy { corpus.vocabulary.lexicon.acceptance(it)?.place?.aspect?.page ?: "?" }
-            keep(beforeMembers).groupBy { it.word }.toSortedMap().forEach { (word, gaps) ->
-                val byPart = gaps.groupBy { gap -> membersOf.entries.firstOrNull { (_, words) -> words.any { it.name == gap.noun } }?.key ?: "?" }
-                val said = byPart.toSortedMap().entries.joinToString("; ") { (part, missed) ->
-                    val named = missed.take(MEMBERS_NAMED).joinToString(" ") { it.noun }
-                    val more = if (missed.size > MEMBERS_NAMED) " …" else ""
-                    "${missed.size}/${membersOf[part].orEmpty().size} $part ($named$more)"
-                }
-                appendLine("- **$word**: $said")
-            }
-        }
-        appendLine("\n## A word that lands alone but not in a sentence\n")
-        keep(inSentences).groupBy { it.phrase }.entries.sortedByDescending { it.value.size }.forEach { (phrase, gaps) ->
-            val first = gaps.first()
-            appendLine("- **$phrase** ×${gaps.size}, ${first.why.said}: `${first.sentence}`")
-        }
-    }
-    InertPhrases.REPORT.parentFile.mkdirs()
-    InertPhrases.REPORT.writeText(report)
-    terminal.println(
-        TextColors.green(
-            "${keep(alone).size} before the parts of the world, ${keep(beforeMembers).size} before members, " +
-                "${keep(inSentences).map { it.phrase }.distinct().size} only in sentences — written to ${InertPhrases.REPORT.path}",
-        ),
-    )
-}
-
-/**
- * Every phrase [name] makes, written to [Pairings.reportFor]: what each came to, the ones a person has not ruled on
- * first, and what other words mean where this one means nothing.
- */
-private fun pairings(terminal: Terminal, corpus: Corpus, name: String, everyDerived: Boolean) {
-    val word = if (WordFile.exists(name)) WordFile.read(name).getOrNull()?.asWord() else corpus.vocabulary.word(name)
+private fun pairings(terminal: Terminal, corpus: Corpus, name: String) {
+    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
+    val words = co.voik.agesandtheart.preview.authoring.words.WordCorpus(corpus.vocabulary, corpus.snapshot)
+    val written = if (files.exists(name)) files.read(name).getOrNull()?.word else null
+    val word = written ?: words.words.word(name)
     if (word == null) {
         terminal.println(TextColors.brightRed("'$name' is no word"))
         return
     }
-    terminal.println(TextColors.gray("reading every phrase '$name' makes…"))
-    val pairings = Pairings(corpus.vocabulary, standIn = word)
-    val before = pairings.before(word, everyDerived)
-    val after = pairings.after(word)
-    val found = before + after
-    val ruled = PairingRulings.read()
-    val open = found.filter { it.verdict.asksForAPerson && !ruled.settles(it) }
-    val report = PairingRulings.report(name, before, after, ruled)
+    terminal.println(TextColors.gray("reading what takes each of '$name''s offers…"))
+    val table = Pairings(words, standIn = written).of(word)
     val file = Pairings.reportFor(name)
     file.parentFile.mkdirs()
-    file.writeText(report)
-    val byVerdict = open.groupingBy { it.verdict }.eachCount().entries.sortedBy { it.key.ordinal }
-        .joinToString(", ") { (verdict, count) -> "$count ${verdict.said}" }.ifEmpty { "nothing" }
-    val means = found.count { it.verdict == Pairings.Verdict.MEANS }
-    terminal.println(TextColors.green("${found.size} phrases, $means meaning something; to rule on: $byVerdict — written to ${file.path}"))
+    file.writeText(Pairings.report(table))
+    val takers = table.offers.sumOf { it.takers.size }
+    terminal.println(
+        TextColors.green(
+            "${table.offers.size} offers taken ${takers} ways; ${table.hollow.size} hollow, ${table.untaken.size} taken by nothing, " +
+                "${table.unoffered.size} acceptances offered nothing — written to ${file.path}",
+        ),
+    )
 }
 
 /** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
@@ -320,10 +241,8 @@ private val USAGE = """
     |  scripts/scrivener.sh <word>            open a word, or begin one
     |  scripts/scrivener.sh --audit           every authored word, worst first
     |  scripts/scrivener.sh --read "<sentence>"  what a book of that sentence is read as; `|` between several
-    |  scripts/scrivener.sh --inert [--members] [--sentences N]
-    |                                         phrases that land nothing on what they name
-    |  scripts/scrivener.sh --pairings <word> [--all]
-    |                                         every phrase a word makes, read and built, and what to rule on
+    |  scripts/scrivener.sh --pairings <word> what takes each of a word's offers, what it makes there,
+    |                                         and whether that holds; and what offers to what it takes
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
     |  scripts/scrivener.sh --new <word>      open a word in the editor over the new word model
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it

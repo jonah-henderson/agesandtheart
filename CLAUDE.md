@@ -163,7 +163,7 @@ scripts/drive-server.sh scripts/checks/regions.txt
 scripts/scrivener.sh              # a new word
 scripts/scrivener.sh colossal     # an authored one
 scripts/scrivener.sh --audit      # every authored word, worst first
-scripts/scrivener.sh --pairings porous   # every phrase a word makes, read and built (see below)
+scripts/scrivener.sh --pairings porous   # what takes each of a word's offers, and whether it holds (see below)
 ```
 
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
@@ -211,12 +211,12 @@ boots a dedicated server, writes the Age, and sends you in when you connect — 
 changing a page and looking again is seconds. The world is thrown away when the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
-**Run every new word through `--pairings`.** It reads the word before every part of the world, every authored word
-and a few of each kind of derived one (`--all` for every one), and every authored word before it that means
-something before its part, each resolved beside the same book with the word's page blank, and files each phrase as
-means, silent, strays, clashes or hollow. Hollow is always a fault (`occasionalTest` sweeps the corpus for it); the
-rest are English calls, with what the word's siblings and its mirror mean on the same noun beside them. Rulings
-are `.authoring/pairings-ruled.txt`, `phrase | verdict | ruling | note`, and settle a phrase while its verdict stands.
+**Run every new word through `--pairings`.** It reads the word's acceptance tables: every thing, part's page and Age
+that takes each of its offers, what it makes there, and whether that holds — the word laid before one of them with that
+offer made certain, and the book resolved as laid and again with the offer's landings taken out, held to one draw. Hollow
+(taken and making nothing, or changing nothing) is always a fault, and `occasionalTest` sweeps our words for it on the
+parts' pages; a lean toward what no member of the part carries is set aside, not hollow. An offer nothing takes and an
+acceptance nothing offers to are gaps, and the menu's gaps screen lists what the corpus cannot say at all.
 
 **Scrivener reaches past the words.** Its main menu is four groups — the words, the world they describe, the
 age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay

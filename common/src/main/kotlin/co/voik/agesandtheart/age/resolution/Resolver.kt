@@ -27,11 +27,12 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  */
 object Resolver {
 
-    fun resolve(world: WorldFacts, book: Book, seed: Long): Resolution {
+    /** [book] resolved at [seed]; a [draw] given in place of its own holds two books to one, so they differ only by what they say. */
+    fun resolve(world: WorldFacts, book: Book, seed: Long, draw: Long = drawOf(book, seed)): Resolution {
         // A ban or a link-in is said of the whole Age rather than of any part of it, so it is set aside from what each
         // part resolves.
         val (ofTheWholeAge, landings) = book.landings.partition { it.banned.isNotEmpty() || it.linksIn != null }
-        val resolving = Resolving(world, landings, draw = seed xor saltOf(book.landings))
+        val resolving = Resolving(world, landings, draw)
         resolving.flaws += book.chargedBeforeResolving
         resolving.flaws += bannedButAskedFor(book.possible)
         val filled = Aspect.entries.associateWith { resolving.fill(it) }
@@ -82,6 +83,9 @@ object Resolver {
 
     private const val UNASKED_LAND_MIXED = 0.5
     private const val MIXTURE_SALT = 0x0B1E_7D3AL
+
+    /** What [book] draws by at [seed]: the seed salted by the words that landed, so silence varies with the book. */
+    fun drawOf(book: Book, seed: Long): Long = seed xor saltOf(book.landings)
 
     /** A seed-sized number for what was written, whatever order it was laid in, so silence varies with the book. */
     private fun saltOf(landings: List<Landing>): Long = landings.map(Landing::word).distinct().sorted()

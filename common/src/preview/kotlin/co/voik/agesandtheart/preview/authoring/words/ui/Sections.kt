@@ -257,12 +257,6 @@ class Sections(private val corpus: WordCorpus) {
         if (offer.isAReading) append("\n    a reading is what only this word means of one part, landing together")
     }
 
-    private fun audienceSaid(audience: Audience): String = when (audience) {
-        Audience.Anyone -> ""
-        Audience.TheAge -> "  for the Age"
-        is Audience.Part -> "  for the ${audience.aspect.page}"
-    }
-
     private fun chancesSaid(offer: Offer): String {
         val said = if (offer.chance == Offer.CERTAIN) "" else "  ${percent(offer.chance)}"
         val fromTheAge = offer.ownChanceFromWholeAge?.let { "  ${percent(it)} from the whole Age" }.orEmpty()
@@ -281,12 +275,13 @@ class Sections(private val corpus: WordCorpus) {
         }
         val fromTheAge = if (acceptance.chanceFromWholeAge == Offer.CERTAIN) "" else "  ${percent(acceptance.chanceFromWholeAge)} from the whole Age"
         val dangling = if (acceptance.canResolveDanglingOffers) "" else "  never a dangling page"
+        val tagsForIt = if (acceptance.tagsOnlyWhenOfferedForIt) "  a #tag only for it" else ""
         return listOf(
             Ink(acceptance.concept.path.padEnd(CONCEPT_WIDTH), Palette.parameter),
             Ink(only, Palette.chosen),
             Ink(" → ", Palette.faint),
             Ink(outcome, Palette.value),
-            Ink(fromTheAge + dangling, Palette.faint),
+            Ink(fromTheAge + dangling + tagsForIt, Palette.faint),
         )
     }
 
@@ -333,8 +328,7 @@ class Sections(private val corpus: WordCorpus) {
             else -> listOfNotNull(part ?: "a word of no part", ownKind?.let { "a $it" }).joinToString(", ")
         }
         val made = when (val outcome = taken.acceptance.outcome) {
-            is Outcome.Becomes -> taken.effects.flatMap(::entriesOf).joinToString("; ") { (_, shown) -> shown.joinToString(" ") { it.text.trim() } }
-                .ifEmpty { "makes nothing of this value" }
+            is Outcome.Becomes -> taken.effects.joinToString("; ", transform = ::effectSpelled).ifEmpty { "makes nothing of this value" }
             else -> AcceptanceAsking.outcomeSaid(outcome)
         }
         return who to made
@@ -360,6 +354,12 @@ class Sections(private val corpus: WordCorpus) {
 
         fun percent(share: Double) = "${(share * PERCENT).toInt()}%"
 
+        fun audienceSaid(audience: Audience): String = when (audience) {
+            Audience.Anyone -> ""
+            Audience.TheAge -> "  for the Age"
+            is Audience.Part -> "  for the ${audience.aspect.page}"
+        }
+
         fun valueSaid(value: Value): String = when (value) {
             is Value.Text -> value.text
             is Value.Amount -> "${value.multiple}×"
@@ -370,6 +370,17 @@ class Sections(private val corpus: WordCorpus) {
         }
 
         private fun signed(weight: Double) = if (weight >= 0) "+$weight" else "$weight"
+
+        /** An offer in one line of plain text: its concept and value, or its reading, and who it is for. */
+        fun offerSpelled(offer: Offer): String {
+            val what = if (offer.isAReading) "a reading: ${offer.reading.joinToString("; ", transform = ::effectSpelled)}"
+            else "${offer.concept.path} ${valueSaid(offer.value)}".trim()
+            return what + audienceSaid(offer.audience)
+        }
+
+        /** An effect in one line of plain text. */
+        fun effectSpelled(effect: Effect): String =
+            entriesOf(effect).joinToString("; ") { (_, shown) -> shown.joinToString(" ") { it.text.trim() }.trim() }
 
         /** Each row an effect is shown as: one, or one per member or tag it names. */
         fun entriesOf(effect: Effect): List<Pair<String?, List<Ink>>> = when (effect) {
