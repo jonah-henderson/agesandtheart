@@ -46,14 +46,13 @@ class MemberScopingCheck : FunSpec({
         }
     }
 
-    test("charged creepers charge the creepers, and a charged Age or charged monsters charge none") {
+    test("charged creepers and charged monsters charge the creepers, and a charged Age charges none") {
         for (seed in SEEDS) {
             check(aimed(seed, "charged", "creeper").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
                 "seed $seed: 'charged creeper' left the creeper uncharged"
             }
-            // Only the creepers among the monsters can be charged, and a word naming many takes what most honour.
-            check(!aimed(seed, "charged", "monsters").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
-                "seed $seed: 'charged monsters' charged the creepers"
+            check(aimed(seed, "charged", "monsters").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
+                "seed $seed: 'charged monsters' left the creepers uncharged"
             }
             check(!aimed(seed, "charged", "age").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
                 "seed $seed: a charged Age charged its creepers"
@@ -70,8 +69,8 @@ class MemberScopingCheck : FunSpec({
     }
 
     test("trees said of a block grow it in place of their leaves, and a block laid bare leaves the trees alone") {
-        val features = aimed(SEEDS.first, "diamond_block", "oak").optionsFor(Aspect.FEATURES)
-        check(features.of(Features.FOLIAGE, member = OAK) == DIAMOND) { "'diamond_block oak' grew ${features.of(Features.FOLIAGE, member = OAK)}" }
+        val features = aimed(SEEDS.first, "diamond_block", "oak", "trees").optionsFor(Aspect.FEATURES)
+        check(features.of(Features.FOLIAGE, member = OAK) == DIAMOND) { "'diamond_block oak trees' grew ${features.of(Features.FOLIAGE, member = OAK)}" }
         val bare = aimed(SEEDS.first, "diamond_block", "age").optionsFor(Aspect.FEATURES)
         check(bare.of(Features.FOLIAGE, member = OAK) != DIAMOND) { "a diamond Age grew its trees of diamond" }
     }

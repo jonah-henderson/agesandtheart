@@ -8,8 +8,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * A pace said beside turning colours goes where it stands: `swift prismatic sun` turns its colours faster and leaves the
- * sun's pace alone, `prismatic swift sun` is a fast sun turning at the usual pace, and `swift sun` is both.
+ * A pace said of a body is how it moves, and only the words that turn colours take a pace for their turning (Jonah):
+ * `swift prismatic sun` turns its colours faster and leaves the sun's pace alone, `prismatic swift sun` is a fast sun
+ * turning at the usual pace, and `swift sun` is a fast sun.
  */
 @Tags(NEEDS_REGISTRIES)
 class PaceBesideColoursCheck : FunSpec({
@@ -30,9 +31,9 @@ class PaceBesideColoursCheck : FunSpec({
         check(pacesItself(sun) && !pacesItsColours(sun)) { "prismatic swift sun: ${sun.chosen}" }
     }
 
-    test("swift with no colours turning paces both") {
+    test("swift with no colours turning paces the sun alone") {
         val sun = sunOf("swift sun")
-        check(pacesItself(sun) && pacesItsColours(sun)) { "swift sun: ${sun.chosen}" }
+        check(pacesItself(sun) && !pacesItsColours(sun)) { "swift sun: ${sun.chosen}" }
     }
 }) {
     private companion object {

@@ -37,7 +37,6 @@ private fun judged(kind: FoundBookKind, book: JsonObject): JudgedBook {
         seed = book.get("seed").asLong,
         pages = strings("pages"),
         unplaced = strings("unplaced"),
-        supplied = strings("supplied"),
         modifiers = strings("modifiers"),
         hasAnAge = book.get("has_an_age").asBoolean,
         cost = if (resolved) book.get("cost").asInt else null,

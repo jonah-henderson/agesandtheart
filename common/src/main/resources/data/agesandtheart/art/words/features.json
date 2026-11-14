@@ -168,7 +168,7 @@
           "when": "porous"
         }
       ],
-      "chance_from_whole_age": 0.35
+      "chance_from_whole_age": 0.0
     }
   ]
 }

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
@@ -150,7 +150,7 @@ class WordRarityCheck : FunSpec({
     }
     /** The finder's own pages: no duplicate from a bucket that prefers the unknown until they know all of it. */
     test("a bucket that prefers the unknown draws what the finder lacks, and anything once they lack nothing") {
-        val three = vocabulary.authoredWords.filter { word -> vocabulary.words.count { it.name == word.name } == 1 }.take(3)
+        val three = vocabulary.authoredWords.filter { word -> vocabulary.allWords.count { it.name == word.name } == 1 }.take(3)
         val (known, alsoKnown, unknown) = three
         fun rarityWith(prefers: Boolean) = WordRarity(
             listOf(

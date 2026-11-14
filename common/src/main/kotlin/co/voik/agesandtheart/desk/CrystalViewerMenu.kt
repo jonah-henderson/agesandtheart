@@ -85,8 +85,9 @@ class Previewable private constructor(val finding: ViewerFinding, val words: Lis
             if (!TemplateReading.isWritable(read)) return nothing(ViewerFinding.UNWRITABLE)
             val words = TemplateReading.learnedWords(read)
             val vocabulary = Vocabulary.of(writer.level().server)
-            val reading = vocabulary.read(words.map { it.path }, writer.writingSeed)
-            if (reading == null || reading.landings.isEmpty()) return nothing(ViewerFinding.NOT_AN_AGE)
+            val pages = words.map { it.path }
+            val landsNothing = !vocabulary.spellsABook(pages) || vocabulary.written(pages, writer.writingSeed).drawn.landed.isEmpty()
+            if (landsNothing) return nothing(ViewerFinding.NOT_AN_AGE)
             return Previewable(ViewerFinding.PREVIEWING, words)
         }
 

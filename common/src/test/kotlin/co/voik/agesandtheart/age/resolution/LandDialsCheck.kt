@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
+import co.voik.agesandtheart.age.reading.ShippedBooks.resolved
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec

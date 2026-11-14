@@ -13,6 +13,8 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Report
 import net.minecraft.server.MinecraftServer
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.reading.Fate
+import co.voik.agesandtheart.age.reading.Trace
 import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.DerivationRules
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -64,9 +66,9 @@ internal object CorpusInstruments {
         val heading = vocabulary.word(named) ?: return report.fail("No word called '$named'")
         val under = vocabulary.appliesTo.filterValues { heading.id in it }.keys
         val (authored, derived) = under.partition { vocabulary.word(it)?.let(vocabulary::isDerived) == false }
-        val acceptance = vocabulary.lexicon.acceptance(heading)
+        val takes = heading.senses.flatMap { it.acceptances }.joinToString(" ") { it.concept.path }
         report.fact("heading", heading.id.toString()) { "${heading.id}: ${under.size} apply (${derived.size} derived)" }
-        report.fact("derived", vocabulary.isDerived(heading)) { "  derived heading: ${vocabulary.isDerived(heading)}, takes: $acceptance" }
+        report.fact("derived", vocabulary.isDerived(heading)) { "  derived heading: ${vocabulary.isDerived(heading)}, takes: $takes" }
         report.only("authored", authored.map { it.path }.sorted())
         report.say { "  ${authored.map { it.path }.sorted().joinToString(" ")}" }
         report.finish()
@@ -332,7 +334,7 @@ internal object CorpusInstruments {
         val server = context.source.server
         // The Age a found copy of each book builds: what it would earn, which must be nothing, and how dangerous it is.
         fun recipeOf(draft: FoundBookDraft): AgeRecipe? {
-            val resolution = vocabulary.resolve(draft.pages, draft.seed) ?: return null
+            val resolution = vocabulary.resolve(draft.pages, draft.seed)
             return AgeRecipe.written(server, resolution, draft.pages, draft.seed, authored = false)
         }
         for (draft in drafts) {
@@ -343,7 +345,6 @@ internal object CorpusInstruments {
                 "seed" to draft.seed,
                 "pages" to draft.pages,
                 "unplaced" to draft.unplaced,
-                "supplied" to draft.supplied,
                 "modifiers" to draft.modifiers,
                 "has_an_age" to draft.hasAnAge,
                 "resolved" to (draft.cost != null),
@@ -395,12 +396,13 @@ internal object CorpusInstruments {
         // only way to judge whether a generated book is a good one.
         // A generation grammar that forgot the Age page has written something no player could bind, and
         // saying so here is the whole point of drafting against it.
-        val read = vocabulary.read(pages, seed)
-        val reading = read?.readout ?: "nothing — this book has no Age page, so it is not a book"
+        val written = vocabulary.written(pages, seed)
+        val reading = if (vocabulary.spellsABook(pages)) Trace.of(written.reading, written.drawn).joinToString("\n") { "    $it" }
+        else "nothing — this book has no Age page, so it is not a book"
         source.sendSuccess({ Component.literal("  reads as:\n$reading") }, false)
         // Said because an unstable book is meant to be flawed, and a coherent one is meant not to be.
-        if (read != null) {
-            val instability = vocabulary.resolve(read, seed).instability
+        if (vocabulary.spellsABook(pages)) {
+            val instability = written.resolution.instability
             source.sendSuccess({ Component.literal("  $instability") }, false)
             for (flaw in instability.flaws) source.sendSuccess({ Component.literal("    $flaw") }, false)
         }
@@ -439,10 +441,10 @@ internal object CorpusInstruments {
         // A word grammar is meant to produce a book, so it is judged the way a book is: by what the parser
         // makes of it, not by whether the words look plausible in a row.
         if (grammar.terminals == TerminalKind.WORD) {
-            val read = vocabulary.read(produced, seed)
-            val reading = read?.readout ?: "nothing — no Age page, so this is not a book"
+            val written = vocabulary.written(produced, seed)
+            val reading = Trace.of(written.reading, written.drawn).joinToString("\n") { "    $it" }
             source.sendSuccess({ Component.literal("  reads as:\n$reading") }, false)
-            val unplaced = (read?.unread.orEmpty() + read?.impossible.orEmpty()).map { it.written }
+            val unplaced = written.reading.pages.filter { it.fate == Fate.Unknown || it.fate == Fate.Dangles }.map { it.written }
             if (unplaced.isNotEmpty()) {
                 source.sendSuccess({
                     Component.literal("  unread: ${unplaced.joinToString(" ")}").withStyle(ChatFormatting.RED)

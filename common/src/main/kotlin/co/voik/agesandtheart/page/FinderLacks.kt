@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.word.WordRarity
 import co.voik.agesandtheart.age.word.learnedWords
 import com.mojang.serialization.MapCodec
@@ -30,7 +30,7 @@ class FinderLacksCondition(val rarity: Set<String>) : LootItemCondition {
         val buckets = vocabulary.rarity.buckets.filter { it.name in rarity }
         fun isFindableHere(word: Word): Boolean =
             vocabulary.bucketOf(word) in buckets && PageWordFunction.canBeFound(word, vocabulary, registries)
-        return vocabulary.words.any { word -> isFindableHere(word) && !finder.learnedWords.knows(word.id) }
+        return vocabulary.allWords.any { word -> isFindableHere(word) && !finder.learnedWords.knows(word.id) }
     }
 
     override fun codec(): MapCodec<out LootItemCondition> = MAP_CODEC

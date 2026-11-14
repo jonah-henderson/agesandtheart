@@ -4,7 +4,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.SkyBodies
-import co.voik.agesandtheart.age.language.Fate
+import co.voik.agesandtheart.age.reading.Fate
 import co.voik.agesandtheart.location
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -43,7 +43,7 @@ class RetiredWordsCheck : FunSpec({
         val oldId = Identifier.withDefaultNamespace("birch_checked")
         check(vocabulary.word(oldId)?.id == "birch".location()) { "a saved 'minecraft:birch_checked' reads as ${vocabulary.word(oldId)?.id}" }
         check(vocabulary.renamed[oldId] == "birch".location()) { "the client is not told 'minecraft:birch_checked' became 'birch'" }
-        check(vocabulary.words.none { it.id == oldId }) { "'minecraft:birch_checked' is still a word of its own" }
+        check(vocabulary.allWords.none { it.id == oldId }) { "'minecraft:birch_checked' is still a word of its own" }
         val learned = LearnedWords()
         learned.learn(oldId)
         check(learned.migrate(vocabulary::successorIds) && learned.words.toList() == listOf("birch".location())) {
@@ -67,10 +67,10 @@ class RetiredWordsCheck : FunSpec({
         check(vocabulary.phraseOf("rising_north") == listOf("north", "rising")) { "'rising_north' reads as ${vocabulary.phraseOf("rising_north")}" }
         check(vocabulary.word("rising_north") == null) { "'rising_north' is still a word of its own" }
         check(vocabulary.stillNames("rising_north".location())) { "a page retired into a phrase reads as gone" }
-        val reading = vocabulary.read(listOf("age", "rising_north", "sun"), SEED)
-        val fate = reading?.pages?.get(1)?.fate
-        check(fate == Fate.TakenBy(2)) { "the old page came to $fate, not taken by the sun" }
-        val sun = vocabulary.resolve(listOf("age", "rising_north", "sun"), SEED)?.composition?.optionsFor(Aspect.SUN, 0)
+        val reading = vocabulary.written(listOf("age", "rising_north", "sun"), SEED).reading
+        val unplaced = reading.pages.filter { it.written in setOf("north", "rising") && it.fate != Fate.Placed }
+        check(unplaced.isEmpty()) { "the old page read as ${reading.pages}, its words not both taken" }
+        val sun = vocabulary.resolve(listOf("age", "rising_north", "sun"), SEED).composition.optionsFor(Aspect.SUN, 0)
         check(sun?.of(SkyBodies.RISING) == "north") { "'rising_north sun' rose ${sun?.of(SkyBodies.RISING)}" }
     }
 

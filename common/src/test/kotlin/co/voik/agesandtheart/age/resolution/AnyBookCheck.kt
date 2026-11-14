@@ -2,8 +2,6 @@ package co.voik.agesandtheart.age.resolution
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
-import co.voik.agesandtheart.age.language.ShippedLexicon
-import co.voik.agesandtheart.age.language.Writing
 import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
@@ -15,9 +13,9 @@ import kotlin.random.Random
 class AnyBookCheck : FunSpec({
 
     fun resolvesTwiceAlike(pages: List<String>, seed: Long) {
-        val first = runCatching { Writing.resolve(ShippedLexicon.lexicon, ShippedLexicon.world, pages, seed) }
+        val first = runCatching { ShippedCorpus.vocabulary.resolve(pages, seed) }
         check(first.isSuccess) { "'${pages.joinToString(" ")}' at seed $seed threw ${first.exceptionOrNull()}" }
-        val again = Writing.resolve(ShippedLexicon.lexicon, ShippedLexicon.world, pages, seed)
+        val again = ShippedCorpus.vocabulary.resolve(pages, seed)
         check(first.getOrNull() == again) { "'${pages.joinToString(" ")}' at seed $seed resolved two ways" }
     }
 
@@ -32,7 +30,7 @@ class AnyBookCheck : FunSpec({
 
     test("random rows of real pages resolve, and alike twice") {
         val authored = ShippedCorpus.vocabulary.authoredWords.map { it.name }
-        val structure = listOf("and", "in", "everywhere", "only", "no", "teeming", "scarce")
+        val structure = listOf("and", "in", "everywhere", "only", "no", "teeming", "sparse")
         val pages = authored + structure + listOf("villages", "trees", "jungle", "stone", "gold_block", "sun", "climate")
         val random = Random(SEED)
         repeat(ROWS) { row ->

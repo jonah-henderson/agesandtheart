@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.reading
 
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.words.Acceptance
 import co.voik.agesandtheart.age.words.Audience
 import co.voik.agesandtheart.age.words.Concept
@@ -70,8 +72,30 @@ class Matching(private val membership: Membership, private val concepts: Map<Ide
     private fun makesSomethingOf(sense: Sense, acceptance: Acceptance, offer: Offer): Boolean {
         val templates = (acceptance.outcome as? Outcome.Becomes)?.effects ?: return true
         if (templates.isEmpty() || offer.isAReading) return true
-        val value = filled(offer)
-        return templates.any { it.applied(value, sense.speaksFor) != null }
+        return effectsOf(sense, sense.speaksFor, acceptance, offer).isNotEmpty()
+    }
+
+    /**
+     * What [acceptance] makes of [offer] at [part]: of its effects, those a member [sense] names does anything with —
+     * `black sheep` dyes the wool and leaves the sheep's own colour be.
+     */
+    fun effectsOf(sense: Sense?, part: Aspect?, acceptance: Acceptance, offer: Offer): List<Effect> {
+        val templates = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty()
+        val effects = templates.mapNotNull { it.applied(filled(offer), part) }
+        return if (sense == null) effects else effects.filter { aMemberItNamesDoesAnythingWith(sense, it) }
+    }
+
+    /** Whether a member [sense] names does anything with [effect], or it names none. */
+    private fun aMemberItNamesDoesAnythingWith(sense: Sense, effect: Effect): Boolean {
+        val part = sense.speaksFor ?: return true
+        val named = sense.means.flatMap { meaning ->
+            when {
+                meaning is Effect.Chooses && meaning.aspect == part -> listOf(meaning.member)
+                meaning is Effect.Admits && meaning.aspect == part -> meaning.members
+                else -> emptyList()
+            }
+        }
+        return named.isEmpty() || named.any { membership.doesAnythingWith(part, it, effect) }
     }
 
     /** [offer]'s value with every part it does not give at its concept's default, where its concept is made of parts. */

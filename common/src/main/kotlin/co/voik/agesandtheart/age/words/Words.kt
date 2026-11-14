@@ -42,6 +42,9 @@ data class Words(
     fun partPage(part: Aspect): Word? = byName[part.page]?.takeIf { it.id.namespace == Constants.MOD_ID }
 
     companion object {
+        /** No words at all, which is what a vocabulary is stood up with before its words are read. */
+        val NONE = Words(emptyMap(), emptyMap(), emptyMap(), emptyList())
+
         const val CONCEPT_DIRECTORY = "art/concept"
         const val KIND_DIRECTORY = "art/kind"
         const val WORD_DIRECTORY = "art/words"

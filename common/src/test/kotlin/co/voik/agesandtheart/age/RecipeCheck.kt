@@ -499,6 +499,17 @@ class RecipeCheck : FunSpec({
         }
     }
 
+    test("a saved Age's moved pages read as dangling, and count one between them") {
+        fun moved(word: String) = CompoundTag().apply {
+            putString("register", "rehomed")
+            put("words", ListTag().apply { add(StringTag.valueOf(word)) })
+        }
+        val saved = CompoundTag().apply { put("flaws", ListTag().apply { add(moved("colossal")); add(moved("north")) }) }
+        val read = Instability.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow()
+        check(read.flaws.all { it.register == Register.DANGLES }) { "saved moved pages read as ${read.flaws}" }
+        check(read.index == 1) { "two moved pages counted ${read.index}" }
+    }
+
     test("a written Age keeps its words and its flaws") {
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
             .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))

@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
+import co.voik.agesandtheart.age.reading.ShippedBooks.resolved
 import co.voik.ephemeris.sky.ColourCycles
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -23,11 +23,13 @@ class PrismCheck : FunSpec({
     }
 
     test("prismatic turns every coloured part in step, and leaves the light alone") {
-        val cycles = cyclesOf("age prismatic")
+        val cycles = cyclesOf("prismatic age")
+        // The aurora is not among them: said of the whole Age, prismatic brings one only now and then.
         val parts = listOfNotNull(
-            cycles.sky, cycles.fog, cycles.cloud, cycles.waterFog, cycles.stars, cycles.aurora, cycles.ground, cycles.water,
+            cycles.sky, cycles.fog, cycles.cloud, cycles.waterFog, cycles.stars, cycles.ground, cycles.water,
         ) + cycles.bodies.values
-        check(parts.size == 8 + cycles.bodies.size && cycles.bodies.isNotEmpty()) { "a part was left still: $cycles" }
+        check(parts.size == 7 + cycles.bodies.size && cycles.bodies.isNotEmpty()) { "a part was left still: $cycles" }
+        check(cyclesOf("age prismatic aurora").aurora != null) { "a prismatic aurora stood still" }
         check(parts.map { it.periodTicks }.distinct().size == 1) { "the parts turned on different clocks: $cycles" }
         check(parts.first().periodTicks in 3_000..24_000) { "an unsaid turn took ${parts.first().periodTicks} ticks" }
         check(cycles.light == null) { "a bare prismatic turned the light" }
@@ -62,7 +64,7 @@ class PrismCheck : FunSpec({
         val prismatic = periodOf("age prismatic meteors")
         val swift = periodOf("age swift prismatic meteors")
         check(prismatic != null && swift != null && swift <= 3_000) { "prismatic meteors turned every $prismatic, swift every $swift" }
-        check(periodOf("age prismatic") != null) { "a bare prismatic left the meteors still" }
+        check(periodOf("prismatic age") != null) { "a bare prismatic left the meteors still" }
         check(periodOf("age meteors") == null) { "plain meteors turned" }
     }
 

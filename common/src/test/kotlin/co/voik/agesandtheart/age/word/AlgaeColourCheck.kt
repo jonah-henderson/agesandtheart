@@ -13,7 +13,7 @@ import io.kotest.core.spec.style.FunSpec
 class AlgaeColourCheck : FunSpec({
 
     fun algaeIn(vararg pages: String) =
-        Features.algaeColourIn(ShippedCorpus.resolved(SEED, "age", *pages).composition.optionsFor(Aspect.FEATURES))
+        Features.algaeColourIn(ShippedCorpus.resolved(SEED, *pages).composition.optionsFor(Aspect.FEATURES))
 
     test("a colour before algae colours it") {
         for (colour in listOf("blue", "red", "green")) {

@@ -19,10 +19,12 @@ class BareSizeCheck : FunSpec({
 
     test("no authored word laid bare on the Age sizes its creatures, or its land unless it says a size") {
         val strays = ShippedCorpus.vocabulary.authoredWords.flatMap { word ->
-            val saysASizeOfItsOwn = word.effects.any { effect ->
+            val offersASize = word.senses.any { sense -> sense.offers.any { it.concept.path == Terrain.SIZE.name } }
+            val meansASize = word.senses.flatMap { it.means }.any { effect ->
                 (effect is Effect.Sets && effect.parameter.name == Terrain.SIZE.name) ||
                     (effect is Effect.Bends && effect.parameter.name == Terrain.SIZE.name)
             }
+            val saysASizeOfItsOwn = offersASize || meansASize
             SEEDS.flatMap { seed ->
                 val composition = runCatching { ShippedCorpus.resolved(seed, word.name, "age").composition }.getOrNull()
                     ?: return@flatMap emptyList()

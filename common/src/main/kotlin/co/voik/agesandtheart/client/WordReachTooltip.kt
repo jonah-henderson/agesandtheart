@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.location
 import net.minecraft.ChatFormatting
@@ -20,12 +22,14 @@ object WordReachTooltip {
      */
     fun linesFor(word: Identifier): List<Component> {
         val reach = KnownWords.reachOf(word) ?: return emptyList()
-        val isAnAimingPage = reach.singleOrNull()?.page?.location() == word
+        val isAnAimingPage = word.namespace == Constants.MOD_ID && Aspect.byPage(word.path) != null
         if (isAnAimingPage) return emptyList()
-        val appliesTo = if (reach.isEmpty()) {
-            listOf(Component.translatable(APPLIES_ANYWHERE).string)
-        } else {
-            wrapped(reach.sortedBy { it.page }.map { WordNames.readable(it.page.location()).string })
+        val pages = reach.map { it.page }.distinct()
+        val appliesTo = when {
+            pages.isEmpty() -> listOf(Component.translatable(APPLIES_ANYWHERE).string)
+            // A mood or a colour reaches nearly every part there is, and a list of nineteen says less than a count.
+            pages.size > MOST_LISTED -> listOf(Component.translatable(APPLIES_WIDELY, pages.size).string)
+            else -> wrapped(pages.sorted().map { WordNames.readable(it.location()).string })
         }
         val shapes = KnownWords.shapesMadeOf(word).map { WordNames.readable(it).string }.sorted()
         val modifies = if (shapes.isEmpty()) emptyList() else section(MODIFIES, wrapped(shapes))
@@ -49,6 +53,10 @@ object WordReachTooltip {
 
     private const val APPLIES_TO = "item.agesandtheart.page.applies_to"
     private const val APPLIES_ANYWHERE = "item.agesandtheart.page.applies_anywhere"
+    private const val APPLIES_WIDELY = "item.agesandtheart.page.applies_widely"
+
+    /** The most parts listed by name before they are counted instead. */
+    private const val MOST_LISTED = 8
     private const val MODIFIES = "item.agesandtheart.page.modifies"
     private const val LIST_SEPARATOR = ", "
 

@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.reading
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.resolution.Effect
@@ -12,7 +14,10 @@ import co.voik.agesandtheart.age.resolution.Place
 import co.voik.agesandtheart.age.resolution.WorldFacts
 import co.voik.agesandtheart.age.resolution.clashesAmong
 import co.voik.agesandtheart.age.resolution.flawsOf
+import co.voik.agesandtheart.age.words.Audience
 import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.Offer
+import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.JoinedPair
 import co.voik.agesandtheart.age.words.ValueType
 import co.voik.agesandtheart.age.words.Value
@@ -149,9 +154,10 @@ private class Drawing(
      */
     private fun drawnOnto(page: Int): Pair<Dangled, List<Landing>> {
         val word = words.word(written[page])
-        val takers = if (word == null || word.defaultSense?.behaviour != null) emptyList() else takersOf(written[page])
-        if (takers.isEmpty()) return Dangled(page, written[page], null) to emptyList()
-        val (taker, read) = takers[randomFor(page, DANGLING_SALT).nextInt(takers.size)]
+        val candidates = if (word == null || word.defaultSense?.behaviour != null) emptyList() else candidatesFor(word)
+        val drawn = takerDrawn(written[page], candidates, randomFor(page, DANGLING_SALT))
+            ?: return Dangled(page, written[page], null) to emptyList()
+        val (taker, read) = drawn
         val phrase = read.phrases.first()
         val saying = sayingOf(phrase, page = page, takerWord = taker)
         val landing = thatLand(saying.placements).ifEmpty { listOf(saying.placements.maxBy { it.chance }) }
@@ -159,24 +165,48 @@ private class Drawing(
     }
 
     /**
-     * Every word that, laid after [dangling], closes a phrase taking something of it through an acceptance that resolves
-     * dangling offers, by name, with that reading.
+     * One of [candidates] drawn by [random] that takes something of [dangling], with that reading, or null where none
+     * does: each is read only once it is drawn, and one that takes nothing is set aside and the draw made again.
      */
-    private fun takersOf(dangling: String): List<Pair<String, Reading>> = words.all
-        .filter { it.defaultSense?.behaviour == null && !isGated(it) }
-        .mapNotNull { taker ->
-            val page = words.pageFor(taker)
-            val read = Reader.read(words, listOf(dangling, page), membership, seed)
-            val phrase = read.phrases.singleOrNull { it.head == 1 } ?: return@mapNotNull null
-            val sense = read.pages[1].sense?.let(taker.senses::getOrNull) ?: taker.defaultSense
-            fun resolvesIt(placement: Placement): Boolean {
-                val acceptance = sense?.acceptanceOf(placement.offer.concept)
-                val resolves = placement.offer.isAReading || acceptance?.canResolveDanglingOffers == true
-                return placement.from == 0 && resolves
-            }
-            val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
-            if (resolving.placements.isEmpty()) null else page to read.copy(phrases = listOf(resolving))
+    private fun takerDrawn(dangling: String, candidates: List<Word>, random: Random): Pair<String, Reading>? {
+        val left = candidates.toMutableList()
+        while (left.isNotEmpty()) {
+            val taker = left.removeAt(random.nextInt(left.size))
+            readWith(dangling, taker)?.let { return it }
         }
+        return null
+    }
+
+    /**
+     * [taker] laid after [dangling], where it closes a phrase taking something of it through an acceptance that resolves
+     * dangling offers: its page, and that reading.
+     */
+    private fun readWith(dangling: String, taker: Word): Pair<String, Reading>? {
+        val page = words.pageFor(taker)
+        val read = Reader.read(words, listOf(dangling, page), membership, seed)
+        val phrase = read.phrases.singleOrNull { it.head == 1 } ?: return null
+        val sense = read.pages[1].sense?.let(taker.senses::getOrNull) ?: taker.defaultSense
+        fun resolvesIt(placement: Placement): Boolean {
+            val acceptance = sense?.acceptanceOf(placement.offer.concept)
+            val resolves = placement.offer.isAReading || acceptance?.canResolveDanglingOffers == true
+            return placement.from == 0 && resolves
+        }
+        val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
+        return if (resolving.placements.isEmpty()) null else page to read.copy(phrases = listOf(resolving))
+    }
+
+    /**
+     * The words that could take something of [dangling]: no behaviour, not gated, and with a sense whose acceptance could
+     * resolve one of its offers, or of the part one of its readings is for. Whether one does is for reading the two.
+     */
+    private fun candidatesFor(dangling: Word): List<Word> {
+        val offers = dangling.senses.flatMap { it.offers }
+        val concepts = offers.filterNot(Offer::isAReading).map(Offer::concept).toSet()
+        val readingParts = offers.filter(Offer::isAReading).mapNotNull { (it.audience as? Audience.Part)?.aspect }.toSet()
+        fun resolvesOne(sense: Sense) = concepts.any { sense.acceptanceOf(it)?.canResolveDanglingOffers == true }
+        fun couldTakeIt(taker: Word) = taker.senses.any { sense -> resolvesOne(sense) || sense.speaksFor in readingParts }
+        return words.all.filter { it.defaultSense?.behaviour == null && !isGated(it) && couldTakeIt(it) }
+    }
 
     // ----- Landings -----
 
@@ -242,18 +272,32 @@ private class Drawing(
                 else -> null
             }
         } + phrase.own.filterIsInstance<Effect.Admits>().filter { it.aspect == phrase.part }.flatMap { it.members }
-        return (taken + own).toSet().ifEmpty { null }
+        return (taken + own).toSet().ifEmpty { null } ?: membersOfItsGroup(phrase)
+    }
+
+    /**
+     * A group's members, where its thing names none outright: those of its part clearing every bar its own meaning sets
+     * — `monsters` the hostile creatures, `trees` the wooded features — so `slow monsters` slows those and no cow.
+     */
+    private fun membersOfItsGroup(phrase: Phrase): Set<String>? {
+        val part = phrase.part ?: return null
+        val holdsMembersToChooseBetween = part.holds == Holds.WEIGHTED_SET || (part.holds == Holds.CATALOGUE && !part.open)
+        val bars = phrase.own.filterIsInstance<Effect.Restricts>().filter { it.aspect == part }.map { it.bars }
+        if (!holdsMembersToChooseBetween || bars.isEmpty()) return null
+        fun clearsEveryBar(member: Taggable) = bars.all { Bars.cleared(world.tagsOf(member), it) }
+        return world.availableToBroadWordsIn(part).filter(::clearsEveryBar).map { it.key }.toSet().ifEmpty { null }
     }
 
     /**
      * Whether a phrase naming members only describes them, asking for none: `deserted villages` is about the villages
-     * there are. Not where it asks an amount or a polarity, nor where its members are not there until something brings them.
+     * there are. Not where it asks an amount or a polarity, nor where its members are not there until something brings them,
+     * and a bar is no description: `settled ruins` asks for ruins that are lived in.
      */
     private fun onlyDescribes(phrase: Phrase, named: Set<String>?): Boolean {
         val part = phrase.part ?: return false
         val namesMembers = named != null && phrase.own.any(::namesMembers)
         val effects = phrase.placements.flatMap { it.effects }
-        val describes = effects.any { it !is Effect.Abundance }
+        val describes = effects.any { it !is Effect.Abundance && !namesMembers(it) }
         val asksForAnAmount = effects.any { it is Effect.Abundance }
         val isAPopulationOfMembers = part.holds == Holds.WEIGHTED_SET && part.pool?.startsEmpty != true
         val namedAreThereAnyway = named.orEmpty().all { membership.isThereByDefault(part, it) }
@@ -309,7 +353,8 @@ private class Drawing(
     ) {
         /**
          * Its own meaning and [landing] of its placements, said of its members. A negated or `only` thing is one claim,
-         * struck or kept as described: what it took narrows it, a lean toward a tag becoming a bar on it.
+         * struck or kept as described: what it took narrows it, a lean toward a tag becoming a bar on it, and it is said
+         * by the word naming its members where that is another's — `desert` in `only desert biomes`.
          */
         fun landings(landing: List<Placement>): List<Landing> {
             val isNarrowed = polarity != Polarity.ASSERTED
@@ -317,7 +362,8 @@ private class Drawing(
                 val described = own + landing.flatMap { it.effects }.map(::asANarrowing)
                 val strikesEveryMember = described.isEmpty() && isAPartsPage && polarity == Polarity.EXCEPT && part != null
                 val struck = if (strikesEveryMember && part != null) listOf(Effect.Excludes(part, setOf(Effect.Excludes.EVERY_MEMBER))) else described
-                return said(struck, word, head, CERTAIN, joined)
+                val namer = landing.firstOrNull { placement -> placement.effects.any(::namesMembers) }.takeIf { own.none(::namesMembers) }
+                return if (namer == null) said(struck, word, head, CERTAIN, joined) else said(struck, written[namer.from], namer.from, CERTAIN, joined)
             }
             val bringsABody = members is Members.Body
             val ownLandings = if (own.isEmpty() && bringsABody) said(emptyList(), word, head, CERTAIN, joined, alwaysAtThePart = true)
@@ -370,9 +416,17 @@ private class Drawing(
      */
     private fun landingsOf(effects: List<Effect>, part: Aspect?, members: Members): List<Pair<Place, List<Effect>>> {
         val placed = effects.flatMap { effect -> aspectsOf(effect, part).map { aspect -> aspect to localised(effect, aspect) } }
-        return placed.groupBy({ it.first }, { it.second }).toSortedMap(compareBy(Aspect::ordinal)).map { (aspect, here) ->
-            Place(aspect, if (aspect == part) members else Members.All) to here.distinct()
+        val grouped = placed.groupBy({ it.first }, { it.second }).toSortedMap(compareBy(Aspect::ordinal)).map { (aspect, here) ->
+            val place = Place(aspect, if (aspect == part) members else Members.All)
+            place to here.distinct().filterNot { countsNothing(it, place) }
         }
+        return grouped.filter { (_, here) -> here.isNotEmpty() }
+    }
+
+    /** An abundance said of a catalogue counts a member it names, and of the whole of one, which has nothing to count, nothing: `few underground`. */
+    private fun countsNothing(effect: Effect, place: Place): Boolean {
+        val isACatalogueWithNoCount = place.aspect.holds == Holds.CATALOGUE && place.aspect.count == null
+        return effect is Effect.Abundance && isACatalogueWithNoCount && place.members == Members.All
     }
 
     /** The parts [effect], said of a thing of [part], lands on; none for what is said of the Age whole. */

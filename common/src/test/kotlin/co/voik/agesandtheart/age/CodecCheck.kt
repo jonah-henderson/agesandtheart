@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.age.language.WordFormat
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.consequence.Consequence
@@ -57,7 +57,7 @@ class CodecCheck : FunSpec({
             "sky spec" to SkySpec.CODEC,
             "instability" to Instability.CODEC,
             "flaw" to Flaw.CODEC,
-            "word" to WordFormat.mapCodec("floating".location()).codec(),
+            "word" to Word.mapCodec("floating".location()).codec(),
             "preset tags" to PresetTags.CODEC,
             "opposed tags" to OpposedTags.CODEC,
             "region map" to RegionMap.MAP_CODEC.codec(),

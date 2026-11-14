@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import net.minecraft.core.RegistryAccess
@@ -31,7 +31,7 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         val authored = listed[pool.path].orEmpty()
         fun isListed(word: Word) = word.name in authored
         fun isTagged(word: Word) = registries.carriesTagNamed(word, pool)
-        return vocabulary.words.filter { isListed(it) || isTagged(it) }
+        return vocabulary.allWords.filter { isListed(it) || isTagged(it) }
     }
 
     /**

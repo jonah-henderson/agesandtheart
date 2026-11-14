@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.command
 
 import co.voik.agesandtheart.age.reward.Danger
-import co.voik.agesandtheart.age.language.Reading
+import co.voik.agesandtheart.age.reading.Fate
+import co.voik.agesandtheart.age.reading.Trace
+import co.voik.agesandtheart.age.reading.Written
 import co.voik.agesandtheart.age.resolution.Landing
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.generation.AgeGeneration
@@ -283,7 +285,7 @@ object AgeCommand {
         // **A page nobody recognises is not a thing that happens in play**: a player assembles a book from
         // pages, and every page carries a real word. Typing one here is a typo, so it fails the command
         // rather than quietly making a vaguer Age out of the rest.
-        val unknown = pages.filter { vocabulary.word(it) == null && vocabulary.structurePage(it) == null }
+        val unknown = vocabulary.pagesNow(pages).filter { vocabulary.word(it) == null }
         if (unknown.isNotEmpty()) {
             return report.fail("The Art has never heard of ${unknown.joinToString(" ")}")
         }
@@ -292,11 +294,11 @@ object AgeCommand {
         // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
         // printed with the Age, so a world worth keeping can be pinned by writing it back.
         val chosenSeed = seed ?: AgeRecipe.freshSeed()
-        val read = vocabulary.read(pages, chosenSeed)
-            ?: return report.fail("A book has an Age page — write 'age', and what it is like around it")
-        reportReading(report, read)
+        if (!vocabulary.spellsABook(pages)) return report.fail("A book has an Age page — write 'age', and what it is like around it")
+        val written = vocabulary.written(pages, chosenSeed)
+        reportReading(report, written)
 
-        val resolution = vocabulary.resolve(read, chosenSeed)
+        val resolution = written.resolution
         val recipe = AgeRecipe.written(source.server, resolution, pages, chosenSeed)
         val result = open(source, name, id, recipe, report)
         if (result == FAILURE) return FAILURE
@@ -326,9 +328,10 @@ object AgeCommand {
      * it said there, and which pages had nowhere to land. `/age write` is a debug tool, and where a word reaches is
      * what an author of the vocabulary needs to see; a desk shows the prose alone.
      */
-    private fun reportReading(report: Report, read: Reading) {
-        report.fact("readout", read.readout) { read.readout.lines().joinToString("\n") { "  $it" } }
-        for (landing in read.landings) {
+    private fun reportReading(report: Report, written: Written) {
+        val readout = Trace.of(written.reading, written.drawn).joinToString("\n")
+        report.fact("readout", readout) { readout.lines().joinToString("\n") { "  $it" } }
+        for (landing in written.drawn.landed) {
             val fields = mapOf(
                 "word" to landing.word,
                 "page" to landing.page,
@@ -339,15 +342,15 @@ object AgeCommand {
             )
             report.entry("said", fields) { "    ${landing.word} → ${landing.aspect().page}" }
         }
-        val moved = read.moved.map { it.written }
-        report.only("moved", moved)
-        if (moved.isNotEmpty()) {
+        val drawn = written.drawn.dangling.filter { it.drawnOnto != null }
+        report.only("dangling", drawn.map { it.written })
+        if (drawn.isNotEmpty()) {
             report.styled {
-                Component.literal("  nothing would take these, so the Art laid them on the Age: ")
-                    .append(Component.literal(moved.joinToString(" ")).withStyle(ChatFormatting.GRAY))
+                Component.literal("  placed nothing, so drawn onto another word: ")
+                    .append(Component.literal(drawn.joinToString(" ") { "${it.written} → ${it.drawnOnto}" }).withStyle(ChatFormatting.GRAY))
             }
         }
-        val unread = read.unread.map { it.written }
+        val unread = written.reading.pages.filter { it.fate == Fate.Unknown }.map { it.written }
         report.only("unreadable", unread)
         if (unread.isNotEmpty()) {
             report.styled {
@@ -355,7 +358,7 @@ object AgeCommand {
                     .append(Component.literal(unread.joinToString(" ")).withStyle(ChatFormatting.STRIKETHROUGH))
             }
         }
-        val impossible = read.impossible.map { it.written }
+        val impossible = written.drawn.dangling.filter { it.drawnOnto == null }.map { it.written }
         report.only("impossible", impossible)
         if (impossible.isNotEmpty()) {
             report.styled {
@@ -372,31 +375,32 @@ object AgeCommand {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
         reportProblems(report, vocabulary)
-        if (vocabulary.words.isEmpty()) {
+        if (vocabulary.allWords.isEmpty()) {
             return report.fail("The Art knows no words at all — is the mod's data pack loaded?")
         }
         // Authored words are listed; derived ones are counted, since there is one per block in the pack.
-        val authored = vocabulary.words.filter { it.id.namespace == Constants.MOD_ID }
-        report.fact("words", vocabulary.words.size) { "The Art knows ${vocabulary.words.size} words." }
+        val authored = vocabulary.authoredWords.filterNot(vocabulary::isAStructureWord)
+        report.fact("words", vocabulary.allWords.size) { "The Art knows ${vocabulary.allWords.size} words." }
         report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {
-            val places = vocabulary.lexicon.placesFor(word).sortedBy { it.ordinal }.map { it.page }
-            val takes = vocabulary.lexicon.acceptance(word) != null
+            val places = vocabulary.reach[word.id].orEmpty().sortedBy { it.ordinal }.map { it.page }
+            val takes = word.senses.any { it.acceptances.isNotEmpty() }
             val ink = vocabulary.ink.tierFor(word, source.server.registryAccess())
+            val price = vocabulary.priceOf(word)
             val fields = mapOf(
                 "word" to word.name,
-                "meanings" to word.meanings.size,
+                "senses" to word.senses.size,
                 "aspects" to places,
                 "takes" to takes,
-                "price" to word.price,
+                "price" to price,
                 "ink" to ink.key,
             )
             val taking = if (takes) ", takes pages" else ""
             report.entry("authoredWords", fields) {
-                "  ${word.name} — ${word.meanings.size} meanings, ${word.price} ${ink.key} ink$taking: ${places.joinToString(" ")}"
+                "  ${word.name} — ${word.senses.size} senses, $price ${ink.key} ink$taking: ${places.joinToString(" ")}"
             }
         }
-        val structural = vocabulary.structurePages
+        val structural = vocabulary.allWords.filter(vocabulary::isAStructureWord)
         report.only("structural", structural.map { it.name })
         if (structural.isNotEmpty()) {
             report.say { "${structural.size} structural: ${structural.joinToString(" ") { it.name }}" }
@@ -412,12 +416,12 @@ object AgeCommand {
             }
         }
         // Per namespace, which says at a glance whether a mod's content reached the vocabulary (§8).
-        val derivedByPack = vocabulary.words.filter { it.id.namespace != Constants.MOD_ID }
+        val derivedByPack = vocabulary.derivedWords
             .groupingBy { it.id.namespace }.eachCount().entries.sortedByDescending { it.value }
-        report.only("derived", vocabulary.words.size - authored.size)
+        report.only("derived", vocabulary.derivedWords.size)
         if (derivedByPack.isNotEmpty()) {
             val counts = derivedByPack.joinToString(", ") { (pack, many) -> "$pack $many" }
-            report.say { "${vocabulary.words.size - authored.size} derived — $counts" }
+            report.say { "${vocabulary.derivedWords.size} derived — $counts" }
             report.say { "  say any block, biome or structure by name, e.g. 'copper_block', 'mansion'" }
         }
         report.finish()

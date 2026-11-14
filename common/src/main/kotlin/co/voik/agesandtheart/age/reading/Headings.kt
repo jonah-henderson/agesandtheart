@@ -52,7 +52,7 @@ object Headings {
     /** A word others may be listed under: a thing or a part's page, by its default sense. */
     private class Heading(val word: Word, sense: Sense, val part: Aspect) {
         val namesMembers: Boolean = sense.offers.any { it.concept == CoreConcepts.MEMBER } ||
-            sense.means.any { it is Effect.Chooses || it is Effect.Admits }
+            sense.means.any { it is Effect.Chooses || it is Effect.Admits || it is Effect.Restricts }
 
         fun isAPartsPage(words: Words): Boolean = words.partPage(part)?.id == word.id
     }

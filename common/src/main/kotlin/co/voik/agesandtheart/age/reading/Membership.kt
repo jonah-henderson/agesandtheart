@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.reading
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.resolution.Effect
 
 /**
  * What the reader asks the world about a value, so that it stays a pure function of the words, the pages and these
@@ -19,4 +20,7 @@ interface Membership {
 
     /** Whether [member] of [part] is there in a world that never named it, so naming it beside a description only describes it. */
     fun isThereByDefault(part: Aspect, member: String): Boolean
+
+    /** Whether [member] of [part] does anything with [effect], as its code answers: a tempest holds no amount, an inferno no frequency. */
+    fun doesAnythingWith(part: Aspect, member: String, effect: Effect): Boolean = true
 }

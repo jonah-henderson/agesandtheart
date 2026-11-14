@@ -7,7 +7,9 @@ import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.resolution.Effect
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.EffectTemplate
+import co.voik.agesandtheart.age.words.Outcome
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import co.voik.agesandtheart.worldgen.feature.OreVein
@@ -461,8 +463,12 @@ class MintingCheck : FunSpec({
      * so once in the log and ships the shape's own stone, and the Age looks merely dull.
      */
     test("every pattern's unstated substance names something real") {
-        fun unstatedOf(word: Word) = word.effects.filterIsInstance<Effect.Mints>().mapNotNull { it.unstated }
-        val patterns = vocabulary.words.filter { unstatedOf(it).isNotEmpty() }
+        fun meant(word: Word): List<Effect> = word.senses.flatMap { sense ->
+            val accepted = sense.acceptances.flatMap { (it.outcome as? Outcome.Becomes)?.effects.orEmpty() }.filterIsInstance<EffectTemplate.Fixed>()
+            sense.means + sense.offers.flatMap { it.reading } + accepted.map { it.effect }
+        }
+        fun unstatedOf(word: Word) = meant(word).filterIsInstance<Effect.Mints>().mapNotNull { it.unstated }
+        val patterns = vocabulary.allWords.filter { unstatedOf(it).isNotEmpty() }
         check(patterns.isNotEmpty()) { "no pattern says what it is made of, so this is checking nothing" }
 
         for (word in patterns) for (named in unstatedOf(word)) {
@@ -674,8 +680,8 @@ class MintingCheck : FunSpec({
     }
 
     test("fallen leaves lie thick, and fallen stars are meteors") {
-        val leaves = vocabulary.read(listOf("fallen", "leaves", "age"), SAMPLE_SEED)
-        val admitted = leaves?.landings.orEmpty().flatMap { it.effects }.filterIsInstance<Effect.Admits>().flatMap { it.members }
+        val leaves = vocabulary.written(listOf("fallen", "leaves", "age"), SAMPLE_SEED)
+        val admitted = leaves.drawn.landed.flatMap { it.effects }.filterIsInstance<Effect.Admits>().flatMap { it.members }
         check("agesandtheart:fallen_leaves" in admitted) { "fallen leaves admitted $admitted" }
         val phenomena = resolved(SAMPLE_SEED, "fallen", "stars").composition.optionsFor(Aspect.PHENOMENA, 0)
         check(Phenomena.claimsIn(phenomena).any { it.value == "meteors" }) { "fallen stars brought ${Phenomena.claimsIn(phenomena)}" }

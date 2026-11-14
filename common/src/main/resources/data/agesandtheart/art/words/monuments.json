@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "Shapes built at a scale nobody would build them: every monumental formation, and every monumental thing leaned",
-    "toward. `gold_block monuments` are all of gold."
+    "Shapes built at a scale nobody would build them: every monumental formation, each as often as its weight says.",
+    "`gold_block monuments` are all of gold."
   ],
   "speech": "plural",
   "kind": "minted",
@@ -53,13 +53,6 @@
         "pattern": "agesandtheart:boulders",
         "unstated": "#agesandtheart:formation_substance",
         "frequency": 0.1
-      }
-    },
-    {
-      "leans": {
-        "features": {
-          "#monumental": 1.0
-        }
       }
     }
   ]

@@ -6,19 +6,22 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.honoursDial
 import co.voik.agesandtheart.age.aspect.Spawning
-import co.voik.agesandtheart.age.language.DerivedWords
-import co.voik.agesandtheart.age.language.Lexicon
-import co.voik.agesandtheart.age.language.MemberTags
-import co.voik.agesandtheart.age.language.Prose
+import co.voik.agesandtheart.age.reading.Headings
+import co.voik.agesandtheart.age.reading.StructureWord
+import co.voik.agesandtheart.age.reading.StructureWords
+import co.voik.agesandtheart.age.reading.Usage
+import co.voik.agesandtheart.age.reading.WorldMembership
+import co.voik.agesandtheart.age.reading.Writing
+import co.voik.agesandtheart.age.reading.Written
+import co.voik.agesandtheart.age.readout.Readout
 import co.voik.agesandtheart.age.readout.ReadoutClause
-import co.voik.agesandtheart.age.language.Reader
-import co.voik.agesandtheart.age.language.Reading
-import co.voik.agesandtheart.age.language.Structure
-import co.voik.agesandtheart.age.language.Word
-import co.voik.agesandtheart.age.language.WordFormat
-import co.voik.agesandtheart.age.language.Writing
 import co.voik.agesandtheart.age.resolution.Resolution
+import co.voik.agesandtheart.age.words.DerivedWords
+import co.voik.agesandtheart.age.words.Word
+import co.voik.agesandtheart.age.words.Words
 import co.voik.agesandtheart.age.resolution.WorldFacts
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
 import com.google.gson.JsonParser
@@ -61,10 +64,9 @@ private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
  *
  * | path | holds |
  * |---|---|
- * | `word/<name>.json` | one word — the meanings it carries ([WordFormat]) |
+ * | `words/<name>.json`, `concept/`, `kind/` | the words, what they offer and take, and the kinds they share ([Words]) |
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `opposed_tags/<page>.json` | pairs of tags that mean opposite things |
- * | `grammar/<name>.json` | one structure page, naming the structure it is |
  * | `generation/<name>.json` | one weighted grammar the Art writes *out* of |
  *
  * One file per word so a pack can replace a single one; one per *aspect* of tags because tag weights are
@@ -75,9 +77,8 @@ private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
  * which `/age words` prints and `VocabularyCheck` fails the build over.
  */
 data class Vocabulary(
-    private val byName: Map<String, Word>,
-    /** The structure pages — `age`, `and`, `in` — keyed by what a writer says. */
-    private val structural: Map<String, Structure.Page>,
+    /** Every word, concept and kind, the structure words and the words the game's content was given among them. */
+    val words: Words,
     private val tagsBySlot: Map<Aspect, PresetTags>,
     val opposedTags: List<OpposedTags>,
     /** The script words are written in. Optional content — see [Script]. */
@@ -90,8 +91,6 @@ data class Vocabulary(
     val stock: WriterStock,
     /** The grammars the Art writes *out* of — books it could have written, names, repairs. */
     val generation: GenerationGrammars,
-    /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
-    private val derivedIds: Set<Identifier>,
     /** How the world's own tags and facts become ours, per aspect — see [Derivation]. */
     val derivation: Map<Aspect, Derivation>,
     /** What a block may be as the rock or the ground, for a word asking for one by tag — see [MaterialTable]. */
@@ -106,18 +105,24 @@ data class Vocabulary(
     val problems: List<String>,
     /** The registries this was loaded over, which say what each member honours; null offline. */
     private val registries: HolderLookup.Provider? = null,
-) : WorldFacts, MemberTags {
-    /**
-     * Distinct, because a derived word answers to both its bare path and its full id (see [load]). Worked out
-     * once: a corpus is fixed until the next reload, and a found page asks for it on every draw.
-     */
-    val words: List<Word> by lazy { byName.values.distinct().sortedBy { it.name } }
+) : WorldFacts {
+    /** Every word once. */
+    val allWords: List<Word> get() = words.all
 
-    /** [words] by the rarity bucket each is found in, worked out once for the same reason. */
-    val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { words.groupBy(::bucketOf) }
+    /** [allWords] by the rarity bucket each is found in, worked out once: a found page asks for it on every draw. */
+    val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { allWords.groupBy(::bucketOf) }
+
+    /** What [word] costs to write. */
+    fun priceOf(word: Word): Int = words.priceOf(word)
+
+    /** Whether [member] does anything with [parameter], as its code answers; offline, a registry entry is taken to. */
+    fun honours(member: Taggable, parameter: Parameter): Boolean = member.honoursDial(parameter, registries)
 
     /** The ink [word] demands: its referent's tags where this was loaded over registries, else the authored lists. */
-    fun inkFor(word: Word): InkTier = ink.tierFor(word, registries)
+    fun inkFor(word: Word): InkTier = inks[word.id] ?: ink.tierFor(word, registries)
+
+    /** Every word's ink, worked out once: a referent's tags are a registry walk, and a draw asks of every word. */
+    private val inks: Map<Identifier, InkTier> by lazy { allWords.associate { it.id to ink.tierFor(it, registries) } }
 
     /** The rarity bucket [word] is found in. */
     fun bucketOf(word: Word): RarityBucket? = rarity.bucketOf(word, inkFor(word))
@@ -126,19 +131,19 @@ data class Vocabulary(
      * The word a writer means by [name], or null if the corpus has never heard of it. A word answering to the name
      * now wins over one retired from it, so `drowned` is the creature; an id keeps its retirement ([successorId]).
      */
-    fun word(name: String): Word? = byName[name] ?: retired.successorOf(name)?.let(byName::get)
+    fun word(name: String): Word? = words.word(name) ?: retired.successorOf(name)?.let(words::word)
 
     /** The word a page or a learned set names by [id], or what it was retired into; null where there is no such word now. */
     fun word(id: Identifier): Word? {
-        val named = (byName[id.toString()] ?: byName[id.path])?.takeIf { it.id == id }
+        val named = (words.word(id.toString()) ?: words.word(id.path))?.takeIf { it.id == id }
         return named ?: successorId(id)?.let(::word)
     }
 
     /**
-     * Whether [id] still names something a page, a book or a learned set may carry: a word, a structure page, or one
-     * retired into a word. What does not is gone, and is cleared out wherever it is found.
+     * Whether [id] still names something a page, a book or a learned set may carry: a word, or one retired into words.
+     * What does not is gone, and is cleared out wherever it is found.
      */
-    fun stillNames(id: Identifier): Boolean = word(id) != null || structural[id.path]?.id == id || successorIds(id) != null
+    fun stillNames(id: Identifier): Boolean = word(id) != null || successorIds(id) != null
 
     /** Every retired id that leads to a word now, and the word's id. */
     val renamed: Map<Identifier, Identifier> by lazy {
@@ -153,7 +158,7 @@ data class Vocabulary(
      */
     fun successorId(id: Identifier): Identifier? {
         val retiredAs = if (id.namespace == Constants.MOD_ID) id.path else id.toString()
-        return retired.successorOf(retiredAs)?.let(byName::get)?.id
+        return retired.successorOf(retiredAs)?.let(words::word)?.id
     }
 
     /**
@@ -161,7 +166,7 @@ data class Vocabulary(
      * set a pack ships as worldgen JSON, over registries that never loaded it. Offline that is exactly the
      * pack's own worldgen; on a server it is nothing.
      */
-    fun awaitsAServer(name: String): Boolean = name !in byName && name in shippedButNotLoaded
+    fun awaitsAServer(name: String): Boolean = words.word(name) == null && name in shippedButNotLoaded
 
     /**
      * Whether this word was read off a block, biome or structure rather than authored (§8.1).
@@ -170,76 +175,99 @@ data class Vocabulary(
      * anything drawing a word uniformly draws content vocabulary essentially always. [WordRarity] treats
      * the whole derived corpus as one weighted entry because of this.
      */
-    fun isDerived(word: Word): Boolean = word.id in derivedIds
+    fun isDerived(word: Word): Boolean = word.id in words.derived
 
     /** The words a pack authored, which are the ones worth naming individually in a rarity bucket. */
-    val authoredWords: List<Word> get() = words.filterNot(::isDerived)
+    val authoredWords: List<Word> get() = allWords.filterNot(::isDerived)
 
     /** The words read off content — one anonymous mass, deliberately. */
-    val derivedWords: List<Word> get() = words.filter(::isDerived)
+    val derivedWords: List<Word> get() = allWords.filter(::isDerived)
 
-    /** Every structure page the Art knows. */
-    val structurePages: List<Structure.Page> get() = structural.values.sortedBy { it.name }
+    /** Whether [word] is a structure word — `age`, `and`, `no` — which binds the pages around it rather than describing. */
+    fun isAStructureWord(word: Word): Boolean = word.senses.any { it.behaviour != null }
 
-    /**
-     * The structure page [name] spells, if it is one. Asked **before** [word], so a pack defining an ordinary word
-     * called `and` cannot make the conjunction unsayable.
-     */
-    fun structurePage(name: String): Structure.Page? = structural[name]
+    /** Whether [word] is `age`, which closes a book and hands what reaches it to the whole Age. */
+    fun isTheAge(word: Word): Boolean = word.senses.any { it.behaviour == StructureWord.Age.id }
 
-    /** Every word, every structure page and what each word takes, as the reading reads a book against them. */
-    val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries, ::phraseOf) }
+    /** Whether [pages] spell a book: one of them is `age`. */
+    fun spellsABook(pages: List<String>): Boolean = pagesNow(pages).any { page -> word(page)?.let(::isTheAge) == true }
 
     /** The words [name] is read as where it is a page of ours retired into several, or null. */
-    fun phraseOf(name: String): List<String>? = if (name in byName) null else retired.phraseOf(name)
+    fun phraseOf(name: String): List<String>? = if (words.word(name) != null) null else retired.phraseOf(name)
 
     /** The ids [id] has become: one where it was renamed, several where it was retired into a phrase, null where neither. */
     fun successorIds(id: Identifier): List<Identifier>? {
         successorId(id)?.let { return listOf(it) }
         if (id.namespace != Constants.MOD_ID) return null
-        return phraseOf(id.path)?.mapNotNull { byName[it]?.id }?.takeIf { it.isNotEmpty() }
+        return phraseOf(id.path)?.mapNotNull { words.word(it)?.id }?.takeIf { it.isNotEmpty() }
     }
 
-    /** Every page of ours retired into a phrase, and the parts of the world its words reach, as a client is told. */
-    val phrases: Map<Identifier, Set<Aspect>> by lazy {
-        retired.phraseNames.mapNotNull { name ->
-            val words = phraseOf(name)?.mapNotNull(byName::get)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-            Identifier.fromNamespaceAndPath(Constants.MOD_ID, name) to words.flatMap(lexicon::placesFor).toSet()
-        }.toMap()
+    /** [pages] as the words they are read as now: a page retired into several words is them, one renamed its successor. */
+    fun pagesNow(pages: List<String>): List<String> = pages.flatMap { page ->
+        phraseOf(page) ?: listOf(if (words.word(page) != null) page else retired.successorOf(page) ?: page)
+    }
+
+    /** Which members of each part a word may name, as the reader asks it. */
+    val membership: WorldMembership by lazy { WorldMembership(this) }
+
+    /**
+     * Whether [word] brings what a dangling page may never be drawn onto: anything kept out of loot or held back from
+     * the channels, so a flaw cannot win back a reward.
+     */
+    fun isGated(word: Word): Boolean = gated[word.id] ?: isGatedWhenAsked(word)
+
+    private fun isGatedWhenAsked(word: Word): Boolean {
+        val keptOut = word.name in rarity.keptOutOfLoot
+        fun carries(tag: Identifier) = registries?.carriesTagNamed(word, tag) == true
+        return keptOut || carries(CannotAppearInLoot.TAG_NAME) || carries(Withheld.TAG_NAME)
+    }
+
+    /** Whether each word is gated, worked out once, since a dangling page asks it of every word that could take it. */
+    private val gated: Map<Identifier, Boolean> by lazy { allWords.associate { it.id to isGatedWhenAsked(it) } }
+
+    /** Rows of pages made into Ages. */
+    val writing: Writing by lazy { Writing(words, this, membership, ::isGated) }
+
+    /** [pages] read, drawn and resolved at [seed], a retired page read as what it became. */
+    fun written(pages: List<String>, seed: Long): Written = writing.written(pagesNow(pages), seed)
+
+    /** [pages] made into an Age at [seed]. */
+    fun resolve(pages: List<String>, seed: Long): Resolution = written(pages, seed).resolution
+
+    /** What [written] reads as: each thing a clause, what held of it, and what `age` handed out. */
+    fun readout(written: Written): List<ReadoutClause> = Readout.of(written.reading, written.drawn, written.resolution, words)
+
+    /** Which words take which, as the reader's own rule answers it. */
+    val usage: Usage by lazy { Usage(words, membership) }
+
+    /** The parts of the world each word reaches, and each page of ours retired into a phrase, as a client is told. */
+    val reach: Map<Identifier, Set<Aspect>> by lazy {
+        val ofWords = allWords.filterNot(::isAStructureWord).associate { it.id to usage.partsReached(it) }
+        val ofPhrases = retired.phraseNames.mapNotNull { name ->
+            val phrase = phraseOf(name)?.mapNotNull(words::word)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, name) to phrase.flatMap(usage::partsReached).toSet()
+        }
+        ofWords + ofPhrases
     }
 
     /**
      * The names of every word with something [head] takes, worked out once per head: the writer's desk asks it of every
-     * clause of every book it proposes, and the answer is the vocabulary's alone. Keyed by name, since a word's own
-     * hash walks every meaning it has.
+     * clause of every book it proposes, and the answer is the vocabulary's alone.
      */
     fun wordsLandingOn(head: Word): Set<String> = landingOn.computeIfAbsent(head.name) {
-        val acceptance = lexicon.acceptance(head) ?: return@computeIfAbsent emptySet()
-        words.filter { word -> word.effects.any { acceptance.take(it) != null } }.map { it.name }.toSet()
+        allWords.filter { usage.takes(head, it) }.map { it.name }.toSet()
     }
 
     private val landingOn = java.util.concurrent.ConcurrentHashMap<String, Set<String>>()
 
-    /** The words each word applies to, for a word list ordered under them ([WordHeadings.appliesTo]). Worked out once. */
-    val appliesTo: Map<Identifier, List<Identifier>> by lazy { WordHeadings.appliesTo(this) }
+    /** The words each word applies to, for a word list ordered under them ([Headings.appliesTo]). Worked out once. */
+    val appliesTo: Map<Identifier, List<Identifier>> by lazy { Headings.appliesTo(usage) }
 
-    /** The words naming members of a part of the world ([WordHeadings.members]). */
-    val namingMembers: Set<Identifier> by lazy { WordHeadings.members(this) }
+    /** The words naming members of a part of the world ([Headings.members]). */
+    val namingMembers: Set<Identifier> by lazy { Headings.members(words) }
 
-    /** The words naming a whole part of the world ([WordHeadings.parts]). */
-    val namingParts: Set<Identifier> by lazy { WordHeadings.parts(this) }
-
-    /** [pages] read at [seed], or null where they spell no book. */
-    fun read(pages: List<String>, seed: Long): Reading? = Reader.read(lexicon, pages, seed)
-
-    /** [pages] read and resolved at [seed], or null where they spell no book. */
-    fun resolve(pages: List<String>, seed: Long): Resolution? = Writing.resolve(lexicon, this, pages, seed)
-
-    /** A book already read, resolved at the [seed] it was read at. */
-    fun resolve(reading: Reading, seed: Long): Resolution = Writing.resolve(lexicon, this, reading, seed)
-
-    /** What a book already read reads as, with what held once it is resolved at [seed]. */
-    fun prose(reading: Reading, seed: Long): List<ReadoutClause> = Prose.of(reading, resolve(reading, seed), lexicon)
+    /** The words naming a whole part of the world ([Headings.parts]). */
+    val namingParts: Set<Identifier> by lazy { Headings.parts(words) }
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
     fun profileOf(preset: Taggable): PresetProfile =
@@ -267,7 +295,7 @@ data class Vocabulary(
      */
     override fun isPresentAnyway(member: Taggable): Boolean = profileOf(member).presentAnyway
 
-    override fun isThereByDefault(aspect: Aspect, key: String): Boolean =
+    fun isThereByDefault(aspect: Aspect, key: String): Boolean =
         tagsBySlot[aspect]?.byKey(key)?.presentAnyway ?: true
 
     /** How willingly the Art reaches for [member] when nothing asked for it. */
@@ -359,9 +387,6 @@ data class Vocabulary(
     }
 
     companion object {
-        /** Where a pack puts words. */
-        const val WORD_DIRECTORY = "art/word"
-
         /** Where a pack puts the tags a aspect's presets carry, one file per aspect key. */
         const val PRESET_TAGS_DIRECTORY = "art/preset_tags"
 
@@ -376,9 +401,6 @@ data class Vocabulary(
 
         /** Where a pack puts its opposed tags. */
         const val OPPOSED_TAGS_DIRECTORY = "art/opposed_tags"
-
-        /** Where a pack puts the structure pages — one file per page, naming the structure it is. */
-        const val GRAMMAR_DIRECTORY = "art/grammar"
 
         /**
          * The corpus this server is currently running, **built once per datapack load** — eleven hundred
@@ -398,22 +420,10 @@ data class Vocabulary(
          */
         fun load(resources: ResourceManager, registries: HolderLookup.Provider? = null): Vocabulary {
             val problems = mutableListOf<String>()
-            val authored = readWords(resources, problems)
-            // After the words, so an aspect's page that some word file also defines is reported rather than
-            // silently winning or losing on map order.
-            val pages = aspectPages(authored, problems)
             val tags = readPresetTags(resources, problems)
             val rules = readDerivations(resources, problems)
             val spawning = readSpawning(resources, problems)
             val opposedTags = readOpposedTags(resources, problems)
-            // Blocks are built-in and always available; biomes and structures are datapack content, so a
-            // corpus read without a server has §8's material half and neither population. Absent rather
-            // than wrong, which is what lets `VocabularyCheck` stay offline.
-            val fromRegistries = registries?.let {
-                DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
-            }.orEmpty()
-            val fromContent = DerivedWords.blocks() + DerivedWords.designs() +
-                DerivedWords.spawns(spawning.writable) + fromRegistries
             // **What the world says about itself, with what a pack said laid over it** — the tag half of
             // §8's "no per-mod work": a modded biome carrying `#minecraft:is_forest` is wooded without
             // anybody here having heard of it. Absent offline for want of bound tags, which is why the
@@ -423,39 +433,40 @@ data class Vocabulary(
                 (tags[aspect] ?: PresetTags(emptyMap())).over(derivedTags[aspect].orEmpty())
             }.filterValues { it.described.isNotEmpty() }
             val materials = materialTable(resources, registries, problems)
-            // **Authored wins a collision under every name**, the full id included: our own placed features share
-            // their ids with the words minting them, and the derived word left under `agesandtheart:arches` was a
-            // second word of one id, which the lexicon's cache, keyed by id, would answer for both.
-            val authoredIds = authored.values.map { it.id }.toSet()
-            // A derived word retired by its whole id is renamed, and its successor answers for it.
             val retired = RetiredWords.load(resources, problems)
-            fun isRetired(word: Word) = word.id.toString() in retired.names
-            val words = derived(fromContent.filterNot { it.id in authoredIds || isRetired(it) }) + authored + pages
-            val structural = readStructurePages(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
             val ink = InkRequirement.load(resources, problems)
             val stock = WriterStock.load(resources, problems)
-            // After the words, since a grammar naming one that does not exist is the fault worth reporting.
             val shippedButNotLoaded = worldgenShippedButNotLoaded(resources, registries)
+            val world = Vocabulary(
+                Words.NONE, described, opposedTags, script, rarity, ink, stock, GenerationGrammars.NONE,
+                rules, materials, spawning, retired, shippedButNotLoaded, problems, registries,
+            )
+            // Blocks and creatures are built in and always there; biomes, structures and placed features are datapack
+            // content, so a corpus read without a server has neither. Absent rather than wrong, which is what lets the
+            // offline checks stay offline. A feature's word reads its tags, so the world is stood up first.
+            val features = world.candidatesFor(Aspect.FEATURES).associateBy { it.key }
+            fun tagsOfFeature(key: String) = features[key]?.let(world::tagsOf).orEmpty()
+            val fromRegistries = registries?.let {
+                DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it, ::tagsOfFeature)
+            }.orEmpty()
+            fun isRetired(word: Word) = word.id.toString() in retired.names
+            val derived = (DerivedWords.blocks() + DerivedWords.designs() + DerivedWords.creatures(spawning.writable) + fromRegistries)
+                .filterNot(::isRetired)
+            val words = Words.load(resources, StructureWords.IDS, derived)
+            problems += words.problems.map { it.toString() }
             for (name in retired.names) {
-                if (retired.successorOf(name)?.let { it in words } != true) {
-                    problems += "retired word '$name' leads to no word that exists"
-                }
+                if (retired.successorOf(name)?.let(words::word) == null) problems += "retired word '$name' leads to no word that exists"
             }
+            // After the words, since a grammar naming one that does not exist is the fault worth reporting.
             val generation = GenerationGrammars.load(
                 resources,
-                isAWord = { it in words || it in structural || it in shippedButNotLoaded },
+                isAWord = { words.word(it) != null || it in shippedButNotLoaded },
                 problems,
             )
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
-            // Authored wins every collision above, so a derived id that an authored word displaced is not
-            // in `words` and must not be counted derived.
-            val derivedIds = fromContent.filterNot(::isRetired).map { it.id }.toSet() - authoredIds
-            return Vocabulary(
-                words, structural, described, opposedTags, script, rarity, ink, stock, generation,
-                derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems, registries,
-            )
+            return world.copy(words = words, generation = generation, problems = problems.toList())
         }
 
         /**
@@ -552,62 +563,6 @@ data class Vocabulary(
         }
 
         /**
-         * Derived words under the names a writer may say them by: the bare registry path, and always the
-         * full `namespace:path` (§8.1.1).
-         *
-         * **A path two packs both ship stops being offered bare**, since giving it to whichever loaded
-         * first would make what `creosote` means depend on mod load order. The full id still reaches both.
-         * Not reported as a problem — two mods are allowed to both have creosote.
-         */
-        private fun derived(words: List<Word>): Map<String, Word> {
-            // **Two derived words for one id are merged, never left to displace each other.** A placed
-            // feature and a block can share an id — `minecraft:blue_ice` is both — and the same principle
-            // already covers a fluid and its block: the id is the thing a writer points at, so one word
-            // carries everything that thing can be. Left to collide, the later one silently won and the
-            // bare name became ambiguous, which cost `blue_ice` its place in the corpus entirely.
-            val words = words.groupBy { it.id }.map { (_, sharing) -> sharing.reduce(::mergedCapabilities) }
-            val ambiguous = words.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
-            return buildMap {
-                for (word in words) {
-                    put(word.id.toString(), word)
-                    if (word.name !in ambiguous) put(word.name, word)
-                }
-            }
-        }
-
-        /** One referent's word said whole: every meaning either carries. */
-        private fun mergedCapabilities(word: Word, also: Word): Word =
-            word.copy(meanings = word.meanings + also.meanings, speech = word.speech ?: also.speech)
-
-        /**
-         * The page of every part of the world, derived rather than authored (`the-world-model.md` §3). A word file of
-         * the same name is two statements of one thing, and is called out as the content collision it is.
-         */
-        private fun aspectPages(authored: Map<String, Word>, problems: MutableList<String>): Map<String, Word> =
-            DerivedWords.aspectPages().associateBy { page ->
-                if (page.name in authored) {
-                    problems += "'${page.name}' is both an aspect and a word; an aspect already is its page"
-                }
-                page.name
-            }
-
-        private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
-            val words = mutableMapOf<String, Word>()
-            for ((file, resource) in resources.listResources(WORD_DIRECTORY, ResourceParsing::isJson)) {
-                val id = idOf(file, WORD_DIRECTORY)
-                val word = ResourceParsing.parse(resource, file, WordFormat.mapCodec(id).codec(), problems) ?: continue
-                // Two packs both defining "floating" would otherwise leave the winner to map iteration
-                // order, so it is called out as the content collision it is.
-                val existing = words[word.name]
-                if (existing != null && existing.id != word.id) {
-                    problems += "two words are both called '${word.name}': ${existing.id} and ${word.id}"
-                }
-                words[word.name] = word
-            }
-            return words
-        }
-
-        /**
          * How a creature the world never offered arrives in one — one file, stacked so a pack may retune a
          * single creature without reprinting the rest.
          */
@@ -681,23 +636,6 @@ data class Vocabulary(
                 }
             }
             return bySlot.mapValues { (_, merged) -> PresetTags(merged.toMap()) }
-        }
-
-        private fun readStructurePages(
-            resources: ResourceManager,
-            problems: MutableList<String>,
-        ): Map<String, Structure.Page> {
-            val structural = mutableMapOf<String, Structure.Page>()
-            for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY, ResourceParsing::isJson)) {
-                val id = idOf(file, GRAMMAR_DIRECTORY)
-                val page = ResourceParsing.parse(resource, file, Structure.Page.mapCodec(id).codec(), problems) ?: continue
-                val existing = structural[page.name]
-                if (existing != null && existing.id != page.id) {
-                    problems += "two structure pages are both called '${page.name}': ${existing.id} and ${page.id}"
-                }
-                structural[page.name] = page
-            }
-            return structural
         }
 
         private fun readOpposedTags(resources: ResourceManager, problems: MutableList<String>): List<OpposedTags> {

@@ -78,13 +78,13 @@ object FoundBook {
         seed: Long,
         title: () -> String,
     ) {
-        val words = pages.mapNotNull { page -> vocabulary.structurePage(page)?.id ?: vocabulary.word(page)?.id }
+        val words = pages.mapNotNull { page -> vocabulary.word(page)?.id }
         stack.set(AgeComponents.BOOK_WORDS, words)
         if (words.isEmpty()) return
         stack.set(AgeComponents.BOOK_TITLE, title())
         // A sentence that dropped the `age` page is something no player could bind, so the book goes out
         // unread rather than carrying a reading of a sentence it does not spell.
-        val read = vocabulary.read(pages, seed) ?: return
-        stack.set(AgeComponents.BOOK_READING, vocabulary.prose(read, seed))
+        if (!vocabulary.spellsABook(pages)) return
+        stack.set(AgeComponents.BOOK_READING, vocabulary.readout(vocabulary.written(pages, seed)))
     }
 }

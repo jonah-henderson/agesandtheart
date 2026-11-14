@@ -98,5 +98,11 @@
       "chance": 0.5,
       "chance_from_whole_age": 0.0
     }
+  ],
+  "accepts": [
+    {
+      "concept": "pace",
+      "renames": "colour_cycle_pace"
+    }
   ]
 }

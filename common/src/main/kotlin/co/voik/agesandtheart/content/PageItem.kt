@@ -3,7 +3,7 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.page.StockedItems
 
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import net.minecraft.core.component.DataComponents
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.PageScreen
@@ -93,6 +93,9 @@ class PageItem(properties: Properties) : Item(properties) {
          */
         fun write(stack: ItemStack, word: Word, vocabulary: Vocabulary) {
             stack.set(AgeComponents.PAGE_WORD, word.id)
+            // A structure word's page has never carried a rarity, and one that did would not stack with the pages
+            // already in a writer's hands.
+            if (vocabulary.isAStructureWord(word)) return
             val bucket = vocabulary.bucketOf(word) ?: return
             stack.set(DataComponents.RARITY, bucket.itemRarity)
         }

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import net.minecraft.world.item.Rarity
 import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
@@ -102,7 +102,7 @@ data class WordRarity(
         isNew: ((Word) -> Boolean)? = null,
         keep: (Word) -> Boolean = { true },
     ): Word? {
-        val byBucket = if (vocabulary.rarity === this) vocabulary.wordsByBucket else vocabulary.words.groupBy { bucketOf(it, vocabulary.inkFor(it)) }
+        val byBucket = if (vocabulary.rarity === this) vocabulary.wordsByBucket else vocabulary.allWords.groupBy { bucketOf(it, vocabulary.inkFor(it)) }
         val offered = buckets.filter { only == null || it.name in only }.toMutableList()
         while (true) {
             val bucket = pick(offered, random, RarityBucket::weight) ?: return null
@@ -138,7 +138,7 @@ data class WordRarity(
     /** What [bucket] can actually offer on this server. */
     fun wordsIn(bucket: RarityBucket, vocabulary: Vocabulary): List<Word> =
         if (vocabulary.rarity === this) vocabulary.wordsByBucket[bucket].orEmpty()
-        else vocabulary.words.filter { bucketOf(it, vocabulary.inkFor(it)) == bucket }
+        else vocabulary.allWords.filter { bucketOf(it, vocabulary.inkFor(it)) == bucket }
 
     private fun <T> pick(from: List<T>, random: RandomSource, weight: (T) -> Double): T? {
         val total = from.sumOf(weight)

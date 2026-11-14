@@ -1,8 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.language.Structure
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -87,7 +86,7 @@ object ProposedBook {
         collapses: (Resolution) -> Boolean = { false },
     ): List<Identifier> {
         val words = Words.of(vocabulary, registries, known, tier)
-        val nucleus = words.nucleus(seed) ?: return emptyList()
+        val nucleus = words.nucleus() ?: return emptyList()
         for (draft in 0..<DRAFTS) {
             val random = Random(seed xor (draft.toLong() * DRAFT_STRIDE) xor band.hashCode().toLong())
             val proposed = Draft(vocabulary, words, seed, tier, band, collapses, random).grownFrom(nucleus)
@@ -105,10 +104,14 @@ object ProposedBook {
 
         private fun wordOf(page: String): Word? = words[page]
 
-        fun nucleus(seed: Long): String? = byPage.keys.sorted().firstOrNull { vocabulary.read(listOf(it), seed) != null }
+        /** The page a book is begun from: `age`, without which nothing is one. */
+        fun nucleus(): String? = byPage.keys.sorted().firstOrNull { vocabulary.spellsABook(listOf(it)) }
 
-        /** The pages a clause can close on — an aspect's, or a member's — and what lands on each. */
-        val heads: List<String> = byPage.keys.sorted().filter { page -> wordOf(page)?.let(vocabulary.lexicon::acceptance) != null }
+        /** The pages a clause can close on — a part's, or a thing's — which take what is laid before them. */
+        val heads: List<String> = byPage.keys.sorted().filter { page -> wordOf(page)?.let(::isAThingThatTakes) == true }
+
+        private fun isAThingThatTakes(word: Word): Boolean =
+            word.senses.any { it.endsAPhrase && it.behaviour == null && it.acceptances.isNotEmpty() }
 
         val modifiers: List<String> = byPage.keys.sorted().filter { page -> page !in heads && wordOf(page) != null }
 
@@ -116,9 +119,12 @@ object ProposedBook {
 
         val members: List<String> = heads.filter { head -> Aspect.entries.none { it.page == head } }
 
-        val biomes: List<String> = members.filter { member -> wordOf(member)?.let(vocabulary.lexicon::placesFor)?.contains(Aspect.BIOMES) == true }
+        val biomes: List<String> = members.filter { member -> wordOf(member)?.senses.orEmpty().any { it.speaksFor == Aspect.BIOMES } }
 
-        val structural: Set<String> = byPage.keys.filter { vocabulary.structurePage(it)?.structure.let { it != null && it != Structure.AGE } }.toSet()
+        val structural: Set<String> = byPage.keys.filter { page ->
+            val word = wordOf(page)
+            word != null && vocabulary.isAStructureWord(word) && !vocabulary.isTheAge(word)
+        }.toSet()
 
         /** The modifiers the writer knows that land something on [head] ([Vocabulary.wordsLandingOn]). */
         fun fitting(head: String): List<String> = fittingByHead.getOrPut(head) {
@@ -131,14 +137,13 @@ object ProposedBook {
         companion object {
             fun of(vocabulary: Vocabulary, registries: RegistryAccess, known: Collection<Identifier>, tier: ProposalTier): Words {
                 fun allows(id: Identifier): Boolean {
-                    val word = vocabulary.word(id)
-                    val structure = vocabulary.structurePage(id.path)
+                    val word = vocabulary.word(id) ?: return false
+                    val inkAllows = vocabulary.ink.tierFor(word, registries) in tier.inks
                     return when {
-                        word != null -> vocabulary.ink.tierFor(word, registries) in tier.inks
-                        // `age` opens every book, so it is the one structure page every tier has.
-                        structure?.structure == Structure.AGE -> true
-                        structure != null -> tier.usesStructurePages && vocabulary.ink.tierFor(structure) in tier.inks
-                        else -> false
+                        // `age` opens every book, so it is the one structure word every tier has.
+                        vocabulary.isTheAge(word) -> true
+                        vocabulary.isAStructureWord(word) -> tier.usesStructurePages && inkAllows
+                        else -> inkAllows
                     }
                 }
                 return Words(vocabulary, known.filter(::allows).associateBy(Identifier::getPath))
@@ -180,8 +185,8 @@ object ProposedBook {
             val clause = clause() ?: return null
             val grown = pages + clause
             if (grown.size > tier.mostPages) return null
-            val reading = vocabulary.read(grown, seed)?.takeIf { it.readsAsLaid || band.mustCollapse } ?: return null
-            val resolution = vocabulary.resolve(reading, seed)
+            val written = vocabulary.written(grown, seed).takeIf { it.reading.readsAsLaid || band.mustCollapse } ?: return null
+            val resolution = written.resolution
             return Grown(grown, resolution).takeIf { resolution.instability.index <= band.most }
         }
 

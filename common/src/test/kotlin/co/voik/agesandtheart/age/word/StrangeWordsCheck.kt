@@ -71,11 +71,14 @@ class StrangeWordsCheck : FunSpec({
         }
     }
 
-    test("a colourless Age never brings a rainbow or an aurora about, and grows no flowers") {
+    test("a colourless Age brings a rainbow or an aurora about only now and then, and grows no flowers") {
+        val ages = MANY_SEEDS.map { it to aimed(it, "colourless", "age") }
+        val bows = ages.count { (seed, age) -> RainbowAspect.rainbowIn(age, seed) != null }
+        val auroras = ages.count { (seed, age) -> AuroraAspect.auroraIn(age, seed) != null }
+        check(bows in 1..MANY_SEEDS.count() / 4) { "a colourless Age brought a rainbow about at $bows seeds of ${MANY_SEEDS.count()}" }
+        check(auroras in 1..MANY_SEEDS.count() / 4) { "a colourless Age brought an aurora about at $auroras seeds of ${MANY_SEEDS.count()}" }
         for (seed in SEEDS) {
             val age = aimed(seed, "colourless", "age")
-            check(RainbowAspect.rainbowIn(age, seed) == null) { "seed $seed: a colourless Age brought a rainbow about" }
-            check(AuroraAspect.auroraIn(age, seed) == null) { "seed $seed: a colourless Age brought an aurora about" }
             val struck = age.optionsFor(Aspect.FEATURES).claimsOn(Features.PLACES).filter { it.polarity == Polarity.EXCEPT }
             check(struck.isNotEmpty()) { "seed $seed: a colourless Age struck no flowers" }
         }
@@ -246,6 +249,9 @@ class StrangeWordsCheck : FunSpec({
 })
 
 private val SEEDS = 0L..<20L
+
+/** Enough Ages to tell now and then from always. */
+private val MANY_SEEDS = 0L..<200L
 private const val HALF_SPEED = 0.55f
 private const val ZOMBIE = "minecraft:zombie"
 private const val COW = "minecraft:cow"

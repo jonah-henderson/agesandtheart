@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.reading
 import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.words.Offer
+import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 
@@ -25,22 +27,34 @@ sealed interface StructureWord {
         }
     }
 
-    /** Joins like with like — two describing words, or two things — into one term: `red and blue`, `trees and villages`. */
+    /**
+     * Joins like with like — two describing words, or two things — into one term: `red and blue`, `trees and villages`.
+     * A describing word is joined to the first after it offering what it does, those between going with it:
+     * `pyramidal and colossal eroded` joins the two landforms, the second colossal.
+     */
     data object And : StructureWord {
         override val id = "and".location()
 
         override fun arrange(at: Int, row: Arranging): Int {
             val left = row.lastTerm()
-            val right = at + 1
             val leftSense = left?.takeUnless { it.isAge }?.let { row.senseAt(it.pages.last()) }
+            val right = leftSense?.takeUnless { it.endsAPhrase }?.let { describing -> likeItAfter(at, describing, row) } ?: (at + 1)
             val rightSense = row.senseAt(right)?.takeIf { row.isPlainWord(right) }
             if (left == null || leftSense == null || rightSense == null || leftSense.endsAPhrase != rightSense.endsAPhrase) {
                 row.dangles(at)
                 return 0
             }
-            row.replaceLast(left.copy(pages = left.pages + right))
+            row.replaceLast(left.copy(pages = left.pages + (at + 1..right)))
             row.binds(at)
-            return 1
+            return right - at
+        }
+
+        /** The first page after [at], over describing words only, offering a concept [left] offers, or null where none does. */
+        private fun likeItAfter(at: Int, left: Sense, row: Arranging): Int? {
+            val concepts = left.offers.filterNot(Offer::isAReading).map(Offer::concept).toSet()
+            fun isDescribing(page: Int) = row.isPlainWord(page) && row.senseAt(page)?.endsAPhrase == false
+            fun offersTheSame(page: Int) = row.senseAt(page)?.offers.orEmpty().any { it.concept in concepts }
+            return generateSequence(at + 1) { it + 1 }.takeWhile(::isDescribing).firstOrNull(::offersTheSame)
         }
     }
 
@@ -111,7 +125,7 @@ sealed interface StructureWord {
                 return 0
             }
             val members = anchor.means.filterIsInstance<Effect.Chooses>().filter { it.aspect == part }.map { it.member }.toSet()
-            row.arrival = Arrival(at, LinkAnchor(part, members))
+            row.arrival = Arrival(anchorAt, LinkAnchor(part, members))
             row.binds(at, at + 1, anchorAt)
             return 2
         }

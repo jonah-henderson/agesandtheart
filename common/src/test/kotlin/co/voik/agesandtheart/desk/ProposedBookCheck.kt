@@ -18,7 +18,7 @@ class ProposedBookCheck : FunSpec({
 
     val vocabulary by lazy { ShippedCorpus.vocabulary }
     val registries: RegistryAccess by lazy { RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY) }
-    val everyWord by lazy { vocabulary.words.map { it.id } + vocabulary.structurePages.map { it.id } }
+    val everyWord by lazy { vocabulary.allWords.map { it.id } }
     val seeds = (0..<SIGNALS).map { Tuning.CENTRED.withDial(it % Tuning.DIALS, it % Tuning.STEPS).seed + it }
 
     fun propose(seed: Long, tier: ProposalTier, step: Int, known: Collection<Identifier> = everyWord) =
@@ -28,19 +28,17 @@ class ProposedBookCheck : FunSpec({
     fun complaintAbout(proposed: List<Identifier>, seed: Long, tier: ProposalTier, step: Int): String? {
         val pages = proposed.map(Identifier::getPath)
         val band = InterferenceBand.of(step)
-        val reading = vocabulary.read(pages, seed)
-        val index = reading?.let { vocabulary.resolve(it, seed).instability.index }
-        val inkOutOfTier = proposed.filter { id ->
-            val word = vocabulary.word(id)
-            val structure = vocabulary.structurePage(id.path)
-            val ink = word?.let { vocabulary.ink.tierFor(it, registries) } ?: structure?.let(vocabulary.ink::tierFor)
-            ink !in tier.inks
+        val written = vocabulary.written(pages, seed)
+        val index = written.resolution.instability.index
+        fun isTheAge(id: Identifier) = vocabulary.word(id)?.let(vocabulary::isTheAge) == true
+        val inkOutOfTier = proposed.filterNot(::isTheAge).filter { id ->
+            vocabulary.word(id)?.let { vocabulary.ink.tierFor(it, registries) } !in tier.inks
         }
-        val structurePages = proposed.filter { vocabulary.structurePage(it.path) != null && it.path != "age" }
+        val structurePages = proposed.filter { id -> vocabulary.word(id)?.let(vocabulary::isAStructureWord) == true && !isTheAge(id) }
         return when {
             proposed.size > tier.mostPages -> "${proposed.size} pages: $pages"
-            reading?.readsAsLaid != true -> "does not read as laid: $pages"
-            index == null || index !in band.least..band.most -> "instability $index outside ${band.least}..${band.most}: $pages"
+            !written.reading.readsAsLaid -> "does not read as laid: $pages"
+            index !in band.least..band.most -> "instability $index outside ${band.least}..${band.most}: $pages"
             inkOutOfTier.isNotEmpty() -> "inks beyond the tier: $inkOutOfTier"
             structurePages.isNotEmpty() && !tier.usesStructurePages -> "structure pages below the third tier: $structurePages"
             else -> null

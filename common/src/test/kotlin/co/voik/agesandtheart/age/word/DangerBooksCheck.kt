@@ -29,10 +29,7 @@ class DangerBooksCheck : FunSpec({
         (1L..BOOKS_DRAWN).map { seed -> seed to danger.expand(Random(seed)) }
     }
 
-    fun inkOf(page: String): InkTier {
-        val structurePage = vocabulary.structurePages.firstOrNull { it.name == page }
-        return vocabulary.word(page)?.let(vocabulary::inkFor) ?: structurePage?.let(vocabulary.ink::tierFor) ?: InkTier.COMMON
-    }
+    fun inkOf(page: String): InkTier = vocabulary.word(page)?.let(vocabulary::inkFor) ?: InkTier.COMMON
 
     test("the advanced books teach, in common ink, the words of Ages that pay") {
         fun isTaughtInCommonInk(page: String) = page in advancedPages && inkOf(page) == InkTier.COMMON
@@ -49,7 +46,7 @@ class DangerBooksCheck : FunSpec({
 
     /** The grammar is the advanced books' to teach, at whatever ink it takes; the words for the danger are what must be cheap. */
     test("the danger books' words are common ink") {
-        val structurePages = vocabulary.structurePages.map { it.name }.toSet()
+        val structurePages = vocabulary.allWords.filter(vocabulary::isAStructureWord).map { it.name }.toSet()
         val words = dangerBooks.flatMap { (_, pages) -> pages }.toSet() - structurePages
         val dearer = words.filter { inkOf(it) != InkTier.COMMON }
         check(dearer.isEmpty()) { "the danger books use dearer ink for ${dearer.joinToString { "$it (${inkOf(it).key})" }}" }

@@ -36,9 +36,6 @@
       "becomes": [
         {
           "sets": "pace"
-        },
-        {
-          "sets": "colour_cycle_pace"
         }
       ]
     },
@@ -138,13 +135,7 @@
       "concept": "amount",
       "becomes": [
         {
-          "sets": "cover",
-          "as": {
-            "0.25": "-1.0..-0.6",
-            "0.5": "-0.6..-0.2",
-            "2.0": "0.3..0.7",
-            "4.0": "0.7..1.0"
-          }
+          "abundance": "$"
         }
       ],
       "chance_from_whole_age": 0.0

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart
 
-import co.voik.agesandtheart.age.language.Reading
+import co.voik.agesandtheart.age.reading.Written
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
 
@@ -19,9 +19,11 @@ object ShippedCorpus {
         }
     }
 
-    /** A book, read — failing where the row has no `age` page, which is a fixture bug. */
-    fun read(pages: List<String>, seed: Long = ANY_SEED): Reading =
-        vocabulary.read(pages, seed) ?: error("not a book: $pages")
+    /** A book, read, drawn and resolved — failing where the row has no `age` page, which is a fixture bug. */
+    fun written(pages: List<String>, seed: Long = ANY_SEED): Written {
+        check(vocabulary.spellsABook(pages)) { "not a book: $pages" }
+        return vocabulary.written(pages, seed)
+    }
 
     /** For a book read where nothing depends on the draw. */
     const val ANY_SEED = 0L
@@ -32,7 +34,7 @@ object ShippedCorpus {
      */
     fun resolved(seed: Long, vararg pages: String): Resolution {
         val book = if (NUCLEUS in pages) pages.toList() else listOf(*pages, NUCLEUS)
-        return vocabulary.resolve(book, seed) ?: error("not a book: $book")
+        return vocabulary.resolve(book, seed)
     }
 
     private const val NUCLEUS = "age"

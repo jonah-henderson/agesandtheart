@@ -85,7 +85,9 @@ class TagCoverageCheck : FunSpec({
      * set *is* a built thing — the tag is definitional there, where `wooded` on a biome is a judgement.
      */
     test("every structure set the Art can reach is built") {
-        val struck = vocabulary.words.flatMap { it.effects }.filterIsInstance<Effect.Excludes>()
+        val struck = vocabulary.authoredWords.filterNot(vocabulary::isAStructureWord)
+            .flatMap { word -> vocabulary.written(listOf(word.name, "age"), 0L).drawn.possible.flatMap { it.effects } }
+            .filterIsInstance<Effect.Excludes>()
             .filter { it.aspect == Aspect.STRUCTURES }.flatMap { it.members }.toSet()
         check(struck.isNotEmpty()) { "no word strikes structure sets, so this checks nothing" }
         val reachable = vocabulary.availableToBroadWordsIn(Aspect.STRUCTURES)

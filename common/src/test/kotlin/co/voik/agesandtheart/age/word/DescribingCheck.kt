@@ -53,7 +53,7 @@ class DescribingCheck : FunSpec({
                 val word = vocabulary.word(name) ?: error("no '$name' in the corpus")
                 // What a word is *allowed* to introduce: what it admits or chooses outright. Everything
                 // else it says about a population is a lean, and a lean may only bend.
-                val effects = word.effects
+                val effects = vocabulary.written(listOf(word.name, "age"), 0L).drawn.possible.flatMap { it.effects }
                 val named = effects.filterIsInstance<Effect.Admits>().filter { it.aspect == aspect }.flatMap { it.members } +
                     effects.filterIsInstance<Effect.Chooses>().filter { it.aspect == aspect }.map { it.member }
                 val introduced = membersOf(aspect, parameter, name, "magma_block", "landmass")

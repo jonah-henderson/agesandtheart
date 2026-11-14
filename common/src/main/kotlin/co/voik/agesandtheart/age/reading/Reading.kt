@@ -21,11 +21,14 @@ data class Reading(
     /** The pages that placed nothing anywhere: misplaced, charged one flaw each, and drawn somewhere at random. */
     val dangling: List<PageRead> get() = pages.filter { it.fate == Fate.Dangles }
 
+    /** Whether every page is a word and lands somewhere: the book reads as it was laid. */
+    val readsAsLaid: Boolean get() = pages.none { it.fate == Fate.Unknown || it.fate == Fate.Dangles }
+
     /** Every placement there is, a phrase's and the Age's. */
     val placements: List<Placement> get() = phrases.flatMap(Phrase::placements) + handedOut
 }
 
-/** Where a link into the Age arrives, and the page of the `link` that said so. */
+/** Where a link into the Age arrives, and the page naming it: `jungle` in `link in jungle`, which a flaw against it names. */
 data class Arrival(val page: Int, val anchor: LinkAnchor)
 
 /** One page, the sense it was read in where it has more than one, and what became of it. */

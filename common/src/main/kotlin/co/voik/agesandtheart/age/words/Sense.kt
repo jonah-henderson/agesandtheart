@@ -45,14 +45,18 @@ data class Sense(
     val speaksFor: Aspect? get() = part ?: inherited?.part
 
     /** Every acceptance it has: its own, then its kind's for any concept it does not accept itself. */
-    val acceptances: List<Acceptance>
-        get() {
-            val own = accepts.map(Acceptance::concept).toSet()
-            return accepts + inherited?.accepts.orEmpty().filter { it.concept !in own }
-        }
+    val acceptances: List<Acceptance> by lazy {
+        val own = accepts.map(Acceptance::concept).toSet()
+        accepts + inherited?.accepts.orEmpty().filter { it.concept !in own }
+    }
+
+    /** The first acceptance of each concept, asked of every sense for every offer as a book is read. */
+    private val acceptancesByConcept: Map<Identifier, Acceptance> by lazy {
+        acceptances.groupBy(Acceptance::concept).mapValues { (_, ofTheConcept) -> ofTheConcept.first() }
+    }
 
     /** How it accepts [concept], or null where it does not. */
-    fun acceptanceOf(concept: Identifier): Acceptance? = acceptances.firstOrNull { it.concept == concept }
+    fun acceptanceOf(concept: Identifier): Acceptance? = acceptancesByConcept[concept]
 
     fun withKind(kind: Kind): Sense = copy(inherited = kind)
 

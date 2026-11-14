@@ -17,12 +17,6 @@ import java.util.Optional
  */
 enum class Register(val key: String) : StringRepresentable {
     /**
-     * A page the old reader moved to where it could be read. Never charged now; read so a saved Age keeps the index it
-     * was written with, every one in a book counting one between them.
-     */
-    REHOMED("rehomed"),
-
-    /**
      * Nothing in the aspect could ever be what the word asked for.
      *
      * A content bug rather than a play outcome (design §3.3) — `VocabularyCheck` keeps it from shipping.
@@ -51,16 +45,14 @@ enum class Register(val key: String) : StringRepresentable {
         /** The registers every disagreement between words was once charged under, which saved flaws still name. */
         private val FOLDED_INTO_INCOHERENT = setOf("tension", "opposed", "fracture", "displaced")
 
-        /** A page there was nowhere for in any sentence, which dangles now. */
-        private const val IMPOSSIBLE = "impossible"
+        /** A page there was nowhere for in any sentence, or one the old reader moved, which dangle now. */
+        private val FOLDED_INTO_DANGLES = setOf("impossible", MOVED)
 
-        private fun byKey(key: String): DataResult<Register> {
-            val folded = INCOHERENT.takeIf { key in FOLDED_INTO_INCOHERENT } ?: DANGLES.takeIf { key == IMPOSSIBLE }
+        fun byKey(key: String): DataResult<Register> {
+            val folded = INCOHERENT.takeIf { key in FOLDED_INTO_INCOHERENT } ?: DANGLES.takeIf { key in FOLDED_INTO_DANGLES }
             val register = entries.firstOrNull { it.key == key } ?: folded
             return register?.let { DataResult.success(it) } ?: DataResult.error { "no register is called '$key'" }
         }
-
-        val CODEC: Codec<Register> = Codec.STRING.comapFlatMap(::byKey, Register::key)
     }
 }
 
@@ -89,8 +81,6 @@ data class Flaw(
         val over = if (tags.size == 2) " (${tags[0]} against ${tags[1]})" else ""
         val where = aspect?.page ?: "the sentence"
         return when (register) {
-            Register.REHOMED -> "${quoted.firstOrNull() ?: "a word"} could not be read where you laid it, " +
-                "so the Art laid it under $where instead"
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
                 "a gap in the vocabulary, not something you did"
             Register.INCOHERENT -> "$both cannot both be what they said in $where$over"
@@ -108,18 +98,36 @@ data class Flaw(
     override fun toString(): String = "${register.key}: ${describe()}"
 
     companion object {
-        val CODEC: Codec<Flaw> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                Register.CODEC.fieldOf("register").forGetter(Flaw::register),
-                Codec.STRING.listOf().fieldOf("words").forGetter(Flaw::words),
-                ASPECT_CODEC.optionalFieldOf("aspect").forGetter { Optional.ofNullable(it.aspect) },
-                Codec.STRING.listOf().optionalFieldOf("tags", emptyList()).forGetter(Flaw::tags),
-            ).apply(instance) { register, words, aspect, tags -> Flaw(register, words, aspect.orElse(null), tags) }
-        }
+        val CODEC: Codec<Flaw> = SavedFlaw.CODEC.comapFlatMap(SavedFlaw::read) { SavedFlaw(it.register.key, it.words, it.aspect, it.tags) }
     }
 }
 
 private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::values)
+
+/** The register a saved Age names for a page the old reader moved. */
+private const val MOVED = "rehomed"
+
+/** What a saved Age's moved pages all name, so that every one in a book still counts one between them. */
+private const val PAGES_THE_ART_ONCE_MOVED = "pages the Art once moved"
+
+/** A flaw as it was saved, before its register is read. */
+private data class SavedFlaw(val key: String, val words: List<String>, val aspect: Aspect?, val tags: List<String>) {
+    fun read(): DataResult<Flaw> = Register.byKey(key).map { register ->
+        val named = if (key == MOVED) listOf(PAGES_THE_ART_ONCE_MOVED) else words
+        Flaw(register, named, aspect, tags)
+    }
+
+    companion object {
+        val CODEC: Codec<SavedFlaw> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.STRING.fieldOf("register").forGetter(SavedFlaw::key),
+                Codec.STRING.listOf().fieldOf("words").forGetter(SavedFlaw::words),
+                ASPECT_CODEC.optionalFieldOf("aspect").forGetter { Optional.ofNullable(it.aspect) },
+                Codec.STRING.listOf().optionalFieldOf("tags", emptyList()).forGetter(SavedFlaw::tags),
+            ).apply(instance) { key, words, aspect, tags -> SavedFlaw(key, words, aspect.orElse(null), tags) }
+        }
+    }
+}
 
 /**
  * How far an Age is at odds with itself, and why. Part of the recipe, and never re-derived (design §4.6).
@@ -131,13 +139,9 @@ data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
     /**
      * **How many distinct things are wrong** (design §5.0). Flaws raised by the same
      * words are one, as a saved Age's tension and fracture between two words are, so a sentence can never be much
-     * more wrong than it looks; and every page a repair moved is one between them.
+     * more wrong than it looks.
      */
-    val index: Int get() {
-        val (moved, rest) = flaws.partition { it.register == Register.REHOMED }
-        val repaired = if (moved.isEmpty()) 0 else 1
-        return rest.distinctBy { it.words.toSet() }.size + repaired
-    }
+    val index: Int get() = flaws.distinctBy { it.words.toSet() }.size
 
     val isCoherent: Boolean get() = flaws.isEmpty()
 

@@ -2,6 +2,10 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.EffectTemplate
+import co.voik.agesandtheart.age.words.Outcome
+import co.voik.agesandtheart.age.words.Word
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -29,7 +33,7 @@ data class LexiconPayload(
     val headings: List<Identifier> = emptyList(),
     /** Which of [headings] each word applies to, by its place there. */
     val appliesTo: Map<Identifier, List<Int>> = emptyMap(),
-    /** Every structure page, which a book may carry beside its words. */
+    /** Every structure word — `age`, `and`, `no` — which a book may carry beside its words. */
     val structural: Set<Identifier> = emptySet(),
     /** Every retired id that leads to a word now, and that word's id. */
     val renamed: Map<Identifier, Identifier> = emptyMap(),
@@ -52,17 +56,26 @@ data class LexiconPayload(
             val headingAt = headings.withIndex().associate { (at, heading) -> heading to at }
             return LexiconPayload(
                 vocabulary.script,
-                vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) } + vocabulary.phrases,
-                materials = vocabulary.words.filter { it.block != null }.map { it.id }.toSet(),
-                shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
-                rarity = vocabulary.words.associate { it.id to WordHeadings.rarityOf(vocabulary, it) },
+                vocabulary.reach,
+                materials = vocabulary.allWords.filter(::isAMaterial).map { it.id }.toSet(),
+                shapes = vocabulary.allWords.filter(::isAShape).map { it.id }.toSet(),
+                rarity = vocabulary.allWords.associate { it.id to WordHeadings.rarityOf(vocabulary, it) },
                 headings = headings,
                 appliesTo = vocabulary.appliesTo.mapValues { (_, under) -> under.mapNotNull(headingAt::get) },
-                structural = vocabulary.structurePages.map { it.id }.toSet(),
+                structural = vocabulary.allWords.filter(vocabulary::isAStructureWord).map { it.id }.toSet(),
                 renamed = vocabulary.renamed,
                 members = vocabulary.namingMembers,
                 parts = vocabulary.namingParts,
             )
+        }
+
+        /** Whether [word] offers itself as a block — a material, which a shape may be made of. */
+        private fun isAMaterial(word: Word): Boolean = word.senses.any { sense -> sense.offers.any { it.concept == CoreConcepts.BLOCK } }
+
+        /** Whether [word] is a shape made of whatever material it takes: `rings`, `arches`, `veins`. */
+        private fun isAShape(word: Word): Boolean = word.senses.any { sense ->
+            val becomes = sense.acceptanceOf(CoreConcepts.BLOCK)?.outcome as? Outcome.Becomes
+            becomes?.effects.orEmpty().any { it is EffectTemplate.Taking && it.verb == EffectTemplate.Verb.MADE_OF }
         }
 
         private val RARITY_STREAM_CODEC: StreamCodec<ByteBuf, WordHeadings.Rarity> =

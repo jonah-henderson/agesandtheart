@@ -22,7 +22,7 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.WordRarity
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.word.WriterStock
 import co.voik.agesandtheart.content.PageItem
 
@@ -89,7 +89,7 @@ class FillNotebookFunction(
         if (pool != null) {
             vocabulary.stock.words(pool, vocabulary, registries)
         } else {
-            val corpus = if (derivedOnly) vocabulary.derivedWords else vocabulary.words
+            val corpus = if (derivedOnly) vocabulary.derivedWords else vocabulary.allWords
             corpus.filter { word -> isInAskedRarity(word, vocabulary) }
                 .filterNot { CannotAppearInLoot.keepsOut(it, vocabulary, registries) }
         }

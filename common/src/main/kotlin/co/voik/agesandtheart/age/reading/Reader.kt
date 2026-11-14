@@ -114,7 +114,8 @@ private class Pass(
                 val acceptance = matching.acceptanceFor(sense, reaching.offer) ?: continue
                 if (!matching.valueFits(sense, acceptance, reaching.offer)) continue
                 untaken = untaken - reaching
-                placed += reaching.page
+                // What is folded or offered on is placed only where what carries it lands.
+                if (acceptance.outcome is Outcome.Becomes || acceptance.outcome == Outcome.Drops) placed += reaching.page
                 when (val outcome = acceptance.outcome) {
                     Outcome.Folds -> folded += reaching
                     is Outcome.Renames -> onward += reaching.copy(offer = reaching.offer.copy(concept = outcome.concept), reshapedBy = reaching.reshapedBy + at)
@@ -146,8 +147,10 @@ private class Pass(
         placed += placements.flatMap { listOf(it.from) + it.carrying }
         val tookFrom = placements.flatMap { listOf(it.from) + it.carrying }.toSet()
         val tookAMember = placements.any { it.offer.concept == CoreConcepts.MEMBER }
+        // What is said of a thing replaces what it says of itself: members as members, and a setting as the same setting.
         val named = if (tookAMember) sense.means.filterNot { namesMembersOf(it, sense.speaksFor) } else sense.means
-        val own = named.map { EffectTemplate.fencedTo(it, sense.speaksFor) }
+        val saidOfIt = placements.flatMap(Placement::effects).mapNotNull { (it as? Effect.Sets)?.parameter }.toSet()
+        val own = named.map { EffectTemplate.fencedTo(it, sense.speaksFor) }.filterNot { (it as? Effect.Sets)?.parameter in saidOfIt }
         phrases += Phrase(at, sense.speaksFor, own, placements, term.polarity, term.sitedIn, term.everywhere, term.joined)
         fun meantForSomeoneElse(it: Travelling) = it.offer.audience != Audience.Anyone && it.page !in tookFrom
         return reaching.filter { travelling -> placements.none { it.from == travelling.page && it.offer == travelling.offer } }
@@ -159,7 +162,7 @@ private class Pass(
         val acceptance = matching.acceptanceFor(sense, reaching.offer) ?: return emptyList()
         if (!matching.valueFits(sense, acceptance, reaching.offer)) return emptyList()
         val carried = reaching.carrying.flatMap { take(at, sense, it) }
-        return listOf(placementOf(at, sense.speaksFor, acceptance, reaching)) + carried
+        return listOf(placementOf(at, sense, sense.speaksFor, acceptance, reaching)) + carried
     }
 
     /** The Age: what it accepts itself — a template, a ban — and the rest to every part that takes it. */
@@ -168,25 +171,32 @@ private class Pass(
         for (reaching in travelling.flatMap { listOf(it) + it.carrying }) {
             val ownAcceptance = age?.let { matching.acceptanceFor(it, reaching.offer, isTheAge = true) }
             if (ownAcceptance != null) {
-                handedOut += placementOf(at, null, ownAcceptance, reaching)
+                handedOut += placementOf(at, null, null, ownAcceptance, reaching)
                 placed += reaching.page
                 continue
             }
             for (part in Aspect.entries) {
                 val page = words.partPage(part)?.defaultSense ?: continue
                 val acceptance = matching.acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
-                val chance = reaching.offer.chanceFromWholeAge * acceptance.chanceFromWholeAge
+                val chance = reaching.offer.chanceFromWholeAge * willingness(acceptance, reaching.offer, part)
                 if (chance <= 0.0 || !matching.valueFits(page, acceptance, reaching.offer)) continue
-                handedOut += placementOf(at, part, acceptance, reaching).copy(chance = chance)
+                handedOut += placementOf(at, page, part, acceptance, reaching).copy(chance = chance)
                 placed += reaching.page
             }
         }
         travelling = emptyList()
     }
 
-    private fun placementOf(at: Int, part: Aspect?, acceptance: Acceptance, reaching: Travelling): Placement {
+    /**
+     * How readily a part takes what the whole Age hands it: its own reluctance for what reaches everything, and none for
+     * a meaning the word made for it by name — `frozen`'s pale halo comes on frozen's chance, not the rainbow's.
+     */
+    private fun willingness(acceptance: Acceptance, offer: Offer, part: Aspect): Double =
+        if (offer.audience == Audience.Part(part)) Offer.CERTAIN else acceptance.chanceFromWholeAge
+
+    private fun placementOf(at: Int, sense: Sense?, part: Aspect?, acceptance: Acceptance, reaching: Travelling): Placement {
         val offer = reaching.offer.copy(value = matching.filled(reaching.offer))
-        val effects = (acceptance.outcome as? Outcome.Becomes)?.effects.orEmpty().mapNotNull { it.applied(offer.value, part) }
+        val effects = matching.effectsOf(sense, part, acceptance, reaching.offer)
         val alongWithIt = reaching.carrying.map(Travelling::page) + reaching.reshapedBy
         return Placement(reaching.page, offer, at, part, effects, alongWithIt, reaching.joined)
     }

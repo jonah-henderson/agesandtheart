@@ -27,19 +27,17 @@ internal fun mintingClausesIn(landings: List<Landing>): Set<Pair<Aspect, Int>> =
     landings.filter { it.mints }.map { minting -> minting.aspect to minting.saidOf }.toSet()
 
 /**
- * The minting clause [landing] was said in beside its minting, among [mintingClauses], or null where it was not —
- * what it said is the minting's alone, and reaches neither the part of the world nor another clause (world model §2).
+ * The minting clause [landing] was said in, among [mintingClauses], or null where it was not — what it said is the
+ * minting's alone, and reaches neither the part of the world nor another clause (world model §2). The minting's own
+ * meaning is its clause's too: `monuments` leans its own shapes, not every monumental thing in the Age.
  */
-internal fun mintingClauseOf(landing: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Pair<Aspect, Int>? {
-    if (landing.mints) return null
-    return (landing.aspect to landing.saidOf).takeIf { it in mintingClauses }
-}
+internal fun mintingClauseOf(landing: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Pair<Aspect, Int>? =
+    (landing.aspect to landing.saidOf).takeIf { it in mintingClauses }
 
-/** Every minting that landed, with the clause it was laid in. */
-private fun Resolving.mintings(): List<Minting> = said.mapNotNull { landing ->
-    val mints = landing.effects.filterIsInstance<Effect.Mints>().firstOrNull() ?: return@mapNotNull null
+/** Every minting that landed, with the clause it was laid in: each of a landing's, as `monuments` mints seven shapes. */
+private fun Resolving.mintings(): List<Minting> = said.flatMap { landing ->
     val clause = said.filter { other -> other !== landing && other.aspect == landing.aspect && other.saidOf == landing.saidOf }
-    Minting(mints, landing, clause)
+    landing.effects.filterIsInstance<Effect.Mints>().map { mints -> Minting(mints, landing, clause) }
 }
 
 /**

@@ -237,6 +237,9 @@ data class GenerationGrammars(private val byName: Map<String, GenerationGrammar>
     fun grammar(name: String): GenerationGrammar? = byName[name]
 
     companion object {
+        /** No grammars, which is what a vocabulary is stood up with before its words are read. */
+        val NONE = GenerationGrammars(emptyMap())
+
         /** Where a pack puts generation grammars, one file per grammar. */
         const val GENERATION_DIRECTORY = "art/generation"
 

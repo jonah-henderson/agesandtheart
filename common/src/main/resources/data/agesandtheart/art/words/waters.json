@@ -56,6 +56,16 @@
           "sets": "colour_cycle_pace"
         }
       ]
+    },
+    {
+      "concept": "wear",
+      "becomes": [
+        {
+          "sets": "sea.porosity",
+          "when": "porous"
+        }
+      ],
+      "chance_from_whole_age": 0.0
     }
   ]
 }

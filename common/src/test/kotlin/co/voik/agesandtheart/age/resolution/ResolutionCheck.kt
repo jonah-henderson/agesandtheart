@@ -14,8 +14,8 @@ import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
-import co.voik.agesandtheart.age.language.ShippedLexicon
-import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
+import co.voik.agesandtheart.age.reading.ShippedBooks
+import co.voik.agesandtheart.age.reading.ShippedBooks.resolved
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -33,7 +33,7 @@ class ResolutionCheck : FunSpec({
 
     test("a member struck by name is struck and asked for nothing besides") {
         for (row in listOf("age no dripstone_caves", "age no zombie", "age no villages")) {
-            val spelled = ShippedLexicon.resolved(row).composition.toString()
+            val spelled = ShippedBooks.resolved(row).composition.toString()
             check("[except]" in spelled && "except,amount" !in spelled) { "'$row' came back as $spelled" }
         }
     }
@@ -48,7 +48,7 @@ class ResolutionCheck : FunSpec({
             chance = 1.0,
         )
         val book = Book(listOf(strikesTheMonstersButTheUndead), possible = listOf(strikesTheMonstersButTheUndead), template = null, cost = 1, pagesLaid = 1)
-        val spelled = Resolver.resolve(ShippedLexicon.world, book, seed = 0L).composition.toString()
+        val spelled = Resolver.resolve(ShippedBooks.world, book, seed = 0L).composition.toString()
         check("minecraft:creeper[except]" in spelled) { "a creeper was not struck: $spelled" }
         check("minecraft:zombie[except]" !in spelled) { "a zombie was struck though the undead were spared: $spelled" }
         check("caps" !in spelled) { "a strike raised the caps of what it left: $spelled" }
@@ -64,7 +64,7 @@ class ResolutionCheck : FunSpec({
             chance = 1.0,
         )
         val book = Book(listOf(chosen), possible = listOf(chosen), template = null, cost = 4, pagesLaid = 1)
-        val world = Resolver.resolve(ShippedLexicon.world, book, seed = 0L)
+        val world = Resolver.resolve(ShippedBooks.world, book, seed = 0L)
         check(world.composition.presets.any { it.aspect == Aspect.TERRAIN && it.key == "pillared" }) { world.spelled() }
         check(world.option(Aspect.TERRAIN, "size").mapNotNull(Span::read) == listOf(Span(1.0, 1.0))) { world.spelled() }
         check(world.instability.isCoherent && world.cost == 4) { "$world" }
@@ -72,7 +72,7 @@ class ResolutionCheck : FunSpec({
 
     /** A catalogue's member is there only where chosen, so describing one still chooses it. */
     test("a described landform or underground is still the one chosen") {
-        val world = resolved("age large fissured small gentle")
+        val world = resolved("age large fissured underground small gentle landmass")
         check(world.composition.presets.any { it.aspect == Aspect.UNDERGROUND && it.key == "fissured" }) { world.spelled() }
         check(world.composition.presets.any { it.aspect == Aspect.TERRAIN && it.key == "gentle" }) { world.spelled() }
         check(world.option(Aspect.UNDERGROUND, "size").mapNotNull(Span::read) == listOf(Span(0.5, 0.5))) { world.spelled() }
@@ -136,7 +136,7 @@ class ResolutionCheck : FunSpec({
     }
 
     test("an amount said of the cave a book chose counts its tunnels, and the underground's own page takes none") {
-        val few = resolved("age few tunnels")
+        val few = resolved("age few tunnelled underground")
         check(few.option(Aspect.UNDERGROUND, Underground.DENSITY.name).mapNotNull(Span::read) == listOf(Span(-0.5, -0.5))) { few.spelled() }
         val underground = resolved("age few underground")
         check(underground.composition == resolved("age underground").composition) { underground.spelled() }
@@ -191,19 +191,19 @@ class ResolutionCheck : FunSpec({
 
     test("nether and end are the realms' whole worlds, their rock where it is the head's, and the old names read as them") {
         fun worldOf(row: String) = resolved(row).let { it.template to it.composition.terrains }
-        check(worldOf("age nether") == (AgeTemplate.INFERNAL to listOf(Terrain.NETHER))) { "nether was ${worldOf("age nether")}" }
-        check(worldOf("age gentle nether") == (AgeTemplate.INFERNAL to listOf(Terrain.HILLS))) { "gentle nether was ${worldOf("age gentle nether")}" }
+        check(worldOf("nether age") == (AgeTemplate.INFERNAL to listOf(Terrain.NETHER))) { "nether was ${worldOf("nether age")}" }
+        check(worldOf("gentle nether age") == (AgeTemplate.INFERNAL to listOf(Terrain.HILLS))) { "gentle nether was ${worldOf("gentle nether age")}" }
         check(worldOf("age nether landmass") == (AgeTemplate.OVERWORLD to listOf(Terrain.NETHER))) {
             "nether landmass was ${worldOf("age nether landmass")}"
         }
-        check(worldOf("age end") == (AgeTemplate.DARK_VOID to listOf(Terrain.END))) { "end was ${worldOf("age end")}" }
-        check(worldOf("age infernal") == worldOf("age nether")) { "the retired infernal read as ${worldOf("age infernal")}" }
-        check(worldOf("age dark_void") == worldOf("age end")) { "the retired dark_void read as ${worldOf("age dark_void")}" }
+        check(worldOf("end age") == (AgeTemplate.DARK_VOID to listOf(Terrain.END))) { "end was ${worldOf("end age")}" }
+        check(worldOf("infernal age") == worldOf("nether age")) { "the retired infernal read as ${worldOf("infernal age")}" }
+        check(worldOf("dark_void age") == worldOf("end age")) { "the retired dark_void read as ${worldOf("dark_void age")}" }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {
-        val moved = resolved("age colossal")
-        check(moved.instability.flaws.any { it.register == Register.REHOMED }) { "colossal laid after the Age was not charged" }
+        val after = resolved("age colossal")
+        check(after.instability.flaws.any { it.register == Register.DANGLES }) { "colossal laid after the Age was not charged" }
         check(resolved("age xyzzy").dropped == listOf("xyzzy")) { "a page that is no word was not dropped" }
         val cost = resolved("age sunless").cost
         check(cost == 1 + 4) { "age and sunless cost $cost, where the age page is one and sunless four" }

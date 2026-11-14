@@ -27,7 +27,7 @@ data class Acceptance(
     /**
      * How willing this part is to take the concept from what `age` hands out, the offer's own chance from the whole Age
      * multiplied by it: none where a word said of the whole Age would surprise, or give too much — `weak age` never
-     * lightens gravity.
+     * lightens gravity. An offer made for this part by name comes on its own chance alone.
      */
     val chanceFromWholeAge: Double = Offer.CERTAIN,
     /** Whether a dangling page may be drawn onto this. */

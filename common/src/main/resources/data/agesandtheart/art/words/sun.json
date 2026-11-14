@@ -72,9 +72,6 @@
       "becomes": [
         {
           "sets": "pace"
-        },
-        {
-          "sets": "colour_cycle_pace"
         }
       ]
     },

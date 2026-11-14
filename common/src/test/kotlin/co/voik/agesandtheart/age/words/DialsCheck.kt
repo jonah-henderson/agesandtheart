@@ -47,7 +47,7 @@ class DialsCheck : FunSpec({
         val parts = seeds.map { seed -> effects("sporadic age", seed).filterIsInstance<Effect.Sets>().count { it.parameter.name == "frequency" } }
         check(parts.all { it >= 1 }) { "sporadic age landed nowhere at some seed" }
         check(parts.average() < 2.5) { "sporadic age reached ${parts.average()} parts on average, as if certain" }
-        check(set("swift sun age", Aspect.SUN, "pace") == listOf("0.5..1.0") && set("swift sun age", Aspect.SUN, "colour_cycle_pace") == listOf("0.5..1.0")) {
+        check(set("swift sun age", Aspect.SUN, "pace") == listOf("0.5..1.0") && set("swift sun age", Aspect.SUN, "colour_cycle_pace").isEmpty()) {
             "swift sun: ${effects("swift sun age")}"
         }
     }

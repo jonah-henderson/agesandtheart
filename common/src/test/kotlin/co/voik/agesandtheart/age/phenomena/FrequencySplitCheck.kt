@@ -28,7 +28,7 @@ import kotlin.math.abs
 @Tags(NEEDS_REGISTRIES)
 class FrequencySplitCheck : FunSpec({
 
-    fun parses(vararg pages: String) = ShippedCorpus.vocabulary.read(listOf("age", *pages), 0L)?.readsAsLaid == true
+    fun parses(vararg pages: String) = ShippedCorpus.vocabulary.written(listOf("age", *pages), 0L).reading.readsAsLaid
 
     test("a rung is refused before a phenomenon that is one state over the whole Age") {
         for (phenomenon in listOf("tempest", "fog", "blizzard", "meteors", "deluge")) {

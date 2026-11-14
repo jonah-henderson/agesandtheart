@@ -14,7 +14,6 @@ data class JudgedBook(
     val seed: Long,
     val pages: List<String>,
     val unplaced: List<String>,
-    val supplied: List<String>,
     val modifiers: List<String>,
     val hasAnAge: Boolean,
     val cost: Int?,
@@ -32,7 +31,6 @@ data class JudgedBook(
             seed = draft.seed,
             pages = draft.pages,
             unplaced = draft.unplaced,
-            supplied = draft.supplied,
             modifiers = draft.modifiers,
             hasAnAge = draft.hasAnAge,
             cost = draft.cost,
@@ -57,9 +55,6 @@ fun problemsWith(book: JudgedBook): List<String> = buildList {
     // book without one is the one shape of book a player must never be taught to copy.
     if (!book.hasAnAge) add("$book, which has no Age to hang on")
     if (book.unplaced.isNotEmpty()) add("$book, and the Art could not place ${book.unplaced.joinToString(" ")}")
-    if (book.supplied.isNotEmpty()) {
-        add("$book, which would not parse — the Art had to supply ${book.supplied.joinToString(" ")}")
-    }
     if (book.failure != null) add("$book, which would not resolve: ${book.failure}")
     val cost = book.cost
     if (cost != null && cost <= 0) add("$book, which cost nothing")

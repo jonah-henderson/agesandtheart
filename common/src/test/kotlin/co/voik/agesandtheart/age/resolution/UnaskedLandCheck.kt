@@ -2,7 +2,7 @@ package co.voik.agesandtheart.age.resolution
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
+import co.voik.agesandtheart.age.reading.ShippedBooks.resolved
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 

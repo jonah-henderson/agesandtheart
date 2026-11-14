@@ -60,9 +60,6 @@
       "becomes": [
         {
           "sets": "pace"
-        },
-        {
-          "sets": "colour_cycle_pace"
         }
       ]
     },
@@ -85,6 +82,15 @@
           "sets": "size"
         }
       ]
+    },
+    {
+      "concept": "amount",
+      "becomes": [
+        {
+          "abundance": "$"
+        }
+      ],
+      "chance_from_whole_age": 0.0
     }
   ]
 }

@@ -103,6 +103,6 @@ class PartPagesCheck : FunSpec({
         val lava = landed("lava sea age").flatMap { it.effects }
         check(Effect.Chooses(Aspect.SEA, "minecraft:lava") in lava) { "lava sea: $lava" }
         val aurora = landed("aurora age").flatMap { it.effects }
-        check(Effect.Admits(Aspect.PHENOMENA, setOf("aurora")) in aurora) { "aurora age: $aurora" }
+        check(Effect.Chooses(Aspect.PHENOMENA, "aurora") in aurora) { "aurora age: $aurora" }
     }
 })

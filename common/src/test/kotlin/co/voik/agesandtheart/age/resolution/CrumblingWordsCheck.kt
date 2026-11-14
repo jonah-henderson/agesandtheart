@@ -4,7 +4,7 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
+import co.voik.agesandtheart.age.reading.ShippedBooks.resolved
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -28,7 +28,7 @@ class CrumblingWordsCheck : FunSpec({
 
     test("the eroded land is the landform, and crumbles nothing") {
         for (seed in SEEDS) {
-            for (sentence in listOf("age eroded landmass", "age eroded")) {
+            for (sentence in listOf("age eroded landmass", "eroded age")) {
                 val composition = resolved(sentence, seed).composition
                 check(composition.terrains == listOf(Terrain.ERODED)) { "'$sentence' at $seed stood on ${composition.terrains}" }
                 check(!crumbles(sentence, seed)) { "'$sentence' at $seed crumbled the features" }

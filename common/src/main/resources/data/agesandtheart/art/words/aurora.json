@@ -1,15 +1,14 @@
 {
   "_comment": [
-    "An aurora in the sky, and how it hangs: bright, high, wide, warm or cold."
+    "An aurora in the sky, and how it hangs: bright, high, wide, warm or cold.",
+    "A word said of the whole Age brings one about only now and then, one Age in ten. A word that names the aurora outright brings it on its own chance."
   ],
   "terminal": true,
   "part": "aurora",
   "means": [
     {
-      "admits": {
-        "phenomena": [
-          "aurora"
-        ]
+      "chooses": {
+        "phenomena": "aurora"
       }
     }
   ],
@@ -20,7 +19,8 @@
         {
           "sets": "colour"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "brightness",
@@ -28,7 +28,8 @@
         {
           "sets": "glow"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "strength",
@@ -36,7 +37,8 @@
         {
           "sets": "glow"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "size",
@@ -44,7 +46,8 @@
         {
           "sets": "size"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "height",
@@ -52,7 +55,8 @@
         {
           "sets": "altitude"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "frequency",
@@ -70,7 +74,8 @@
         {
           "sets": "warmth"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "colours_cycling",
@@ -80,7 +85,8 @@
             "colours_cycling": "true"
           }
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "pace",
@@ -88,7 +94,8 @@
         {
           "sets": "colour_cycle_pace"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     },
     {
       "concept": "colour_cycle_pace",
@@ -96,7 +103,8 @@
         {
           "sets": "colour_cycle_pace"
         }
-      ]
+      ],
+      "chance_from_whole_age": 0.1
     }
   ]
 }

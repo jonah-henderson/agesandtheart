@@ -1,11 +1,12 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
-import co.voik.agesandtheart.age.language.Fate
+import co.voik.agesandtheart.ShippedCorpus.written
 import co.voik.agesandtheart.age.aspect.Bars
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.reading.Fate
+import co.voik.agesandtheart.age.reading.Trace
+import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
@@ -58,16 +59,15 @@ class BookCheck : FunSpec({
 
     /** Rows of pages drawn from the whole corpus — nonsense on purpose, and never meant to be otherwise. */
     val fuzzed by lazy {
-        val sayable = vocabulary.authoredWords.map { it.name } + vocabulary.structurePages.map { it.name }
+        val sayable = vocabulary.authoredWords.map { it.name }
         val derived = vocabulary.derivedWords.map { it.name }
         (1L..ROWS_FUZZED).map { seed ->
             val random = Random(seed)
-            // Mostly authored, because those are the words that carry structure — subjects, joiners, rungs.
-            // A row drawn evenly from the corpus would be eleven materials in a row and nothing else.
+            // Mostly ours, because those are the words that carry structure — things, joiners, rungs. A row drawn
+            // evenly from the corpus would be eleven materials in a row and nothing else.
             fun page() = if (random.nextInt(DERIVED_IN) == 0) derived.random(random) else sayable.random(random)
-            // The `age` page first, because a row without one is not a book and is refused before the
-            // parser sees it (design §2) — fuzzing those would only ever re-test the one rule that refuses.
-            // Everything after it is as random as before, `age` being in `sayable` and free to recur.
+            // The `age` page first, because a row without one is not a book (design §2) — fuzzing those would only
+            // ever re-test the one rule that refuses. Everything after it is as random, `age` free to recur.
             seed to (listOf(NUCLEUS_PAGE) + List(random.nextInt(1, LONGEST_ROW)) { page() })
         }
     }
@@ -81,20 +81,13 @@ class BookCheck : FunSpec({
     test("garbling a book costs vagueness, never instability") {
         for (book in judgeable) {
             val junk = "zzzznotaword${book.seed}"
-            val read = read(book.pages + junk, book.seed)
-            check(read.unread.map { it.written } == listOf(junk)) {
-                "garbling $book reported ${read.unread} rather than the one page nobody can read"
-            }
-            // The other channel must stay empty: an unreadable page is vagueness, and charging it as
-            // something no sentence has room for would be the two channels collapsed into one (§4.3).
-            check(read.impossible.isEmpty()) {
-                "garbling $book was read as an impossibility: ${read.impossible}"
-            }
+            val garbled = written(book.pages + junk, book.seed)
+            val unread = garbled.reading.pages.filter { it.fate == Fate.Unknown }.map { it.written }
+            check(unread == listOf(junk)) { "garbling $book reported $unread rather than the one page nobody can read" }
             // Against the book as written rather than against nothing, since an unstable one starts flawed.
-            val garbled = vocabulary.resolve(read, book.seed).instability
-            // The flaws, not the whole instability: the garbling page is one more page laid.
-            check(garbled.flaws == book.instability?.flaws) {
-                "an unreadable page changed $book from ${book.instability} to $garbled: ${garbled.flaws.joinToString("; ")}"
+            val flaws = garbled.resolution.instability.flaws
+            check(flaws == book.instability?.flaws) {
+                "an unreadable page changed $book from ${book.instability} to ${garbled.resolution.instability}: ${flaws.joinToString("; ")}"
             }
         }
     }
@@ -105,24 +98,23 @@ class BookCheck : FunSpec({
      * has to be read whole and charged afterwards.
      *
      * Built from the opposed-tags table rather than a hand-picked pair, so it keeps asking the question if the
-     * vocabulary is retuned.
-     *
-     * **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05). A spot check passed for
-     * years because whichever pair it happened to find did collide. Words that never share a place never clash
-     * (`the-world-model.md` §8), so each pair is written by two words wanting its two tags in one part of the
-     * world.
+     * vocabulary is retuned. **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05): words that
+     * never share a place never clash (`the-world-model.md` §8), so each pair is written by two words wanting its two
+     * tags in one part of the world, said of the whole Age.
      */
     test("contradicting yourself costs instability, never a parse error") {
-        // Only what a word does laid bare, as the pages below lay it; an offered meaning waits for its word.
-        fun wantedWhere(word: Word, tag: String) = word.meanings.filter { it.appliesUnaimed }.flatMap { it.effects }
-            .filterIsInstance<Effect.Restricts>()
-            .filter { restricts -> restricts.bars[tag]?.let(Bars::isAtLeast) == true }
-            .map { it.aspect }.toSet()
+        val wanting = vocabulary.authoredWords.filterNot(vocabulary::isAStructureWord).associateWith { word ->
+            written(listOf(word.name, NUCLEUS_PAGE), SAMPLE_BOOK_SEED).drawn.possible.flatMap { landing ->
+                landing.effects.filterIsInstance<Effect.Restricts>().flatMap { restricts ->
+                    restricts.bars.filterValues(Bars::isAtLeast).keys.map { tag -> tag to restricts.aspect }
+                }
+            }.toSet()
+        }
         fun wordsWanting(first: String, second: String): Pair<Word, Word>? {
-            for (one in vocabulary.words) {
-                val places = wantedWhere(one, first).ifEmpty { continue }
-                val other = vocabulary.words.firstOrNull { it != one && wantedWhere(it, second).any(places::contains) }
-                if (other != null) return one to other
+            for ((one, wants) in wanting) {
+                val places = wants.filter { it.first == first }.map { it.second }.toSet().ifEmpty { continue }
+                val other = wanting.entries.firstOrNull { (word, theirs) -> word != one && theirs.any { it.first == second && it.second in places } }
+                if (other != null) return one to other.key
             }
             return null
         }
@@ -130,79 +122,55 @@ class BookCheck : FunSpec({
         check(writable.isNotEmpty()) { "the opposed-tags table names no pair the corpus can write" }
 
         for (opposed in writable) {
-            // The two words that disagree laid bare, then the `age` page that takes them.
             val pages = listOf(opposed.first.name, opposed.second.name, NUCLEUS_PAGE)
-            val written = pages.joinToString(" ")
-            val read = read(pages)
-            check(read.readsAsLaid) { "'$written' was read as something other than laid:\n${read.readout}" }
-            val landed = read.possible.map { it.page }.toSet()
-            check(landed == setOf(0, 1)) { "'$written' lost a word:\n${read.readout}" }
-            val resolution = vocabulary.resolve(read, SAMPLE_BOOK_SEED)
-            check(!resolution.instability.isCoherent) {
-                "'$written' asks for two opposed things and was charged nothing"
-            }
+            val said = pages.joinToString(" ")
+            val book = written(pages, SAMPLE_BOOK_SEED)
+            check(book.reading.readsAsLaid) { "'$said' was read as something other than laid:\n${Trace.of(book.reading, book.drawn).joinToString("\n")}" }
+            check(!book.resolution.instability.isCoherent) { "'$said' asks for two opposed things and was charged nothing" }
         }
     }
 
     /**
      * **Any row of pages at all comes back a sentence, and resolves into a world.** Design §2: the pen never
-     * refuses, and since repair replaced error recovery this is the only thing asking that at scale.
+     * refuses, and nothing asks it at scale but this.
      */
     test("any row of pages at all comes back a world") {
-        var repaired = 0
-        var lost = 0
+        var drawnOnto = 0
+        var nowhere = 0
         for ((seed, pages) in fuzzed) {
-            val read = runCatching { read(pages) }
-                .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not read: $failure") }
-            runCatching { vocabulary.resolve(read, seed) }
-                .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not resolve: $failure") }
-            if (read.moved.isNotEmpty()) repaired++
-            if (read.impossible.isNotEmpty()) lost++
+            val book = runCatching { written(pages, seed) }
+                .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not be written: $failure") }
+            if (book.drawn.dangling.any { it.drawnOnto != null }) drawnOnto++
+            if (book.drawn.dangling.any { it.drawnOnto == null }) nowhere++
         }
-        // The instrument has to be measuring something. A fuzz that happened to draw only well-formed rows
-        // would pass this and the two properties below without ever reaching repair, which is the whole
-        // reason these rows are drawn at random rather than written.
-        check(repaired > ROWS_FUZZED / 10) { "only $repaired of $ROWS_FUZZED rows reached repair at all" }
-        check(lost > 0) { "no row of $ROWS_FUZZED held a page there was nowhere for, so that channel is untested" }
+        // The instrument has to be measuring something: a fuzz that drew only well-formed rows would pass without
+        // ever reaching a dangling page, which is the whole reason these rows are drawn at random.
+        check(drawnOnto > ROWS_FUZZED / 10) { "only $drawnOnto of $ROWS_FUZZED rows drew a dangling page onto a word" }
+        check(nowhere > 0) { "no row of $ROWS_FUZZED held a page there was nowhere for, so that channel is untested" }
     }
 
     /**
-     * **Nothing vanishes in silence** (§3.3), asked of rows nobody would write. Every page a word was laid, so it
-     * could land somewhere, or it is reported unread, impossible or moved. A word laid that could land nowhere means a
-     * writer gets a world their book did not describe and is told nothing about it.
+     * **Nothing vanishes in silence** (§3.3), asked of rows nobody would write: every page the reader says something
+     * took was placed somewhere — as an offer, carried inside one, or reshaping one — so none is counted taken and lost.
      */
     test("nothing vanishes from a row of pages") {
-        // A moved page is reported, charged as rehomed, wherever it then lands.
-        fun mustLand(fate: Fate) = when (fate) {
-            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone, Fate.Banned, Fate.Anchors -> true
-            is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved, is Fate.Names, is Fate.Carries -> false
-        }
         for ((seed, pages) in fuzzed) {
-            val read = read(pages)
-            val couldLand = read.possible.map { it.page }.toSet()
-            // A template's word lands as the world the book starts from, which is the reading's and no landing's.
-            fun namesTheTemplate(written: String) =
-                vocabulary.word(written)?.effects?.any { it is Effect.Template && it.name == read.template } == true
-            val lost = read.pages.filter { mustLand(it.fate) && it.index !in couldLand && !namesTheTemplate(it.written) }
+            val reading = written(pages, seed).reading
+            val placedSomewhere = reading.placements.flatMap { listOf(it.from) + it.carrying }.toSet()
+            val lost = reading.pages.filter { it.fate == Fate.Placed && it.index !in placedSomewhere }
             check(lost.isEmpty()) {
-                "seed $seed ('${pages.joinToString(" ")}') lost ${lost.joinToString { it.written }} — laid and landing " +
-                    "nowhere, which is the one failure §3.3 forbids:\n${read.readout}"
+                "seed $seed ('${pages.joinToString(" ")}') counted ${lost.joinToString { it.written }} taken and placed it nowhere"
             }
         }
     }
 
     /**
      * **The same pages always read the same way.** An Age rebuilds from its recipe on every open, so a
-     * reading that varied would be a different world under the same book — and repair, which draws a
-     * sentence of its own, is the first thing in the pipeline that could have broken it.
+     * reading that varied would be a different world under the same book.
      */
     test("the same pages always read the same way") {
         for ((seed, pages) in fuzzed) {
-            val once = read(pages)
-            val again = read(pages)
-            check(once == again) {
-                "seed $seed ('${pages.joinToString(" ")}') read two ways:\n  $once\n  $again"
-            }
+            check(written(pages, seed) == written(pages, seed)) { "seed $seed ('${pages.joinToString(" ")}') read two ways" }
         }
     }
 })

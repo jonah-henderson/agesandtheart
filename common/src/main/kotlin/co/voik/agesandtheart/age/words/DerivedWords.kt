@@ -25,7 +25,7 @@ object DerivedWords {
     /** Anything carrying this tag never becomes a word. */
     val DOES_NOT_HAVE_A_WORD: Identifier = "does_not_have_a_word".location()
 
-    private val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
+    val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
 
     private val WORDLESS_CREATURES: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, DOES_NOT_HAVE_A_WORD)
 
@@ -33,6 +33,25 @@ object DerivedWords {
     val FEATURE: Identifier = "feature".location()
     val STRUCTURE: Identifier = "structure".location()
     val CREATURE: Identifier = "creature".location()
+
+    private val REGISTRY_OF_KIND: Map<Identifier, ResourceKey<out Registry<*>>> = mapOf(
+        BIOME to Registries.BIOME,
+        FEATURE to Registries.PLACED_FEATURE,
+        STRUCTURE to Registries.STRUCTURE_SET,
+        CREATURE to Registries.ENTITY_TYPE,
+    )
+
+    /**
+     * The registries [word] names an entry of, read off the senses the game gave it: a block offering itself, a thing
+     * of a kind, a tree's wood offering its feature. None for a word of ours, which names no entry.
+     */
+    fun referentRegistriesOf(word: Word): Set<ResourceKey<out Registry<*>>> = word.senses.flatMap { sense ->
+        val itself = Value.Text(word.id.toString())
+        val ofItsKind = sense.kind?.let(REGISTRY_OF_KIND::get)
+        val isABlock = sense.offers.any { it.concept == CoreConcepts.BLOCK && it.value == itself }
+        val isAWood = sense.kind == null && sense.offers.any { it.concept == CoreConcepts.MEMBER && it.value == itself }
+        listOfNotNull(ofItsKind, Registries.BLOCK.takeIf { isABlock }, Registries.PLACED_FEATURE.takeIf { isAWood })
+    }.toSet()
 
     /** Every block, offering itself as a material, for whatever takes one to say where it may go. */
     fun blocks(): List<Word> = BuiltInRegistries.BLOCK.listElements()

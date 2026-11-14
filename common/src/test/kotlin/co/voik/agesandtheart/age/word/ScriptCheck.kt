@@ -36,7 +36,7 @@ class ScriptCheck : FunSpec({
      * pack is allowed to lean entirely on the rules.
      */
     test("an authored spelling still applies inside a line") {
-        val authored = vocabulary.words.map { it.name }.firstOrNull(script::isAuthored)
+        val authored = vocabulary.allWords.map { it.name }.firstOrNull(script::isAuthored)
             ?: return@test
         val inALine = script.spellEachWord("landmass of $authored")
         check(inALine.endsWith(script.spell(authored))) {

@@ -95,7 +95,6 @@ private fun judged(kind: FoundBookKind, seed: Long, pages: List<String>, written
         seed = seed,
         pages = pages,
         unplaced = unread + dangling,
-        supplied = emptyList(),
         modifiers = pages.filter(::isAModifier),
         hasAnAge = pages.any { behaviourOf(it) == AGE },
         cost = written.resolution.cost,

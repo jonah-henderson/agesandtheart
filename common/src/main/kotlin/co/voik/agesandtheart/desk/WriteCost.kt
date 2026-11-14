@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Word
 import net.minecraft.core.RegistryAccess
 
 /**
@@ -10,7 +10,7 @@ import net.minecraft.core.RegistryAccess
  *
  * Two independent axes meet here, and keeping them apart is the point (design §7.1.1). **Which** ink a
  * word demands comes from the referent's tags — a diamond needs the good ink however vaguely you use it.
- * **How much** comes from [Word.price], which is specificity times versatility (world model §9) and the
+ * **How much** comes from [Vocabulary.priceOf], which is specificity times versatility (world model §9) and the
  * same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
  * it eases the economy but can never unlock a word. The sheets a book takes are the book's business — see
  * [sheetsFor] and [BookCost].
@@ -69,20 +69,16 @@ data class WriteCost(
             return (pages + perSheet - 1) / perSheet
         }
 
-        /** A structural word's ink on [paperTier]: one unit of cost, the least any page is priced at. */
-        fun structural(paperTier: InkTier, unitsPerBucket: Long): Long {
-            val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
-            return Math.ceil(perUnit * paperEfficiency(paperTier)).toLong().coerceAtLeast(1L)
-        }
-
         fun of(
             word: Word,
             vocabulary: Vocabulary,
             registries: RegistryAccess,
             paperTier: InkTier,
             unitsPerBucket: Long,
-        ): WriteCost {
-            val required = vocabulary.ink.tierFor(word, registries)
+        ): WriteCost = priced(vocabulary.priceOf(word), vocabulary.ink.tierFor(word, registries), paperTier, unitsPerBucket)
+
+        /** A page of [price] demanding [required] ink, on [paperTier] paper. */
+        fun priced(price: Int, required: InkTier, paperTier: InkTier, unitsPerBucket: Long): WriteCost {
             // **In doubles, and that is not fussiness.** `unitsPerBucket` is the loader's — 81,000
             // droplets on Fabric, 1,000 millibuckets on NeoForge — so an integer division here truncates
             // differently on each: at 120 units to the bucket, NeoForge lands on 8 where the true figure
@@ -90,7 +86,7 @@ data class WriteCost(
             val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
             val efficiency = paperEfficiency(paperTier)
             // Rounded up, so better paper makes a word cheaper but never free.
-            val units = Math.ceil(word.price * perUnit * efficiency).toLong().coerceAtLeast(1L)
+            val units = Math.ceil(price * perUnit * efficiency).toLong().coerceAtLeast(1L)
             return WriteCost(required, units, paperTier)
         }
     }

@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.reading
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Materials
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.location
@@ -49,6 +51,24 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
     }
 
     override fun isThereByDefault(part: Aspect, member: String): Boolean = vocabulary.isThereByDefault(part, member)
+
+    override fun doesAnythingWith(part: Aspect, member: String, effect: Effect): Boolean {
+        // One of the part's registry that no pool holds — a golem — is still that entry, and answers as one.
+        val outsideThePools = member.takeIf { vocabulary.isAnEntryOf(part, it) }?.let(part::presetFor)
+        val taggable = membersByKey[member] ?: outsideThePools ?: return true
+        return when (effect) {
+            is Effect.Abundance -> taggable !is Phenomenon || taggable.countsInSpace
+            is Effect.Sets -> honoursItsOwn(part, taggable, effect.parameter.name)
+            is Effect.Bends -> honoursItsOwn(part, taggable, effect.parameter.name)
+            else -> true
+        }
+    }
+
+    /** Whether [member] does anything with the parameter named [name], where [part] holds it member by member. */
+    private fun honoursItsOwn(part: Aspect, member: Taggable, name: String): Boolean {
+        val heldByEachMember = part.understood.firstOrNull { it.name == name && it.ownedByEachMember } ?: return true
+        return vocabulary.honours(member, heldByEachMember)
+    }
 
     private fun isInBlockTag(value: String, tag: Identifier): Boolean {
         val id = Identifier.tryParse(value) ?: return false

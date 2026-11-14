@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.words
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -12,9 +11,6 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import kotlin.io.path.extension
-import kotlin.io.path.listDirectoryEntries
-import kotlin.io.path.nameWithoutExtension
 
 /** The mood words we ship, and every word we ship read before `age` (`notes/the-word-rework.md`, step 6's last batch). */
 @Tags(NEEDS_REGISTRIES)
@@ -32,12 +28,8 @@ class MoodsCheck : FunSpec({
     fun set(row: String, part: Aspect, parameter: String, seed: Long = 0L): List<String> = drawn(row, seed).landed.flatMap { it.effects }
         .mapNotNull(ShippedWords::turned).filter { (key, _) -> key == ParameterKey(parameter, part) }.map { (_, value) -> value }
 
-    test("what we ship loads and fits, and every word of the old format has one in the new") {
+    test("what we ship loads and fits") {
         check(words.problems.isEmpty()) { "what we ship does not fit: ${words.problems.take(10)}" }
-        fun names(directory: String) = MinecraftRegistries.resourceRoot().resolve("data/agesandtheart/art/$directory").listDirectoryEntries()
-            .filter { it.extension == "json" }.map { it.nameWithoutExtension }.toSet()
-        val unwritten = names("word") - names("words")
-        check(unwritten.isEmpty()) { "old words with no new one: $unwritten" }
     }
 
     test("every word we write reads before `age` — landing something, dangling, or a part's page saying nothing — and never fails") {

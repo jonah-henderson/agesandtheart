@@ -2,7 +2,8 @@
   "_comment": [
     "Worn down by a long time: an eroded landmass, the ground and what stands on it leaning eroded, sheer where it",
     "broke and barren where it wore, never laid out fresh; what is built leans ruined; the wear on everything turned up and",
-    "what stands set closer, as rubble does."
+    "what stands set closer, as rubble does.",
+    "Said of the whole Age, it crumbles what stands four Ages in ten; the features take no wear from the whole Age otherwise, so `eroded age` and `pristine age` leave them whole."
   ],
   "speech": "adjective",
   "offers": [
@@ -11,6 +12,15 @@
       "value": {
         "amount": "0.45..1.0"
       }
+    },
+    {
+      "concept": "wear",
+      "value": {
+        "amount": "0.45..1.0"
+      },
+      "for": "features",
+      "chance": 0.0,
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "spacing",

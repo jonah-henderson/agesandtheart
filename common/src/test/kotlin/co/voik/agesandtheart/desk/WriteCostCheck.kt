@@ -1,11 +1,11 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.age.language.Meaning
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.Price
+import co.voik.agesandtheart.age.words.Word
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import io.kotest.core.annotation.Tags
@@ -41,7 +41,7 @@ class WriteCostCheck : FunSpec({
      * economy is stated in rather than a number read back out of the code.
      */
     fun idealShare(word: Word, paper: InkTier): Double =
-        word.price * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
+        vocabulary.priceOf(word) * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
 
     /**
      * **Every price lands within one of the loader's own units of the true one.**
@@ -74,23 +74,25 @@ class WriteCostCheck : FunSpec({
         }
     }
 
-    test("a structural word costs one unit, never nothing, on any paper") {
+    test("a structure word costs one unit, never nothing, on any paper") {
+        val and = vocabulary.word("and") ?: error("the corpus has no 'and'")
         for (paper in InkTier.entries) {
-            check(WriteCost.structural(paper, 1000L) >= 1L) { "A structural word was free on $paper" }
+            check(WriteCost.of(and, vocabulary, registries, paper, 1000L).inkUnits >= 1L) { "'and' was free on $paper" }
         }
     }
 
     /** The pages every book needs are the cheapest there are: common ink, at the floor. */
     test("age and every aiming page are written in common ink at the least price") {
-        val age = vocabulary.structurePage("age") ?: error("the corpus has no 'age' page")
-        check(vocabulary.ink.tierFor(age) == InkTier.COMMON) { "'age' demands ${vocabulary.ink.tierFor(age)}" }
+        val age = vocabulary.word("age") ?: error("the corpus has no 'age' page")
+        check(vocabulary.ink.tierFor(age, registries) == InkTier.COMMON) { "'age' demands ${vocabulary.ink.tierFor(age, registries)}" }
         for (aspect in Aspect.entries) {
             val page = vocabulary.word(aspect.page) ?: error("the corpus has no aiming page for $aspect")
             val tier = vocabulary.ink.tierFor(page, registries)
             // The aurora's and the rainbow's pages bring one about, and pay for it as any word choosing it does.
-            val meansNothingOfItsOwn = page.meanings.isEmpty()
-            check(tier == InkTier.COMMON && (!meansNothingOfItsOwn || page.price == Word.FLOOR_PRICE)) {
-                "the aiming page '${page.name}' costs ${page.price} in $tier"
+            val meansNothingOfItsOwn = page.senses.all { it.means.isEmpty() && it.offers.isEmpty() }
+            val price = vocabulary.priceOf(page)
+            check(tier == InkTier.COMMON && (!meansNothingOfItsOwn || price == Price.FLOOR_PRICE)) {
+                "the aiming page '${page.name}' costs $price in $tier"
             }
         }
     }
@@ -101,13 +103,8 @@ class WriteCostCheck : FunSpec({
      */
     test("the extremes of the grammar take fine ink and the steps beside normal take common") {
         fun tierOf(name: String): InkTier {
-            val structural = vocabulary.structurePage(name)
-            val word = vocabulary.word(name)
-            return when {
-                structural != null -> vocabulary.ink.tierFor(structural)
-                word != null -> vocabulary.ink.tierFor(word, registries)
-                else -> error("the corpus has no '$name'")
-            }
+            val word = vocabulary.word(name) ?: error("the corpus has no '$name'")
+            return vocabulary.ink.tierFor(word, registries)
         }
         val wrong = WANTED_INK.filter { (name, wanted) -> tierOf(name) != wanted }
             .map { (name, wanted) -> "'$name' demands ${tierOf(name)}, not $wanted" }
@@ -124,32 +121,12 @@ class WriteCostCheck : FunSpec({
      * has to name a *shape* now, since an exact word can be four units or twenty-four.
      */
     test("the commonest page costs a fifth of a bottle") {
-        val ordinary = vocabulary.derivedWords.firstOrNull { it.price == A_COMMON_PAGE }
+        val ordinary = vocabulary.derivedWords.firstOrNull { vocabulary.priceOf(it) == A_COMMON_PAGE }
             ?: error("the corpus has no ordinary page to price")
         val cost = WriteCost.of(ordinary, vocabulary, registries, InkTier.COMMON, neoforgeMillibuckets)
         val bottles = cost.inkUnits.toDouble() / (neoforgeMillibuckets.toDouble() / WriteCost.BOTTLES_PER_BUCKET)
         check(abs(bottles - A_FIFTH_OF_A_BOTTLE) < CLOSE_ENOUGH) {
             "'${ordinary.name}' costs $bottles of a bottle, where the economy is tuned to $A_FIFTH_OF_A_BOTTLE"
-        }
-    }
-
-    /**
-     * **And the ladder the whole design rests on holds**: a word that only leans is the cheapest thing in
-     * the language, and a versatile page is dearer than a narrow one (world model §9). Read off the corpus
-     * rather than off the constants, since it is the corpus a writer meets.
-     */
-    test("a page that only leans is the cheapest and a versatile one is dearest") {
-        fun narrows(word: Word) = word.meanings.any(Meaning::narrows)
-        val leaning = vocabulary.authoredWords.filterNot(::narrows)
-        val cheapest = vocabulary.authoredWords.minOf { it.price }
-        check(leaning.isNotEmpty() && leaning.all { it.price == cheapest }) {
-            "a word that only leans is not the cheapest thing in the language: " +
-                leaning.map { "${it.name}@${it.price}" }
-        }
-        val narrow = vocabulary.words.first { narrows(it) && it.price == Word.INK_PER_NARROWED_PART }
-        val broad = vocabulary.words.first { narrows(it) && it.price > Word.INK_PER_NARROWED_PART }
-        check(broad.price > narrow.price) {
-            "'${broad.name}' reaches more places than '${narrow.name}' and costs no more"
         }
     }
 

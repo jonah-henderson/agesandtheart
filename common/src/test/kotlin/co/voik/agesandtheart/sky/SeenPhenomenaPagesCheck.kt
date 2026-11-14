@@ -38,7 +38,7 @@ class SeenPhenomenaPagesCheck : FunSpec({
 
     test("a phenomenon beside a trailing term reads as laid") {
         val row = listOf("age", "blue", "aurora", "tempest", "zombie")
-        check(vocabulary.read(row, 0L)?.readsAsLaid == true) { "`tempest zombie` was refused and the book repaired" }
+        check(vocabulary.written(row, 0L).reading.readsAsLaid) { "`tempest zombie` was refused and the book repaired" }
     }
 }) {
     private companion object {

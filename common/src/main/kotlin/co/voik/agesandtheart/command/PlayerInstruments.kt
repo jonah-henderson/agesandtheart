@@ -97,7 +97,7 @@ internal object PlayerInstruments {
         // page it names — `parrot` is vanilla's. Set even where the Age was made by hand and has no sentence, so
         // that a book with nothing to say is not taken for a blank one and written over as a found book.
         val vocabulary = Vocabulary.of(source.server)
-        fun idOf(page: String) = vocabulary.structurePage(page)?.id ?: vocabulary.word(page)?.id
+        fun idOf(page: String) = vocabulary.word(page)?.id
         book.set(AgeComponents.BOOK_WORDS, recipe.words.mapNotNull(::idOf))
         readingOf(source, recipe.words, recipe.seed)?.let { book.set(AgeComponents.BOOK_READING, it) }
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
@@ -112,8 +112,8 @@ internal object PlayerInstruments {
     private fun readingOf(source: CommandSourceStack, pages: List<String>, seed: Long): List<ReadoutClause>? {
         if (pages.isEmpty()) return null
         val vocabulary = Vocabulary.of(source.server)
-        val reading = vocabulary.read(pages, seed) ?: return null
-        return vocabulary.prose(reading, seed)
+        if (!vocabulary.spellsABook(pages)) return null
+        return vocabulary.readout(vocabulary.written(pages, seed))
     }
 
     /**
@@ -145,19 +145,14 @@ internal object PlayerInstruments {
             .filterNot { Withheld.holdsBack(it, registries) }
         if (words.isEmpty()) return FAILURE.also { source.sendFailure(Component.literal("No words to write")) }
 
-        val pages = words.map { word ->
-            PageItem.writtenWith(word, vocabulary)
-        }
-        // The structural words go in beside them: `and`, `only` and the rungs are pages a writer lays like
-        // any other, and a book cannot be tested for structure without them.
-        val structural = if (derived) emptyList() else vocabulary.structurePages.map { spelled ->
-            PageItem.writtenWith(spelled.id)
-        }
+        // Our words include the structure words — `and`, `only` and the rungs are pages a writer lays like any
+        // other, and a book cannot be tested for structure without them.
+        val pages = words.map { word -> PageItem.writtenWith(word, vocabulary) }
         val notebook = ItemStack(AgeContent.NOTEBOOK)
-        NotebookItem.setPages(notebook, pages + structural)
+        NotebookItem.setPages(notebook, pages)
         player.inventory.placeItemBackInInventory(notebook, Prediction.SERVER_ONLY)
         source.sendSuccess({
-            Component.literal("A notebook of ${pages.size + structural.size} pages. Tip it into the desk.")
+            Component.literal("A notebook of ${pages.size} pages. Tip it into the desk.")
         }, false)
         return SUCCESS
     }

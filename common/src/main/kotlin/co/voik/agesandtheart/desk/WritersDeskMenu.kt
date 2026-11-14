@@ -3,9 +3,8 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.language.Prose
+import co.voik.agesandtheart.age.reading.Written
 import co.voik.agesandtheart.age.readout.ReadoutClause
-import co.voik.agesandtheart.age.language.Reading
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -63,9 +62,11 @@ class WritersDeskMenu(
         // Resolving it is dearer, so it is done at most once, and only where something in the room can show what
         // it says — the conflicts, or the readout, which says only what held.
         val vocabulary = vocabularyFor(player)
-        val said = words.takeIf { it.isNotEmpty() }?.let { vocabulary.read(it.map(Identifier::getPath), player.writingSeed) }
+        val pages = words.map(Identifier::getPath)
         val showsWhatResolves = capabilities.capabilities.any { it == DeskCapability.REVEAL_CONFLICTS || it == DeskCapability.READABLE_GRAMMAR }
-        val resolved = said?.takeIf { showsWhatResolves }?.let { vocabulary.resolve(it, player.writingSeed) }
+        val spellsABook = pages.isNotEmpty() && vocabulary.spellsABook(pages)
+        val written = if (spellsABook && showsWhatResolves) vocabulary.written(pages, player.writingSeed) else null
+        val resolved = written?.resolution
         return DeskSyncPayload(
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
             paper = InkTier.entries.associateWith { desk.stores.paper(it) },
@@ -80,7 +81,7 @@ class WritersDeskMenu(
             drawn = allocation.drawn,
             archived = supply.archived(),
             quarrels = quarrelsIn(capabilities, words, resolved),
-            reading = readingOf(capabilities, said, resolved, vocabulary),
+            reading = readingOf(capabilities, written, vocabulary),
         )
     }
 
@@ -89,10 +90,9 @@ class WritersDeskMenu(
      * conflicts are (design §7.3): visibility is a property of the workspace. The gate is on the desk's
      * live reading and nothing else — a bound book still carries its own, and a found one still teaches.
      */
-    private fun readingOf(capabilities: DeskState, said: Reading?, resolved: Resolution?, vocabulary: Vocabulary): List<ReadoutClause> {
+    private fun readingOf(capabilities: DeskState, written: Written?, vocabulary: Vocabulary): List<ReadoutClause> {
         if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return emptyList()
-        if (said == null || resolved == null) return emptyList()
-        return Prose.of(said, resolved, vocabulary.lexicon)
+        return written?.let(vocabulary::readout).orEmpty()
     }
 
     /**
@@ -142,16 +142,14 @@ class WritersDeskMenu(
             val registries = player.level().registryAccess()
             val units = Services.INK_FLUIDS.unitsPerBucket
             val spelled = vocabulary.word(word.toString()) ?: vocabulary.word(word.path)
-                ?: return structuralPrice(vocabulary, word.path, units)
+                ?: return PagePrice(InkTier.DEFAULT, InkTier.entries.associateWith { WriteCost.priced(LEAST_PRICE, InkTier.DEFAULT, it, units).inkUnits })
             val costs = InkTier.entries.associateWith { paper ->
                 WriteCost.of(spelled, vocabulary, registries, paper, units)
             }
             return PagePrice(costs.getValue(InkTier.COMMON).inkTier, costs.mapValues { it.value.inkUnits })
         }
 
-        private fun structuralPrice(vocabulary: Vocabulary, name: String, units: Long): PagePrice {
-            val ink = vocabulary.structurePage(name)?.let(vocabulary.ink::tierFor) ?: InkTier.DEFAULT
-            return PagePrice(ink, InkTier.entries.associateWith { WriteCost.structural(it, units) })
-        }
+        /** What a page that is no word now costs: the least any page does. */
+        private const val LEAST_PRICE = 1
     }
 }

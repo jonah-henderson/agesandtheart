@@ -11,10 +11,12 @@ import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesARegistryEntry
-import co.voik.agesandtheart.age.language.DerivedWords
-import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.DerivedWords
+import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.Word
+import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.age.resolution.Effect
-import co.voik.agesandtheart.age.aspect.Taggable
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -33,18 +35,39 @@ class VocabularyCheck : FunSpec({
 
     val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
+    /** What each word of ours could land said of the whole Age — `<word> age` — which is what it means anywhere it is said. */
+    val landedByOurs by lazy {
+        vocabulary.authoredWords.filterNot(vocabulary::isAStructureWord).associateWith { word ->
+            vocabulary.written(listOf(word.name, AGE), 0L).drawn.possible.flatMap { it.effects }
+        }
+    }
+
+    /** Every member each word names outright: what a thing chooses as itself, and the members words offer. */
+    val membersNamed by lazy {
+        vocabulary.allWords.flatMap { word ->
+            word.senses.flatMap { sense ->
+                sense.means.filterIsInstance<Effect.Chooses>().map { it.aspect to it.member } +
+                    sense.offers.filter { it.concept == CoreConcepts.MEMBER }.mapNotNull { (it.value as? Value.Text)?.text }.flatMap { member ->
+                        Aspect.entries.filter { aspect -> aspect.presetFor(member) != null }.map { it to member }
+                    }
+            }
+        } + landedByOurs.values.flatten().filterIsInstance<Effect.Chooses>().map { it.aspect to it.member }
+    }
+
     /** Everything below is weaker than it looks if a file was quietly skipped, so this goes first. */
     test("every file was understood") {
         check(vocabulary.problems.isEmpty()) {
             "The vocabulary did not load cleanly:\n  ${vocabulary.problems.joinToString("\n  ")}"
         }
-        check(vocabulary.words.isNotEmpty()) { "No words loaded at all — is the data directory where it was?" }
+        check(vocabulary.allWords.isNotEmpty()) { "No words loaded at all — is the data directory where it was?" }
     }
 
     /** Every aspect has a word that lands on it, or part of the world is unwritable. */
     test("every part of the world has words") {
-        val reached = vocabulary.words.flatMap(vocabulary.lexicon::placesFor).toSet()
-        val unwritable = Aspect.entries - reached
+        val taken = vocabulary.reach.values.flatten()
+        val spokenFor = vocabulary.allWords.flatMap { word -> word.senses.mapNotNull { it.speaksFor } }
+        val landed = landedByOurs.values.flatten().flatMap(::aspectsOf)
+        val unwritable = Aspect.entries - (taken + spokenFor + landed).toSet()
         check(unwritable.isEmpty()) { "no word lands on ${unwritable.map { it.page }}" }
     }
 
@@ -54,20 +77,20 @@ class VocabularyCheck : FunSpec({
      * the check after this one.
      */
     test("every preset can be asked for") {
+        val restrictions = landedByOurs.values.flatten().filterIsInstance<Effect.Restricts>()
         for (aspect in Aspect.entries) {
             // Where there is nothing to draw between, the one candidate arrives by construction.
             if (vocabulary.candidatesFor(aspect).size <= 1) continue
-            val restrictions = vocabulary.words.flatMap { it.effects }.filterIsInstance<Effect.Restricts>()
-                .filter { it.aspect == aspect && it.bars.values.any(Bars::isAtLeast) }
+            val narrowing = restrictions.filter { it.aspect == aspect && it.bars.values.any(Bars::isAtLeast) }
             for (preset in vocabulary.candidatesFor(aspect)) {
                 if (!preset.availableToBroadWords) continue
                 // A referent is reachable by name by construction, and biome words exist only on a server.
                 if (namesARegistryEntry(preset.key)) continue
                 // A phenomenon instability inflicts is reached by instability until a word names it.
                 if ((preset as? Phenomenon)?.inflictedBy != null && !vocabulary.isAvailableToBroadWords(preset)) continue
-                val chosen = vocabulary.words.any { it.choiceIn(aspect)?.key == preset.key }
+                val chosen = (aspect to preset.key) in membersNamed
                 val tags = vocabulary.tagsOf(preset)
-                val narrowedTo = restrictions.any { Bars.cleared(tags, it.bars) }
+                val narrowedTo = narrowing.any { Bars.cleared(tags, it.bars) }
                 check(chosen || narrowedTo) {
                     "No word can ask for ${aspect.key}=${preset.key}, so it can only ever arrive by chance. " +
                         "Its tags are $tags. If that is deliberate — a preset only a pinned recipe names — say so " +
@@ -103,14 +126,14 @@ class VocabularyCheck : FunSpec({
      * charges nothing and looks like coverage.
      */
     test("every pair of opposed tags could fire") {
+        val wanted = landedByOurs.values.flatten().filterIsInstance<Effect.Restricts>()
+            .flatMap { it.bars.filterValues(Bars::isAtLeast).keys }.toSet()
         for (pair in vocabulary.opposedTags) {
             for (tag in listOf(pair.first, pair.second)) {
                 check(tag in vocabulary.carriedTags) {
                     "The opposed pair '${pair.first} vs ${pair.second}' names '$tag', which nothing carries"
                 }
-                check(vocabulary.words.any { tag in it.wantedTags }) {
-                    "No word asks for '$tag', so the pair '${pair.first} vs ${pair.second}' can never fire"
-                }
+                check(tag in wanted) { "No word asks for '$tag', so the pair '${pair.first} vs ${pair.second}' can never fire" }
             }
         }
     }
@@ -139,20 +162,17 @@ class VocabularyCheck : FunSpec({
      */
     test("only the inferno may hang burning air") {
         val reserved = setOf("embers", "flames")
-        fun offers(word: Word) = word.effects.filterIsInstance<Effect.Sets>()
+        fun offers(landed: List<Effect>) = landed.filterIsInstance<Effect.Sets>()
             .filter { it.parameter.name == MOTES }
             .flatMap { it.value.split(POOL_ALTERNATIVES) }
             .filter { it in reserved }
-
-        val leaks = vocabulary.words
-            .filterNot { it.name == INFERNO }
-            .mapNotNull { word -> offers(word).takeIf { it.isNotEmpty() }?.let { word.name to it } }
+        val leaks = landedByOurs.filterKeys { it.name != INFERNO }
+            .mapNotNull { (word, landed) -> offers(landed).takeIf { it.isNotEmpty() }?.let { word.name to it } }
         check(leaks.isEmpty()) {
-            "burning air is the inferno's warning and these words dilute it: " +
-                leaks.joinToString { "${it.first} offers ${it.second}" }
+            "burning air is the inferno's warning and these words dilute it: " + leaks.joinToString { "${it.first} offers ${it.second}" }
         }
-        val inferno = vocabulary.word(INFERNO)
-        check(inferno != null && offers(inferno).isNotEmpty()) { "the inferno hangs no burning air of its own" }
+        val inferno = landedByOurs.entries.firstOrNull { it.key.name == INFERNO }?.value.orEmpty()
+        check(offers(inferno).isNotEmpty()) { "the inferno hangs no burning air of its own" }
     }
 
     /**
@@ -160,31 +180,34 @@ class VocabularyCheck : FunSpec({
      * `frozen` is a contradiction that is charged rather than a bound that yields in silence.
      */
     test("a phenomenon's climate is fixed rather than merely bounded") {
-        val inferno = vocabulary.word(INFERNO)
+        val inferno = landedByOurs.entries.firstOrNull { it.key.name == INFERNO }?.value
         check(inferno != null) { "there is no inferno in the corpus" }
-        val settings = inferno.effects.filterIsInstance<Effect.Sets>()
-        for (axis in listOf("temperature", "weather.frequency")) {
-            val said = settings.firstOrNull { it.parameter.spelled == axis }?.value
-            check(said != null) { "the inferno says nothing about $axis, so a frozen one costs nothing" }
+        val settings = inferno.filterIsInstance<Effect.Sets>()
+        for ((name, part) in listOf("temperature" to Aspect.CLIMATE, "frequency" to Aspect.WEATHER)) {
+            val said = settings.firstOrNull { it.parameter.name == name && it.parameter.landsOn(part) }?.value
+            check(said != null) { "the inferno says nothing about the ${part.page}'s $name, so a frozen one costs nothing" }
             check(Setting.read(said) is Setting.Fixed) {
-                "the inferno's $axis is '$said', which yields silently — a written contradiction would be free"
+                "the inferno's ${part.page} $name is '$said', which yields silently — a written contradiction would be free"
             }
         }
     }
 
     /**
-     * **A block word chooses nothing but itself.** An id does not say which registry it belongs to, so a block taken
+     * **A block word means nothing but itself.** An id does not say which registry it belongs to, so a block taken
      * for a structure set or a biome of the same shape was a page read, billed and dropped.
      */
-    test("a block word chooses itself and nothing else") {
-        val blocks = vocabulary.derivedWords.filter { it.block != null }
+    test("a block word offers itself and nothing else") {
+        val blocks = vocabulary.derivedWords.filter { Registries.BLOCK in DerivedWords.referentRegistriesOf(it) }
         check(blocks.isNotEmpty()) { "no derived block words at all" }
-        fun choosesSomethingItIsNot(block: Word) =
-            block.effects.filterIsInstance<Effect.Chooses>().any { it.member != block.id.toString() }
-        val wrong = blocks.filter(::choosesSomethingItIsNot)
-        check(wrong.isEmpty()) { "${wrong.size} block words choose something else: ${wrong.take(5).map { it.name }}" }
+        fun saysSomethingItIsNot(block: Word): Boolean {
+            val itself = Value.Text(block.id.toString())
+            val blockSenses = block.senses.filter { sense -> sense.offers.any { it.concept == CoreConcepts.BLOCK } }
+            return blockSenses.any { sense -> sense.means.isNotEmpty() || sense.offers.any { it.concept != CoreConcepts.BLOCK || it.value != itself } }
+        }
+        val wrong = blocks.filter(::saysSomethingItIsNot)
+        check(wrong.isEmpty()) { "${wrong.size} block words say something else: ${wrong.take(5).map { it.name }}" }
         val ice = vocabulary.word("ice")
-        check(ice?.choiceIn(Aspect.STRUCTURES) == null) { "'ice' means a structure set" }
+        check(ice?.senses.orEmpty().none { it.speaksFor == Aspect.STRUCTURES }) { "'ice' means a structure set" }
     }
 
     /** A sea nobody narrowed is the readiest one, so water must be readier than every other sea, alone. */
@@ -199,21 +222,27 @@ class VocabularyCheck : FunSpec({
     test("every landform a writer can reach for has a page that means it") {
         val unsayable = Aspect.TERRAIN.authored
             .filter { it.availableToBroadWords }
-            .filter { preset -> vocabulary.words.none { it.choiceIn(Aspect.TERRAIN)?.key == preset.key } }
+            .filter { preset -> (Aspect.TERRAIN to preset.key) !in membersNamed }
         check(unsayable.isEmpty()) { "no page means ${unsayable.map { it.key }}" }
     }
 })
+
+/** The parts of the world [effect] is said of, where it names one. */
+private fun aspectsOf(effect: Effect): List<Aspect> = when (effect) {
+    is Effect.Sets -> listOfNotNull(effect.parameter.fencedTo)
+    is Effect.Bends -> listOfNotNull(effect.parameter.fencedTo)
+    is Effect.Chooses -> listOf(effect.aspect)
+    is Effect.Admits -> listOf(effect.aspect)
+    is Effect.Excludes -> listOf(effect.aspect)
+    is Effect.Restricts -> listOf(effect.aspect)
+    is Effect.Leans -> listOf(effect.aspect)
+    else -> emptyList()
+}
+
+private const val AGE = "age"
 
 /** How a value spells its alternatives. */
 private const val POOL_ALTERNATIVES = '|'
 
 private const val INFERNO = "inferno"
 private const val MOTES = "motes"
-
-/** The member of [aspect] a word of the old model chooses outright, or null. */
-private fun Word.choiceIn(aspect: Aspect): Taggable? =
-    effects.filterIsInstance<Effect.Chooses>().firstOrNull { it.aspect == aspect }?.let { aspect.presetFor(it.member) }
-
-/** The tags a word of the old model narrows toward. */
-private val Word.wantedTags: Set<String>
-    get() = effects.filterIsInstance<Effect.Restricts>().flatMap { it.bars.filterValues(Bars::isAtLeast).keys }.toSet()
