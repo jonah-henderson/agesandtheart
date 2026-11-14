@@ -49,11 +49,13 @@ object ToolboxContents {
      * How a thing stands in the box, by what its sprite is: a tool's runs corner to corner and is stood on end, leaning
      * out over the side; armour is drawn upright and stands nearer the middle, where it is too wide to lean far, and
      * boots, drawn low in their sprite, stand higher to show over the side. A shield is drawn upright and face on, and
-     * stands as armour does, leaning a little less. Each is [outFromTheMiddle] pixels from the
+     * stands as armour does, leaning a little less. A crossbow's sprite has its bow at the foot, where a tool's has its
+     * handle, so it is stood the other way up to hang its bow out over the side. Each is [outFromTheMiddle] pixels from the
      * handle, leans [lean] degrees outward, and has its middle [standingHeight] pixels up.
      */
     enum class Stance(val upright: Float, val outFromTheMiddle: Double, val lean: Float, val standingHeight: Double) {
         TOOL(upright = -45.0f, outFromTheMiddle = 2.0, lean = 20.0f, standingHeight = 5.5),
+        CROSSBOW(upright = 135.0f, outFromTheMiddle = 2.0, lean = 20.0f, standingHeight = 5.5),
         ARMOUR(upright = 0.0f, outFromTheMiddle = 0.75, lean = 10.0f, standingHeight = 5.5),
         BOOTS(upright = 0.0f, outFromTheMiddle = 0.75, lean = 0.0f, standingHeight = 7.0),
         SHIELD(upright = 0.0f, outFromTheMiddle = 0.75, lean = 6.0f, standingHeight = 5.5),
@@ -64,6 +66,8 @@ object ToolboxContents {
                 val slot = stack.get(DataComponents.EQUIPPABLE)?.slot()
                 return when {
                     stack.has(DataComponents.BLOCKS_ATTACKS) -> SHIELD
+                    // What a crossbow holds loaded, and nothing else carries.
+                    stack.has(DataComponents.CHARGED_PROJECTILES) -> CROSSBOW
                     slot == EquipmentSlot.FEET -> BOOTS
                     slot != null && slot.isArmor -> ARMOUR
                     else -> TOOL
