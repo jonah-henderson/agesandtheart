@@ -32,9 +32,11 @@ object Verdict {
 
     /** Everything to say about [candidate] against [corpus]; [quarrels] adds the slow sweep of what it is charged beside. */
     fun on(candidate: Candidate, corpus: WordCorpus, quarrels: Boolean = true): List<Finding> {
-        val words = corpus.with(listOf(candidate.word))
+        // A word as it is saved is judged among the words already loaded; one being written, among them with it in.
+        val isAsSaved = candidate.word in corpus.written
+        val words = if (isAsSaved) corpus.words else corpus.with(listOf(candidate.word))
         val word = words.word(candidate.name) ?: return listOf(refused("it did not load", heldBy = WORDS_OF))
-        val world = WordsInTheWorld(words, corpus.vocabulary, corpus.membership, corpus.tagsOnlyAServerGrants)
+        val world = if (isAsSaved) corpus.world else WordsInTheWorld(words, corpus.vocabulary, corpus.membership, corpus.tagsOnlyAServerGrants)
         val judging = Judging(word, words, world)
         return buildList {
             addAll(words.problemsOf(word).map { refused(it.says, heldBy = WORDS_OF) })

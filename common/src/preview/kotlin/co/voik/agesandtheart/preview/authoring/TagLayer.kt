@@ -2,7 +2,12 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.word.DerivedTags
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.WordTags
 
 /**
  * What carries each tag, and **where that came from**.
@@ -18,7 +23,7 @@ import co.voik.agesandtheart.age.word.DerivedTags
  * Merging here rather than reloading is also what makes a weight edit instant: the derivation is the
  * expensive half and nothing an authored table says can change it.
  */
-class TagLayer(private val corpus: Corpus) {
+class TagLayer(private val corpus: WordCorpus) {
 
     /**
      * Where a weight came from — **and so what changing it will do.**
@@ -75,7 +80,7 @@ class TagLayer(private val corpus: Corpus) {
         val everything = if (!aspect.open) {
             aspect.authored.map { it.key }
         } else {
-            corpus.vocabulary.derivedWords.mapNotNull { it.choiceIn(aspect)?.key }.distinct()
+            membersNamedByDerivedWords(aspect)
         }
         return (everything + curated).distinct().filterNot { it in already }
             .sortedWith(compareBy({ it.substringBefore(':') != "minecraft" }, { it }))
@@ -223,10 +228,20 @@ class TagLayer(private val corpus: Corpus) {
     private fun tagsOn(aspect: Aspect, preset: String): Map<String, Double> =
         merged(overlay[aspect].orEmpty()[preset], derived[aspect].orEmpty()[preset].orEmpty())
 
+    /** The members of [aspect] the game's own words name, which is every one a writer can reach. */
+    private fun membersNamedByDerivedWords(aspect: Aspect): List<String> = corpus.derived.flatMap { word ->
+        word.senses.flatMap { sense ->
+            val chosen = sense.means.filterIsInstance<Effect.Chooses>().filter { it.aspect == aspect }.map { it.member }
+            val offered = sense.offers.filter { it.concept == CoreConcepts.MEMBER }.mapNotNull { (it.value as? Value.Text)?.text }
+                .filter { corpus.membership.isMemberOf(aspect, it) }
+            chosen + offered
+        }
+    }.distinct()
+
     /** How many words mention each tag, wanted, pushed against, or merely offered. */
     private val mentions: Map<String, Int> by lazy {
-        corpus.vocabulary.words
-            .flatMap { it.tagsSpokenOf }
+        corpus.words.all
+            .flatMap(WordTags::of)
             .groupingBy { it }
             .eachCount()
     }
@@ -271,8 +286,8 @@ class TagLayer(private val corpus: Corpus) {
 
     /** Which words mention [tag], so a rename or a retune can be read against what it would move. */
     fun askedBy(tag: String): List<String> =
-        corpus.vocabulary.authoredWords
-            .filter { tag in it.tagsSpokenOf }
+        corpus.written
+            .filter { tag in WordTags.of(it) }
             .map { it.name }
             .sorted()
 }

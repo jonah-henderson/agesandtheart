@@ -160,8 +160,8 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_
 scripts/drive-server.sh scripts/checks/regions.txt
 
 # Scrivener — a vocabulary editor for Ages and the Art (see "Authoring a word" below)
-scripts/scrivener.sh              # a new word
-scripts/scrivener.sh colossal     # an authored one
+scripts/scrivener.sh              # the menu: words, tags, rules, the age workshop
+scripts/scrivener.sh colossal     # a word of ours, opened or begun
 scripts/scrivener.sh --audit      # every authored word, worst first
 scripts/scrivener.sh --pairings porous   # what takes each of a word's offers, and whether it holds (see below)
 ```
@@ -228,12 +228,15 @@ is **read-only on purpose**: the derivation rules, where enter runs one rule *by
 what it catches. The file already states its rule perfectly and hides only its consequence —
 `notes/decisions.md` carries the split.
 
-**Authoring a word is `scripts/scrivener.sh`, and it works offline.** A full-screen editor over the real corpus:
-`Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes. A word is a list of meanings,
-each one idea with its chances, and the editor shows each meaning's effects under it and adds one by what it does,
-then where, then what. **Its verdict is the one copy of the per-word rules** (`Verdict`): it refuses what would
-not ship and names the check that holds each, nudges toward the rulings in `notes/decisions.md`, and
-`VocabularyCheck` asks it of every word. `^t` reads a book with the word as it stands, through `Trial`. What offline cannot know is datapack content — a tag only a bound registry grants
+**Authoring a word is `scripts/scrivener.sh`, and it works offline.** A full-screen editor over the real corpus
+(`WordCorpus`: concepts, kinds, our words and every derived word, over `Vocabulary.load(shippedData(), worldgen)`). A
+word is senses, each with what it offers, what it takes and what it means itself, and the editor adds an offer by its
+concept, then its value, its audience and its chances. **What would stop a word shipping is loading's to say**
+(`Words.of` and `WordsInTheWorld`, which the game and the checks ask too); `Verdict` reports that for the word being
+written and adds warnings and nudges toward the rulings in `notes/decisions.md`. `^t` reads a book with the word as it
+stands, through `Writing`, and its review shows what takes each offer. A derived word is shown, never opened: only its
+rarity, ink and whether it is in the game are ours, set on its row. The word list's "applies to" is `Headings`, the
+reader's own rule. What offline cannot know is datapack content — a tag only a bound registry grants
 (`ore`), the pack's own placed features, the game's block tags — and `--refresh` drives `/age tags` and
 `/age holdings` over RCON into `.authoring/server-snapshot.json` for every later run to read. A server is an
 errand, never a condition.
@@ -241,7 +244,7 @@ errand, never a condition.
 It lives in `common/src/preview/kotlin/.../authoring/` and is started by the script rather than by Gradle,
 because a TTY is what Gradle cannot give a `JavaExec`. `:common:exportAuthoringLaunch` writes the launch
 down; the script runs it. **The codec owns the value and `WordFile` the file**: the `_comment` is carried beside
-the word and laid first, and `AuthoringCheck` holds that every authored word writes back byte for byte.
+the word and laid first, and `WordFileCheck` holds that every authored word writes back byte for byte.
 `--rewrite` puts the corpus back in that layout and is run by hand, like `:common:grammars`.
 
 **Tests:** **Kotest**, in five tasks split by what they cost and what they are worth.

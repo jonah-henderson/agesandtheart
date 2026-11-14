@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.DerivationRules.Rule
 import co.voik.agesandtheart.age.word.DerivationRules as Rules
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 
 /**
  * The rules that fill our sets from what the game already states, and **what each one actually catches.**
@@ -14,7 +15,7 @@ import co.voik.agesandtheart.age.word.DerivationRules as Rules
  */
 object DerivationRules {
 
-    fun of(corpus: Corpus): List<Rule> = Rules.rulesIn(corpus.vocabulary.derivation)
+    fun of(corpus: WordCorpus): List<Rule> = Rules.rulesIn(corpus.vocabulary.derivation)
 
     /**
      * What [rule] catches — **run here where that is knowable, remembered from a server where it is not.**
@@ -23,7 +24,7 @@ object DerivationRules {
      * the 142 are. Those are what `--refresh` asks about and what a snapshot holds, so the answer is the
      * server's own rather than a shrug.
      */
-    fun catches(rule: Rule, corpus: Corpus): Caught {
+    fun catches(rule: Rule, corpus: WordCorpus): Caught {
         val here = Rules.catches(MinecraftRegistries.worldgen, rule)
         if (here.isNotEmpty()) return Caught(here, fromAServer = false)
         val remembered = corpus.snapshot?.caught?.get(rule.id) ?: return Caught(emptyList(), fromAServer = false)

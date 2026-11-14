@@ -3,7 +3,7 @@ package co.voik.agesandtheart.preview.authoring.ui
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.DerivedTags
 import co.voik.agesandtheart.age.word.DerivationRules.Rule
-import co.voik.agesandtheart.preview.authoring.Corpus
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import co.voik.agesandtheart.preview.authoring.DerivationRules
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
 import com.github.ajalt.mordant.input.MouseTracking
@@ -29,7 +29,7 @@ import com.github.ajalt.mordant.terminal.Terminal
 class Rules(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private var corpus: Corpus,
+    private var corpus: WordCorpus,
 ) {
 
     private val rules: List<Rule> by lazy { DerivationRules.of(corpus) }

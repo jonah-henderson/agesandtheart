@@ -1,8 +1,13 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.age.words.Word
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.WordFile
+import co.voik.agesandtheart.preview.authoring.words.WordTags
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
-import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
@@ -29,14 +34,10 @@ object TagFile {
     private const val READINESS = "readiness"
     private const val AVAILABLE_TO_BROAD_WORDS = "available_to_broad_words"
 
-    /** The three fields of a word file a tag can be written in — see [spellings]. */
-    private const val RESTRICTS = "restricts"
-    private const val LEANS = "leans"
-    private const val MEANINGS = "meanings"
-    private const val TAG_MARK = "#"
-    private const val EXCLUDES = "excludes"
+    /** The Art's data, where the tag tables and the opposed tags are kept. */
+    private val art: File get() = MinecraftRegistries.resourceRoot().toFile().resolve("data/${Constants.MOD_ID}/art")
 
-    private val directory: File get() = WordFile.art.resolve("preset_tags")
+    private val directory: File get() = art.resolve("preset_tags")
 
     /** One preset's entry, as its file states it. */
     data class Authored(
@@ -173,13 +174,13 @@ object TagFile {
         if (tag.isEmpty()) return emptyList()
         return buildList {
             addAll(forgetInTables(tag))
-            addAll(inEveryWord { word -> forgetInWord(word, tag) })
+            addAll(inEveryWord { word -> WordTags.forgotten(word, tag) })
             addAll(forgetInOpposedTags(tag))
         }
     }
 
     /** Which rules would grant [tag] again — what a deletion cannot reach, and has to say so. */
-    fun rulesGranting(tag: String, corpus: Corpus): List<String> =
+    fun rulesGranting(tag: String, corpus: WordCorpus): List<String> =
         corpus.vocabulary.derivation.entries.flatMap { (aspect, derivation) ->
             (derivation.byTag + derivation.byKind).filterValues { it.containsKey(tag) }
                 .keys.map { "${aspect.page}: $it" }
@@ -244,106 +245,17 @@ object TagFile {
     }
 
     private fun renameInWords(from: String, to: String): List<String> =
-        inEveryWord { word -> renameInWord(word, from, to) }
+        inEveryWord { word -> WordTags.renamed(word, from, to) }
 
-    /** Whatever [edit] changed, written back — one walk of the corpus for a rename and for a deletion. */
-    private fun inEveryWord(edit: (JsonObject) -> Boolean): List<String> =
+    /** Every word of ours [edit] changed, written back — one walk of the words for a rename and for a deletion. */
+    private fun inEveryWord(edit: (Word) -> Word): List<String> =
         WordFile.authoredNames().mapNotNull { name ->
-            val file = WordFile.fileFor(name)
-            val json = runCatching { JsonParser.parseString(file.readText()).asJsonObject }.getOrNull()
-                ?: return@mapNotNull null
-            if (!edit(json)) return@mapNotNull null
-            file.writeText(GSON.toJson(json) + "\n")
-            "word/$name"
+            val candidate = WordFile.read(name).getOrNull() ?: return@mapNotNull null
+            val edited = edit(candidate.word)
+            if (edited == candidate.word) return@mapNotNull null
+            WordFile.write(candidate.copy(word = edited))
+            "words/$name"
         }
-
-    /**
-     * **Every place a word file spells a tag**, in each of its meanings — `restricts` bare, `leans` and `excludes`
-     * marked. The mark tells a tag from a member where both are legal: a lean may be on `#frozen` or on
-     * `minecraft:jungle`, and `excludes` may strike either. `restricts` takes tags alone, so it carries no mark.
-     */
-    private fun spellings(word: JsonObject): List<Spelling> = buildList {
-        for (meaning in word.getAsJsonArray(MEANINGS).orEmpty().map { it.asJsonObject }) {
-            for ((_, byAspect) in meaning.getAsJsonObject(RESTRICTS)?.entrySet().orEmpty()) {
-                add(Spelling.Weighted(byAspect.asJsonObject, marked = false))
-            }
-            for ((_, byAspect) in meaning.getAsJsonObject(LEANS)?.entrySet().orEmpty()) {
-                add(Spelling.Weighted(byAspect.asJsonObject, marked = true))
-            }
-            meaning.getAsJsonObject(EXCLUDES)?.let { struck ->
-                for (page in struck.keySet().toList()) add(Spelling.Struck(struck, page))
-            }
-        }
-    }
-
-    /** One place a tag may be written: a weight under its name, or a name in a list of what is struck. */
-    private sealed interface Spelling {
-        data class Weighted(val holder: JsonObject, val marked: Boolean) : Spelling
-        data class Struck(val holder: JsonObject, val page: String) : Spelling
-    }
-
-    private fun Spelling.spelt(tag: String) = when (this) {
-        is Spelling.Weighted -> if (marked) "$TAG_MARK$tag" else tag
-        is Spelling.Struck -> "$TAG_MARK$tag"
-    }
-
-    /** True where this word file mentioned [from] anywhere it can spell a tag, and now says [to]. */
-    fun renameInWord(word: JsonObject, from: String, to: String): Boolean =
-        spellings(word).count { where ->
-            val was = where.spelt(from)
-            val wanted = where.spelt(to)
-            when (where) {
-                is Spelling.Weighted -> renameKey(where.holder, was, wanted)
-                is Spelling.Struck -> restruck(where) { standing ->
-                    if (was !in standing) null else standing.map { if (it == was) wanted else it }.distinct()
-                }
-            }
-        } > 0
-
-    /** True where this word file said anything about [tag] and now says nothing. A meaning left saying nothing goes. */
-    fun forgetInWord(word: JsonObject, tag: String): Boolean {
-        val forgot = spellings(word).count { where ->
-            when (where) {
-                is Spelling.Weighted -> where.holder.remove(where.spelt(tag)) != null
-                is Spelling.Struck -> restruck(where) { standing ->
-                    if (where.spelt(tag) !in standing) null else standing - where.spelt(tag)
-                }
-            }
-        } > 0
-        if (forgot) dropEmptiedMeanings(word)
-        return forgot
-    }
-
-    private fun dropEmptiedMeanings(word: JsonObject) {
-        val meanings = word.getAsJsonArray(MEANINGS) ?: return
-        fun saysNothing(effect: JsonElement) = effect.isJsonObject && effect.asJsonObject.entrySet().all { (_, said) ->
-            said.isJsonObject && said.asJsonObject.isEmpty
-        }
-        // The effects are the objects in a meaning; its chances are plain values.
-        fun isEmptied(meaning: JsonElement) = meaning.asJsonObject.entrySet()
-            .map { it.value }.filter(JsonElement::isJsonObject)
-            .let { effects -> effects.isNotEmpty() && effects.all(::saysNothing) }
-        val kept = JsonArray().apply { meanings.filterNot(::isEmptied).forEach(::add) }
-        word.add(MEANINGS, kept)
-    }
-
-    /** A list of struck names rewritten, or left alone where [wanted] has nothing to change. */
-    private fun restruck(where: Spelling.Struck, wanted: (List<String>) -> List<String>?): Boolean {
-        val standing = where.holder.getAsJsonArray(where.page).map { it.asString }
-        val left = wanted(standing) ?: return false
-        if (left.isEmpty()) where.holder.remove(where.page) else {
-            where.holder.add(where.page, JsonArray().apply { left.forEach(::add) })
-        }
-        return true
-    }
-
-    /** True where the key was there and moved, with its weight or bar as it was spelled. */
-    private fun renameKey(holder: JsonObject?, from: String, to: String): Boolean {
-        if (holder?.has(from) != true) return false
-        val said = holder.remove(from)
-        holder.add(to, said)
-        return true
-    }
 
     private fun renameInOpposedTags(from: String, to: String): List<String> = inEveryOpposedTagsFile { pairs ->
         var moved = false
@@ -359,7 +271,7 @@ object TagFile {
 
     /** Every file of opposed tags, rewritten where [wanted] hands back a different set of pairs. */
     private fun inEveryOpposedTagsFile(wanted: (List<JsonObject>) -> List<JsonObject>?): List<String> {
-        val directory = WordFile.art.resolve("opposed_tags")
+        val directory = art.resolve("opposed_tags")
         return directory.listFiles { file -> file.name.endsWith(JSON_SUFFIX) }.orEmpty().mapNotNull { file ->
             val json = runCatching { JsonParser.parseString(file.readText()).asJsonObject }.getOrNull()
                 ?: return@mapNotNull null

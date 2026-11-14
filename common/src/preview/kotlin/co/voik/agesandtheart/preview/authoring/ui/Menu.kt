@@ -1,25 +1,32 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
-import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.reading.Headings
+import co.voik.agesandtheart.age.reading.Usage
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
-import co.voik.agesandtheart.age.language.DerivedWords
-import co.voik.agesandtheart.age.language.Word
-import co.voik.agesandtheart.age.resolution.Effect
-import co.voik.agesandtheart.preview.authoring.Candidate
-import co.voik.agesandtheart.preview.authoring.Corpus
-import co.voik.agesandtheart.preview.authoring.Verdict
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.DerivedWords
+import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.Word
+import co.voik.agesandtheart.location
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
-import co.voik.agesandtheart.preview.authoring.WordFile
+import co.voik.agesandtheart.preview.authoring.words.Candidate
 import co.voik.agesandtheart.preview.authoring.words.Gaps
+import co.voik.agesandtheart.preview.authoring.words.Pairings
+import co.voik.agesandtheart.preview.authoring.words.Verdict
 import co.voik.agesandtheart.preview.authoring.words.WordCorpus
-import co.voik.agesandtheart.preview.authoring.words.ui.WordEditor
+import co.voik.agesandtheart.preview.authoring.words.WordFile
 import co.voik.agesandtheart.preview.authoring.words.WordListings
+import co.voik.agesandtheart.preview.authoring.words.ui.Sections
+import co.voik.agesandtheart.preview.authoring.words.ui.WordEditor
+import co.voik.agesandtheart.preview.authoring.words.ui.mark
 import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.enterRawMode
 import com.github.ajalt.mordant.terminal.Terminal
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 
 /**
@@ -32,7 +39,7 @@ import net.minecraft.resources.ResourceKey
 class Menu(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private var corpus: Corpus,
+    private var corpus: WordCorpus,
 ) {
 
     /**
@@ -44,8 +51,7 @@ class Menu(
      * the tool itself.
      */
     private enum class Errand(val title: String, val about: String, val startsGroup: Boolean = false) {
-        WRITE("write a new word", ""),
-        OPEN("open a word", ""),
+        OPEN("open or write a word", "type a name no word has to write it"),
         DERIVED("auto-generated words", "derived from the base game and any installed mods"),
         AUDIT("audit words", ""),
         GAPS("missing words", ""),
@@ -66,14 +72,13 @@ class Menu(
         while (true) {
             val errand = chooseAnErrand() ?: return
             when (errand) {
-                Errand.WRITE -> edit(Candidate(name = ""))
                 Errand.OPEN -> openOne()
                 Errand.DERIVED -> openADerivedOne()
                 Errand.AUDIT -> auditAndOpen()
                 Errand.GAPS -> fillAGap()
                 Errand.TAGS -> Tags(terminal, canvas, corpus).run()
                 Errand.RULES -> Rules(terminal, canvas, corpus).run()
-                Errand.WORKSHOP -> Workshop(terminal, canvas, WordCorpus(corpus.vocabulary, corpus.snapshot)).browse()
+                Errand.WORKSHOP -> Workshop(terminal, canvas, corpus).browse()
                 Errand.REFRESH -> refresh()
                 Errand.HELP -> Help(terminal, canvas, corpus).run()
                 Errand.LEAVE -> return
@@ -90,16 +95,17 @@ class Menu(
      * answers from the one loaded at startup.
      */
     private fun edit(candidate: Candidate) {
-        val changed = Editor(terminal, canvas, corpus, candidate, canLeave = true).run()
-        if (changed) corpus = canvas.whileBusy("Reading the corpus again") { Corpus.load() }
+        val changed = WordEditor(terminal, canvas, corpus, candidate, canLeave = true).run()
+        if (changed) corpus = canvas.whileBusy("Reading the words again") { corpus.reread() }
     }
 
-    /** A word this pack authored: what it is, how hard it is to find, and what it means. */
+    /** A word this pack authored: what it is, how hard it is to find, what it applies to and what it offers. */
     private fun openOne() {
         val rowsOf = {
             val listings = WordListings.everyListing()
             val keptOut = WordListings.authoredKeptOutOfLoot()
-            WordFile.authoredNames().map { authoredRow(it, listings[it], isKeptOutOfLoot = it in keptOut) }
+            val appliesTo = Headings.appliesTo(Usage(corpus.words, corpus.membership))
+            WordFile.authoredNames().map { authoredRow(it, listings[it], isKeptOutOfLoot = it in keptOut, appliesTo) }
         }
         val table = Table(
             title = "${WordFile.authoredNames().size} authored words",
@@ -108,7 +114,8 @@ class Menu(
                 Table.Column("ink", PRICE_WIDTH),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordListings.rarityChoices()),
                 Table.Column("quality", INK_WIDTH, INK, WordListings.inkTiers()),
-                Table.Column("means", EFFECTS_WIDTH),
+                Table.Column("applies to", APPLIES_TO_WIDTH),
+                Table.Column("offers", EFFECTS_WIDTH),
             ),
             rows = canvas.whileBusy(work = rowsOf),
             whenNothingMatches = { typed ->
@@ -118,7 +125,7 @@ class Menu(
         while (true) {
             val chosen = walk(table, rowsOf, mayWriteOne = true) ?: return
             if (chosen.isNew) {
-                edit(Candidate(name = chosen.key))
+                edit(Candidate.blank(chosen.key.location()))
             } else {
                 WordFile.read(chosen.key).fold(
                     onSuccess = ::edit,
@@ -131,43 +138,41 @@ class Menu(
         }
     }
 
-    private fun authoredRow(name: String, listing: WordListings.Listing?, isKeptOutOfLoot: Boolean): Table.Row {
-        val word = corpus.vocabulary.word(name)
+    private fun authoredRow(
+        name: String,
+        listing: WordListings.Listing?,
+        isKeptOutOfLoot: Boolean,
+        appliesTo: Map<Identifier, List<Identifier>>,
+    ): Table.Row {
+        val word = corpus.words.word(name)
         return Table.Row(
             key = name,
             cells = listOf(
                 name,
-                word?.price?.toString().orEmpty(),
+                word?.let(corpus.words::priceOf)?.toString().orEmpty(),
                 if (isKeptOutOfLoot) WordListings.NO_LOOT else listing?.rarity.orEmpty(),
                 listing?.ink.orEmpty(),
-                word?.let(::meansIn).orEmpty(),
+                word?.let { appliesTo[it.id] }.orEmpty().let(::headingsSaid),
+                word?.let(::offersIn).orEmpty(),
             ),
         )
     }
 
-    /** What a word means, in one line: each kind of effect it has, and where. */
-    private fun meansIn(word: Word): String = word.effects.joinToString(", ") { effect ->
-        when (effect) {
-            is Effect.Sets -> "${effect.parameter.spelled}=${effect.value}"
-            is Effect.Bends -> "bends ${effect.parameter.spelled}"
-            is Effect.Chooses -> "chooses ${effect.member}"
-            is Effect.Admits -> "adds ${effect.members.joinToString(" ")}"
-            is Effect.Excludes -> "strikes ${effect.members.joinToString(" ")}"
-            is Effect.Restricts -> "keeps ${effect.bars.keys.joinToString(" ") { "$TAG_MARK$it" }} in ${effect.aspect.page}"
-            is Effect.Leans -> "leans ${effect.aspect.page}"
-            is Effect.LeansEverywhere -> "leans everything"
-            is Effect.Mints -> "mints ${effect.pattern}"
-            is Effect.Template -> "begins from ${effect.name}"
-            is Effect.Abundance -> "${Rung.spelled(effect.rung)} times as many"
-            is Effect.MadeOf -> "made of ${effect.substance}"
-            is Effect.Bans -> "never ${effect.block}"
-            is Effect.LinksIn -> "a link arrives in ${effect.anchor.aspect.page}"
-        }
+    /** What a word applies to, the first few by name and how many more: a colour reaches nineteen parts. */
+    private fun headingsSaid(headings: List<Identifier>): String {
+        val shown = headings.take(HEADINGS_SHOWN).joinToString(" ") { it.path }
+        val more = headings.size - HEADINGS_SHOWN
+        return if (more > 0) "$shown +$more" else shown
     }
+
+    /** What a word offers and means, in one line. */
+    private fun offersIn(word: Word): String = word.senses.flatMap { sense ->
+        sense.offers.map(Sections::offerSpelled) + sense.means.map(Sections::effectSpelled)
+    }.joinToString(", ")
 
     /** A word the game gave us — every block, biome, placed feature, mob and structure set has one. */
     private fun openADerivedOne() {
-        val derived = corpus.vocabulary.derivedWords
+        val derived = corpus.derived
         val rowsOf = {
             val listings = WordListings.everyListing()
             val inkTags = WordListings.everyInkTag()
@@ -190,16 +195,31 @@ class Menu(
         )
         while (true) {
             val chosen = walk(table, rowsOf) ?: return
-            derived.firstOrNull { it.name == chosen.key }?.let { edit(Candidate.of(it, corpus.vocabulary)) }
+            derived.firstOrNull { it.name == chosen.key }?.let(::showDerived)
             table.withRows(canvas.whileBusy(work = rowsOf))
         }
     }
 
-    /** What an auto-generated word names: the registry it is an entry of, or the aspect whose preset it means. */
+    /**
+     * A word the game wrote, shown rather than opened: what it offers and what takes each offer. Only its listings are
+     * ours to set, which its row does; saved as a file it would become a word of ours standing over the game's.
+     */
+    private fun showDerived(word: Word) {
+        val table = canvas.whileBusy("Reading what takes ${word.name}") { Pairings(corpus).of(word, judging = { false }) }
+        val lines = table.offers.flatMap { offered ->
+            listOf(Line(Sections.offerSpelled(offered.offer), Palette.value)) +
+                offered.takers.ifEmpty { null }?.map { Line("    ${it.who}: ${it.makes}", Palette.faint) }.orEmpty() +
+                (if (offered.takers.isEmpty()) listOf(Line("    nothing takes it", Palette.warned)) else emptyList())
+        } + word.senses.flatMap { it.means }.map { Line("means ${Sections.effectSpelled(it)}", Palette.value) }
+        Dialogs.read(terminal, canvas, Reader("${word.name}  ${Glyph.BULLET}  ${kindOf(word)}  ${Glyph.BULLET}  ${word.id}", lines))
+    }
+
+    /** What an auto-generated word names: the registry it is an entry of, or the part whose design it means. */
     private fun kindOf(word: Word): String {
-        word.referentRegistries.firstOrNull()?.let { return registryCalled(it) }
-        val aspect = word.effects.filterIsInstance<Effect.Chooses>().firstOrNull()?.aspect ?: return ""
-        return aspect.presetsAreEntriesOf?.let(::registryCalled) ?: "${aspect.page} preset"
+        corpus.registryOf(word)?.let { return registryCalled(it) }
+        val designed = word.senses.flatMap { it.offers }.firstOrNull { it.concept == CoreConcepts.MEMBER }?.value as? Value.Text
+        val part = Aspect.entries.firstOrNull { aspect -> aspect.authored.any { it.key == designed?.text } }
+        return part?.let { "${it.page} design" }.orEmpty()
     }
 
     private fun registryCalled(registry: ResourceKey<out Registry<*>>): String = when (registry) {
@@ -216,16 +236,16 @@ class Menu(
         lootFence: Map<String, Set<String>>,
         wordless: Map<String, Set<String>>,
     ): Table.Row {
-        val page = Candidate.of(word, corpus.vocabulary)
-        fun isIn(tagged: Map<String, Set<String>>) = page.tagDirectory?.let { word.id.toString() in tagged[it].orEmpty() } == true
+        val listed = corpus.listed(word)
+        fun isIn(tagged: Map<String, Set<String>>) = listed.tagDirectory?.let { word.id.toString() in tagged[it].orEmpty() } == true
         val isKeptOutOfLoot = isIn(lootFence)
         val hasNoWord = isIn(wordless)
-        val rarity = if (isKeptOutOfLoot) WordListings.NO_LOOT else listings[page.listingKey]?.rarity
-        val ink = page.tagDirectory?.let { inkTags[it]?.get(word.id.toString()) } ?: listings[word.name]?.ink
+        val rarity = if (isKeptOutOfLoot) WordListings.NO_LOOT else listings[listed.key]?.rarity
+        val ink = listed.tagDirectory?.let { inkTags[it]?.get(word.id.toString()) } ?: listings[word.name]?.ink
         return Table.Row(
             key = word.name,
             cells = listOf(
-                word.name, kindOf(word), word.price.toString(), rarity.orEmpty(), ink.orEmpty(),
+                word.name, kindOf(word), corpus.words.priceOf(word).toString(), rarity.orEmpty(), ink.orEmpty(),
                 if (hasNoWord) WordListings.NO_WORD else "", word.id.toString(),
             ),
             tone = when {
@@ -238,19 +258,19 @@ class Menu(
 
     /** The rarity, the ink or the word's absence of whichever row the cursor is on, moved one step round. */
     private fun cycle(row: Table.Row, kind: String, at: Int, by: Int) {
-        val word = corpus.vocabulary.word(row.key) ?: return
-        val candidate = if (corpus.vocabulary.isDerived(word)) Candidate.of(word, corpus.vocabulary) else WordFile.read(row.key).getOrNull() ?: return
+        val word = corpus.words.word(row.key) ?: return
+        val listed = corpus.listed(word)
         val standing = row.cells.getOrElse(at) { "" }.ifEmpty { null }
         when (kind) {
-            RARITY -> WordListings.setRarity(candidate.listed, cycled(listOf(null) + WordListings.rarityChoices(), standing, by))
-            INK -> WordListings.setInk(candidate.listed, cycled(listOf(null) + WordListings.inkTiers(), standing, by))
-            IN_GAME -> WordListings.setHasNoWord(candidate.listed, hasNoWord = standing == null)
+            RARITY -> WordListings.setRarity(listed, cycled(listOf(null) + WordListings.rarityChoices(), standing, by))
+            INK -> WordListings.setInk(listed, cycled(listOf(null) + WordListings.inkTiers(), standing, by))
+            IN_GAME -> WordListings.setHasNoWord(listed, hasNoWord = standing == null)
         }
     }
 
     /** What the Art cannot yet say, and a word begun for whatever you pick that a word could fill. */
     private fun fillAGap() {
-        var gaps = Gaps(WordCorpus(corpus.vocabulary, corpus.snapshot))
+        var gaps = Gaps(corpus)
         val rowsOf = { canvas.whileBusy("Looking for what nothing reaches") { gaps.all }.map(::gapRow) }
         val table = Table(
             title = "things that can't be expressed with the current corpus",
@@ -272,9 +292,8 @@ class Menu(
                 Dialogs.read(terminal, canvas, Reader("${gap.kind.title} '${gap.what}'", listOf(Line(why, Palette.faint))))
                 continue
             }
-            val words = WordCorpus(corpus.vocabulary, corpus.snapshot)
-            WordEditor(terminal, canvas, words, begun, canLeave = true).run()
-            gaps = Gaps(WordCorpus(corpus.vocabulary, corpus.snapshot))
+            edit(begun)
+            gaps = Gaps(corpus)
             table.withRows(rowsOf())
         }
     }
@@ -332,7 +351,7 @@ class Menu(
     private fun audited(byName: Boolean): List<Pair<String, List<Verdict.Finding>>> {
         val judged = WordFile.authoredNames().map { name ->
             val candidate = WordFile.read(name).getOrNull()
-            name to candidate?.let { Verdict.on(it, corpus.vocabulary, quarrels = false) }.orEmpty()
+            name to candidate?.let { Verdict.on(it, corpus, quarrels = false) }.orEmpty()
                 .filterNot { it.standing == Verdict.Standing.NOTED }
         }
         val worth = judged.filter { (_, found) -> found.isNotEmpty() }
@@ -444,7 +463,7 @@ class Menu(
 
     private fun standing(): String {
         val snapshot = corpus.snapshot?.provenance ?: "no minecraft data imported"
-        return "${corpus.vocabulary.words.size} words ${Glyph.BULLET} " +
+        return "${corpus.words.all.size} words ${Glyph.BULLET} " +
             "${WordFile.authoredNames().size} authored ${Glyph.BULLET} $snapshot"
     }
 
@@ -541,8 +560,10 @@ class Menu(
         const val INK_WIDTH = 11
         const val EFFECTS_WIDTH = 60
         const val PRICE_WIDTH = 5
+        const val APPLIES_TO_WIDTH = 28
 
-        const val TAG_MARK = "#"
+        /** How many headings a row names before it counts the rest. */
+        const val HEADINGS_SHOWN = 3
 
         const val GAP_KIND_WIDTH = 7
         const val RARITY = "rarity"

@@ -10,8 +10,10 @@ import co.voik.agesandtheart.age.word.WordRarity
 import co.voik.agesandtheart.location
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import net.minecraft.resources.Identifier
 import java.io.File
 
@@ -282,9 +284,9 @@ object WordListings {
     private fun putInTag(file: File, id: String, wanted: Boolean) {
         if (!file.isFile && !wanted) return
         val json = if (file.isFile) JsonParser.parseString(file.readText()).asJsonObject else JsonObject()
-        val values = tagValuesIn(file)
-        if (wanted == (id in values)) return
-        val kept = if (wanted) (values + id).sorted() else values - id
+        val entries = json.getAsJsonArray("values")?.toList().orEmpty()
+        if (wanted == entries.any { idOf(it) == id }) return
+        val kept = if (wanted) (entries + JsonPrimitive(id)).sortedBy(::idOf) else entries.filterNot { idOf(it) == id }
         json.add("values", JsonArray().apply { kept.forEach(::add) })
         if (!json.has("replace")) json.addProperty("replace", false)
         file.parentFile.mkdirs()
@@ -300,8 +302,11 @@ object WordListings {
     private fun tagValuesIn(file: File): List<String> {
         if (!file.isFile) return emptyList()
         val values = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("values")
-        return values?.map { it.asString }.orEmpty()
+        return values?.map(::idOf).orEmpty()
     }
+
+    /** The id a tag entry names: a bare id, or an object's `id` where the entry is optional — another mod's ore. */
+    private fun idOf(entry: JsonElement): String = if (entry.isJsonObject) entry.asJsonObject.get("id").asString else entry.asString
 
     private fun bucketNames(directory: File) =
         directory.listFiles { file -> file.name.endsWith(JSON_SUFFIX) }.orEmpty().map { it.name.removeSuffix(JSON_SUFFIX) }.sorted()

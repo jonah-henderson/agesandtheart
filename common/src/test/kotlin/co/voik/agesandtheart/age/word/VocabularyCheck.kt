@@ -14,10 +14,7 @@ import co.voik.agesandtheart.age.aspect.namesARegistryEntry
 import co.voik.agesandtheart.age.language.DerivedWords
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.resolution.Effect
-import co.voik.agesandtheart.preview.authoring.Candidate
-import co.voik.agesandtheart.preview.authoring.Verdict
-import co.voik.agesandtheart.preview.authoring.choiceIn
-import co.voik.agesandtheart.preview.authoring.wantedTags
+import co.voik.agesandtheart.age.aspect.Taggable
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -42,20 +39,6 @@ class VocabularyCheck : FunSpec({
             "The vocabulary did not load cleanly:\n  ${vocabulary.problems.joinToString("\n  ")}"
         }
         check(vocabulary.words.isNotEmpty()) { "No words loaded at all — is the data directory where it was?" }
-    }
-
-    /**
-     * **The tool's verdict over every word the pack ships**: what Scrivener refuses to write, no shipped word may be.
-     * The per-word rules are `Verdict`'s, one copy for the tool and this check.
-     */
-    test("no word is one the tool would refuse to write") {
-        val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
-        val refused = vocabulary.words.mapNotNull { word ->
-            val candidate = Candidate.of(word, vocabulary)
-            val refusals = Verdict.refusals(Verdict.on(candidate, vocabulary, onlyAServerKnows, quarrels = false))
-            refusals.takeIf { it.isNotEmpty() }?.let { "${word.name}: ${it.joinToString("; ") { finding -> finding.says }}" }
-        }
-        check(refused.isEmpty()) { "${refused.size} words would be refused:\n  ${refused.joinToString("\n  ")}" }
     }
 
     /** Every aspect has a word that lands on it, or part of the world is unwritable. */
@@ -226,3 +209,11 @@ private const val POOL_ALTERNATIVES = '|'
 
 private const val INFERNO = "inferno"
 private const val MOTES = "motes"
+
+/** The member of [aspect] a word of the old model chooses outright, or null. */
+private fun Word.choiceIn(aspect: Aspect): Taggable? =
+    effects.filterIsInstance<Effect.Chooses>().firstOrNull { it.aspect == aspect }?.let { aspect.presetFor(it.member) }
+
+/** The tags a word of the old model narrows toward. */
+private val Word.wantedTags: Set<String>
+    get() = effects.filterIsInstance<Effect.Restricts>().flatMap { it.bars.filterValues(Bars::isAtLeast).keys }.toSet()

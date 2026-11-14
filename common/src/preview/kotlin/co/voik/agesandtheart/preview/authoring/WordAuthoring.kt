@@ -1,12 +1,18 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.age.reading.Trace
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.preview.authoring.words.Pairings
 import co.voik.agesandtheart.preview.authoring.ui.Canvas
-import co.voik.agesandtheart.preview.authoring.ui.Editor
-import co.voik.agesandtheart.preview.authoring.ui.style
 import co.voik.agesandtheart.preview.authoring.ui.Leaving
 import co.voik.agesandtheart.preview.authoring.ui.Menu
+import co.voik.agesandtheart.preview.authoring.words.Candidate
+import co.voik.agesandtheart.preview.authoring.words.PackLanguage
+import co.voik.agesandtheart.preview.authoring.words.Pairings
+import co.voik.agesandtheart.preview.authoring.words.Verdict
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.WordFile
+import co.voik.agesandtheart.preview.authoring.words.ui.WordEditor
+import co.voik.agesandtheart.preview.authoring.words.ui.style
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
@@ -31,10 +37,10 @@ fun main(arguments: Array<String>) {
         return
     }
     // **The corpus is stood up before the terminal is made.** Standing it up redirects System.out and
-    // `Corpus.load` puts it back, so a `Terminal` built first would hold the redirected stream and write
+    // `WordCorpus.load` puts it back, so a `Terminal` built first would hold the redirected stream and write
     // every frame into the log.
     println("reading the corpus…")
-    val corpus = if (asked.refreshing) null else Corpus.load()
+    val corpus = if (asked.refreshing) null else WordCorpus.load()
     val terminal = Terminal()
     if (asked.refreshing) {
         refresh(terminal, asked.attach)
@@ -43,7 +49,7 @@ fun main(arguments: Array<String>) {
     requireNotNull(corpus)
     terminal.println(
         TextColors.gray(
-            "${corpus.vocabulary.words.size} words, ${corpus.vocabulary.carriedTags.size} tags" +
+            "${corpus.words.all.size} words, ${corpus.vocabulary.carriedTags.size} tags" +
                 (corpus.snapshot?.let { ", ${it.provenance}" } ?: ", no minecraft data imported"),
         ),
     )
@@ -52,12 +58,9 @@ fun main(arguments: Array<String>) {
         asked.pairingsOf != null -> pairings(terminal, corpus, asked.pairingsOf)
         asked.sentence != null -> for (sentence in asked.sentence.split(SENTENCES_APART).map(String::trim)) {
             terminal.println(TextColors.cyan("» $sentence"))
-            terminal.println(
-                corpus.vocabulary.read(sentence.split(Regex("\\s+")), seed = 1L)?.readout ?: "no 'age' page, so no book",
-            )
+            read(terminal, corpus, sentence.split(Regex("\\s+")))
         }
         asked.rewriting -> rewrite(terminal)
-        asked.inTheNewModel != null -> onScreen(terminal) { canvas -> openInTheNewModel(terminal, canvas, corpus, asked.inTheNewModel) }
         // A named word goes straight in, and a bare run offers the menu.
         asked.word != null -> onScreen(terminal) { canvas -> open(terminal, canvas, corpus, asked.word) }
         else -> onScreen(terminal) { canvas -> Menu(terminal, canvas, corpus).run() }
@@ -67,8 +70,6 @@ fun main(arguments: Array<String>) {
 /** What the command line said, read the dull way — there are five options and none of them nest. */
 private data class Arguments(
     val word: String? = null,
-    /** A word to open in the editor over the new word model, until it replaces the old one. */
-    val inTheNewModel: String? = null,
     val auditing: Boolean = false,
     val pairingsOf: String? = null,
     val sentence: String? = null,
@@ -88,7 +89,6 @@ private data class Arguments(
                     argument == "--pairings" -> read.copy(pairingsOf = arguments.getOrNull(++index))
                     argument == "--read" -> read.copy(sentence = arguments.getOrNull(++index))
                     argument == "--rewrite" -> read.copy(rewriting = true)
-                    argument == "--new" -> read.copy(inTheNewModel = arguments.getOrNull(++index))
                     argument == "--refresh" -> read.copy(refreshing = true)
                     argument == "--attach" -> read.copy(attach = arguments.getOrNull(++index))
                     argument == "--help" || argument == "-h" -> read.copy(wantsHelp = true)
@@ -117,39 +117,29 @@ private fun onScreen(terminal: Terminal, work: (Canvas) -> Unit) = Canvas(termin
     }
 }
 
-/** One word, opened or begun — a word that will not read is said rather than started from blank. */
-private fun open(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: String) {
-    val authored = WordFile.exists(name)
-    val derived = corpus.vocabulary.word(name)?.takeIf { !authored }
-    val candidate = when {
-        authored -> WordFile.read(name).getOrElse { failure ->
-            terminal.println(TextColors.brightRed("'$name' would not read: ${failure.message}"))
-            return
-        }
-        derived != null -> Candidate.of(derived, corpus.vocabulary)
-        else -> Candidate(name = name)
-    }
-    Editor(terminal, canvas, corpus, candidate, canLeave = false).run()
-}
-
-/** One word of the new model, opened or begun — a word that will not read is said rather than started from blank. */
-private fun openInTheNewModel(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: String) {
-    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
-    if (!files.couldBeAName(name)) return terminal.println(TextColors.brightRed("'$name' cannot be a word's name"))
-    val candidate = if (files.exists(name)) {
-        files.read(name).getOrElse { failure -> return terminal.println(TextColors.brightRed("'$name' would not read: ${failure.message}")) }
+/** One word of ours, opened or begun — a word that will not read is said rather than started from blank. */
+private fun open(terminal: Terminal, canvas: Canvas, corpus: WordCorpus, name: String) {
+    if (!WordFile.couldBeAName(name)) return terminal.println(TextColors.brightRed("'$name' cannot be a word's name"))
+    val candidate = if (WordFile.exists(name)) {
+        WordFile.read(name).getOrElse { failure -> return terminal.println(TextColors.brightRed("'$name' would not read: ${failure.message}")) }
     } else {
-        co.voik.agesandtheart.preview.authoring.words.Candidate.blank(name.location())
+        Candidate.blank(name.location())
     }
-    val words = co.voik.agesandtheart.preview.authoring.words.WordCorpus(corpus.vocabulary, corpus.snapshot)
-    co.voik.agesandtheart.preview.authoring.words.ui.WordEditor(terminal, canvas, words, candidate, canLeave = false).run()
+    WordEditor(terminal, canvas, corpus, candidate, canLeave = false).run()
 }
 
-/** Every authored word with something against it, worst first, printed rather than shown. */
-private fun audit(terminal: Terminal, corpus: Corpus) {
+/** A row of pages read as a book is, at the first seed: what each page became, and the readout. */
+private fun read(terminal: Terminal, corpus: WordCorpus, pages: List<String>) {
+    val written = corpus.writing(corpus.words).written(pages, seed = 1L)
+    Trace.of(written.reading, written.drawn).forEach { terminal.println(TextColors.gray("  $it")) }
+    PackLanguage.readout(written, corpus.words).forEach(terminal::println)
+}
+
+/** Every word of ours with something against it, worst first, printed rather than shown. */
+private fun audit(terminal: Terminal, corpus: WordCorpus) {
     val judged = WordFile.authoredNames().map { name ->
         val findings = WordFile.read(name).fold(
-            onSuccess = { Verdict.on(it, corpus.vocabulary, quarrels = false) },
+            onSuccess = { Verdict.on(it, corpus, quarrels = false) },
             onFailure = { listOf(Verdict.Finding(Verdict.Standing.REFUSED, "'$name' will not read: ${it.message}")) },
         )
         name to findings
@@ -175,17 +165,15 @@ private const val NAME_COLUMN = 24
  * What becomes of each of [name]'s offers, and what it takes, written to [Pairings.reportFor]: every taker, what it
  * makes, and whether that holds; and the offers nothing takes.
  */
-private fun pairings(terminal: Terminal, corpus: Corpus, name: String) {
-    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
-    val words = co.voik.agesandtheart.preview.authoring.words.WordCorpus(corpus.vocabulary, corpus.snapshot)
-    val written = if (files.exists(name)) files.read(name).getOrNull()?.word else null
-    val word = written ?: words.words.word(name)
+private fun pairings(terminal: Terminal, corpus: WordCorpus, name: String) {
+    val written = if (WordFile.exists(name)) WordFile.read(name).getOrNull()?.word else null
+    val word = written ?: corpus.words.word(name)
     if (word == null) {
         terminal.println(TextColors.brightRed("'$name' is no word"))
         return
     }
     terminal.println(TextColors.gray("reading what takes each of '$name''s offers…"))
-    val table = Pairings(words, standIn = written).of(word)
+    val table = Pairings(corpus, standIn = written).of(word)
     val file = Pairings.reportFor(name)
     file.parentFile.mkdirs()
     file.writeText(Pairings.report(table))
@@ -200,14 +188,13 @@ private fun pairings(terminal: Terminal, corpus: Corpus, name: String) {
 
 /** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
 private fun rewrite(terminal: Terminal) {
-    val files = co.voik.agesandtheart.preview.authoring.words.WordFile
-    val rewritten = files.authoredNames().filter { name ->
-        val read = files.read(name).getOrElse { failure ->
+    val rewritten = WordFile.authoredNames().filter { name ->
+        val read = WordFile.read(name).getOrElse { failure ->
             terminal.println(TextColors.brightRed("  $name: ${failure.message}"))
             return@filter false
         }
-        val changes = files.textOf(read) != files.fileFor(name).readText()
-        if (changes) files.write(read)
+        val changes = WordFile.textOf(read) != WordFile.fileFor(name).readText()
+        if (changes) WordFile.write(read)
         changes
     }
     terminal.println(TextColors.green("rewrote ${rewritten.size} word(s)${rewritten.joinToString(" ", ": ").takeIf { rewritten.isNotEmpty() }.orEmpty()}"))
@@ -215,7 +202,7 @@ private fun rewrite(terminal: Terminal) {
 
 /** A server asked what it carries, and the answer written down for every later run to read offline. */
 private fun refresh(terminal: Terminal, attach: String?) {
-    val corpus = Corpus.load()
+    val corpus = WordCorpus.load()
     val serverOnly = corpus.vocabulary.tagsOnlyAServerGrants
     terminal.println(TextColors.gray("${serverOnly.size} of them: ${serverOnly.sorted().joinToString(" ")}"))
     val taken = runCatching {
@@ -244,7 +231,6 @@ private val USAGE = """
     |  scripts/scrivener.sh --pairings <word> what takes each of a word's offers, what it makes there,
     |                                         and whether that holds; and what offers to what it takes
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
-    |  scripts/scrivener.sh --new <word>      open a word in the editor over the new word model
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
     |  scripts/scrivener.sh --refresh --attach host:port:password
     |

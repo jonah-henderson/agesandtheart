@@ -1,7 +1,8 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.preview.authoring.Corpus
+import co.voik.agesandtheart.age.reading.Usage
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import co.voik.agesandtheart.preview.authoring.TagFile
 import co.voik.agesandtheart.preview.authoring.TagLayer
 import com.github.ajalt.mordant.input.MouseTracking
@@ -27,10 +28,12 @@ import com.github.ajalt.mordant.terminal.Terminal
 class Tags(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private val corpus: Corpus,
+    private val corpus: WordCorpus,
 ) {
 
     private val layer = TagLayer(corpus)
+
+    private val usage: Usage by lazy { Usage(corpus.words, corpus.membership) }
 
     /** The whole list, from the top. */
     fun run() {
@@ -411,9 +414,9 @@ class Tags(
                     )
                 } else {
                     asked.map { name ->
-                        val word = corpus.vocabulary.word(name)
+                        val word = corpus.words.word(name)
                         Line(name.padEnd(24), Palette.value) +
-                            Line(word?.let { said -> corpus.vocabulary.lexicon.placesFor(said).sortedBy { it.ordinal }.joinToString(" ") { it.page } }.orEmpty(), Palette.faint)
+                            Line(word?.let { said -> usage.partsReached(said).sortedBy { it.ordinal }.joinToString(" ") { it.page } }.orEmpty(), Palette.faint)
                     }
                 },
             ),

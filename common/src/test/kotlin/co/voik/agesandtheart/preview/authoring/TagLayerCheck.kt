@@ -2,6 +2,19 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.words.Acceptance
+import co.voik.agesandtheart.age.words.Audience
+import co.voik.agesandtheart.age.words.CoreConcepts
+import co.voik.agesandtheart.age.words.Offer
+import co.voik.agesandtheart.age.words.Outcome
+import co.voik.agesandtheart.age.words.Sense
+import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.ValueFilter
+import co.voik.agesandtheart.age.words.Word
+import co.voik.agesandtheart.location
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.WordTags
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.kotest.core.annotation.Tags
@@ -104,7 +117,7 @@ class TagLayerCheck : FunSpec({
      * the first except this.
      */
     test("what the tag layer says a preset carries is what the corpus says") {
-        val corpus = Corpus.load()
+        val corpus = WordCorpus.load()
         val layer = TagLayer(corpus)
         val mine = mutableMapOf<Pair<Aspect, String>, MutableMap<String, Double>>()
         for (fact in layer.facts()) {
@@ -125,7 +138,7 @@ class TagLayerCheck : FunSpec({
 
     /** A tag nothing carries and nothing asks for is not a tag; the list should never invent one. */
     test("every tag listed is carried, asked for, or opposed") {
-        val corpus = Corpus.load()
+        val corpus = WordCorpus.load()
         val layer = TagLayer(corpus)
         val opposed = corpus.vocabulary.opposedTags.flatMap { listOf(it.first, it.second) }.toSet()
         val idle = layer.facts().filter { it.members == 0 && it.asked == 0 && it.tag !in opposed }
@@ -156,7 +169,7 @@ class TagLayerCheck : FunSpec({
      * second weight for one member, which the file cannot hold.
      */
     test("what is offered to tag excludes what already carries the tag") {
-        val layer = TagLayer(Corpus.load())
+        val layer = TagLayer(WordCorpus.load())
         val tagged = layer.membersTagged("cavernous").filter { it.aspect == Aspect.CARVERS }.map { it.preset }
         check(tagged.isNotEmpty()) { "nothing in the rock carries #cavernous, so this checks nothing" }
         val offered = layer.untaggedIn(Aspect.CARVERS, "cavernous").map { it.preset }
@@ -168,53 +181,44 @@ class TagLayerCheck : FunSpec({
     }
 
 
+    /** A word spelling `frozen` everywhere a word can, beside a member, a block tag and another tag it must keep. */
+    val frozenEverywhere = Word(
+        "tag_fixture".location(),
+        listOf(
+            Sense(
+                means = listOf(Effect.Excludes(Aspect.SEA, setOf("#frozen", "minecraft:water"))),
+                offers = listOf(
+                    Offer(CoreConcepts.BAR, Value.Bars(mapOf("frozen" to 1.0, "lush" to 0.5)), audience = Audience.Part(Aspect.BIOMES)),
+                    Offer(CoreConcepts.LEAN, Value.Weights(mapOf("#frozen" to -0.4, "minecraft:jungle" to 0.5))),
+                    Offer(CoreConcepts.BLOCK, Value.Text("#minecraft:ice")),
+                    Offer(CoreConcepts.READING, audience = Audience.Part(Aspect.SEA), reading = listOf(Effect.Restricts(Aspect.SEA, mapOf("frozen" to 0.3)))),
+                ),
+                accepts = listOf(Acceptance(CoreConcepts.MEMBER, ValueFilter.OneOf(setOf("#frozen")), Outcome.Becomes(emptyList()))),
+            ),
+        ),
+    )
+
     /**
-     * **A rename reaches every place a word spells a tag** — and until 2026-09-02 it reached none of them.
-     *
-     * It read `query` and `queries`, which no word has carried since the world model landed, so a rename
-     * moved the tables and the opposed tags and left every word asking for the old name: legal, silent, and
-     * finding nothing. The three places are `restricts` (bare), `leans` and `excludes` (marked), in every meaning,
-     * and the mark is what tells a tag from a member where both are legal.
+     * A rename reaches everywhere a word spells a tag, which is what makes it worth doing here rather than by hand: one
+     * that moved the tables and left the words asking for the old name would be legal, silent, and find nothing.
      */
-    test("a rename reaches restricts, leans and excludes") {
-        val word = JsonParser.parseString(
-            """
-            {
-              "meanings": [
-                {"restricts": {"biomes": {"frozen": ">1.0"}}},
-                {"leans": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}}},
-                {"excludes": {"sea": ["#frozen", "minecraft:water"]}}
-              ]
-            }
-            """.trimIndent(),
-        ).asJsonObject
-        check(TagFile.renameInWord(word, "frozen", "icy")) { "it found nothing to rename" }
-        val said = word.toString()
-        check("frozen" !in said) { "something still says frozen: $said" }
-        check(""""icy":">1.0"""" in said) { "the bar did not move: $said" }
-        check(""""#icy":-0.4""" in said) { "the marked weight did not move, or lost its sign: $said" }
-        check("\"#icy\"" in said && "minecraft:water" in said) { "the exclusion did not move: $said" }
+    test("a rename reaches every place a word spells a tag, and leaves members and block tags alone") {
+        val renamed = WordTags.renamed(frozenEverywhere, "frozen", "icy")
+        check(WordTags.of(renamed) == setOf("icy", "lush")) { "it speaks of ${WordTags.of(renamed)}" }
+        val said = renamed.toString()
+        check("minecraft:water" in said && "minecraft:jungle" in said && "#minecraft:ice" in said) { "a member or block tag moved: $said" }
+        check("-0.4" in said) { "the lean lost its weight: $said" }
     }
 
-    /** And a deletion reaches the same three, leaving the members alone. */
+    /** And a deletion reaches the same places, taking whatever spoke only of the tag with it. */
     test("a deletion takes a tag out of every place a word spells it") {
-        val word = JsonParser.parseString(
-            """
-            {
-              "meanings": [
-                {"restricts": {"biomes": {"frozen": ">1.0", "lush": ">0.5"}}},
-                {"leans": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}}},
-                {"excludes": {"sea": ["#frozen"]}}
-              ]
-            }
-            """.trimIndent(),
-        ).asJsonObject
-        check(TagFile.forgetInWord(word, "frozen")) { "it found nothing to forget" }
-        val said = word.toString()
-        check("frozen" !in said) { "something still says frozen: $said" }
-        check("lush" in said && "minecraft:jungle" in said) { "it took something else with it: $said" }
-        // An exclusion list with nothing left in it goes, rather than sitting there striking nothing.
-        check("sea" !in said) { "an emptied exclusion was left behind: $said" }
+        val forgot = WordTags.forgotten(frozenEverywhere, "frozen")
+        check(WordTags.of(forgot) == setOf("lush")) { "it still speaks of ${WordTags.of(forgot)}" }
+        val sense = forgot.senses.single()
+        check(sense.offers.none { it.isAReading }) { "a reading left saying nothing stayed" }
+        check(sense.accepts.isEmpty()) { "an acceptance of nothing but the tag stayed" }
+        check(Effect.Excludes(Aspect.SEA, setOf("minecraft:water")) in sense.means) { "the member was struck with it: ${sense.means}" }
+        check(sense.offers.any { it.value == Value.Text("#minecraft:ice") }) { "the block tag went with it" }
     }
 
     /**
@@ -222,7 +226,7 @@ class TagLayerCheck : FunSpec({
      * even for a tag with members offline too, which is how `molten` hid a lava cauldron from the screen.
      */
     test("what a tag rule caught on a server is listed beside a tag's offline members") {
-        val offline = Corpus.load()
+        val offline = WordCorpus.load()
         val snapshot = ServerSnapshot(
             taken = Instant.EPOCH,
             loader = "fabric",
@@ -231,7 +235,7 @@ class TagLayerCheck : FunSpec({
             serverOnly = emptyMap(),
             caught = mapOf("sea/tag/#agesandtheart:molten" to listOf("minecraft:lava_cauldron")),
         )
-        val molten = TagLayer(Corpus(offline.vocabulary, snapshot)).membersTagged("molten")
+        val molten = TagLayer(WordCorpus(offline.vocabulary, snapshot)).membersTagged("molten")
         val cauldron = molten.firstOrNull { it.aspect == Aspect.SEA && it.preset == "minecraft:lava_cauldron" }
         check(cauldron?.source == TagLayer.Source.REMEMBERED) { "the cauldron is not listed: $molten" }
         check(molten.any { it.source != TagLayer.Source.REMEMBERED }) { "the offline members went missing" }

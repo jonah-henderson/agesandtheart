@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
+import co.voik.agesandtheart.preview.authoring.words.WordTags
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -17,7 +19,7 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class DerivationRulesCheck : FunSpec({
 
-    val corpus by lazy { Corpus.load() }
+    val corpus by lazy { WordCorpus.load() }
 
     test("every rule reads either a tag or a stated fact, and fills something") {
         val rules = DerivationRules.of(corpus)
@@ -45,7 +47,7 @@ class DerivationRulesCheck : FunSpec({
     /** Every tag a rule grants should be one the language can ask for, or the rule is writing to nobody. */
     test("a rule fills tags the corpus knows") {
         val carried = corpus.vocabulary.carriedTags
-        val asked = corpus.vocabulary.words.flatMap { it.tagsSpokenOf }.toSet()
+        val asked = corpus.words.all.flatMap(WordTags::of).toSet()
         val stray = DerivationRules.of(corpus)
             .flatMap { rule -> rule.fills.keys.map { rule.id to it } }
             .filterNot { (_, tag) -> tag in carried || tag in asked }

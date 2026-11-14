@@ -2,7 +2,7 @@ package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.preview.authoring.Corpus
+import co.voik.agesandtheart.preview.authoring.words.WordCorpus
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.enterRawMode
 import com.github.ajalt.mordant.terminal.Terminal
@@ -16,7 +16,7 @@ import com.github.ajalt.mordant.terminal.Terminal
 class Help(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private val corpus: Corpus,
+    private val corpus: WordCorpus,
 ) {
 
     private enum class Page(val title: String) {

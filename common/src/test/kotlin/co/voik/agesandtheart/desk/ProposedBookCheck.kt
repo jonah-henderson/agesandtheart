@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.RUNS_LONG_TAG
-import co.voik.agesandtheart.preview.authoring.Corpus
+import co.voik.agesandtheart.ShippedCorpus
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.RegistryAccess
@@ -16,7 +16,7 @@ import net.minecraft.resources.Identifier
 @Tags(NEEDS_REGISTRIES)
 class ProposedBookCheck : FunSpec({
 
-    val vocabulary by lazy { Corpus.load().vocabulary }
+    val vocabulary by lazy { ShippedCorpus.vocabulary }
     val registries: RegistryAccess by lazy { RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY) }
     val everyWord by lazy { vocabulary.words.map { it.id } + vocabulary.structurePages.map { it.id } }
     val seeds = (0..<SIGNALS).map { Tuning.CENTRED.withDial(it % Tuning.DIALS, it % Tuning.STEPS).seed + it }
