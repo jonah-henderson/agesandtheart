@@ -66,6 +66,11 @@ class MoodsCheck : FunSpec({
         }
     }
 
+    test("a biome named outright is taken though the curated pool leaves it out: `beautiful biomes` admits the sunflower plains") {
+        val admitted = drawn("beautiful biomes age").landed.flatMap { it.effects }.filterIsInstance<Effect.Admits>().flatMap { it.members }
+        check("minecraft:sunflower_plains" in admitted && "minecraft:jungle" in admitted) { "beautiful biomes admitted $admitted" }
+    }
+
     test("`polar` sets the sun on a polar path a quarter of the time from the whole Age, and always said of the sun") {
         check(set("polar sun age", Aspect.SUN, "path") == listOf("polar")) { "polar sun was not polar" }
         val fromTheAge = seeds.count { set("polar age", Aspect.SUN, "path", it).isNotEmpty() }

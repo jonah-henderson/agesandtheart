@@ -39,8 +39,9 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
         return (vocabulary.tagsOf(member)[tag] ?: 0.0) > 0.0
     }
 
+    /** One of the curated pool, or any entry of the part's registry, which a word may name outright. */
     override fun isMemberOf(part: Aspect, member: String): Boolean =
-        member in membersOf.getOrPut(part) { vocabulary.candidatesFor(part).map { it.key }.toSet() }
+        member in membersOf.getOrPut(part) { vocabulary.candidatesFor(part).map { it.key }.toSet() } || vocabulary.isAnEntryOf(part, member)
 
     override fun clears(member: String, bars: Map<String, Double>): Boolean {
         val taggable = membersByKey[member] ?: return false

@@ -249,6 +249,19 @@ data class Vocabulary(
     override fun tagsOf(member: Taggable): Map<String, Double> = profileOf(member).tags
 
     /**
+     * Whether [key] is an entry of the registry [aspect]'s members are held in, where this was loaded over registries: a
+     * member a word may name outright, though the curated pool ([candidatesFor]) leaves it out.
+     */
+    fun isAnEntryOf(aspect: Aspect, key: String): Boolean = key in registryEntries[aspect].orEmpty()
+
+    private val registryEntries: Map<Aspect, Set<String>> by lazy {
+        Aspect.entries.associateWith { aspect ->
+            val lookup = aspect.presetsAreEntriesOf?.let { registry -> registries?.lookup(registry)?.orElse(null) }
+            lookup?.listElementIds()?.map { it.identifier().toString() }?.toList()?.toSet().orEmpty()
+        }
+    }
+
+    /**
      * Whether [member] is in the world **anyway**, so naming it asks for more of it rather than for it at
      * all — see [PresetProfile.presentAnyway], which is what the mention bump turns on.
      */
