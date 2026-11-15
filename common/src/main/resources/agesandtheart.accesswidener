@@ -234,3 +234,7 @@ accessible	method	net/minecraft/client/gui/screens/dialog/DialogScreens	register
 # for, so a panel over a rainy Age pulled the player's fog in. The panel swaps its own value in around its setup.
 accessible	field	net/minecraft/client/renderer/fog/FogRenderer	FOG_ENVIRONMENTS	Ljava/util/List;
 accessible	field	net/minecraft/client/renderer/fog/environment/AtmosphericFogEnvironment	rainFogMultiplier	F
+
+# A creeper's blast follows the size its Age wrote it, as its drops do -- a colossal one's is catastrophic. The radius is
+# a saved field with no setter.
+accessible	field	net/minecraft/world/entity/monster/Creeper	explosionRadius	I

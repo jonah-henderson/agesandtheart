@@ -5,6 +5,7 @@ import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
 import co.voik.agesandtheart.age.consequence.Dispositions
 import co.voik.agesandtheart.age.consequence.Taming
+import co.voik.agesandtheart.age.consequence.ChargedCreatures
 import co.voik.agesandtheart.age.consequence.TemptationsHerePayload
 import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
@@ -107,6 +108,8 @@ object CommonSetup {
         PanelViews.tick(server)
         // And the arrivals visitors were sent to before their ground was built, carved once it is.
         Ages.openUpWaitingArrivals()
+        // And the charged creatures that died last tick, and whatever their blasts have killed since.
+        ChargedCreatures.burst()
         // And whoever has fallen through one of an Age's tears and come out of the bottom of the field.
         TheFall.letGo(server)
         // And the rubble the tears have sent home, a little at a time.
@@ -126,6 +129,7 @@ object CommonSetup {
         PhenomenaCeiling.serverStopped()
         StrangeGravity.serverStopped()
         Ages.serverStopped()
+        ChargedCreatures.serverStopped()
     }
 
     /** An entity entering a server level, freshly spawned or loaded with its chunk. */
@@ -193,6 +197,12 @@ object CommonSetup {
     /** A creature dying on the server, of [source]. */
     fun livingDied(victim: LivingEntity, source: DamageSource) {
         PlasmaBurst.died(victim, source)
+        ChargedCreatures.died(victim)
+    }
+
+    /** [player] beginning to see [entity], by each loader's tracking event. */
+    fun startedTracking(player: ServerPlayer, entity: Entity) {
+        ChargedCreatures.seen(player, entity)
     }
 
     /**

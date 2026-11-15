@@ -35,7 +35,7 @@ object WrittenCreatures {
         val recipe = Ages.recipeOf(level) ?: return
         val spawns = recipe.composition?.optionsFor(Aspect.SPAWNS) ?: return
         val kind = BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString()
-        if (mob is Creeper && spawns.isTrue(Spawns.CHARGED, member = kind)) mob.entityData.set(Creeper.DATA_IS_POWERED, true)
+        if (spawns.isTrue(Spawns.CHARGED, member = kind)) ChargedCreatures.charge(mob)
         if (mob is Sheep) dyeOnce(mob, spawns.of(Spawns.WOOL, member = kind))
         spawns.steer(Spawns.PACE, recipe.seed, member = kind)?.let { pace ->
             for (attribute in MOVING) changeBy(mob, attribute, PACED, paceAt(pace) - AS_IT_IS)
@@ -49,6 +49,7 @@ object WrittenCreatures {
             val wasWhole = mob.health >= mob.maxHealth
             for (attribute in SIZED_BY) changeBy(mob, attribute, SIZED, sizeAt(size) - AS_IT_IS)
             mob.health = if (wasWhole) mob.maxHealth else mob.health.coerceAtMost(mob.maxHealth)
+            if (mob is Creeper) mob.explosionRadius = ChargedCreatures.creeperRadiusAt(sizeAt(size))
         }
     }
 

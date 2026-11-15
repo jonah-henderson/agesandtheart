@@ -27,6 +27,7 @@ import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.station.ListsItsRecipes
 import co.voik.agesandtheart.station.MachineCatalogPayload
+import co.voik.agesandtheart.age.consequence.ChargedCreaturePayload
 import co.voik.agesandtheart.age.consequence.TemptationsHere
 import co.voik.agesandtheart.age.consequence.TemptationsHerePayload
 import co.voik.agesandtheart.station.MachineRecipesPayload
@@ -70,6 +71,7 @@ object ClientPayloads {
         Receiver(LinkEnded.TYPE) { LinkTransit.ended() },
         Receiver(MachineCatalogPayload.TYPE) { KnownMachineRecipes.remember(it) },
         Receiver(TemptationsHerePayload.TYPE) { TemptationsHere.heard(it) },
+        Receiver(ChargedCreaturePayload.TYPE) { ChargedCreaturesSeen.heard(it) },
         Receiver(MachineRecipesPayload.TYPE) { payload ->
             val menu = Minecraft.getInstance().player?.containerMenu
             if (menu is ListsItsRecipes && menu.containerId == payload.containerId) menu.listed = payload.recipes

@@ -29,6 +29,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents
 import net.fabricmc.fabric.api.`object`.builder.v1.world.poi.PoiHelper
+import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
@@ -143,6 +144,7 @@ fun init() {
         CommonSetup.playerChangedLevel(player, to)
     }
     ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
+    EntityTrackingEvents.START_TRACKING.register { entity, player -> CommonSetup.startedTracking(player, entity) }
     UseEntityCallback.EVENT.register { player, level, hand, entity, _ ->
         CommonSetup.entityUsed(player, level, hand, entity) ?: InteractionResult.PASS
     }

@@ -85,6 +85,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onLivingDeath)
+        NeoForge.EVENT_BUS.addListener(::onStartTracking)
         NeoForge.EVENT_BUS.addListener(::onEntityInteract)
         NeoForge.EVENT_BUS.addListener(::onLivingDrops)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
@@ -339,6 +340,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         val result = CommonSetup.entityUsed(event.entity, event.level, event.hand, event.target) ?: return
         event.cancellationResult = result
         event.isCanceled = true
+    }
+
+    private fun onStartTracking(event: PlayerEvent.StartTracking) {
+        val player = event.entity as? ServerPlayer ?: return
+        CommonSetup.startedTracking(player, event.target)
     }
 
     private fun onLivingDeath(event: LivingDeathEvent) {

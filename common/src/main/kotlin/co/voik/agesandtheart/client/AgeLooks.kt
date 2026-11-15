@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.ephemeris.client.EntitySwirls
 import co.voik.agesandtheart.AgeClientLook
 import co.voik.ephemeris.client.AuroraPainter
 import co.voik.ephemeris.client.LevelRendering
@@ -27,6 +28,9 @@ object AgeLooks {
         MeteorSky.register()
         // Tears in an Age's sky, likewise an overlay — see [TornSky].
         TornSky.register()
+
+        // A creature its Age wrote charged, wrapped in a charged creeper's swirl — see [ChargedCreaturesSeen].
+        EntitySwirls.drawWhere(ChargedCreaturesSeen::isCharged)
 
         // A palm beach's sunset stands taller, in vanilla's sky and in ephemeris's alike — see [PalmDusk].
         LevelRendering.horizonHeight(PalmDusk::standsTaller)

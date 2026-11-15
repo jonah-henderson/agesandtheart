@@ -45,6 +45,7 @@ import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import co.voik.agesandtheart.station.MachineFillPayload
 import co.voik.agesandtheart.station.MachineRecipeLists
 import co.voik.agesandtheart.station.MachineCatalogPayload
+import co.voik.agesandtheart.age.consequence.ChargedCreaturePayload
 import co.voik.agesandtheart.age.consequence.TemptationsHerePayload
 import co.voik.agesandtheart.station.MachineRecipesPayload
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -112,6 +113,7 @@ object Payloads {
         Clientbound(MachineRecipesPayload.TYPE, MachineRecipesPayload.STREAM_CODEC),
         Clientbound(MachineCatalogPayload.TYPE, MachineCatalogPayload.STREAM_CODEC),
         Clientbound(TemptationsHerePayload.TYPE, TemptationsHerePayload.STREAM_CODEC),
+        Clientbound(ChargedCreaturePayload.TYPE, ChargedCreaturePayload.STREAM_CODEC),
         Serverbound(MachineFillPayload.TYPE, MachineFillPayload.STREAM_CODEC, MachineRecipeLists::fill),
         // The linking panel (design 7.8.1). The chunk payload is the only one in the mod keyed to a registry
         // buffer, carrying vanilla's own chunk and light data straight through.

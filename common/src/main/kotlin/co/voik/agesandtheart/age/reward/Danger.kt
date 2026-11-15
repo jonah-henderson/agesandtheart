@@ -93,9 +93,6 @@ data class Danger(
         private const val NOTHING = 0.0
         private const val AS_THEY_ARE = 1.0
 
-        /** The creatures a charge does anything to. */
-        private val CHARGEABLE = setOf("minecraft:creeper")
-
         /** How dangerous the Age [recipe] describes is, on the server running it. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Danger = of(
             recipe,
@@ -249,8 +246,7 @@ data class Danger(
             val strength = hardiness.strength.at(spawns.steer(Spawns.STRENGTH, seed, member = member))
             val pace = hardiness.pace.at(spawns.steer(Spawns.PACE, seed, member = member))
             val size = hardiness.size.at(spawns.steer(Spawns.SIZE, seed, member = member))
-            val isCharged = member in CHARGEABLE && spawns.isTrue(Spawns.CHARGED, member = member)
-            val charged = if (isCharged) hardiness.charged else AS_THEY_ARE
+            val charged = if (spawns.isTrue(Spawns.CHARGED, member = member)) hardiness.charged else AS_THEY_ARE
             val still = if (spawns.isTrue(Spawns.STILL, member = member)) hardiness.still else AS_THEY_ARE
             val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) hardiness.herds else AS_THEY_ARE
             val disposed = when (spawns.of(Spawns.DISPOSITION, member = member)) {

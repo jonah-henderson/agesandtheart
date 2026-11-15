@@ -89,12 +89,12 @@ class MemberScopingCheck : FunSpec({
         check(capsOf("dry", "climate").isEmpty()) { "a book asking for no creature moved a cap: ${capsOf("dry", "climate")}" }
     }
 
-    test("a word is listed under each of the game's creatures it applies to, and once for the whole part where it applies to all") {
+    test("a word is listed once for the whole of a part where it applies to every one of the game's members there") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
         fun wholes(name: String) = vocabulary.applying[vocabulary.word(name)?.id]?.whole.orEmpty()
-        check(listOf("sky", "weather", "creeper").all { it in under("charged") }) { "charged is under ${under("charged")}" }
-        check(Aspect.SPAWNS !in wholes("charged")) { "charged reached every creature" }
+        check(listOf("sky", "weather").all { it in under("charged") }) { "charged is under ${under("charged")}" }
+        check(Aspect.SPAWNS in wholes("charged") && "creeper" !in under("charged")) { "charged reaches the whole of only ${wholes("charged")}" }
         check("zombie" !in under("strong") && "monsters" in under("strong")) { "strong is under ${under("strong")}" }
         check(Aspect.SPAWNS in wholes("strong")) { "strong reaches the whole of only ${wholes("strong")}" }
         check("age" !in under("charged")) { "charged was listed under the Age" }
@@ -103,7 +103,7 @@ class MemberScopingCheck : FunSpec({
     test("a group takes only what one of its members holds, and a lean is no description") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
-        check("arthropods" !in under("charged") && "monsters" in under("charged")) { "charged is under ${under("charged")}" }
+        check("arthropods" in under("charged") && "monsters" in under("charged")) { "charged is under ${under("charged")}" }
         check("arthropods" !in under("varied") && "inhabitants" in under("varied")) { "varied is under ${under("varied")}" }
         check("arthropods" in under("friendly")) { "friendly is under ${under("friendly")}" }
         check("arthropods" !in under("dreamlike")) { "dreamlike is under ${under("dreamlike")}" }

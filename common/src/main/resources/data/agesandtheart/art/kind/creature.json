@@ -2,7 +2,8 @@
   "_comment": [
     "A creature: one member of the inhabitants, said as itself (`zombie`). What is said of it is said of that creature",
     "alone: its colour (a sheep's wool), its size, pace and strength, whether it stands still, how it bears itself toward",
-    "you, whether lightning charged it (a creeper), and how many of it there are."
+    "you, whether it is charged (a creeper as lightning leaves one, anything else bursting when it dies), and how many of",
+    "it there are."
   ],
   "terminal": true,
   "part": "inhabitants",

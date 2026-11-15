@@ -95,6 +95,7 @@ object ClientSetup {
         StrangeGravity.disconnected()
         KnownMachineRecipes.forget()
         TemptationsHere.forget()
+        ChargedCreaturesSeen.forget()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

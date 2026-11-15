@@ -74,9 +74,11 @@ object Spawns {
     /** Whether no monster comes of itself under the rock, out of sight of the sky — `empty underground`. */
     val NONE_BELOW = Parameter.flag("none_below", help = "Whether no monster comes of itself under the rock, out of sight of the sky.")
 
-    /** Whether a creeper comes into the Age charged, as lightning leaves one — `charged creepers`. */
-    val CHARGED = Parameter.flag("charged", help = "Whether creepers come charged.")
-        .perMember(MemberHonouring { member, _ -> member.key == CREEPER })
+    /**
+     * Whether a creature comes into the Age charged: a creeper as lightning leaves one, anything else bursting as a
+     * creeper does when it dies (`ChargedCreatures`) — `charged creepers`, `charged cows`.
+     */
+    val CHARGED = Parameter.flag("charged", help = "Whether creatures come charged, bursting when they die.").perMember()
 
     /**
      * How many of a creature arrive together, where a book made herds of it — `herds of warden` four to six, a size
