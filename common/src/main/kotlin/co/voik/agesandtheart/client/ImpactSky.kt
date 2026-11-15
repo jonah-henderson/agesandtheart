@@ -18,7 +18,10 @@ import kotlin.math.atan
 import kotlin.math.tan
 import kotlin.math.acos
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
@@ -44,26 +47,32 @@ object ImpactSky {
         LevelRendering.skyOverlay(::draw)
     }
 
+    /** Drawn in layers, each over the last: the glow of the sky, the trails, the asteroid, the falling lights, the dust, the flash. */
     private fun draw(moment: SkyMoment) {
         val doom = Impacts.comingTo(moment.level) ?: return
         val time = moment.level.gameTime + moment.partOfATickOn.toDouble()
         val phase = doom.phaseAt(time.toLong()) ?: return
-        val glows = mutableListOf<Glow>()
+        val hasStruck = time >= doom.impactAt
         val light = mutableListOf<SkyQuad>()
-        val shade = mutableListOf<SkyQuad>()
-        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) drawTheAsteroid(doom, time)
-        if (time >= doom.impactAt) {
+        if (hasStruck) {
             gatherTheFireball(doom, time, light)
             gatherTheDebrisGlow(doom, time, light)
-            gatherTheStreaks(doom, time, glows)
-            gatherTheFlash(doom, time, light)
-            gatherTheDust(doom, time, shade)
         }
         Blaze3dSkyCanvas.drawShapes(light, SkyBlend.LIGHT)
         val horizon = horizonGlowAt(doom, time)
         if (horizon > NOTHING) Blaze3dSkyCanvas.drawHorizonGlow(doom.bearingDegrees, FIRE_ON_THE_HORIZON.copy(alpha = horizon))
-        Blaze3dSkyCanvas.drawGlows(glows)
+        drawTheTrails(doom, time)
+        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) drawTheAsteroid(doom, time)
+        if (!hasStruck) return
+        val heads = mutableListOf<Glow>()
+        gatherTheFallingHeads(doom, time, heads)
+        Blaze3dSkyCanvas.drawGlows(heads)
+        val shade = mutableListOf<SkyQuad>()
+        gatherTheDust(doom, time, shade)
         Blaze3dSkyCanvas.drawShapes(shade, SkyBlend.SHADE)
+        val flash = mutableListOf<SkyQuad>()
+        gatherTheFlash(doom, time, flash)
+        Blaze3dSkyCanvas.drawShapes(flash, SkyBlend.LIGHT)
     }
 
     // ---- The asteroid --------------------------------------------------------------------------------------
@@ -115,7 +124,7 @@ object ImpactSky {
      * on its upper limb by day, and through the entry glowing white on the face it leads with, inside a corona that
      * streams back off it.
      *
-     * Drawn in layers, each over the last: the wake and the corona, the rock, the light on the rock.
+     * Drawn in layers, each over the last: the corona, the rock, the light on the rock.
      */
     private fun drawTheAsteroid(doom: Doom, time: Double) {
         val ticksToImpact = doom.impactAt - time
@@ -130,7 +139,6 @@ object ImpactSky {
         val corona = coronaAt(burning, time)
 
         val glowing = mutableListOf<SkyQuad>()
-        if (burning > NOTHING) gatherTheWake(doom, ticksToImpact, size, burning, glowing)
         val speck = PALE_ROCK.lerp(BURNING, sqrt(burning)).dimmed(FULL - solid)
         glowing += discAt(sighting.direction, size, speck, haloStrength = BODY_HALO + BURNING_HALO * burning)
         if (corona > NOTHING) {
@@ -143,16 +151,6 @@ object ImpactSky {
         if (solid <= NOTHING) return
         Blaze3dSkyCanvas.drawShapes(rockOf(frame, solid, burning, time), SkyBlend.SHADE)
         Blaze3dSkyCanvas.drawShapes(lightOnTheRock(frame, heading, solid, corona, burning, time), SkyBlend.LIGHT)
-    }
-
-    /** The burning path behind it, a little fainter and thinner at each step back. */
-    private fun gatherTheWake(doom: Doom, ticksToImpact: Double, size: Float, burning: Float, into: MutableList<SkyQuad>) {
-        for (behind in TRAIL_LENGTH downTo 1) {
-            val earlier = sightingOf(doom, ticksToImpact + behind * TRAIL_SPACING_TICKS)
-            if (!earlier.isAboveTheHorizon) continue
-            val fading = TRAIL_FADES.pow(behind) * burning
-            into += discAt(earlier.direction, size * TRAIL_THINS.pow(behind), BURNING.dimmed(fading), haloStrength = NOTHING)
-        }
     }
 
     /** How brightly the corona burns: flaring through the first part of the entry, and never quite steady. */
@@ -327,29 +325,186 @@ object ImpactSky {
         }
     }
 
+    // ---- The trails -------------------------------------------------------------------------------------------
+
+    /** What burning things leave behind them, drawn over the sky's glow: smoke laid over by alpha, then the fresh glow. */
+    private fun drawTheTrails(doom: Doom, time: Double) {
+        val smoke = mutableListOf<SkyQuad>()
+        val glow = mutableListOf<SkyQuad>()
+        gatherTheTrain(doom, time, smoke, glow)
+        gatherTheFallingTrails(doom, time, smoke, glow)
+        Blaze3dSkyCanvas.drawShapes(smoke, SkyBlend.SHADE)
+        Blaze3dSkyCanvas.drawShapes(glow, SkyBlend.LIGHT)
+    }
+
+    /** One point a trail passes through: which way it lies, which way is across it, and how wide it is there. */
+    private class TrailPoint(val direction: Vector3f, val across: Vector3f, val halfWidth: Float, val smoke: Rgba, val glow: Rgba)
+
+    /** A ribbon through [points], coloured by [colourOf] down its middle and fading to [edge] at either side. */
+    private fun ribbonThrough(points: List<TrailPoint>, colourOf: (TrailPoint) -> Rgba, edge: Rgba): List<SkyQuad> {
+        fun sideOf(point: TrailPoint, side: Float): Vector3f =
+            Vector3f(point.across).mul(side * tan(point.halfWidth)).add(point.direction).normalize()
+        return buildList {
+            for (index in 0..<points.lastIndex) {
+                val here = points[index]
+                val next = points[index + 1]
+                val colourHere = colourOf(here)
+                val colourNext = colourOf(next)
+                val isFaded = !colourHere.isVisible() && !colourNext.isVisible()
+                if (isFaded) continue
+                for (side in listOf(-1.0f, 1.0f)) {
+                    add(
+                        SkyQuad(
+                            SkyCorner(here.direction, colourHere),
+                            SkyCorner(sideOf(here, side), edge),
+                            SkyCorner(sideOf(next, side), edge),
+                            SkyCorner(next.direction, colourNext),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun gatherTrail(points: List<TrailPoint>, smoke: MutableList<SkyQuad>, glow: MutableList<SkyQuad>) {
+        if (points.size < 2) return
+        smoke += ribbonThrough(points, { it.smoke }, Rgba.CLEAR)
+        glow += ribbonThrough(points, { it.glow }, DARK)
+    }
+
     /**
-     * The debris itself, streaking down through the glowing sky: each streak a few lights in a short falling line,
-     * drawn afresh on a cycle of its own at a place drawn for that cycle, and only where the glow has reached.
+     * The train the asteroid leaves through its entry: burning just behind it, then smoke that hangs where it passed,
+     * spreading and thinning, long after it has gone below the horizon.
+     *
+     * Its points are fixed moments on the asteroid's path, so the train stays where it was laid.
      */
-    private fun gatherTheStreaks(doom: Doom, time: Double, into: MutableList<Glow>) {
+    private fun gatherTheTrain(doom: Doom, time: Double, smoke: MutableList<SkyQuad>, glow: MutableList<SkyQuad>) {
+        val entryBegan = doom.startOf(ImpactPhase.ENTRY).toDouble()
+        val impact = doom.impactAt.toDouble()
+        val isLaidOrLingering = time > entryBegan && time < impact + TRAIN_LINGERS_TICKS
+        if (!isLaidOrLingering) return
+        val spacing = doom.timeline.entry.toDouble() / TRAIN_POINTS
+        val newest = minOf(time, impact)
+        val first = ceil((time - TRAIN_LINGERS_TICKS - entryBegan) / spacing).toInt().coerceAtLeast(0)
+        val last = floor((newest - entryBegan) / spacing).toInt()
+        val passedAt = (first..last).map { entryBegan + it * spacing }.toMutableList()
+        val headIsApart = passedAt.isEmpty() || newest - passedAt.last() > SAME_MOMENT
+        if (headIsApart) passedAt += newest
+        if (passedAt.size < 2) return
+        val sightings = passedAt.map { sightingOf(doom, impact - it) }
+        val directions = sightings.map { it.direction }
+        val acrosses = acrossesOf(directions)
+        val points = passedAt.indices.map { index ->
+            val age = time - passedAt[index]
+            val burningThen = doom.progressThrough(ImpactPhase.ENTRY, passedAt[index])
+            val laid = smoothStep(0.0, TRAIN_LAID_BY, burningThen)
+            val fading = (FULL - (age / TRAIN_LINGERS_TICKS).toFloat()).coerceAtLeast(NOTHING)
+            val gathering = smoothStep(0.0, SMOKE_GATHERS_TICKS, age)
+            val body = angularRadiusOf(sizeAt(sightings[index].distance))
+            TrailPoint(
+                direction = directions[index],
+                across = acrosses[index],
+                halfWidth = body * TRAIN_WIDTH_OF_THE_BODY + (TRAIN_SPREADS_PER_TICK * age).toFloat(),
+                smoke = TRAIN_SMOKE.copy(alpha = TRAIN_SMOKE_THICKNESS * laid * gathering * fading),
+                glow = BURNING.dimmed(laid * exp(-age / TRAIN_GLOW_FADES_TICKS).toFloat()).copy(alpha = FULL),
+            )
+        }
+        gatherTrail(points, smoke, glow)
+    }
+
+    /** Which way is across a line through [directions] at each of them, from its neighbours on either side. */
+    private fun acrossesOf(directions: List<Vector3f>): List<Vector3f> {
+        var lastGood = UP
+        return directions.indices.map { index ->
+            val ahead = directions[minOf(index + 1, directions.lastIndex)]
+            val behind = directions[maxOf(index - 1, 0)]
+            val across = Vector3f(ahead).sub(behind).cross(directions[index])
+            val isATurn = across.lengthSquared() > NO_TURN
+            if (isATurn) lastGood = across.normalize()
+            lastGood
+        }
+    }
+
+    /**
+     * One fragment of the debris coming back down: a great circle across the sky from [start] along [heading], run
+     * [length] radians in [burnTicks] from [startedAt]. Each is drawn afresh on a cycle of its own.
+     */
+    private class Fall(val start: Vector3f, val heading: Vector3f, val length: Double, val burnTicks: Double, val startedAt: Double) {
+        /** Which way is across its path, the same all along a great circle. */
+        val across: Vector3f = Vector3f(start).cross(heading).normalize()
+
+        fun at(along: Double): Vector3f =
+            Vector3f(start).mul(cos(along).toFloat()).add(Vector3f(heading).mul(sin(along).toFloat()))
+    }
+
+    /**
+     * Fragment [number]'s fall in the cycle [time] lies in, or null where the glow had not yet reached its start when
+     * it began. They run away from a radiant above where the asteroid struck, as a meteor shower's do from its own.
+     */
+    private fun fallOf(doom: Doom, number: Int, time: Double): Fall? {
+        val offset = unitAt(number.toLong(), OFFSET_SALT) * FALL_CYCLE_TICKS
+        val cycle = floor((time + offset) / FALL_CYCLE_TICKS).toLong()
+        val startedAt = cycle * FALL_CYCLE_TICKS - offset
+        fun drawn(salt: Long) = unitAt(number.toLong(), cycle xor salt)
+        val elevation = FALL_LOWEST + drawn(HEIGHT_SALT) * (FALL_HIGHEST - FALL_LOWEST)
+        val start = directionOf(drawn(AZIMUTH_SALT) * 2.0 * PI, Math.toRadians(elevation))
+        val impactDirection = directionOf(Math.toRadians(doom.bearingDegrees.toDouble()), 0.0)
+        val hadReachedIt = litAt(GridCorner(start, elevation), impactDirection, frontAt(doom, startedAt)) >= HALF
+        if (!hadReachedIt) return null
+        val radiant = directionOf(Math.toRadians(doom.bearingDegrees.toDouble()), Math.toRadians(RADIANT_ELEVATION))
+        val away = Vector3f(start).mul(start.dot(radiant)).sub(radiant)
+        if (away.lengthSquared() < NO_TURN) return null
+        away.normalize()
+        val swerve = (drawn(SWERVE_SALT) * 2.0 - 1.0) * Math.toRadians(FALL_SWERVES_DEGREES)
+        val heading = Vector3f(away).mul(cos(swerve).toFloat()).add(Vector3f(start).cross(away).mul(sin(swerve).toFloat()))
+        val length = Math.toRadians(FALL_SHORTEST + drawn(LENGTH_SALT) * (FALL_LONGEST - FALL_SHORTEST))
+        val burnTicks = FALL_QUICKEST_TICKS + drawn(BURN_SALT) * (FALL_SLOWEST_TICKS - FALL_QUICKEST_TICKS)
+        return Fall(start, heading, length, burnTicks, startedAt)
+    }
+
+    /**
+     * The trails the fragments leave: fixed where each was laid, glowing just behind its head, then smoke spreading
+     * and thinning until the fragment's next fall.
+     */
+    private fun gatherTheFallingTrails(doom: Doom, time: Double, smoke: MutableList<SkyQuad>, glow: MutableList<SkyQuad>) {
         val strength = skyGlowAt(doom, time)
         if (strength <= NOTHING) return
-        val impactDirection = directionOf(Math.toRadians(doom.bearingDegrees.toDouble()), 0.0)
-        val front = frontAt(doom, time)
-        for (number in 0..<STREAKS) {
-            val offset = unitAt(number.toLong(), OFFSET_SALT) * STREAK_LIFE_TICKS
-            val cycle = ((time + offset) / STREAK_LIFE_TICKS).toLong()
-            val life = (((time + offset) % STREAK_LIFE_TICKS) / STREAK_LIFE_TICKS).toFloat()
-            val azimuth = unitAt(number.toLong(), cycle) * 2.0 * PI
-            val elevation = STREAK_LOWEST + unitAt(number.toLong(), cycle xor HEIGHT_SALT) * (STREAK_HIGHEST - STREAK_LOWEST)
-            val corner = GridCorner(directionOf(azimuth, Math.toRadians(elevation)), elevation)
-            if (litAt(corner, impactDirection, front) < HALF) continue
-            val brightness = (FULL - life) * strength
-            for (link in 0..<STREAK_LINKS) {
-                val falling = elevation - STREAK_FALLS_DEGREES * life + link * STREAK_LINK_DEGREES
-                val direction = directionOf(azimuth, Math.toRadians(falling))
-                into += glowAt(direction, STREAK_SIZE * STREAK_THINS.pow(link), STREAK_COLOUR.dimmed(brightness * STREAK_FADES.pow(link)))
+        for (number in 0..<FALLS) {
+            val fall = fallOf(doom, number, time) ?: continue
+            val sinceItBegan = time - fall.startedAt
+            val reached = (sinceItBegan / fall.burnTicks).coerceAtMost(1.0)
+            fun pointAt(share: Double): TrailPoint {
+                val age = sinceItBegan - share * fall.burnTicks
+                val entering = smoothStep(0.0, FALL_BRIGHTENS_OVER, share)
+                val fading = (FULL - (age / FALL_TRAIL_LINGERS_TICKS).toFloat()).coerceAtLeast(NOTHING)
+                val gathering = smoothStep(0.0, SMOKE_GATHERS_TICKS, age)
+                val halfWidth = FALL_TRAIL_WIDTH + FALL_TRAIL_SPREADS_PER_TICK * age
+                val thinning = sqrt(FALL_TRAIL_WIDTH / halfWidth).toFloat()
+                return TrailPoint(
+                    direction = fall.at(share * fall.length),
+                    across = fall.across,
+                    halfWidth = halfWidth.toFloat(),
+                    smoke = FALL_SMOKE.copy(alpha = FALL_SMOKE_THICKNESS * strength * entering * gathering * fading * thinning),
+                    glow = FALL_GLOW.dimmed(strength * entering * exp(-age / FALL_GLOW_FADES_TICKS).toFloat()).copy(alpha = FULL),
+                )
             }
+            val laid = (0..FALL_TRAIL_POINTS).map { it.toDouble() / FALL_TRAIL_POINTS }.filter { it < reached }
+            val isBurning = reached < 1.0
+            val shares = if (isBurning) laid + reached else laid + 1.0
+            gatherTrail(shares.map(::pointAt), smoke, glow)
+        }
+    }
+
+    /** The heads of the fragments still burning: brightening as each comes in, and gone as it burns out. */
+    private fun gatherTheFallingHeads(doom: Doom, time: Double, into: MutableList<Glow>) {
+        val strength = skyGlowAt(doom, time)
+        if (strength <= NOTHING) return
+        for (number in 0..<FALLS) {
+            val fall = fallOf(doom, number, time) ?: continue
+            val reached = (time - fall.startedAt) / fall.burnTicks
+            if (reached >= 1.0) continue
+            val brightness = strength * smoothStep(0.0, FALL_BRIGHTENS_OVER, reached) * smoothStep(1.0, FALL_BURNS_OUT_FROM, reached)
+            into += glowAt(fall.at(reached * fall.length), FALL_HEAD_SIZE, FALL_HEAD.dimmed(brightness))
         }
     }
 
@@ -544,11 +699,18 @@ object ImpactSky {
     private const val STREAMER_PACE_SALT = 0x1B84_C7E2_5D30_A961L
     private const val STREAMER_PHASE_SALT = 0x7C29_F05B_E816_43D2L
 
-    // The wake.
-    private const val TRAIL_LENGTH = 14
-    private const val TRAIL_SPACING_TICKS = 2.0
-    private const val TRAIL_FADES = 0.8f
-    private const val TRAIL_THINS = 0.85f
+    // The train.
+    private const val TRAIN_POINTS = 40
+    private const val TRAIN_LINGERS_TICKS = 1800.0
+    private const val TRAIN_WIDTH_OF_THE_BODY = 0.7f
+    private const val TRAIN_SPREADS_PER_TICK = 0.00004
+    private val TRAIN_SMOKE = Rgba(0.32f, 0.29f, 0.27f)
+    private const val TRAIN_SMOKE_THICKNESS = 0.7f
+    private const val TRAIN_GLOW_FADES_TICKS = 100.0
+    private const val TRAIN_LAID_BY = 0.15
+    private const val SMOKE_GATHERS_TICKS = 15.0
+    private const val SAME_MOMENT = 0.01
+    private const val NO_TURN = 1.0e-12f
 
     // The fireball and the horizon.
     private val FIRE_ON_THE_HORIZON = Rgba(1.0f, 0.45f, 0.12f)
@@ -572,19 +734,36 @@ object ImpactSky {
     private const val FRONT_SOFTNESS = 15.0
     private const val FLICKER = 0.15f
     private const val FLICKER_PACE = 0.7
-    private const val STREAKS = 160
-    private const val STREAK_LIFE_TICKS = 30.0
-    private const val STREAK_LOWEST = 8.0
-    private const val STREAK_HIGHEST = 75.0
-    private const val STREAK_FALLS_DEGREES = 6.0
-    private const val STREAK_LINKS = 4
-    private const val STREAK_LINK_DEGREES = 1.5
-    private const val STREAK_SIZE = 0.5f
-    private const val STREAK_THINS = 0.75f
-    private const val STREAK_FADES = 0.7f
-    private val STREAK_COLOUR = Rgba(1.0f, 0.85f, 0.55f, 0.95f)
+
+    // The fragments falling through it.
+    private const val FALLS = 320
+    private const val FALL_CYCLE_TICKS = 200.0
+    private const val FALL_LOWEST = 15.0
+    private const val FALL_HIGHEST = 80.0
+    private const val RADIANT_ELEVATION = 20.0
+    private const val FALL_SWERVES_DEGREES = 12.0
+    private const val FALL_SHORTEST = 8.0
+    private const val FALL_LONGEST = 22.0
+    private const val FALL_QUICKEST_TICKS = 18.0
+    private const val FALL_SLOWEST_TICKS = 40.0
+    private const val FALL_BRIGHTENS_OVER = 0.15
+    private const val FALL_BURNS_OUT_FROM = 0.7
+    private const val FALL_HEAD_SIZE = 0.4f
+    private val FALL_HEAD = Rgba(1.0f, 0.88f, 0.6f, 0.95f)
+    private const val FALL_TRAIL_POINTS = 6
+    private const val FALL_TRAIL_WIDTH = 0.003
+    private const val FALL_TRAIL_SPREADS_PER_TICK = 0.0002
+    private const val FALL_TRAIL_LINGERS_TICKS = 160.0
+    private val FALL_GLOW = Rgba(1.0f, 0.62f, 0.28f)
+    private const val FALL_GLOW_FADES_TICKS = 12.0
+    private val FALL_SMOKE = Rgba(0.2f, 0.16f, 0.14f)
+    private const val FALL_SMOKE_THICKNESS = 0.8f
     private const val OFFSET_SALT = 0x51A7_E3C0_9D21_44B7L
     private const val HEIGHT_SALT = 0x2C6B_8F10_E5A3_7D49L
+    private const val AZIMUTH_SALT = 0x4F0E_92A7_1C6D_B835L
+    private const val SWERVE_SALT = 0x0D73_B5E9_48A2_6C1FL
+    private const val LENGTH_SALT = 0x63C8_1F4A_D097_2EB5L
+    private const val BURN_SALT = 0x3B5D_E762_8A04_F19CL
 
     // The flash and the dust.
     private const val FLASH_BRIGHTNESS = 0.9f
