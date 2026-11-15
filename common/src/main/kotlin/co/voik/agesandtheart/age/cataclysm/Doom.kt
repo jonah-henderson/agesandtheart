@@ -107,6 +107,23 @@ data class Doom(
     /** Whether it has struck by [time]: whether the Age has ended and its links fail. */
     fun hasStruckBy(time: Long): Boolean = time >= impactAt
 
+    /**
+     * How thick the smoke and dust hang at [time], from nought to one: smoke rising from what burns through the heat,
+     * the dust closing in soon after it settles, and some kept for ever in the impact winter.
+     */
+    fun dustAt(time: Double): Float = when (phaseAt(time.toLong())) {
+        ImpactPhase.HEAT -> SMOKE_BY_THE_DUST * progressThrough(ImpactPhase.HEAT, time).toFloat()
+        ImpactPhase.DUST -> {
+            val closing = (progressThrough(ImpactPhase.DUST, time) * DUST_CLOSES_FASTER).coerceAtMost(1.0).toFloat()
+            SMOKE_BY_THE_DUST + (WHOLLY - SMOKE_BY_THE_DUST) * closing
+        }
+        ImpactPhase.AFTER -> WINTER_DUST
+        ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, null -> NO_DUST
+    }
+
+    /** Whether the dust is thick enough at [time] that the land can be scorched behind it unseen. */
+    fun hidesTheScorchAt(time: Long): Boolean = phaseAt(time) == ImpactPhase.AFTER || dustAt(time.toDouble()) >= WHOLLY
+
     companion object {
         /**
          * An asteroid whose approach begins at [startsAt], on the bearing an Age of [seed] draws: the same Age
@@ -116,6 +133,12 @@ data class Doom(
             Doom(CataclysmKind.ASTEROID, startsAt, timeline, bearingFor(seed))
 
         fun bearingFor(seed: Long): Float = (seed xor BEARING_SALT).mod(WHOLE_TURN).toFloat()
+
+        private const val NO_DUST = 0.0f
+        private const val WHOLLY = 1.0f
+        private const val SMOKE_BY_THE_DUST = 0.5f
+        private const val DUST_CLOSES_FASTER = 4.0
+        private const val WINTER_DUST = 0.55f
 
         private const val WHOLE_TURN = 360L
         private const val BEARING_SALT = 0x3A57_E401_D5C1_7B2FL

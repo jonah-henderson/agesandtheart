@@ -31,7 +31,7 @@ object Asteroid {
                 if (level.gameTime % BURNING_EVERY == 0L) burnWhatTheSkySees(level)
                 setTheGroundAlight(level)
             }
-            ImpactPhase.DUST -> Scorch.some(level, CHUNKS_IN_THE_DUST)
+            ImpactPhase.DUST -> if (doom.hidesTheScorchAt(level.gameTime)) Scorch.some(level, CHUNKS_IN_THE_DUST)
             ImpactPhase.AFTER -> Scorch.some(level, CHUNKS_AFTER)
             ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, null -> Unit
         }

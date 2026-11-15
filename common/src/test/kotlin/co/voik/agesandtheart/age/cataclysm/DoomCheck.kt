@@ -41,6 +41,17 @@ class DoomCheck : FunSpec({
         check(doom.bearingDegrees in 0.0f..<360.0f) { "a bearing of ${doom.bearingDegrees}" }
     }
 
+    test("smoke rises through the heat, and the land is scorched only once the dust is thick") {
+        val heat = doom.startOf(ImpactPhase.HEAT)
+        val dust = doom.startOf(ImpactPhase.DUST)
+        check(doom.dustAt((heat - 1).toDouble()) == 0.0f) { "dust before the heat" }
+        check(doom.dustAt((dust - 1).toDouble()) > 0.0f) { "no smoke by the end of the heat" }
+        check(!doom.hidesTheScorchAt(dust)) { "scorched as the dust began to fall" }
+        val thick = (dust until doom.startOf(ImpactPhase.AFTER)).first(doom::hidesTheScorchAt)
+        check(thick < dust + timeline.dust / 2) { "the dust took until $thick to be thick" }
+        check(doom.hidesTheScorchAt(doom.startOf(ImpactPhase.AFTER))) { "the winter stopped the scorch" }
+    }
+
     test("an end and its absence survive the wire") {
         for (sent in listOf(CataclysmPayload("an_age".location(), doom), CataclysmPayload("an_age".location(), null))) {
             val buffer = Unpooled.buffer()

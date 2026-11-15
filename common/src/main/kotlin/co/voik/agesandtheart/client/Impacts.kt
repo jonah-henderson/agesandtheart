@@ -46,12 +46,7 @@ object Impacts {
         else -> NONE
     }
 
-    /** How thick the dust hangs at [time], from nought to one; the impact winter keeps some for ever. */
-    fun dustAt(doom: Doom, time: Double): Float = when (doom.phaseAt(time.toLong())) {
-        ImpactPhase.DUST -> (doom.progressThrough(ImpactPhase.DUST, time) * DUST_THICKENS_FASTER).coerceAtMost(1.0).toFloat()
-        ImpactPhase.AFTER -> WINTER_DUST
-        else -> NONE
-    }
+    fun dustAt(doom: Doom, time: Double): Float = doom.dustAt(time)
 
     /** How bright the impact's flash still is at [time]: whole at the instant, gone in a few seconds. */
     fun flashAt(doom: Doom, time: Double): Float {
@@ -117,8 +112,6 @@ object Impacts {
     private const val FULL = 1.0f
     private const val HEAT_WHILE_TRAVELLING = 0.6f
     private const val HEAT_FADES_FASTER = 3.0
-    private const val DUST_THICKENS_FASTER = 2.0
-    private const val WINTER_DUST = 0.55f
     private const val FLASH_LASTS = 100.0
     private const val FLASH_FADES = 14.0
 
