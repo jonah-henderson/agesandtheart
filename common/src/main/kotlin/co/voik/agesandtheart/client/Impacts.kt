@@ -104,10 +104,12 @@ object Impacts {
         }
         val random = level.random
         repeat(count) {
-            val x = camera.x + (random.nextDouble() - HALF) * ASH_ACROSS
-            val y = camera.y + (random.nextDouble() - HALF) * ASH_TALL
-            val z = camera.z + (random.nextDouble() - HALF) * ASH_ACROSS
-            level.addParticle(kind, x, y, z, 0.0, ASH_SINKS, 0.0)
+            val x = (random.nextDouble() - HALF) * ASH_ACROSS
+            val y = (random.nextDouble() - HALF) * ASH_TALL
+            val z = (random.nextDouble() - HALF) * ASH_ACROSS
+            // Never in the camera's face, where one speck of ash is drawn the size of the screen.
+            if (x * x + y * y + z * z < CLEAR_OF_THE_EYE * CLEAR_OF_THE_EYE) return@repeat
+            level.addParticle(kind, camera.x + x, camera.y + y, camera.z + z, 0.0, ASH_SINKS, 0.0)
         }
     }
 
@@ -134,4 +136,5 @@ object Impacts {
     private const val ASH_TALL = 16.0
     private const val ASH_SINKS = -0.02
     private const val HALF = 0.5
+    private const val CLEAR_OF_THE_EYE = 4.0
 }

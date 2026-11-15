@@ -13,6 +13,9 @@ import co.voik.ephemeris.client.SkyQuad
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan
+import kotlin.math.tan
 import kotlin.math.acos
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -48,9 +51,9 @@ object ImpactSky {
         val glows = mutableListOf<Glow>()
         val light = mutableListOf<SkyQuad>()
         val shade = mutableListOf<SkyQuad>()
-        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) gatherTheAsteroid(doom, time, glows)
+        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) gatherTheAsteroid(doom, time, light)
         if (time >= doom.impactAt) {
-            gatherTheFireball(doom, time, glows)
+            gatherTheFireball(doom, time, light)
             gatherTheDebrisGlow(doom, time, light)
             gatherTheStreaks(doom, time, glows)
             gatherTheFlash(doom, time, light)
@@ -107,22 +110,23 @@ object ImpactSky {
         return PATH_AT_ENTRY * (PATH_AT_FIRST_SIGHT / PATH_AT_ENTRY).pow(throughTheApproach)
     }
 
-    private fun gatherTheAsteroid(doom: Doom, time: Double, into: MutableList<Glow>) {
+    private fun gatherTheAsteroid(doom: Doom, time: Double, into: MutableList<SkyQuad>) {
         val ticksToImpact = doom.impactAt - time
         val sighting = sightingOf(doom, ticksToImpact)
         if (!sighting.isAboveTheHorizon) return
         val burning = doom.progressThrough(ImpactPhase.ENTRY, time).toFloat()
         val size = sizeAt(sighting.distance)
-        val body = PALE_ROCK.lerp(BURNING, sqrt(burning))
-        into += glowAt(sighting.direction, size, body)
-        if (burning <= NOTHING) return
-        into += glowAt(sighting.direction, size * BURNING_HALO_SPREAD, BURNING.dimmed(BURNING_HALO_STRENGTH * burning))
-        for (behind in 1..TRAIL_LENGTH) {
-            val earlier = sightingOf(doom, ticksToImpact + behind * TRAIL_SPACING_TICKS)
-            if (!earlier.isAboveTheHorizon) continue
-            val fading = TRAIL_FADES.pow(behind)
-            into += glowAt(earlier.direction, size * TRAIL_THINS.pow(behind), BURNING.dimmed(fading * burning))
+        // The trail first, so the body is laid over its own wake.
+        if (burning > NOTHING) {
+            for (behind in TRAIL_LENGTH downTo 1) {
+                val earlier = sightingOf(doom, ticksToImpact + behind * TRAIL_SPACING_TICKS)
+                if (!earlier.isAboveTheHorizon) continue
+                val fading = TRAIL_FADES.pow(behind) * burning
+                into += discAt(earlier.direction, size * TRAIL_THINS.pow(behind), BURNING.dimmed(fading), haloStrength = NOTHING)
+            }
         }
+        val body = PALE_ROCK.lerp(BURNING, sqrt(burning))
+        into += discAt(sighting.direction, size, body, haloStrength = BODY_HALO + BURNING_HALO * burning)
     }
 
     /** How big a body of [ASTEROID_RADIUS] looks [distance] blocks off, in the units `drawGlow` takes. */
@@ -132,7 +136,7 @@ object ImpactSky {
     // ---- After the impact ----------------------------------------------------------------------------------
 
     /** The fireball rising beyond the horizon where it struck, white-hot and then dull red. */
-    private fun gatherTheFireball(doom: Doom, time: Double, into: MutableList<Glow>) {
+    private fun gatherTheFireball(doom: Doom, time: Double, into: MutableList<SkyQuad>) {
         val strength = horizonGlowAt(doom, time)
         if (strength <= NOTHING) return
         val rising = ((time - doom.impactAt) / FIREBALL_RISES_TICKS).coerceIn(0.0, 1.0)
@@ -140,9 +144,8 @@ object ImpactSky {
         val direction = directionOf(Math.toRadians(doom.bearingDegrees.toDouble()), elevation)
         val size = (FIREBALL_SMALLEST + (FIREBALL_LARGEST - FIREBALL_SMALLEST) * rising).toFloat()
         val cooling = rising.toFloat()
-        val colour = WHITE_HOT.lerp(FIREBALL_ORANGE, (cooling * 2.0f).coerceAtMost(1.0f)).lerp(DULL_RED, cooling)
-        into += glowAt(direction, size, colour.dimmed(strength))
-        into += glowAt(direction, size * FIREBALL_HALO_SPREAD, FIREBALL_ORANGE.dimmed(strength * FIREBALL_HALO_STRENGTH))
+        val colour = WHITE_HOT.lerp(FIREBALL_ORANGE, (cooling * FIREBALL_COOLS_FASTER).coerceAtMost(1.0f)).lerp(DULL_RED, cooling)
+        into += discAt(direction, size, colour.dimmed(strength), haloStrength = FIREBALL_HALO_STRENGTH)
     }
 
     /** How strongly the horizon burns where it struck: from the impact, through the heat, fading into the dust. */
@@ -266,6 +269,41 @@ object ImpactSky {
         (-cos(azimuth) * cos(elevation)).toFloat(),
     )
 
+    /**
+     * A round light of [size] (in the units `drawGlow` takes) about [direction]: a solid core with a soft rim, and a
+     * faint halo out to [HALO_SPREAD] times as far at [haloStrength] of its colour. A glow is a square quad, which a
+     * point of light hides and a body the size of the moon does not.
+     */
+    private fun discAt(direction: Vector3f, size: Float, colour: Rgba, haloStrength: Float): List<SkyQuad> {
+        val radius = atan(size / GLOW_DISTANCE.toFloat())
+        val across = Vector3f(direction).cross(if (abs(direction.y) > NEARLY_UPRIGHT) EAST else UP).normalize()
+        val along = Vector3f(direction).cross(across).normalize()
+        fun rimAt(segment: Int, angularRadius: Float): Vector3f {
+            val turn = 2.0 * PI * segment / DISC_SEGMENTS
+            val reach = tan(angularRadius)
+            return Vector3f(across).mul((cos(turn) * reach).toFloat())
+                .add(Vector3f(along).mul((sin(turn) * reach).toFloat()))
+                .add(direction)
+                .normalize()
+        }
+        val solid = colour.copy(alpha = FULL)
+        val none = Rgba(0.0f, 0.0f, 0.0f, FULL)
+        val halo = colour.dimmed(haloStrength).copy(alpha = FULL)
+        val core = radius * DISC_CORE
+        val rim = radius * DISC_RIM
+        val outer = radius * HALO_SPREAD
+        return buildList {
+            for (segment in 0..<DISC_SEGMENTS) {
+                val next = segment + 1
+                add(SkyQuad(SkyCorner(direction, solid), SkyCorner(direction, solid), SkyCorner(rimAt(segment, core), solid), SkyCorner(rimAt(next, core), solid)))
+                add(SkyQuad(SkyCorner(rimAt(segment, core), solid), SkyCorner(rimAt(segment, rim), halo), SkyCorner(rimAt(next, rim), halo), SkyCorner(rimAt(next, core), solid)))
+                if (haloStrength > NOTHING) {
+                    add(SkyQuad(SkyCorner(rimAt(segment, rim), halo), SkyCorner(rimAt(segment, outer), none), SkyCorner(rimAt(next, outer), none), SkyCorner(rimAt(next, rim), halo)))
+                }
+            }
+        }
+    }
+
     private fun glowAt(direction: Vector3f, size: Float, tint: Rgba): Glow = Glow(
         orientation = Quaternionf().rotateTo(0.0f, 1.0f, 0.0f, direction.x, direction.y, direction.z),
         distance = GLOW_DISTANCE.toFloat(),
@@ -301,16 +339,16 @@ object ImpactSky {
     private const val ENTRY_SLANT_DEGREES = 25.0
     private const val PATH_AT_ENTRY = 120_000.0
     private const val PATH_AT_FIRST_SIGHT = 8_000_000.0
-    private const val ASTEROID_RADIUS = 6_000.0
+    private const val ASTEROID_RADIUS = 4_500.0
     private const val LOST_BELOW_THE_HORIZON = -0.005
 
     // The body.
     private const val GLOW_DISTANCE = 100.0
-    private const val SPECK = 0.12f
+    private const val SPECK = 0.35f
     private val PALE_ROCK = Rgba(0.95f, 0.93f, 0.88f, 0.95f)
     private val BURNING = Rgba(1.0f, 0.62f, 0.28f, 0.95f)
-    private const val BURNING_HALO_SPREAD = 2.2f
-    private const val BURNING_HALO_STRENGTH = 0.5f
+    private const val BODY_HALO = 0.15f
+    private const val BURNING_HALO = 0.45f
     private const val TRAIL_LENGTH = 14
     private const val TRAIL_SPACING_TICKS = 2.0
     private const val TRAIL_FADES = 0.8f
@@ -322,13 +360,13 @@ object ImpactSky {
     private val FIREBALL_ORANGE = Rgba(1.0f, 0.50f, 0.15f)
     private val DULL_RED = Rgba(0.60f, 0.12f, 0.04f)
     private const val FIREBALL_RISES_TICKS = 800.0
+    private const val FIREBALL_COOLS_FASTER = 6.0f
     private const val FIREBALL_LOWEST = 1.0
     private const val FIREBALL_HIGHEST = 10.0
     private const val FIREBALL_EASING = 0.6
     private const val FIREBALL_SMALLEST = 6.0
-    private const val FIREBALL_LARGEST = 28.0
-    private const val FIREBALL_HALO_SPREAD = 1.8f
-    private const val FIREBALL_HALO_STRENGTH = 0.4f
+    private const val FIREBALL_LARGEST = 12.0
+    private const val FIREBALL_HALO_STRENGTH = 0.35f
 
     // The debris coming back down.
     private val LOW_GLOW = Rgba(1.0f, 0.45f, 0.12f)
@@ -356,6 +394,15 @@ object ImpactSky {
     private const val FLASH_BRIGHTNESS = 0.9f
     private val DUST_PALL = Rgba(0.17f, 0.15f, 0.14f)
     private const val DUST_COVERS = 0.9f
+
+    // A disc.
+    private const val DISC_SEGMENTS = 24
+    private const val DISC_CORE = 0.8f
+    private const val DISC_RIM = 1.0f
+    private const val HALO_SPREAD = 2.5f
+    private const val NEARLY_UPRIGHT = 0.95f
+    private val UP = Vector3f(0.0f, 1.0f, 0.0f)
+    private val EAST = Vector3f(1.0f, 0.0f, 0.0f)
 
     // The grid.
     private const val ROWS = 12

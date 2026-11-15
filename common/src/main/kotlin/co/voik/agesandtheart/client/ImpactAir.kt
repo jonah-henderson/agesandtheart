@@ -4,7 +4,9 @@ import co.voik.ephemeris.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import org.joml.Vector3f
 import org.joml.Vector3fc
+import org.joml.Vector4f
 
 /**
  * What an asteroid's end does to the air (design §5.3 "The asteroid"): the flash whitening everything for a moment,
@@ -27,6 +29,11 @@ object ImpactAir {
         }
         layers.addPositionalLayer(EnvironmentAttributes.AMBIENT_LIGHT_COLOR) { was, _, _ ->
             coloured(level, was, heatTo = HEAT_LIGHT, dustTo = DUST_LIGHT, howMuch = AMBIENT_SHARE)
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.CLOUD_COLOR) { was, _, _ ->
+            val moment = momentIn(level) ?: return@addPositionalLayer was
+            val coloured = coloured(level, Vector3f(was.x(), was.y(), was.z()), heatTo = HEAT_SKY, dustTo = DUST_SKY)
+            Vector4f(coloured.x(), coloured.y(), coloured.z(), was.w() + (FULL - was.w()) * moment.dust)
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_LIGHT_FACTOR) { was, _, _ ->
             val moment = momentIn(level) ?: return@addPositionalLayer was

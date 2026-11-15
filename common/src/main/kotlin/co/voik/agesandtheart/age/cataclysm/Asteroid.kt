@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
+import kotlin.math.abs
 
 /**
  * What an asteroid's end does on the server (design §5.3 "The asteroid"): the sky, the flash and the dust are the
@@ -70,6 +71,9 @@ object Asteroid {
                 val x = player.blockX + random.nextInt(LIT_ACROSS) - LIT_ACROSS / 2
                 val z = player.blockZ + random.nextInt(LIT_ACROSS) - LIT_ACROSS / 2
                 if (!level.isLoaded(BlockPos(x, 0, z))) return@repeat
+                // Not under anyone's feet: whoever stands in the open burns anyway, and a fire in the eyes hides the end.
+                val isUnderSomebody = level.players().any { abs(it.blockX - x) <= 1 && abs(it.blockZ - z) <= 1 }
+                if (isUnderSomebody) return@repeat
                 val above = BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z), z)
                 val top = above.below()
                 val isLeaves = level.getBlockState(top).`is`(BlockTags.LEAVES)

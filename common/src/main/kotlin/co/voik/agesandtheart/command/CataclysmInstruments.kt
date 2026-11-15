@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.cataclysm.ImpactPhase
 import co.voik.agesandtheart.age.cataclysm.ImpactTimeline
 import co.voik.agesandtheart.age.cataclysm.Scorch
 import co.voik.agesandtheart.generation.Ages
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -24,7 +25,8 @@ import net.minecraft.world.level.ChunkPos
  *
  * - `/age cataclysm` says what end is coming and where it has got to.
  * - `/age cataclysm asteroid` starts an asteroid's approach now; `/age cataclysm asteroid <phase>` starts it so
- *   that phase begins now, to look at one stage without waiting through the others.
+ *   that phase begins now, and `/age cataclysm asteroid <phase> <seconds>` so it began that long ago, to look at
+ *   one moment without waiting through the others.
  * - `/age cataclysm clear` calls it off, the Age's links included.
  * - `/age cataclysm scorch` scorches the chunks around you as the firestorm would.
  */
@@ -42,7 +44,15 @@ object CataclysmInstruments {
                                 .suggests { _, builder ->
                                     SharedSuggestionProvider.suggest(ImpactPhase.entries.map { it.key }, builder)
                                 }
-                                .executes(asking(::runAsteroidFrom)),
+                                .executes(asking { context, report -> runAsteroidFrom(context, report, secondsIn = 0) })
+                                .then(
+                                    Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(0))
+                                        .executes(
+                                            asking { context, report ->
+                                                runAsteroidFrom(context, report, IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT))
+                                            },
+                                        ),
+                                ),
                         ),
                 )
                 .then(Commands.literal(CLEAR_LITERAL).executes(asking(::runClear)))
@@ -66,18 +76,18 @@ object CataclysmInstruments {
         return SUCCESS
     }
 
-    private fun runAsteroidFrom(context: CommandContext<CommandSourceStack>, report: Report): Int {
+    private fun runAsteroidFrom(context: CommandContext<CommandSourceStack>, report: Report, secondsIn: Int): Int {
         val key = StringArgumentType.getString(context, PHASE_ARGUMENT)
         val phase = ImpactPhase.entries.firstOrNull { it.key == key }
             ?: return report.fail("No phase '$key' — one of ${ImpactPhase.entries.joinToString { it.key }}")
-        return runAsteroid(context, report, phase)
+        return runAsteroid(context, report, phase, secondsIn)
     }
 
-    private fun runAsteroid(context: CommandContext<CommandSourceStack>, report: Report, from: ImpactPhase): Int {
+    private fun runAsteroid(context: CommandContext<CommandSourceStack>, report: Report, from: ImpactPhase, secondsIn: Int = 0): Int {
         val (id, recipe) = theAgeStoodIn(context, report) ?: return FAILURE
         val level = context.source.level
         val timeline = ImpactTimeline.PROTOTYPE
-        val startsAt = level.gameTime - timeline.startOf(from)
+        val startsAt = level.gameTime - timeline.startOf(from) - secondsIn * TICKS_PER_SECOND
         val doom = Doom.asteroid(recipe.seed, startsAt, timeline)
         retellTheEnd(level, recipe, doom)
         report.say { "An asteroid is coming to ${id.path}, from the bearing %.0f°, until a restart".format(doom.bearingDegrees) }
@@ -132,5 +142,6 @@ object CataclysmInstruments {
     private const val SCORCH_LITERAL = "scorch"
     private const val SCORCHED_AROUND = 1
     private const val PHASE_ARGUMENT = "phase"
+    private const val SECONDS_ARGUMENT = "seconds_in"
     private const val TICKS_PER_SECOND = ImpactTimeline.TICKS_PER_SECOND
 }
