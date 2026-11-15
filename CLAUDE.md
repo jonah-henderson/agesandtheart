@@ -22,10 +22,8 @@ something lands, delete the narrative of building it; a choice between genuinely
 - **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
   what a word costs. **Built**, normative and current — it supersedes `the-art-design.md` §3 and §4. Its §3 is
-  words as meanings and how a row of pages is read; `in <biome>` siting is built, its widening is not.
-- **`notes/the-word-rework.md`** — **built, and to be folded into the world model's §3 and `decisions.md`**: words
-  as offers, acceptances and terminals, and how the reader reads a row. Read it before changing a word's format,
-  `Acceptance` or the `Reader`.
+  words as senses, offers, acceptances and terminals, and how the reader reads a row; read it before changing a
+  word's format, `Acceptance` or the `Reader`. `in <biome>` siting is built, its widening is not.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, consequences, book editing, the economy.
   Normative for §1–§2 and §5–§9; what was its §3 and §4 is the world model above, and only §3's two disciplines
   and §4's found books, failure channels and pipeline remain. §5.0 is the instability tiers (the strange tier
@@ -512,7 +510,7 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
-- **`age/words/`** — **what a word is** (`notes/the-word-rework.md`): a `Word` is senses, and a `Sense` offers
+- **`age/words/`** — **what a word is** (`notes/the-world-model.md` §3): a `Word` is senses, and a `Sense` offers
   meanings to the words after it (`Offer`: a concept, a value, its chances and who may take it), takes what reaches
   it (`Acceptance`: which values, and what it makes of them — effects, a fold, a rename, a scaling), and means
   something itself. A thing or a part's page ends a phrase; a describing word passes on. A `Kind` is a template a
