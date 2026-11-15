@@ -344,7 +344,7 @@ class WritersDeskScreen(
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */
     private fun reachTooltip(row: WordRow): List<Component> =
         if (DeskModel.can(DeskCapability.WORD_REACH)) {
-            WordReachTooltip.linesFor(row.word, expanded = Minecraft.getInstance().hasShiftDown())
+            WordReachTooltip.linesFor(row.word, expanded = Minecraft.getInstance().hasShiftDown(), widest = width - TOOLTIP_MARGINS)
         } else {
             emptyList()
         }
@@ -462,6 +462,9 @@ class WritersDeskScreen(
     }
 
     private companion object {
+        /** What a word's tooltip leaves of the screen's width: its border, and the four pixels vanilla keeps from the edge. */
+        const val TOOLTIP_MARGINS = 16
+
         /** What marks a word whose page is filed in an archive in the room. */
         val IN_THE_ARCHIVE: Badge by lazy {
             Badge(ItemStack(AgeContent.PAGE), Component.translatable("container.agesandtheart.writers_desk.in_the_archive"))

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.WordNames
 import net.minecraft.ChatFormatting
+import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
@@ -18,9 +19,10 @@ object WordReachTooltip {
 
     /**
      * "Applies to:" and the first [FIRST_SHOWN] of what [word] applies to, with how many more and a hint to hold Shift;
-     * every one, a line a part, where [expanded]. Nothing for an aiming page, or a word the server never described.
+     * every one, by part and wrapped to [widest] pixels, where [expanded]. Nothing for an aiming page, or a word the
+     * server never described.
      */
-    fun linesFor(word: Identifier, expanded: Boolean): List<Component> {
+    fun linesFor(word: Identifier, expanded: Boolean, widest: Int): List<Component> {
         val reach = KnownWords.reachOf(word) ?: return emptyList()
         val isAnAimingPage = word.namespace == Constants.MOD_ID && Aspect.byPage(word.path) != null
         if (isAnAimingPage) return emptyList()
@@ -30,7 +32,7 @@ object WordReachTooltip {
         return when {
             entries.isEmpty() -> listOf(heading, entry(Component.translatable(APPLIES_ANYWHERE).string))
             entries.size <= FIRST_SHOWN -> listOf(heading) + entries.map(::entry)
-            expanded -> listOf(heading) + parts.flatMap(::linesOf)
+            expanded -> listOf(heading) + parts.flatMap { linesOf(it, widest) }
             else -> listOf(heading) + entries.take(FIRST_SHOWN).map(::entry) + listOf(
                 Component.translatable(APPLIES_MORE, entries.size - FIRST_SHOWN).withStyle(ChatFormatting.GRAY),
                 Component.translatable(EXPAND_HINT).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
@@ -69,10 +71,10 @@ object WordReachTooltip {
     private fun everyOf(part: Aspect): String =
         Component.translatableWithFallback("$EVERY.${part.key}", "all %s", KnownWords.ofTheGameIn(part)).string
 
-    /** [part] as lines: its name, then what it holds, wrapped a few to a line beneath it. */
-    private fun linesOf(part: Part): List<Component> {
+    /** [part] as lines: its name, then what it holds, wrapped to [widest] pixels beneath it. */
+    private fun linesOf(part: Part, widest: Int): List<Component> {
         val label = part.name?.let { listOf(Component.literal(it).withStyle(ChatFormatting.GRAY)) }.orEmpty()
-        return label + wrapped(part.entries).map(::entry)
+        return label + wrapped(part.entries, widest).map(::entry)
     }
 
     private fun entry(text: String): MutableComponent =
@@ -80,12 +82,13 @@ object WordReachTooltip {
 
     private fun nameOf(word: Identifier): String = WordNames.readable(word).string
 
-    /** [names] a few to a line, so a part with forty in it stays a block rather than a column. */
-    private fun wrapped(names: List<String>): List<String> {
+    /** [names] as many to a line as fit in [widest] pixels, so a part with forty in it stays a block rather than a column. */
+    private fun wrapped(names: List<String>, widest: Int): List<String> {
+        val font = Minecraft.getInstance().font
         val lines = mutableListOf<String>()
         for (name in names) {
             val last = lines.lastOrNull()
-            val fitsOnTheLastLine = last != null && last.length + LIST_SEPARATOR.length + name.length <= LINE_LENGTH
+            val fitsOnTheLastLine = last != null && font.width(entry(last + LIST_SEPARATOR + name)) <= widest
             if (fitsOnTheLastLine) lines[lines.lastIndex] = last + LIST_SEPARATOR + name else lines += name
         }
         return lines
@@ -100,7 +103,4 @@ object WordReachTooltip {
     /** How many are listed before Shift is held. */
     private const val FIRST_SHOWN = 5
     private const val LIST_SEPARATOR = ", "
-
-    /** The longest line of a part's words, in characters. */
-    private const val LINE_LENGTH = 44
 }

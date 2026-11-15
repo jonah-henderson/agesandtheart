@@ -30,7 +30,9 @@ object Headings {
      * What each word applies to: every thing or part's page of a pack's that would take something it offers more than a
      * lean ([Usage.describes]), and each
      * creature, feature, biome or structure of the game's that would, except where it reaches all of them in that part
-     * — then the part is reached [whole][Applying.whole], and said of its page rather than of each. A word naming
+     * — then the part is reached [whole][Applying.whole], and said of its page rather than of each — or where it is one of
+     * a group's that takes it too and reaches most of that group's, which the group then says for them (the game's
+     * trees, under `trees`; but `charged` keeps `creeper`, the one monster it charges). A word naming
      * members of a part, or any other thing of one, is listed under that part's page — `zombie` and `monsters` under
      * `inhabitants`, `spikes` under `features` — unless it is that page (`aurora`).
      */
@@ -42,11 +44,16 @@ object Headings {
         val takerIds = takers.map { it.word.id }.toSet()
         val pagesFor = takers.filter { it.isAPartsPage(words) }.groupBy({ it.part }, { it.word.id })
         fun takersOf(word: Word, among: List<Heading>) = among.filter { usage.describes(it.word, word) }
+        val gameMembersOf = groupsOfTheGame(usage, headings, ofTheGame)
         val describing = words.all.filter { it.id !in takerIds && it.defaultSense?.behaviour == null }.associate { word ->
             val under = takersOf(word, headings)
             val (whole, some) = takersOf(word, ofTheGame).groupBy { it.part }.entries
                 .partition { (part, reached) -> reached.size == ofTheGameIn[part] }
-            val listedUnder = (under + some.flatMap { it.value }).distinctBy { it.word.id }
+            val reachedOfTheGame = some.flatMap { it.value }.map { it.word.id }.toSet()
+            fun reachedOf(group: Set<Identifier>) = group.intersect(reachedOfTheGame)
+            fun reachesMostOf(group: Set<Identifier>) = reachedOf(group).size * 2 > group.size
+            val saidByAGroup = under.mapNotNull { gameMembersOf[it.word.id] }.filter(::reachesMostOf).flatMap(::reachedOf).toSet()
+            val listedUnder = (under + some.flatMap { it.value }.filter { it.word.id !in saidByAGroup }).distinctBy { it.word.id }
             // A reading is the taker's own idiom, no kind of meaning to file a word under, and a lean is not said of it.
             val takenAs = listedUnder.map { usage.conceptsTaken(it.word, word) - CoreConcepts.READING - CoreConcepts.LEAN }
             word.id to Applying(listedUnder.map { it.word.id }, whole.map { it.key }.toSet(), takenAs)
@@ -56,6 +63,17 @@ object Headings {
             taker.word.id to Applying(pages, emptySet(), pages.map { setOf(CoreConcepts.MEMBER) })
         }
         return (describing + naming).filterValues { it.words.isNotEmpty() || it.whole.isNotEmpty() }
+    }
+
+    /** Each group's members of the game's own — every tree feature, under `trees` — where it has any. */
+    private fun groupsOfTheGame(usage: Usage, headings: List<Heading>, ofTheGame: List<Heading>): Map<Identifier, Set<Identifier>> {
+        val groups = headings.filter { it.namesMembers && !it.isAPartsPage(usage.words) }
+        return groups.associate { group ->
+            val members = ofTheGame.filter { member ->
+                member.part == group.part && CoreConcepts.MEMBER in usage.conceptsTaken(group.word, member.word)
+            }
+            group.word.id to members.map { it.word.id }.toSet()
+        }.filterValues { it.isNotEmpty() }
     }
 
     /** How many of the game's own creatures, features, biomes and structures each part of the world holds. */
