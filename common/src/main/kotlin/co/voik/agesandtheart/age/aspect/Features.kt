@@ -384,6 +384,7 @@ object Features {
             .groupBy { it.confinedTo }
             .flatMap { (ground, there) -> PLACES.skewOf(there, ground).wanted }
         val grownSomewhere = WhereThingsGrow.featuresGrown(server.registryAccess())
+        val treesGrownSomewhere = WhereThingsGrow.treeLogsGrown(server.registryAccess())
         return { biome ->
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome is absent from every other, so each biome's
@@ -391,7 +392,10 @@ object Features {
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, salt, grown, clearings, shape, confined, grownSomewhere),
+                    wanted(
+                        server, here, salt, grown, clearings, shape, confined, grownSomewhere,
+                        GrowingTrees(somewhere = treesGrownSomewhere, here = WhereThingsGrow.treeLogsGrownIn(it.value())),
+                    ),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
@@ -533,6 +537,7 @@ object Features {
         shape: Shape,
         confinedElsewhere: List<Claim>,
         grownSomewhere: Set<Identifier>,
+        trees: GrowingTrees,
     ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
@@ -554,6 +559,7 @@ object Features {
                 Constants.LOG.warn("An Age asked to grow '{}', which is no placed feature in this pack", named)
                 continue
             }
+            if (claim.onlyWhereItGrows && trees.growsOnlyElsewhere(found)) continue
             // **Minted where the claim says what it is made of** — `ink springs` is vanilla's own spring
             // running with something it never runs with. The pattern keeps its placement, its rarity and
             // its step; only the substance changes.
@@ -645,6 +651,18 @@ object Features {
 
     /** And how much oftener they come at most. */
     private const val OFTENEST_FOR_VEINS = 1.25
+
+    /**
+     * The trees grown somewhere and in the biome at hand, by their logs. A kind of tree grows inside a biome's mixed
+     * forest rather than by its own name, so `oak trees` asks for more oaks where some biome grows oak and only there;
+     * `oak trees everywhere` in every biome; and a kind no biome grows comes in everywhere, as any feature named does.
+     */
+    private class GrowingTrees(val somewhere: Set<Block>, val here: Set<Block>) {
+        fun growsOnlyElsewhere(feature: Holder<VanillaPlacedFeature>): Boolean {
+            val logs = TreeKinds.logsOf(feature)
+            return logs.isNotEmpty() && logs.any(somewhere::contains) && logs.none(here::contains)
+        }
+    }
 
     /**
      * Which step a feature sits in wherever this pack already uses it — see [wanted] — or, for a formation

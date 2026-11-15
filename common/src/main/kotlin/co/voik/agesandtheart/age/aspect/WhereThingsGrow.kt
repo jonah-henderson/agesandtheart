@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.worldgen.feature.TreeKinds
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
@@ -7,7 +8,9 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.MobSpawnSettings
+import net.minecraft.world.level.block.Block
 
 /**
  * Which creatures and features the pack already puts somewhere — what decides whether naming one scales it
@@ -35,6 +38,14 @@ object WhereThingsGrow {
             }
         return (offeredByBiomes + offeredByStructures).map(BuiltInRegistries.ENTITY_TYPE::getKey).toSet()
     }
+
+    /** The logs of every tree [biome] grows, wherever they sit among what its features choose between. */
+    fun treeLogsGrownIn(biome: Biome): Set<Block> =
+        biome.generationSettings.features().flatMap { it.toList() }.flatMap(TreeKinds::logsOf).toSet()
+
+    /** The logs of every tree some biome grows. */
+    fun treeLogsGrown(registries: RegistryAccess): Set<Block> =
+        registries.lookupOrThrow(Registries.BIOME).listElements().toList().flatMap { treeLogsGrownIn(it.value()) }.toSet()
 
     /** Every placed feature some biome grows. */
     fun featuresGrown(registries: RegistryAccess): Set<Identifier> =
