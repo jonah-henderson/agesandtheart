@@ -16,8 +16,13 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.tags.BlockTags
+import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.NoiseColumn
+import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.LeavesBlock
+import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -195,12 +200,21 @@ object Ages {
         // the route all the same, so going lazy is one call to `LevelAppearance.lazily` and no hunting for
         // the places a player starts travelling.
         LevelAppearance.expecting(player, level.dimension())
-        val arrival = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
-        // **Carved now only where the ground is already whole.** Reading it otherwise builds the chunk on this
+        val predicted = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
+        // **Settled now only where the ground is already whole.** Reading it otherwise builds the chunk on this
         // thread — seconds on a cold Age, with every player on the server stopped and the visitor looking at
         // the world they were leaving. The visitor goes at once instead, into vanilla's loading screen, which
-        // waits on the chunk as a portal's does, and the room is carved the tick it is whole.
-        if (isWhole(level, arrival)) openUpArrival(level, arrival) else waitingToOpen += WaitingArrival(level, arrival)
+        // waits on the chunk as a portal's does, and is moved onto their footing the tick it is whole.
+        val arrival = if (isWhole(level, predicted)) {
+            settled(level, predicted).also { arrivals[level] = it }
+        } else {
+            waitingToOpen += WaitingArrival(level, predicted, player)
+            predicted
+        }
+        putDown(player, level, arrival)
+    }
+
+    private fun putDown(player: ServerPlayer, level: ServerLevel, arrival: Arrival) {
         // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
         // the camera should follow, which is the empty set and `true`.
         player.teleportTo(
@@ -209,24 +223,34 @@ object Ages {
         )
     }
 
-    /** An arrival a visitor was sent to before its chunk was whole, still to be carved. */
-    private class WaitingArrival(val level: ServerLevel, val arrival: Arrival, var ticksWaited: Int = 0)
+    /** An arrival a visitor was sent to before its chunk was whole, still to be settled. */
+    private class WaitingArrival(val level: ServerLevel, val arrival: Arrival, val visitor: ServerPlayer, var ticksWaited: Int = 0)
 
     private val waitingToOpen = mutableListOf<WaitingArrival>()
 
     /**
-     * Carves every waiting arrival whose chunk has become whole. One whose visitor left before it was is given
-     * up after a while, since nothing then holds the chunk loaded.
+     * Settles every waiting arrival whose chunk has become whole, and moves its visitor onto the footing found, where
+     * they are still standing where they were put. One whose visitor left before it was is given up after a while,
+     * since nothing then holds the chunk loaded.
      */
     fun openUpWaitingArrivals() {
         if (waitingToOpen.isEmpty()) return
         waitingToOpen.removeAll { waiting ->
             waiting.ticksWaited++
             val whole = isWhole(waiting.level, waiting.arrival)
-            if (whole) openUpArrival(waiting.level, waiting.arrival)
+            if (whole) {
+                val arrival = settled(waiting.level, waiting.arrival).also { arrivals[waiting.level] = it }
+                val visitor = waiting.visitor
+                val stillWherePut = visitor.level() == waiting.level &&
+                    visitor.blockPosition().closerThan(waiting.arrival.at, STILL_WHERE_PUT)
+                if (arrival != waiting.arrival && stillWherePut) putDown(visitor, waiting.level, arrival)
+            }
             whole || waiting.ticksWaited > MOST_TICKS_AN_ARRIVAL_WAITS
         }
     }
+
+    /** How far a waiting visitor may have moved and still be moved onto the footing found. */
+    private const val STILL_WHERE_PUT = 3.0
 
     /** An integrated server stopping: the next world has none of these levels. */
     fun serverStopped() = waitingToOpen.clear()
@@ -239,7 +263,7 @@ object Ages {
 
     /**
      * Where a visitor lands and which way they face. [facing] is null for footing found in the rock, where
-     * a visitor keeps the heading they had; set, it marks a built doorway that [openUpArrival] must not widen.
+     * a visitor keeps the heading they had; set, it marks a built doorway that [settled] must not widen.
      */
     data class Arrival(val at: BlockPos, val facing: Direction? = null)
 
@@ -309,12 +333,12 @@ object Ages {
      * terrain without a chunk, and the chunk gets generated anyway a moment later as the ring's own centre.
      *
      * What is given up is decoration: this is the shape of the rock, so a visitor may arrive inside a tree
-     * that grew there. [openUpArrival] already handles being arrived somewhere solid.
+     * that grew there. [settled] finds the footing near it in the world as it stands.
      *
      * Three answers, because a column need not have a floor in it. Ordinarily the top of the surface, or
      * the first floor under the roof in a world shut overhead. Where the column holds nothing at all — an
      * Age of open sky or the void — the waterline, or ground level where that is the floor, so a visitor arrives in the
-     * air rather than on the world's floor ([openUpArrival] lays a platform under them in the void).
+     * air rather than on the world's floor ([settled] lays a platform under them in the void).
      * Where it is solid to the top, the highest a player fits.
      */
     internal fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
@@ -340,38 +364,93 @@ object Ages {
     private const val VANILLAS_GROUND_LEVEL = 64
 
     /**
-     * Clears somewhere to stand at [arrival], for a level that has no room there — an Age linked into, or the
-     * overworld's spawn under a heap of rubble fallen out of one.
+     * Where a visitor sent to [arrival] stands, read off the world now that its chunk is whole. The arrival was predicted from the bare rock, before trees, snow, boulders and structures stood on it, so
+     * the visitor stands on the first footing near it: in the predicted column or one beside it, at the predicted
+     * height or up to [SEARCH_UP] above it, then a little below it, nearest the predicted height first, so a visitor
+     * meets the ground beside a tree rather than its crown. Only where there is none is room carved.
      *
-     * Only on the way in, never on the way to a panel: a book that carved a pocket merely by being opened
-     * would edit an Age nobody had visited.
-     *
-     * At a built doorway only the visitor's own column: the city's arrival is one block from its frame.
+     * A built doorway keeps its place and is opened in its own column; over the void a platform is laid.
      */
-    internal fun openUpArrival(level: ServerLevel, arrival: Arrival) {
+    internal fun settled(level: ServerLevel, arrival: Arrival): Arrival {
         val (at, facing) = arrival
-        val cursor = BlockPos.MutableBlockPos()
-        fun blocked(y: Int) = !level.getBlockState(cursor.set(at.x, y, at.z)).isAir
-        if (facing == null && isOverTheVoid(level, at) && hasNothingUnder(level, at)) layPlatformUnder(level, at)
-        if (!blocked(at.y) && !blocked(at.y + 1)) return
+        if (facing == null && isOverTheVoid(level, at) && hasNothingUnder(level, at)) {
+            layPlatformUnder(level, at)
+            return arrival
+        }
+        if (facing != null) {
+            openUp(level, at, reach = 0)
+            return arrival
+        }
+        fun isLoaded(spot: BlockPos) =
+            level.chunkSource.getChunkNow(SectionPos.blockToSectionCoord(spot.x), SectionPos.blockToSectionCoord(spot.z)) != null
+        return footingNear(level, at, ::isLoaded)?.let { Arrival(it) } ?: arrival.also { openUp(level, at, reach = 1) }
+    }
 
+    /** The nearest place near [at] a visitor fits standing on something, or null where there is none in loaded ground. */
+    internal fun footingNear(level: BlockGetter, at: BlockPos, isLoaded: (BlockPos) -> Boolean): BlockPos? {
+        val heights = (0..SEARCH_UP) + (1..SEARCH_DOWN).map { -it }
+        val columns = (-SEARCH_ACROSS..SEARCH_ACROSS).flatMap { dx -> (-SEARCH_ACROSS..SEARCH_ACROSS).map { dz -> dx to dz } }
+            .sortedBy { (dx, dz) -> dx * dx + dz * dz }
+        for (dy in heights) {
+            for ((dx, dz) in columns) {
+                val spot = at.offset(dx, dy, dz)
+                if (isLoaded(spot) && fitsAt(level, spot)) return spot
+            }
+        }
+        return null
+    }
+
+    /** Whether a visitor fits with their feet at [feet]: nothing they would collide with, and a floor that holds them or water to swim in. */
+    private fun fitsAt(level: BlockGetter, feet: BlockPos): Boolean {
+        if (feet.y <= level.minY || feet.y + 1 > level.maxY) return false
+        val below = feet.below()
+        val floor = level.getBlockState(below)
+        val isLeaves = floor.block is LeavesBlock || floor.`is`(BlockTags.LEAVES)
+        val holdsThemUp = floor.isFaceSturdy(level, below, Direction.UP) && !isLeaves
+        val swims = floor.fluidState.type.isSame(Fluids.WATER)
+        return isRoomAt(level, feet) && isRoomAt(level, feet.above()) && (holdsThemUp || swims)
+    }
+
+    /** Whether nothing at [at] would hold a visitor or hurt them: no collision, no lava, no fire, no powder snow. */
+    private fun isRoomAt(level: BlockGetter, at: BlockPos): Boolean {
+        val state = level.getBlockState(at)
+        val hurts = state.fluidState.type.isSame(Fluids.LAVA) || state.block is BaseFireBlock || state.`is`(Blocks.POWDER_SNOW)
+        return !hurts && state.getCollisionShape(level, at).isEmpty
+    }
+
+    /**
+     * Clears room at [at], [reach] blocks each way, for a level with no footing near it — an Age linked into deep in
+     * rock, or the overworld's spawn under a heap of rubble fallen out of one. Only what a visitor would collide with
+     * goes, so the grass and flowers around them stay; and a floor is laid under the pocket where it has none, or one
+     * carved out of a hillside drops the visitor through it.
+     *
+     * Only on the way in, never on the way to a panel: a book that carved a pocket merely by being opened would edit
+     * an Age nobody had visited.
+     */
+    private fun openUp(level: ServerLevel, at: BlockPos, reach: Int) {
+        val cursor = BlockPos.MutableBlockPos()
+        fun collides(x: Int, y: Int, z: Int) = !isRoomAt(level, cursor.set(x, y, z))
+        if (!collides(at.x, at.y, at.z) && !collides(at.x, at.y + 1, at.z) && level.getBlockState(at.below()).isFaceSturdy(level, at.below(), Direction.UP)) return
         Constants.LOG.info("Carving room to arrive at {} in {}", at, level.dimension().identifier())
-        val reach = if (facing == null) 1 else 0
         for (y in at.y..at.y + HEADROOM) {
             for (x in at.x - reach..at.x + reach) {
                 for (z in at.z - reach..at.z + reach) {
-                    level.setBlockAndUpdate(cursor.set(x, y, z), Blocks.AIR.defaultBlockState())
+                    if (collides(x, y, z)) level.setBlockAndUpdate(cursor.set(x, y, z), Blocks.AIR.defaultBlockState())
                 }
             }
         }
-        // A floor under the pocket, or one carved out of a hillside drops the visitor through it.
         for (x in at.x - reach..at.x + reach) {
             for (z in at.z - reach..at.z + reach) {
                 val under = cursor.set(x, at.y - 1, z)
-                if (level.getBlockState(under).isAir) level.setBlockAndUpdate(under, FOOTING_BLOCK)
+                if (!level.getBlockState(under).isFaceSturdy(level, under, Direction.UP)) level.setBlockAndUpdate(under, FOOTING_BLOCK)
             }
         }
     }
+
+    /** How far above the predicted footing, across and below, a visitor's footing is looked for before room is carved. */
+    private const val SEARCH_UP = 24
+    private const val SEARCH_ACROSS = 4
+    private const val SEARCH_DOWN = 6
 
     /**
      * Whether [at] stands in a territory of the void landform. Only there is a platform laid: anywhere else, seeing
@@ -428,7 +507,9 @@ object Ages {
      */
     private fun floorUnderTheRoof(column: NoiseColumn, level: ServerLevel): Int {
         fun isAirAt(y: Int) = column.getBlock(y).isAir
-        fun standingRoomAt(y: Int) = !isAirAt(y) && isAirAt(y + 1) && isAirAt(y + 2)
+        // A sea of lava is no floor, though it fills the column as one would.
+        fun holdsThemAt(y: Int) = !isAirAt(y) && column.getBlock(y).fluidState.isEmpty
+        fun standingRoomAt(y: Int) = holdsThemAt(y) && isAirAt(y + 1) && isAirAt(y + 2)
 
         var y = level.maxY - HEADROOM
         // Down through whatever air is above the roof, then through the roof itself.

@@ -233,7 +233,7 @@ enum class Terrain(
 
     /**
      * No rock anywhere: an Age wearing it alone is open air above and below, and a link into it arrives on a small
-     * platform ([co.voik.agesandtheart.generation.Ages.openUpArrival]).
+     * platform ([co.voik.agesandtheart.generation.Ages.settled]).
      */
     VOID("void", waterline = null, build = { _, _, _, _ -> NOTHING_SOLID }),
 

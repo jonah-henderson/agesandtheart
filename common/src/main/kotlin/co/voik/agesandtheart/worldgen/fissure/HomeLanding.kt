@@ -37,13 +37,14 @@ object HomeLanding {
     }
 
     /**
-     * A player here for the first time who would start inside the rubble heaped on the spawn: carved a pocket,
-     * as linking carves one. Vanilla puts a new player at the spawn without asking what has fallen on it since.
+     * A player here for the first time who would start inside the rubble heaped on the spawn: put on footing near it,
+     * or carved a pocket, as linking does. Vanilla puts a new player at the spawn without asking what has fallen on it since.
      */
     fun joined(player: ServerPlayer) {
         val isTheirFirstTime = player.stats.getValue(Stats.CUSTOM.get(Stats.PLAY_TIME)) == NEVER_PLAYED
         if (!isTheirFirstTime || !player.isInWall) return
-        Ages.openUpArrival(player.level(), Ages.Arrival(player.blockPosition()))
+        val at = Ages.settled(player.level(), Ages.Arrival(player.blockPosition())).at
+        if (at != player.blockPosition()) player.teleportTo(at.x + HALF_A_BLOCK, at.y.toDouble(), at.z + HALF_A_BLOCK)
     }
 
     private const val FALL_OUT_ABOVE = 8
