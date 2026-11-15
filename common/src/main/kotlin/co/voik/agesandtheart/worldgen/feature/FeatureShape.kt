@@ -122,7 +122,7 @@ object FeatureShape {
      * word naming an unmintable one is a content bug rather than a play outcome.
      */
     @Suppress("DEPRECATION")
-    fun mintedFrom(pattern: Holder<PlacedFeature>, substances: List<String>): Holder<PlacedFeature> {
+    fun mintedFrom(pattern: Holder<PlacedFeature>, substances: List<String>, drawsOneEach: Boolean = false): Holder<PlacedFeature> {
         val blocks = substances.mapNotNull { substance ->
             val laid = Identifier.tryParse(substance)?.let(Materials::laidAs)
             laid?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
@@ -174,6 +174,7 @@ object FeatureShape {
             // bar the seed, which it places from: without it `mud pits` and `sand pits` land on the same spots.
             is Formation -> feature.copy(
                 substances = blocks.map { it.defaultBlockState() },
+                drawsOneEach = drawsOneEach,
                 seed = feature.seed xor substances.hashCode().toLong(),
                 byGround = emptyList(),
             )

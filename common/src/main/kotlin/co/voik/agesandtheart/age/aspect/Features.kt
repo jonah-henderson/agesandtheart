@@ -571,7 +571,7 @@ object Features {
                 // of one block. Among several substances a tag is drawn once for the Age, and the rest mingle.
                 val pool = claim.substances.singleOrNull()?.let { poolNamed(server, it) }.orEmpty()
                 val substances = pool.ifEmpty { claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) } }
-                val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
+                val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances, drawsOneEach = pool.size > 1)
                 val scattered = claim.frequency?.let { FeatureShape.scatteredAtFrequency(minted, it) } ?: minted
                 val shaped = FeatureShape.arranged(scattered, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
                 // **Shaped before the amount**, so what is scaled is the shape and not the placement the
@@ -592,7 +592,9 @@ object Features {
                 val finished = FeatureShape.perforated(FeatureDensity.applied(felled, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
                 // Last, since everything before it knows a feature by its type; the pool's draw inside the halves'
                 // laying, so a bed is drawn before it is laid whole.
-                val drawnEachTime = if (pool.size > 1) FeatureShape.oneOfAPool(finished, pool) else finished
+                // A formation draws its own, at each one's origin: a placement is a chunk of it, not the whole of one.
+                val drawsPerPlacement = pool.size > 1 && !FeatureShape.isAFormation(found)
+                val drawnEachTime = if (drawsPerPlacement) FeatureShape.oneOfAPool(finished, pool) else finished
                 if (substances.any(LaidWhole::comesInTwoHalves)) FeatureShape.laidWhole(drawnEachTime) else drawnEachTime
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid

@@ -145,6 +145,23 @@ class FormationCheck : FunSpec({
         }
     }
 
+    test("a formation drawing one of a pool is one substance across every chunk that lays it, and formations differ") {
+        val pool = listOf(Blocks.MUD, Blocks.SAND, Blocks.STONE, Blocks.GRANITE).map { it.defaultBlockState() }
+        val drawing = configured(wideSlab()).copy(substances = pool, drawsOneEach = true)
+        fun laidIn(worldSeed: Long): Set<BlockState> {
+            val laid = mutableSetOf<BlockState>()
+            for (chunkX in -2..1) {
+                for (chunkZ in -2..1) {
+                    drawing.raise(worldSeed, ChunkPos(chunkX, chunkZ), flatGround) { _, state -> laid += state }
+                }
+            }
+            return laid
+        }
+        val worlds = (0L..<40L).map(::laidIn)
+        check(worlds.all { it.size == 1 }) { "a formation drawn of a pool laid ${worlds.first { it.size != 1 }}" }
+        check(worlds.map { it.single() }.toSet().size > 1) { "forty worlds all drew ${worlds.first()}" }
+    }
+
     /** A pit twenty-one across and four deep, dug in rather than stood on — its mouth at 0, the ground's top. */
     fun pit(): Formation = Formation(
         listOf(Box(minX = -10, minY = -3, minZ = -10, maxX = 10, maxY = 0, maxZ = 10)),

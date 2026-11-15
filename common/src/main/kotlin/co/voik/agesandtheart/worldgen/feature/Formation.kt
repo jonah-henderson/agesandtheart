@@ -110,6 +110,11 @@ data class Formation(
      * Empty for a formation made of [substances] wherever it stands.
      */
     val byGround: List<GroundSubstance> = emptyList(),
+    /**
+     * Whether each formation standing is made of one of [substances], drawn at its own origin so every chunk laying
+     * part of it agrees — a pool a book named or left unstated — rather than of all of them mingled.
+     */
+    val drawsOneEach: Boolean = false,
 ) : Feature {
 
     /**
@@ -314,7 +319,7 @@ data class Formation(
         for (formation in standing) {
             if (!standsAt(formation.originX, formation.originZ)) continue
             fun columnOf(x: Int, z: Int): Spans = columnOf(formation, x, z)
-            val madeOf by lazy { materialAt(formation.originX, formation.originZ) ?: material }
+            val madeOf by lazy { materialAt(formation.originX, formation.originZ) ?: ownMaterialOf(formation, origins) }
             // Null where a sunk formation declined its site.
             val standsOn by lazy {
                 when {
@@ -354,6 +359,13 @@ data class Formation(
      * since each is a `getBaseHeight` and the largest formations are dozens of blocks across. The centre is
      * always among them, so a formation never stands higher than it did.
      */
+    /** What [formation] is made of where its ground says nothing: one of the substances drawn at its origin, or all of them. */
+    private fun ownMaterialOf(formation: Standing, origins: PositionalRandomFactory): TerrainFill {
+        if (!drawsOneEach || substances.size < 2) return material
+        val drawn = origins.at(formation.originX, SUBSTANCE_DRAW, formation.originZ).nextInt(substances.size)
+        return madeOf(listOf(substances[drawn]))
+    }
+
     private fun lowestGroundUnder(
         formation: Standing,
         groundAt: (Int, Int) -> Int,
@@ -547,10 +559,11 @@ data class Formation(
                 Codec.DOUBLE.optionalFieldOf("largest", SizeScale.COLOSSAL).forGetter(Formation::largest),
                 Codec.INT.optionalFieldOf("only_on").forGetter { Optional.ofNullable(it.onlyOn) },
                 GroundSubstance.CODEC.listOf().optionalFieldOf("by_ground", emptyList()).forGetter(Formation::byGround),
-            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest, onlyOn, byGround ->
+                Codec.BOOL.optionalFieldOf("draws_one_each", false).forGetter(Formation::drawsOneEach),
+            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest, onlyOn, byGround, drawsOneEach ->
                 Formation(
                     shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null), largest,
-                    onlyOn.orElse(null), byGround,
+                    onlyOn.orElse(null), byGround, drawsOneEach,
                 )
             }
         }
@@ -558,6 +571,9 @@ data class Formation(
         /** A landmass's own mingling, finer — see [FORMATION_MINGLING]. */
         private fun madeOf(substances: List<BlockState>) =
             TerrainFill(blocks = listOf(substances), mingleStretch = FORMATION_MINGLING)
+
+        /** The height a formation's substance is drawn at in its origin's positional random, apart from its pose's. */
+        private const val SUBSTANCE_DRAW = 1
 
         /** Where a formation is made of its own substances, wherever it stands. */
         private val ALWAYS_ITS_OWN: (Int, Int) -> TerrainFill? = { _, _ -> null }
