@@ -271,6 +271,9 @@ data class Vocabulary(
     /** How many of the game's own members each part of the world holds ([Headings.ofTheGame]). */
     val ofTheGame: Map<Aspect, Int> by lazy { Headings.ofTheGame(words) }
 
+    /** The smallest group each of the game's own members belongs to ([Headings.clustersOf]). */
+    val clusters: Map<Identifier, Identifier> by lazy { Headings.clustersOf(usage) }
+
     /** The part of the world each heading belongs to ([Headings.partsOf]). */
     val headingParts: Map<Identifier, Aspect> by lazy { Headings.partsOf(words) }
 

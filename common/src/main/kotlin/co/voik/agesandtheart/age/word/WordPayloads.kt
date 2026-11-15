@@ -47,6 +47,8 @@ data class LexiconPayload(
     val wholes: Map<Identifier, Set<Aspect>> = emptyMap(),
     /** How many of the game's own creatures, features, biomes and structures each part of the world holds. */
     val ofTheGame: Map<Aspect, Int> = emptyMap(),
+    /** The smallest group each of the game's own members belongs to, which a page's tooltip counts them under. */
+    val clusters: Map<Identifier, Identifier> = emptyMap(),
     /** The concepts [conceptSets] counts into. */
     val concepts: List<Identifier> = emptyList(),
     /** Each set of concepts a heading takes a word as, by their places in [concepts]: written once, as few differ. */
@@ -87,6 +89,7 @@ data class LexiconPayload(
                 headingParts = headings.mapNotNull { heading -> vocabulary.headingParts[heading]?.let { heading to it } }.toMap(),
                 wholes = wholes,
                 ofTheGame = vocabulary.ofTheGame,
+                clusters = vocabulary.clusters,
                 concepts = concepts,
                 conceptSets = conceptSets.map { taken -> taken.map(conceptAt::getValue) },
                 takenAs = listed.mapValues { (_, applying) -> applying.takenAs.map(conceptSetAt::getValue) },
@@ -123,7 +126,8 @@ data class LexiconPayload(
 
         private fun idsIn(payload: LexiconPayload): List<Identifier> = with(payload) {
             (reach.keys + materials + shapes + rarity.keys + headings + appliesTo.keys + structural + renamed.keys + renamed.values +
-                members + parts + headingParts.keys + wholes.keys + concepts + takenAs.keys).distinct()
+                members + parts + headingParts.keys + wholes.keys + clusters.keys + clusters.values + concepts +
+                takenAs.keys).distinct()
         }
 
         private fun write(buffer: ByteBuf, payload: LexiconPayload) {
@@ -157,6 +161,7 @@ data class LexiconPayload(
                 ASPECT_STREAM_CODEC.encode(buffer, part)
                 ByteBufCodecs.VAR_INT.encode(buffer, count)
             }
+            map(payload.clusters) { id(it) }
             ids(payload.concepts)
             INDEX_LISTS.encode(buffer, payload.conceptSets)
             map(payload.takenAs) { INDICES.encode(buffer, it) }
@@ -189,6 +194,7 @@ data class LexiconPayload(
                 ofTheGame = (0 until ByteBufCodecs.VAR_INT.decode(buffer)).associate {
                     ASPECT_STREAM_CODEC.decode(buffer) to ByteBufCodecs.VAR_INT.decode(buffer)
                 },
+                clusters = map { id() },
                 concepts = ids(),
                 conceptSets = INDEX_LISTS.decode(buffer),
                 takenAs = map { INDICES.decode(buffer) },

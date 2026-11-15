@@ -60,11 +60,22 @@ object WordReachTooltip {
             val words = named[part].orEmpty()
             val ownPage = listOfNotNull(page.takeIf { it in words }?.let(::nameOf))
             val whole = listOfNotNull(part.takeIf { it in wholes }?.let(::everyOf))
-            val rest = words.filter { it != page }.map(::nameOf).sorted()
-            Part(nameOf(page), ownPage + whole + rest)
+            Part(nameOf(page), ownPage + whole + clustered(words.filter { it != page }))
         }
         val unplaced = named[null].orEmpty().map(::nameOf).sorted()
         return placed + listOfNotNull(Part(null, unplaced).takeIf { unplaced.isNotEmpty() })
+    }
+
+    /**
+     * [words] by name, but the game's own members of one group counted under it where two or more share it — "Ores (24)"
+     * in place of every ore, and the group's own word with them.
+     */
+    private fun clustered(words: List<Identifier>): List<String> {
+        val byCluster = words.groupBy(KnownWords::clusterOf)
+        val counted = byCluster.filterKeys { it != null }.filterValues { it.size >= SMALLEST_CLUSTER }
+        val named = words.filter { it !in counted.keys && KnownWords.clusterOf(it) !in counted.keys }
+        val counts = counted.map { (group, members) -> Component.translatable(CLUSTER, nameOf(requireNotNull(group)), members.size).string }
+        return (named.map(::nameOf) + counts).sortedBy { it.lowercase() }
     }
 
     /** "every creature (98)", or as near as the part has words for it. */
@@ -99,6 +110,11 @@ object WordReachTooltip {
     private const val APPLIES_MORE = "item.agesandtheart.page.applies_more"
     private const val EXPAND_HINT = "item.agesandtheart.page.applies_expand"
     private const val EVERY = "item.agesandtheart.page.applies_every"
+
+    private const val CLUSTER = "item.agesandtheart.page.applies_cluster"
+
+    /** The fewest of a group's members counted under it rather than named. */
+    private const val SMALLEST_CLUSTER = 2
 
     /** How many are listed before Shift is held. */
     private const val FIRST_SHOWN = 5

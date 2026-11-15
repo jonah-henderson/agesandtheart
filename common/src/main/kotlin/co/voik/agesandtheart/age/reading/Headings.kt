@@ -65,6 +65,19 @@ object Headings {
         return (describing + naming).filterValues { it.words.isNotEmpty() || it.whole.isNotEmpty() }
     }
 
+    /**
+     * The smallest group each of the game's own members belongs to — `ore_coal_upper` to `ores`, a flower patch to
+     * `flowers` rather than `plants` — for a list too short of room to name them all.
+     */
+    fun clustersOf(usage: Usage): Map<Identifier, Identifier> {
+        val takers = takersIn(usage.words)
+        val (ofTheGame, headings) = takers.partition { it.word.id in usage.words.derived && it.namesMembers }
+        val groups = groupsOfTheGame(usage, headings, ofTheGame).entries.sortedBy { it.value.size }
+        return ofTheGame.mapNotNull { member ->
+            groups.firstOrNull { member.word.id in it.value }?.let { member.word.id to it.key }
+        }.toMap()
+    }
+
     /** Each group's members of the game's own — every tree feature, under `trees` — where it has any. */
     private fun groupsOfTheGame(usage: Usage, headings: List<Heading>, ofTheGame: List<Heading>): Map<Identifier, Set<Identifier>> {
         val groups = headings.filter { it.namesMembers && !it.isAPartsPage(usage.words) }

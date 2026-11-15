@@ -547,6 +547,7 @@
   "item.agesandtheart.page": "Page",
   "item.agesandtheart.page.applies_anywhere": "Anywhere",
   "item.agesandtheart.page.applies_to": "Applies to:",
+  "item.agesandtheart.page.applies_cluster": "%s (%s)",
   "item.agesandtheart.page.applies_every.biomes": "every biome (%s)",
   "item.agesandtheart.page.applies_every.features": "every feature (%s)",
   "item.agesandtheart.page.applies_every.spawns": "every creature (%s)",

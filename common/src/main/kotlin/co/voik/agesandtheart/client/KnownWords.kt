@@ -35,6 +35,7 @@ object KnownWords {
     private var wholes: Map<Identifier, Set<Aspect>> = emptyMap()
     private var ofTheGame: Map<Aspect, Int> = emptyMap()
     private var takenAs: Map<Identifier, Map<Identifier, Set<Identifier>>> = emptyMap()
+    private var clusters: Map<Identifier, Identifier> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -55,6 +56,7 @@ object KnownWords {
         wholes = payload.wholes
         ofTheGame = payload.ofTheGame
         takenAs = conceptsUnderEachHeading(payload)
+        clusters = payload.clusters
     }
 
     /** For each word, the concepts each heading takes it as. */
@@ -89,6 +91,9 @@ object KnownWords {
         if (shown.isNotEmpty() || all.isEmpty()) return shown
         return all.mapNotNull(headingParts::get).distinct().map(::pageOf).filter { it in parts }
     }
+
+    /** The smallest group [member], one of the game's own, belongs to — `ores` — or null where none holds it. */
+    fun clusterOf(member: Identifier): Identifier? = clusters[member]
 
     /** The concepts [heading] takes [word] as. */
     fun takenAs(word: Identifier, heading: Identifier): Set<Identifier> = takenAs[word]?.get(heading).orEmpty()
@@ -166,6 +171,7 @@ object KnownWords {
         wholes = emptyMap()
         ofTheGame = emptyMap()
         takenAs = emptyMap()
+        clusters = emptyMap()
         learned.clear()
     }
 

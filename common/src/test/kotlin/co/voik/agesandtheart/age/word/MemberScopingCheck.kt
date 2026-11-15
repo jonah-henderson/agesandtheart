@@ -109,6 +109,16 @@ class MemberScopingCheck : FunSpec({
         check("arthropods" !in under("dreamlike")) { "dreamlike is under ${under("dreamlike")}" }
     }
 
+    test("the game's own members are counted under the smallest group holding them, and a group stands for most of its") {
+        val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
+        fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        val cluster = vocabulary.clusters[net.minecraft.resources.Identifier.parse("minecraft:oak_leaf_litter")]?.path
+        check(cluster == "trees") { "an oak dropping litter is counted under $cluster" }
+        check("trees" in under("diamond_block") && "oak_leaf_litter" !in under("diamond_block")) {
+            "diamond_block is under ${under("diamond_block")}"
+        }
+    }
+
     test("a thing is listed under its part's page, but never under itself") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
