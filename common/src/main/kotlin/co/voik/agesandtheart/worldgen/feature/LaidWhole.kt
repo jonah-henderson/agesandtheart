@@ -113,9 +113,6 @@ data class LaidWhole(val feature: Holder<Feature>) : Feature {
             ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
             ?.let(::comesInTwoHalves) == true
 
-        /** [feature], or within it where it is a [LaidWhole]: what the wrapping hides from whoever asks what it is. */
-        fun within(feature: Feature): Feature = (feature as? LaidWhole)?.feature?.value() ?: feature
-
         private fun isAHalf(state: BlockState): Boolean =
             state.hasProperty(BlockStateProperties.BED_PART) || state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
 

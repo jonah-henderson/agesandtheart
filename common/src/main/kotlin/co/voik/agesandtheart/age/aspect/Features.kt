@@ -561,9 +561,10 @@ object Features {
             // Built once for the whole Age and shared by every biome that carries it: what comes out is a
             // *new* placed feature, and the sorted list decoration reads is indexed by identity.
             val laid = grown.computeIfAbsent(claim) {
-                // A tag names a small pool the pattern is made of when the clause said nothing; a bare id
-                // is one answer. Drawn against the Age's own salt, so a world rebuilds identically.
-                val substances = claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) }
+                // A tag said alone is a pool each placement draws one block from, so piles differ and each is
+                // of one block. Among several substances a tag is drawn once for the Age, and the rest mingle.
+                val pool = claim.substances.singleOrNull()?.let { poolNamed(server, it) }.orEmpty()
+                val substances = pool.ifEmpty { claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) } }
                 val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
                 val scattered = claim.frequency?.let { FeatureShape.scatteredAtFrequency(minted, it) } ?: minted
                 val shaped = FeatureShape.arranged(scattered, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
@@ -583,8 +584,10 @@ object Features {
                 val knockedOver = if (claim.toppled) FeatureShape.toppled(kept) else kept
                 val felled = shape.felled(knockedOver, named = found)
                 val finished = FeatureShape.perforated(FeatureDensity.applied(felled, claim.density), claim.porosity ?: shape.porosityOf(found), salt)
-                // Last, since everything before it knows a feature by its type.
-                if (substances.any(LaidWhole::comesInTwoHalves)) FeatureShape.laidWhole(finished) else finished
+                // Last, since everything before it knows a feature by its type; the pool's draw inside the halves'
+                // laying, so a bed is drawn before it is laid whole.
+                val drawnEachTime = if (pool.size > 1) FeatureShape.oneOfAPool(finished, pool) else finished
+                if (substances.any(LaidWhole::comesInTwoHalves)) FeatureShape.laidWhole(drawnEachTime) else drawnEachTime
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
             clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }
@@ -606,13 +609,22 @@ object Features {
             .toMap()
 
     /**
-     * The block a claim is made of — **a tag being a pool the Age draws one from**, and a bare id being
-     * itself.
+     * The block one of a claim's several substances is — **a tag being a pool the Age draws one from**, and a bare
+     * id being itself.
      *
      * Resolved here rather than in the resolver, which is a pure function of (vocabulary, sentence, seed)
      * and holds no registry. Salted by what is being made, so two patterns left unstated in one book do
      * not come out of the same rock.
      */
+    /** Every block of the tag [named], by id, or null where it names no tag. */
+    private fun poolNamed(server: MinecraftServer, named: String): List<String>? {
+        if (!named.startsWith(TAG_MARK)) return null
+        val id = Identifier.tryParse(named.drop(1)) ?: return null
+        val blocks = server.registryAccess().lookupOrThrow(Registries.BLOCK)
+        val pool = blocks.get(TagKey.create(Registries.BLOCK, id)).orElse(null)?.toList().orEmpty()
+        return pool.mapNotNull { it.unwrapKey().orElse(null)?.identifier()?.toString() }.sorted()
+    }
+
     private fun drawnSubstance(server: MinecraftServer, named: String, salt: Long, of: String): String? {
         if (!named.startsWith(TAG_MARK)) return named
         val id = Identifier.tryParse(named.drop(1)) ?: return null
@@ -675,7 +687,7 @@ object Features {
         laid: Holder<VanillaPlacedFeature>,
         clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
     ): Holder<VanillaPlacedFeature>? {
-        val pit = (LaidWhole.within(FeatureShape.underItsHoles(laid).value().feature().value()) as? Formation)?.takeIf { it.sunk } ?: return null
+        val pit = (FeatureShape.unwrapped(FeatureShape.underItsHoles(laid).value().feature().value()) as? Formation)?.takeIf { it.sunk } ?: return null
         return clearings.computeIfAbsent(laid) {
             Holder.direct(VanillaPlacedFeature(Holder.direct(PitClearing(pit)), laid.value().placement()))
         }

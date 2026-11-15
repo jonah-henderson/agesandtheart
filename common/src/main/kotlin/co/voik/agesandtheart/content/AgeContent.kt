@@ -133,6 +133,7 @@ import net.minecraft.world.level.material.PushReaction
 import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.Heap
 import co.voik.agesandtheart.worldgen.feature.LaidWhole
+import co.voik.agesandtheart.worldgen.feature.OneOfAPool
 import co.voik.agesandtheart.worldgen.feature.ScaledFeature
 import co.voik.agesandtheart.worldgen.feature.ThickTrunk
 import co.voik.agesandtheart.worldgen.feature.OreVein
@@ -2372,6 +2373,7 @@ object AgeContent {
         "heap".location() to Heap.CODEC,
         "scaled".location() to ScaledFeature.CODEC,
         "laid_whole".location() to LaidWhole.CODEC,
+        "one_of_a_pool".location() to OneOfAPool.CODEC,
         "thick_trunk".location() to ThickTrunk.CODEC,
         "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,

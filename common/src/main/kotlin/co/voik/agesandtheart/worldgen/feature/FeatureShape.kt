@@ -245,6 +245,19 @@ object FeatureShape {
 
     private const val NO_BUDS = 0.0
 
+    /** [feature] with the layings that wrap the end of its chain taken off: what it is, to whoever asks. */
+    fun unwrapped(feature: Feature): Feature = when (feature) {
+        is LaidWhole -> unwrapped(feature.feature.value())
+        is OneOfAPool -> unwrapped(feature.feature.value())
+        else -> feature
+    }
+
+    /** [placed] laid of one block of [pool] each time it is placed ([OneOfAPool]). */
+    fun oneOfAPool(placed: Holder<PlacedFeature>, pool: List<String>): Holder<PlacedFeature> {
+        val blocks = pool.mapNotNull { Identifier.tryParse(it)?.let { id -> BuiltInRegistries.BLOCK.getOptional(id).orElse(null) } }
+        return Holder.direct(PlacedFeature(Holder.direct(OneOfAPool(placed.value().feature(), blocks)), placed.value().placement()))
+    }
+
     /** [placed] laid through [LaidWhole], so the beds, tall flowers and doors it is made of stand whole. */
     fun laidWhole(placed: Holder<PlacedFeature>): Holder<PlacedFeature> =
         Holder.direct(PlacedFeature(Holder.direct(LaidWhole(placed.value().feature())), placed.value().placement()))
