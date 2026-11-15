@@ -51,7 +51,7 @@ object ImpactSky {
         val glows = mutableListOf<Glow>()
         val light = mutableListOf<SkyQuad>()
         val shade = mutableListOf<SkyQuad>()
-        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) gatherTheAsteroid(doom, time, light)
+        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) drawTheAsteroid(doom, time)
         if (time >= doom.impactAt) {
             gatherTheFireball(doom, time, light)
             gatherTheDebrisGlow(doom, time, light)
@@ -110,28 +110,170 @@ object ImpactSky {
         return PATH_AT_ENTRY * (PATH_AT_FIRST_SIGHT / PATH_AT_ENTRY).pow(throughTheApproach)
     }
 
-    private fun gatherTheAsteroid(doom: Doom, time: Double, into: MutableList<SkyQuad>) {
+    /**
+     * Far off, a pale speck of light. Nearer, it becomes [solid]: a dark lumpy rock covering the sky behind it, lit
+     * on its upper limb by day, and through the entry glowing white on the face it leads with, inside a corona that
+     * streams back off it.
+     *
+     * Drawn in layers, each over the last: the wake and the corona, the rock, the light on the rock.
+     */
+    private fun drawTheAsteroid(doom: Doom, time: Double) {
         val ticksToImpact = doom.impactAt - time
         val sighting = sightingOf(doom, ticksToImpact)
         if (!sighting.isAboveTheHorizon) return
         val burning = doom.progressThrough(ImpactPhase.ENTRY, time).toFloat()
         val size = sizeAt(sighting.distance)
-        // The trail first, so the body is laid over its own wake.
-        if (burning > NOTHING) {
-            for (behind in TRAIL_LENGTH downTo 1) {
-                val earlier = sightingOf(doom, ticksToImpact + behind * TRAIL_SPACING_TICKS)
-                if (!earlier.isAboveTheHorizon) continue
-                val fading = TRAIL_FADES.pow(behind) * burning
-                into += discAt(earlier.direction, size * TRAIL_THINS.pow(behind), BURNING.dimmed(fading), haloStrength = NOTHING)
-            }
+        val solid = smoothStep(SPECK_UNTIL, SOLID_BY, size.toDouble())
+        val frame = DiscFrame(sighting.direction, angularRadiusOf(size))
+        val ahead = sightingOf(doom, ticksToImpact - HEADING_LOOKAHEAD_TICKS).direction
+        val heading = frame.turnOf(Vector3f(ahead).sub(sighting.direction))
+        val corona = coronaAt(burning, time)
+
+        val glowing = mutableListOf<SkyQuad>()
+        if (burning > NOTHING) gatherTheWake(doom, ticksToImpact, size, burning, glowing)
+        val speck = PALE_ROCK.lerp(BURNING, sqrt(burning)).dimmed(FULL - solid)
+        glowing += discAt(sighting.direction, size, speck, haloStrength = BODY_HALO + BURNING_HALO * burning)
+        if (corona > NOTHING) {
+            // Laid over the sky by alpha first, so a day sky does not wash them white, and then shining.
+            Blaze3dSkyCanvas.drawShapes(streamersOf(frame, heading, corona, time, StreamerLook.COVERING), SkyBlend.SHADE)
+            glowing += streamersOf(frame, heading, corona, time, StreamerLook.SHINING)
+            gatherTheShock(frame, heading, corona, time, glowing)
         }
-        val body = PALE_ROCK.lerp(BURNING, sqrt(burning))
-        into += discAt(sighting.direction, size, body, haloStrength = BODY_HALO + BURNING_HALO * burning)
+        Blaze3dSkyCanvas.drawShapes(glowing, SkyBlend.LIGHT)
+        if (solid <= NOTHING) return
+        Blaze3dSkyCanvas.drawShapes(rockOf(frame, solid, burning, time), SkyBlend.SHADE)
+        Blaze3dSkyCanvas.drawShapes(lightOnTheRock(frame, heading, solid, corona, burning, time), SkyBlend.LIGHT)
     }
+
+    /** The burning path behind it, a little fainter and thinner at each step back. */
+    private fun gatherTheWake(doom: Doom, ticksToImpact: Double, size: Float, burning: Float, into: MutableList<SkyQuad>) {
+        for (behind in TRAIL_LENGTH downTo 1) {
+            val earlier = sightingOf(doom, ticksToImpact + behind * TRAIL_SPACING_TICKS)
+            if (!earlier.isAboveTheHorizon) continue
+            val fading = TRAIL_FADES.pow(behind) * burning
+            into += discAt(earlier.direction, size * TRAIL_THINS.pow(behind), BURNING.dimmed(fading), haloStrength = NOTHING)
+        }
+    }
+
+    /** How brightly the corona burns: flaring through the first part of the entry, and never quite steady. */
+    private fun coronaAt(burning: Float, time: Double): Float {
+        val flaring = smoothStep(0.0, CORONA_FULL_BY, burning.toDouble())
+        val unsteady = FULL - CORONA_FLICKER * (FULL + sin(time * CORONA_FLICKER_PACE).toFloat()) / 2.0f
+        return flaring * unsteady
+    }
+
+    /** The shock glowing about the rock, brightest on the face it leads with. */
+    private fun gatherTheShock(frame: DiscFrame, heading: Double, strength: Float, time: Double, into: MutableList<SkyQuad>) {
+        fun shockAt(turn: Double): Rgba {
+            val leading = maxOf(0.0, cos(turn - heading)).toFloat()
+            return SHOCK.dimmed(strength * (SHOCK_ALL_ROUND + (FULL - SHOCK_ALL_ROUND) * leading))
+        }
+        for (segment in 0..<DISC_SEGMENTS) {
+            val turn = turnOf(segment)
+            val next = turnOf(segment + 1)
+            into += SkyQuad(
+                SkyCorner(frame.at(turn, edgeAt(turn, time) * UNDER_THE_RIM), shockAt(turn)),
+                SkyCorner(frame.at(turn, edgeAt(turn, time) + SHOCK_REACH), DARK),
+                SkyCorner(frame.at(next, edgeAt(next, time) + SHOCK_REACH), DARK),
+                SkyCorner(frame.at(next, edgeAt(next, time) * UNDER_THE_RIM), shockAt(next)),
+            )
+        }
+    }
+
+    /** Whether a streamer is laid over the sky by its alpha or added to it as light. */
+    private enum class StreamerLook { COVERING, SHINING }
+
+    /**
+     * The flames streaming back off the rock: each a broad wedge from a point under its rim running straight back
+     * along its path and flaring a little outward, so that those from its face wrap round it and all of them trail
+     * off behind as one tail. Each flickers on a pace of its own.
+     */
+    private fun streamersOf(frame: DiscFrame, heading: Double, strength: Float, time: Double, look: StreamerLook): List<SkyQuad> {
+        val halfWidth = PI / STREAMERS * STREAMER_WIDENS
+        val backX = -cos(heading)
+        val backY = -sin(heading)
+        val sideX = -sin(heading)
+        val sideY = cos(heading)
+        return (0..<STREAMERS).map { number ->
+            val turn = 2.0 * PI * (number + unitAt(number.toLong(), STREAMER_PLACE_SALT)) / STREAMERS
+            val behind = (FULL - cos(turn - heading)) / 2.0
+            val pace = STREAMER_SLOWEST + unitAt(number.toLong(), STREAMER_PACE_SALT) * STREAMER_PACE_SPREAD
+            val wave = sin(time * pace + 2.0 * PI * unitAt(number.toLong(), STREAMER_PHASE_SALT))
+            val flicker = STREAMER_STEADY + (FULL - STREAMER_STEADY) * wave
+            val length = (STREAMER_SHORTEST + STREAMER_LONGEST * behind) * (STREAMER_SHORTENS + (FULL - STREAMER_SHORTENS) * flicker)
+            val root = (edgeAt(turn, time) * UNDER_THE_RIM).toDouble()
+            val aside = root * (cos(turn) * sideX + sin(turn) * sideY)
+            val tipX = root * cos(turn) + length * (backX + STREAMER_FLARES * aside * sideX)
+            val tipY = root * sin(turn) + length * (backY + STREAMER_FLARES * aside * sideY)
+            val share = (strength * flicker * (STREAMER_AHEAD + (FULL - STREAMER_AHEAD) * behind)).toFloat()
+            val colour = when (look) {
+                StreamerLook.COVERING -> FLAME.copy(alpha = share * FLAME_COVERS)
+                StreamerLook.SHINING -> FLAME.dimmed(share).copy(alpha = FULL)
+            }
+            val nothing = when (look) {
+                StreamerLook.COVERING -> Rgba.CLEAR
+                StreamerLook.SHINING -> DARK
+            }
+            fun rootAt(at: Double) = SkyCorner(frame.atPlane(root * cos(at), root * sin(at)), colour)
+            val tip = SkyCorner(frame.atPlane(tipX, tipY), nothing)
+            SkyQuad(rootAt(turn - halfWidth), rootAt(turn + halfWidth), tip, tip)
+        }
+    }
+
+    /** The rock itself, covering the sky behind it as far as it is [solid], and smouldering as it burns. */
+    private fun rockOf(frame: DiscFrame, solid: Float, burning: Float, time: Double): List<SkyQuad> {
+        val colour = ROCK.lerp(SMOULDERING_ROCK, burning * SMOULDERS).copy(alpha = solid)
+        val centre = SkyCorner(frame.centre, colour)
+        return (0..<DISC_SEGMENTS).map { segment ->
+            val turn = turnOf(segment)
+            val next = turnOf(segment + 1)
+            SkyQuad(centre, centre, SkyCorner(frame.at(turn, edgeAt(turn, time)), colour), SkyCorner(frame.at(next, edgeAt(next, time)), colour))
+        }
+    }
+
+    /**
+     * The light on the rock, laid in a band inside its edge: daylight on its upper limb, giving way through the
+     * entry to the white heat of the face it leads with.
+     */
+    private fun lightOnTheRock(frame: DiscFrame, heading: Double, solid: Float, corona: Float, burning: Float, time: Double): List<SkyQuad> {
+        val upward = frame.turnOf(UP)
+        fun lightAt(turn: Double): Rgba {
+            val leading = maxOf(0.0, cos(turn - heading)).pow(FACE_SHARPNESS).toFloat()
+            val upper = maxOf(0.0, cos(turn - upward)).pow(LIMB_SHARPNESS).toFloat()
+            val heat = HOT_FACE.dimmed(corona * leading)
+            val day = DAYLIT_LIMB.dimmed(upper * (FULL - burning))
+            return Rgba(heat.red + day.red, heat.green + day.green, heat.blue + day.blue).dimmed(solid)
+        }
+        return (0..<DISC_SEGMENTS).map { segment ->
+            val turn = turnOf(segment)
+            val next = turnOf(segment + 1)
+            SkyQuad(
+                SkyCorner(frame.at(turn, edgeAt(turn, time) * LIGHT_REACHES_IN), lightAt(turn).dimmed(LIGHT_INSIDE)),
+                SkyCorner(frame.at(turn, edgeAt(turn, time) * ON_THE_RIM), lightAt(turn)),
+                SkyCorner(frame.at(next, edgeAt(next, time) * ON_THE_RIM), lightAt(next)),
+                SkyCorner(frame.at(next, edgeAt(next, time) * LIGHT_REACHES_IN), lightAt(next).dimmed(LIGHT_INSIDE)),
+            )
+        }
+    }
+
+    /** How far out the rock's edge stands at [turn], in radii: lumpy, and turning slowly as it tumbles. */
+    private fun edgeAt(turn: Double, time: Double): Float {
+        val spun = turn + time * TUMBLE_PER_TICK
+        val lumps = LUMPS.sumOf { it.weight * sin(it.count * spun + it.phase) }
+        return (FULL + ROUGHNESS * lumps).toFloat()
+    }
+
+    /** One lumpiness of the rock's outline: [count] lumps round it, out of step by [phase], weighing [weight]. */
+    private class Lump(val count: Int, val phase: Double, val weight: Double)
+
+    private fun turnOf(segment: Int): Double = 2.0 * PI * segment / DISC_SEGMENTS
 
     /** How big a body of [ASTEROID_RADIUS] looks [distance] blocks off, in the units `drawGlow` takes. */
     private fun sizeAt(distance: Double): Float =
         maxOf(SPECK, (GLOW_DISTANCE * ASTEROID_RADIUS / distance).toFloat())
+
+    /** How far a thing of [size] reaches from its centre, in radians. */
+    private fun angularRadiusOf(size: Float): Float = atan(size / GLOW_DISTANCE.toFloat())
 
     // ---- After the impact ----------------------------------------------------------------------------------
 
@@ -275,23 +417,14 @@ object ImpactSky {
      * point of light hides and a body the size of the moon does not.
      */
     private fun discAt(direction: Vector3f, size: Float, colour: Rgba, haloStrength: Float): List<SkyQuad> {
-        val radius = atan(size / GLOW_DISTANCE.toFloat())
-        val across = Vector3f(direction).cross(if (abs(direction.y) > NEARLY_UPRIGHT) EAST else UP).normalize()
-        val along = Vector3f(direction).cross(across).normalize()
-        fun rimAt(segment: Int, angularRadius: Float): Vector3f {
-            val turn = 2.0 * PI * segment / DISC_SEGMENTS
-            val reach = tan(angularRadius)
-            return Vector3f(across).mul((cos(turn) * reach).toFloat())
-                .add(Vector3f(along).mul((sin(turn) * reach).toFloat()))
-                .add(direction)
-                .normalize()
-        }
+        val frame = DiscFrame(direction, angularRadiusOf(size))
+        fun rimAt(segment: Int, reach: Float): Vector3f = frame.at(turnOf(segment), reach)
         val solid = colour.copy(alpha = FULL)
-        val none = Rgba(0.0f, 0.0f, 0.0f, FULL)
+        val none = DARK
         val halo = colour.dimmed(haloStrength).copy(alpha = FULL)
-        val core = radius * DISC_CORE
-        val rim = radius * DISC_RIM
-        val outer = radius * HALO_SPREAD
+        val core = DISC_CORE
+        val rim = DISC_RIM
+        val outer = HALO_SPREAD
         return buildList {
             for (segment in 0..<DISC_SEGMENTS) {
                 val next = segment + 1
@@ -302,6 +435,25 @@ object ImpactSky {
                 }
             }
         }
+    }
+
+    /** The sky about [centre] laid flat, for drawing round it: reaches in multiples of [radius] (radians) out, turns in radians round. */
+    private class DiscFrame(val centre: Vector3f, val radius: Float) {
+        private val across: Vector3f = Vector3f(centre).cross(if (abs(centre.y) > NEARLY_UPRIGHT) EAST else UP).normalize()
+        private val along: Vector3f = Vector3f(centre).cross(across).normalize()
+
+        private val radiusOnThePlane = tan(radius).toDouble()
+
+        fun at(turn: Double, reach: Float): Vector3f = atPlane(reach * cos(turn), reach * sin(turn))
+
+        /** The point [x] radii across and [y] along, on the plane touching the sky at the centre. */
+        fun atPlane(x: Double, y: Double): Vector3f = Vector3f(across).mul((x * radiusOnThePlane).toFloat())
+            .add(Vector3f(along).mul((y * radiusOnThePlane).toFloat()))
+            .add(centre)
+            .normalize()
+
+        /** Which way round [offset] points, as it lies across this patch of sky. */
+        fun turnOf(offset: Vector3f): Double = atan2(offset.dot(along).toDouble(), offset.dot(across).toDouble())
     }
 
     private fun glowAt(direction: Vector3f, size: Float, tint: Rgba): Glow = Glow(
@@ -349,6 +501,50 @@ object ImpactSky {
     private val BURNING = Rgba(1.0f, 0.62f, 0.28f, 0.95f)
     private const val BODY_HALO = 0.15f
     private const val BURNING_HALO = 0.45f
+    private const val SPECK_UNTIL = 0.8
+    private const val SOLID_BY = 2.5
+    private const val HEADING_LOOKAHEAD_TICKS = 20.0
+
+    // The rock.
+    private val ROCK = Rgba(0.09f, 0.075f, 0.065f)
+    private val SMOULDERING_ROCK = Rgba(0.25f, 0.06f, 0.02f)
+    private const val SMOULDERS = 0.3f
+    private const val ROUGHNESS = 0.13
+    private val LUMPS = listOf(Lump(2, 0.7, 0.45), Lump(3, 1.9, 0.3), Lump(5, 0.4, 0.15), Lump(9, 2.6, 0.1))
+    private const val TUMBLE_PER_TICK = 0.0015
+    private val HOT_FACE = Rgba(1.0f, 0.9f, 0.7f)
+    private val DAYLIT_LIMB = Rgba(0.38f, 0.36f, 0.33f)
+    private const val FACE_SHARPNESS = 2.0
+    private const val LIMB_SHARPNESS = 3.0
+    private const val LIGHT_REACHES_IN = 0.45f
+    private const val LIGHT_INSIDE = 0.15f
+    private const val ON_THE_RIM = 0.99f
+
+    // The corona.
+    private const val CORONA_FULL_BY = 0.35
+    private const val CORONA_FLICKER = 0.12f
+    private const val CORONA_FLICKER_PACE = 1.3
+    private val SHOCK = Rgba(1.0f, 0.92f, 0.75f)
+    private const val SHOCK_ALL_ROUND = 0.3f
+    private const val SHOCK_REACH = 0.4f
+    private const val UNDER_THE_RIM = 0.92f
+    private val FLAME = Rgba(1.0f, 0.45f, 0.12f)
+    private const val STREAMERS = 36
+    private const val STREAMER_WIDENS = 2.0
+    private const val STREAMER_FLARES = 0.35
+    private const val STREAMER_SLOWEST = 0.5
+    private const val STREAMER_PACE_SPREAD = 1.0
+    private const val STREAMER_STEADY = 0.75
+    private const val STREAMER_SHORTEST = 1.2
+    private const val STREAMER_LONGEST = 2.8
+    private const val STREAMER_SHORTENS = 0.6
+    private const val STREAMER_AHEAD = 0.4
+    private const val FLAME_COVERS = 0.75f
+    private const val STREAMER_PLACE_SALT = 0x6E1D_4A93_02F7_B85CL
+    private const val STREAMER_PACE_SALT = 0x1B84_C7E2_5D30_A961L
+    private const val STREAMER_PHASE_SALT = 0x7C29_F05B_E816_43D2L
+
+    // The wake.
     private const val TRAIL_LENGTH = 14
     private const val TRAIL_SPACING_TICKS = 2.0
     private const val TRAIL_FADES = 0.8f
@@ -396,13 +592,14 @@ object ImpactSky {
     private const val DUST_COVERS = 0.9f
 
     // A disc.
-    private const val DISC_SEGMENTS = 24
+    private const val DISC_SEGMENTS = 48
     private const val DISC_CORE = 0.8f
     private const val DISC_RIM = 1.0f
     private const val HALO_SPREAD = 2.5f
     private const val NEARLY_UPRIGHT = 0.95f
     private val UP = Vector3f(0.0f, 1.0f, 0.0f)
     private val EAST = Vector3f(1.0f, 0.0f, 0.0f)
+    private val DARK = Rgba(0.0f, 0.0f, 0.0f, FULL)
 
     // The grid.
     private const val ROWS = 12
