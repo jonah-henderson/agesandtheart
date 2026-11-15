@@ -31,6 +31,7 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import java.util.WeakHashMap
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.worldgen.ruins.CavernRuins
 
 /**
@@ -131,6 +132,17 @@ object Ages {
                 clock = AgeGeneration.clockFor(recipe),
             ),
         )
+    }
+
+    /**
+     * Files [recipe] as [id]'s and tells the running Age, so its generation and its look stop answering from
+     * the recipe it opened with. Without the second half a rewritten recipe reaches every report and no chunk.
+     */
+    fun retell(server: MinecraftServer, id: Identifier, recipe: AgeRecipe) {
+        AgeSavedData.get(server).add(id, recipe)
+        val level = open(server, id)
+        (level.chunkSource.generator as? AgeChunkGenerator)?.rewriteConsequence(Consequence.of(server, recipe))
+        Skies.describe(level)
     }
 
     /**

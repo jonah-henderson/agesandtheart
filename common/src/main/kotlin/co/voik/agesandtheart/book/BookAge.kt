@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.book
 
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.resources.Identifier
@@ -24,14 +26,28 @@ import net.minecraft.world.item.ItemStack
 object BookAge {
 
     /**
-     * Opens (or makes) the Age [stack] describes, stamping its id onto the book the first time.
+     * Opens (or makes) the Age [stack] describes, stamping its id and the time it was written onto the book
+     * the first time.
      *
      * Null where the level would not open, which is the same answer linking gets and is reported the same
      * way by each caller.
      */
     fun of(server: MinecraftServer, stack: ItemStack): ServerLevel? {
         val id = idFor(server, stack)
-        return Ages.ensure(server, id, DescriptiveBookRecipe.of(stack, server, id))
+        val level = Ages.ensure(server, id, DescriptiveBookRecipe.of(stack, server, id))
+        stampWrittenAt(server, stack, id)
+        return level
+    }
+
+    /**
+     * Gives a book bound without a time — found, or bound before books carried one — its Age's, so an Age
+     * rebuilt from the book keeps its clock. A preview's time is never copied, since it is no time at all.
+     */
+    private fun stampWrittenAt(server: MinecraftServer, stack: ItemStack, id: Identifier) {
+        if (stack.has(AgeComponents.BOOK_WRITTEN_AT)) return
+        val writtenAt = AgeSavedData.get(server).recipe(id)?.writtenAt ?: return
+        if (writtenAt == AgeRecipe.NOT_YET_WRITTEN) return
+        stack.set(AgeComponents.BOOK_WRITTEN_AT, writtenAt)
     }
 
     /**

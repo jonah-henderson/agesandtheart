@@ -58,7 +58,8 @@ data class AgeRecipe(
      * loaded, which is precisely when nobody is there — the register is meant to progress in your absence.
      *
      * Zero ([UNRECORDED]) is an Age built without the server's clock, a demo preset's, and reads as having
-     * been written when the world began.
+     * been written when the world began. [NOT_YET_WRITTEN] is a crystal viewer's preview, which reads as no
+     * time passed until the bind stamps it.
      */
     val writtenAt: Long = UNRECORDED,
     /**
@@ -268,6 +269,7 @@ data class AgeRecipe(
         /**
          * A fresh recipe for an Age somebody wrote: the resolved composition and its instability, and [pages]
          * as they were laid — `age` and the rest of the structure included, so the book can be read back.
+         * Its clock runs from [writtenAt], which is now unless a book says when it was bound.
          */
         fun written(
             server: MinecraftServer,
@@ -275,13 +277,14 @@ data class AgeRecipe(
             pages: List<String>,
             seed: Long,
             authored: Boolean = true,
+            writtenAt: Long = server.overworld().gameTime,
         ): AgeRecipe = AgeRecipe(
             seamed(AgeWorld.Composed(resolution.composition), seed),
             seed,
             AgeCharacter.drawn(server, seed),
             resolution.instability,
             pages,
-            writtenAt = server.overworld().gameTime,
+            writtenAt = writtenAt,
             template = resolution.template,
             authored = authored,
         )
@@ -301,6 +304,12 @@ data class AgeRecipe(
 
         /** An Age built without the server's clock — read as having been written when the world began. */
         const val UNRECORDED = 0L
+
+        /**
+         * A preview's [writtenAt]: later than any game time, so every clock counted from it reads nought.
+         * Subtracting it from a game time cannot overflow, since game time is never negative.
+         */
+        const val NOT_YET_WRITTEN = Long.MAX_VALUE
 
         /**
          * The seed an Age gets when nothing has chosen one and it must be **the same every time** — a book

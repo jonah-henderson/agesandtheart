@@ -137,8 +137,11 @@ object DeskCommands {
         book.set(AgeComponents.BOOK_READING, vocabulary.readout(vocabulary.written(pages, player.writingSeed)))
         // The one place a book is marked as somebody's own work (design §7.7).
         book.set(AgeComponents.BOOK_AUTHORED, true)
+        // The Age's clock starts here, whenever the Age itself is made (design §5.3).
+        val boundAt = player.level().server.overworld().gameTime
+        book.set(AgeComponents.BOOK_WRITTEN_AT, boundAt)
         // A crystal viewer's preview of exactly this sentence becomes the book's Age; any other is deleted.
-        PreviewedAges.claim(player, words, player.writingSeed, payload.title.trim())
+        PreviewedAges.claim(player, words, player.writingSeed, payload.title.trim(), boundAt)
             ?.let { book.set(AgeComponents.AGE_ID, it) }
         desk.setTemplate(player.uuid, "")
         desk.setName(player.uuid, "")

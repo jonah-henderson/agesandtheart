@@ -130,6 +130,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             AgeComponents.BOOK_TITLE,
             AgeComponents.BOOK_SEED,
             AgeComponents.BOOK_AUTHORED,
+            AgeComponents.BOOK_WRITTEN_AT,
             AgeComponents.AGE_ID,
         )
 

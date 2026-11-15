@@ -25,6 +25,7 @@ object DescriptiveBookRecipe {
             // Whether the rewards will pay out here (design §7.7). A found book carries no such mark, so an
             // Age handed over already written is one you may live in and never one you are paid for.
             authored = stack.get(AgeComponents.BOOK_AUTHORED) == true,
+            writtenAt = stack.get(AgeComponents.BOOK_WRITTEN_AT),
             server = server,
             ageId = ageId,
         )
@@ -32,18 +33,27 @@ object DescriptiveBookRecipe {
     /**
      * The Age a book holding [words] at [seed] would describe — asked by the crystal viewer before the book
      * exists, so the world it previews and the world the bound book makes are one expression's answer.
+     * [writtenAt] is when the book was bound, or null for now.
      */
-    fun of(words: List<Identifier>, seed: Long?, authored: Boolean, server: MinecraftServer, ageId: Identifier): AgeRecipe {
-        if (words.isEmpty()) return sayingNothing(server, ageId)
+    fun of(
+        words: List<Identifier>,
+        seed: Long?,
+        authored: Boolean,
+        writtenAt: Long?,
+        server: MinecraftServer,
+        ageId: Identifier,
+    ): AgeRecipe {
+        val clock = writtenAt ?: server.overworld().gameTime
+        if (words.isEmpty()) return sayingNothing(server, ageId, clock)
         val vocabulary = Vocabulary.of(server)
         val spoken = words.map { it.path }
         // A book with no `age` page, which the desk refuses to bind and no generated book lacks, is reachable only
         // from a hand-built stack, and it falls in with "says nothing readable".
         val drawnAt = seed ?: AgeRecipe.seedFor(ageId)
-        if (!vocabulary.spellsABook(spoken)) return sayingNothing(server, ageId)
+        if (!vocabulary.spellsABook(spoken)) return sayingNothing(server, ageId, clock)
         val written = vocabulary.written(spoken, drawnAt)
-        if (written.drawn.landed.isEmpty()) return sayingNothing(server, ageId)
-        return AgeRecipe.written(server, written.resolution, spoken, drawnAt, authored)
+        if (written.drawn.landed.isEmpty()) return sayingNothing(server, ageId, clock)
+        return AgeRecipe.written(server, written.resolution, spoken, drawnAt, authored, clock)
     }
 
     /**
@@ -51,11 +61,15 @@ object DescriptiveBookRecipe {
      * defaults draw. It was the Spire, which now stands over a plasma sea a player has to pay masterwork ink
      * for, and which nothing a player holds may reach.
      */
-    fun sayingNothing(server: MinecraftServer, ageId: Identifier): AgeRecipe {
+    fun sayingNothing(
+        server: MinecraftServer,
+        ageId: Identifier,
+        writtenAt: Long = server.overworld().gameTime,
+    ): AgeRecipe {
         val vocabulary = Vocabulary.of(server)
         val drawnAt = AgeRecipe.seedFor(ageId)
         val written = vocabulary.resolve(listOf(AGE_PAGE), drawnAt)
-        return AgeRecipe.written(server, written, listOf(AGE_PAGE), drawnAt, false)
+        return AgeRecipe.written(server, written, listOf(AGE_PAGE), drawnAt, false, writtenAt)
     }
 
     private const val AGE_PAGE = "age"

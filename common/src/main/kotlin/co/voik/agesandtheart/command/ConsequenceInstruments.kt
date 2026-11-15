@@ -13,7 +13,6 @@ import co.voik.agesandtheart.age.ReportFor
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.consequence.Collapse
-import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.consequence.StrangeGravity
 import net.minecraft.server.MinecraftServer
 import co.voik.agesandtheart.age.consequence.Wounds
@@ -23,7 +22,6 @@ import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.generation.AgeChunkGenerator
-import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
@@ -294,7 +292,7 @@ internal object ConsequenceInstruments {
         val manifestation = Manifestation.entries.firstOrNull { it.key == key }
             ?: return report.fail("No manifestation '$key' — one of ${Manifestation.entries.joinToString { it.key }}")
         val forced = recipe.copy(forced = recipe.forced + (manifestation to steps))
-        retell(server, id, forced)
+        Ages.retell(server, id, forced)
 
         val spending = Spending.of(server, forced)
         val bought = stepsOf(spending, manifestation)
@@ -317,7 +315,7 @@ internal object ConsequenceInstruments {
     private fun runGravity(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
         val (id, recipe) = age
         val pull = DoubleArgumentType.getDouble(context, PULL_ARGUMENT)
-        retell(context.source.server, id, recipe.copy(forcedPull = pull))
+        Ages.retell(context.source.server, id, recipe.copy(forcedPull = pull))
         report.fact("pull", pull) {
             "${id.path} now pulls at %.0f%% of vanilla's, until a restart or clear".format(pull * PER_CENT)
         }
@@ -329,7 +327,7 @@ internal object ConsequenceInstruments {
     private fun runClear(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
         val (id, recipe) = age
         val cleared = recipe.copy(forced = emptyMap(), forcedPull = null)
-        retell(context.source.server, id, cleared)
+        Ages.retell(context.source.server, id, cleared)
         report.fact("drawn", Spending.of(context.source.server, cleared).toString()) {
             "${id.path} shows what it drew again: ${Spending.of(context.source.server, cleared)}"
         }
@@ -517,7 +515,7 @@ internal object ConsequenceInstruments {
         val (id, recipe) = age
         val days = IntegerArgumentType.getInteger(context, DAYS_ARGUMENT)
         val now = context.source.server.overworld().gameTime
-        retell(context.source.server, id, recipe.copy(writtenAt = now - days * Tearing.TICKS_PER_DAY))
+        Ages.retell(context.source.server, id, recipe.copy(writtenAt = now - days * Tearing.TICKS_PER_DAY))
         report.fact("days", days) { "${id.path} now reads as $days days old." }
         report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if the Age worsens." }
         sayWhenNotStoodIn(context, id, report)
@@ -548,7 +546,7 @@ internal object ConsequenceInstruments {
         val server = context.source.server
         val index = IntegerArgumentType.getInteger(context, INDEX_ARGUMENT)
         val forced = recipe.copy(instability = Instability.forced(index))
-        retell(server, id, forced)
+        Ages.retell(server, id, forced)
         val spending = Spending.of(server, forced)
         report.fact("buys", spending.toString()) { "${id.path} is now instability $index, which buys $spending." }
         val setting = SpendingSetting.of(server, forced.composition, forced.template, forced.seed)
@@ -557,19 +555,5 @@ internal object ConsequenceInstruments {
         sayWhenNotStoodIn(context, id, report)
         report.finish()
         return SUCCESS
-    }
-
-    /**
-     * File [recipe] as [id]'s and tell the running Age, so generation and its look stop answering from the
-     * recipe it opened with.
-     *
-     * Without this a rewritten recipe reaches every *report* and no *chunk*, which is exactly the shape of
-     * bug that had collapse announcing a radius of 240 and generating a solid world (walked 2026-08-09).
-     */
-    private fun retell(server: MinecraftServer, id: Identifier, recipe: AgeRecipe) {
-        AgeSavedData.get(server).add(id, recipe)
-        val level = Ages.open(server, id)
-        (level.chunkSource.generator as? AgeChunkGenerator)?.rewriteConsequence(Consequence.of(server, recipe))
-        Skies.describe(level)
     }
 }

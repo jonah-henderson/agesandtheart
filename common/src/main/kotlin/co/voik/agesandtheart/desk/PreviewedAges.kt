@@ -3,6 +3,7 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.WarmAgesWhen
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.book.DescriptiveBookRecipe
 import co.voik.agesandtheart.book.panel.PanelWarming
@@ -43,7 +44,14 @@ object PreviewedAges {
         held?.let { discard(server, previews, writer.uuid, it) }
 
         val id = Ages.allocateId(server)
-        val recipe = DescriptiveBookRecipe.of(words, seed, authored = true, server = server, ageId = id)
+        val recipe = DescriptiveBookRecipe.of(
+            words,
+            seed,
+            authored = true,
+            writtenAt = AgeRecipe.NOT_YET_WRITTEN,
+            server = server,
+            ageId = id,
+        )
         val level = Ages.create(server, id, recipe) ?: return null
         previews.keep(writer.uuid, Preview(id, words, seed))
         Constants.LOG.info("{} is previewing {} at a crystal viewer", writer.gameProfile.name, id)
@@ -78,17 +86,24 @@ object PreviewedAges {
      * and otherwise null, with any preview the writer had deleted. An Age whose ring is still generating is
      * renamed once it finishes, since renaming closes the level; its new id is held for it until then.
      */
-    fun claim(writer: ServerPlayer, words: List<Identifier>, seed: Long, title: String): Identifier? {
+    fun claim(writer: ServerPlayer, words: List<Identifier>, seed: Long, title: String, boundAt: Long): Identifier? {
         val server = writer.level().server
         val previews = Previews.of(server)
         val held = previews.of(writer.uuid) ?: return null
         if (held.isOf(words, seed) && exists(server, held.age)) {
             previews.forget(writer.uuid)
             Constants.LOG.info("{} bound the Age they previewed, {}", writer.gameProfile.name, held.age)
+            startTheClock(server, held.age, boundAt)
             return named(server, held.age, title)
         }
         discard(server, previews, writer.uuid, held)
         return null
+    }
+
+    /** Stamps [boundAt] as the moment [age] was written, before any rename, so its clock runs from the bind. */
+    private fun startTheClock(server: MinecraftServer, age: Identifier, boundAt: Long) {
+        val recipe = AgeSavedData.get(server).recipe(age) ?: return
+        Ages.retell(server, age, recipe.copy(writtenAt = boundAt))
     }
 
     /** The id [age] goes by after [title]: renamed now, or held for it until its warming finishes. */

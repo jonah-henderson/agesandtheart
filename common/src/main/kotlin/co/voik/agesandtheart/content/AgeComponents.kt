@@ -153,6 +153,18 @@ object AgeComponents {
         .build()
 
     /**
+     * The overworld time this book was bound — what its Age's [co.voik.agesandtheart.age.AgeRecipe.writtenAt]
+     * is set from, so an Age rebuilt from the book keeps the clock it was written with.
+     *
+     * Absent on a found book and on one bound before this existed; [co.voik.agesandtheart.book.BookAge] stamps
+     * those from their Age the first time it is opened.
+     */
+    val BOOK_WRITTEN_AT: DataComponentType<Long> = DataComponentType.builder<Long>()
+        .persistent(Codec.LONG)
+        .networkSynchronized(ByteBufCodecs.VAR_LONG)
+        .build()
+
+    /**
      * Which page of a notebook the pointer has scrolled to, newest first — the one a right click takes out, as a
      * bundle's selected item is. Set while the notebook is hovered and taken off when it no longer is.
      */
@@ -189,6 +201,7 @@ object AgeComponents {
         "book_seed".location() to BOOK_SEED,
         "book_reading".location() to BOOK_READING,
         "book_authored".location() to BOOK_AUTHORED,
+        "book_written_at".location() to BOOK_WRITTEN_AT,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
         "notebook_selected".location() to NOTEBOOK_SELECTED,
