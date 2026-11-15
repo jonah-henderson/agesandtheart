@@ -34,6 +34,7 @@ object KnownWords {
     private var headingParts: Map<Identifier, Aspect> = emptyMap()
     private var wholes: Map<Identifier, Set<Aspect>> = emptyMap()
     private var ofTheGame: Map<Aspect, Int> = emptyMap()
+    private var takenAs: Map<Identifier, Map<Identifier, Set<Identifier>>> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -53,7 +54,16 @@ object KnownWords {
         headingParts = payload.headingParts
         wholes = payload.wholes
         ofTheGame = payload.ofTheGame
+        takenAs = conceptsUnderEachHeading(payload)
     }
+
+    /** For each word, the concepts each heading takes it as. */
+    private fun conceptsUnderEachHeading(payload: LexiconPayload): Map<Identifier, Map<Identifier, Set<Identifier>>> =
+        payload.takenAs.mapValues { (word, concepts) ->
+            val headingsOfWord = payload.appliesTo[word].orEmpty().map(payload.headings::getOrNull)
+            val conceptsOfWord = concepts.map { set -> payload.conceptSets.getOrNull(set).orEmpty().mapNotNull(payload.concepts::getOrNull).toSet() }
+            headingsOfWord.zip(conceptsOfWord).mapNotNull { (heading, taken) -> heading?.let { it to taken } }.toMap()
+        }
 
     /** The id [word] is read as now: what it was retired into, or itself. */
     fun currentIdOf(word: Identifier): Identifier = renamed[word] ?: word
@@ -79,6 +89,9 @@ object KnownWords {
         if (shown.isNotEmpty() || all.isEmpty()) return shown
         return all.mapNotNull(headingParts::get).distinct().map(::pageOf).filter { it in parts }
     }
+
+    /** The concepts [heading] takes [word] as. */
+    fun takenAs(word: Identifier, heading: Identifier): Set<Identifier> = takenAs[word]?.get(heading).orEmpty()
 
     /** The parts of the world whose every one of the game's own members [word] reaches. */
     fun wholesOf(word: Identifier): Set<Aspect> = wholes[word].orEmpty()
@@ -152,6 +165,7 @@ object KnownWords {
         headingParts = emptyMap()
         wholes = emptyMap()
         ofTheGame = emptyMap()
+        takenAs = emptyMap()
         learned.clear()
     }
 

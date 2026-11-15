@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.WordHeadings
+import co.voik.agesandtheart.age.words.CoreConcepts
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.Identifier
 
@@ -24,7 +25,6 @@ class WordOrderingCheck : FunSpec({
         parts = "parts",
         baseWorlds = "base worlds",
         grammar = "grammar",
-        namesMembers = { it.path == "creeper" },
         namesAPart = { it == sky.word },
         isGrammar = { it.path == "and" },
         membersOf = { "members of ${it.path}" },
@@ -36,7 +36,6 @@ class WordOrderingCheck : FunSpec({
         searchedFor,
         rarityOf = { rarity[it] ?: WordHeadings.Rarity.COMMON },
         appliesTo = { applies[it].orEmpty() },
-        isAMaterial = { it == gold.word },
         names = names,
     ).map { group -> group.heading to group.values.map { it.readable } }
 
@@ -75,6 +74,7 @@ class WordOrderingCheck : FunSpec({
             WordOrder.APPLIES_TO,
             rarityOf = { WordHeadings.Rarity.COMMON },
             appliesTo = { mapOf(creeper.word to listOf(sky.word), frozen.word to listOf(sky.word))[it].orEmpty() },
+            takenAs = { word, _ -> setOfNotNull(CoreConcepts.MEMBER.takeIf { word == creeper.word }) },
             names = names,
         )
         val (underSky, parts, baseWorlds, grammar) = grouped
@@ -86,23 +86,27 @@ class WordOrderingCheck : FunSpec({
         check(grammar.heading == "grammar" && grammar.values == listOf(and)) { "$grammar" }
     }
 
-    test("the materials under a heading are folded beneath the rest, and a search finds them there") {
-        val withAMaterial = mapOf(gold.word to listOf(sky.word))
+    test("the words a heading takes as a concept are folded beneath it where there are two, each under all of its, and a search finds them there") {
+        val iron = row("iron")
+        val calm = row("calm")
+        val block = Identifier.fromNamespaceAndPath("test", "block")
+        val wind = Identifier.fromNamespaceAndPath("test", "wind")
+        val haze = Identifier.fromNamespaceAndPath("test", "haze")
+        val concepts = mapOf(gold.word to setOf(block, haze), iron.word to setOf(block, haze), calm.word to setOf(wind))
         fun grouped(searchedFor: String = "") = WordOrdering.grouped(
-            listOf(frozen, gold),
+            listOf(frozen, gold, iron, calm),
             WordOrder.APPLIES_TO,
             searchedFor,
             rarityOf = { WordHeadings.Rarity.COMMON },
-            appliesTo = { (applies + withAMaterial)[it].orEmpty() },
-            isAMaterial = { it == gold.word },
+            appliesTo = { if (it == charged.word) emptyList() else listOf(sky.word) },
+            takenAs = { word, _ -> concepts[word].orEmpty() },
             names = names,
         )
         val sky = grouped().single()
-        check(sky.heading == "sky" && sky.values.map { it.readable } == listOf("frozen")) { "$sky" }
-        val materials = sky.subgroups.single()
-        check(materials.heading == "materials" && materials.values.map { it.readable } == listOf("gold")) { "$materials" }
-        check(sky.size == 2) { "the heading counts ${sky.size} rows" }
+        check(sky.heading == "sky" && sky.values.map { it.readable } == listOf("calm", "frozen")) { "a lone concept was folded: $sky" }
+        check(sky.subgroups.map { it.heading } == listOf("block", "haze")) { "folded under ${sky.subgroups.map { it.heading }}" }
+        check(sky.subgroups.all { fold -> fold.values.map { it.readable } == listOf("gold", "iron") }) { "${sky.subgroups}" }
         val found = grouped("gol").single()
-        check(found.values.isEmpty() && found.subgroups.single().values.map { it.readable } == listOf("gold")) { "$found" }
+        check(found.values.isEmpty() && found.subgroups.all { fold -> fold.values.map { it.readable } == listOf("gold") }) { "$found" }
     }
 })

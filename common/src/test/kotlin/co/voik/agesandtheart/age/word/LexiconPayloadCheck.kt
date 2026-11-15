@@ -21,7 +21,8 @@ class LexiconPayloadCheck : FunSpec({
             "members" to LexiconPayload::members, "parts" to LexiconPayload::parts, "reach" to LexiconPayload::reach,
             "materials" to LexiconPayload::materials, "shapes" to LexiconPayload::shapes, "structural" to LexiconPayload::structural,
             "renamed" to LexiconPayload::renamed, "headingParts" to LexiconPayload::headingParts, "wholes" to LexiconPayload::wholes,
-            "ofTheGame" to LexiconPayload::ofTheGame,
+            "ofTheGame" to LexiconPayload::ofTheGame, "concepts" to LexiconPayload::concepts,
+            "conceptSets" to LexiconPayload::conceptSets, "takenAs" to LexiconPayload::takenAs,
         )
         val changed = fields.filter { (_, field) -> field(arrived) != field(told) }.keys
         check(changed.isEmpty()) { "the lexicon's $changed changed in transit" }

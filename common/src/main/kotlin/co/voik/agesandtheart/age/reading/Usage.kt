@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Value
 import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.words.Words
+import net.minecraft.resources.Identifier
 
 /**
  * Which words take which, asked of whole words rather than of a row: the reader's own rule ([Matching]) put to every
@@ -38,6 +39,11 @@ class Usage(val words: Words, membership: Membership) {
 
     /** Whether some sense of [taker] would take something [word] offers. */
     fun takes(taker: Word, word: Word): Boolean = taker.senses.any { sense -> takesAnythingOf(sense, word) }
+
+    /** The concepts of what [word] offers that some sense of [taker] would take. */
+    fun conceptsTaken(taker: Word, word: Word): Set<Identifier> = taker.senses.flatMap { sense ->
+        word.senses.flatMap { it.offers }.filter { takes(sense, it) }.map { it.concept }
+    }.toSet()
 
     /** Every other word's thing that would take something [word] offers. */
     fun takersOf(word: Word): List<Taker> = takers.filter { it.word.id != word.id && takesAnythingOf(it.sense, word) }

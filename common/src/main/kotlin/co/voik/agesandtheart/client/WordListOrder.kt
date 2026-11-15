@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.ListGroup
 import co.voik.agesandtheart.client.ui.OrderButton
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 
 /** A word list's [OrderButton] and the ordering behind it, shared by the archive and the desk. */
 object WordListOrder {
@@ -18,15 +19,14 @@ object WordListOrder {
         searchedFor,
         rarityOf = KnownWords::rarityOf,
         appliesTo = KnownWords::appliesTo,
-        isAMaterial = KnownWords::isAMaterial,
+        takenAs = KnownWords::takenAs,
         names = WordOrdering.Names(
             rarity = { Component.translatable("$KEY.rarity.${it.key}").string },
             of = { WordNames.readable(it).string },
             parts = Component.translatable("$KEY.parts").string,
             baseWorlds = Component.translatable("$KEY.base_worlds").string,
             grammar = Component.translatable("$KEY.grammar").string,
-            materials = Component.translatable("$KEY.materials").string,
-            namesMembers = KnownWords::namesMembers,
+            concept = ::conceptName,
             namesAPart = KnownWords::namesAPart,
             isGrammar = KnownWords::isGrammar,
             membersOf = { part -> Component.translatableWithFallback("$KEY.members.${part.path}", kinds()).string },
@@ -34,6 +34,12 @@ object WordListOrder {
     )
 
     private fun kinds() = Component.translatable("$KEY.members").string
+
+    /** What words taken as [concept] are folded under: its own name in the language file, or its id read as words. */
+    private fun conceptName(concept: Identifier): String {
+        val readAsWords = concept.path.replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+        return Component.translatableWithFallback("concept.${concept.namespace}.${concept.path}", readAsWords).string
+    }
 
     /**
      * Whether [groups] start folded: ordered by what words apply to, unless a search found few enough rows to open

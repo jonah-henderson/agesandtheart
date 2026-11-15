@@ -16,10 +16,11 @@ import net.minecraft.resources.Identifier
 object Headings {
 
     /**
-     * What a word applies to, as a list shows it: the [words] it is listed under, and the parts of the world it reaches
-     * [whole] — every one of the game's creatures, features, biomes or structures there, said once rather than each.
+     * What a word applies to, as a list shows it: the [words] it is listed under, each with the concepts that word takes
+     * it as ([takenAs]), and the parts of the world it reaches [whole] — every one of the game's creatures, features,
+     * biomes or structures there, said once rather than each.
      */
-    data class Applying(val words: List<Identifier>, val whole: Set<Aspect>)
+    data class Applying(val words: List<Identifier>, val whole: Set<Aspect>, val takenAs: List<Set<Identifier>> = words.map { emptySet() })
 
     /** The words each word applies to ([applying]'s words), for a list ordered under them. */
     fun appliesTo(usage: Usage): Map<Identifier, List<Identifier>> =
@@ -40,12 +41,18 @@ object Headings {
         val pagesFor = takers.filter { it.isAPartsPage(words) }.groupBy({ it.part }, { it.word.id })
         fun takersOf(word: Word, among: List<Heading>) = among.filter { usage.takes(it.word, word) }
         val describing = words.all.filter { it.id !in takerIds && it.defaultSense?.behaviour == null }.associate { word ->
-            val under = takersOf(word, headings).map { it.word.id }
+            val under = takersOf(word, headings)
             val (whole, some) = takersOf(word, ofTheGame).groupBy { it.part }.entries
                 .partition { (part, reached) -> reached.size == ofTheGameIn[part] }
-            word.id to Applying((under + some.flatMap { it.value }.map { it.word.id }).distinct(), whole.map { it.key }.toSet())
+            val listedUnder = (under + some.flatMap { it.value }).distinctBy { it.word.id }
+            // A reading is the taker's own idiom, no kind of meaning to file a word under.
+            val takenAs = listedUnder.map { usage.conceptsTaken(it.word, word) - CoreConcepts.READING }
+            word.id to Applying(listedUnder.map { it.word.id }, whole.map { it.key }.toSet(), takenAs)
         }
-        val naming = takers.filter { it.namesMembers }.associate { it.word.id to Applying(pagesFor[it.part].orEmpty(), emptySet()) }
+        val naming = takers.filter { it.namesMembers }.associate { taker ->
+            val pages = pagesFor[taker.part].orEmpty()
+            taker.word.id to Applying(pages, emptySet(), pages.map { setOf(CoreConcepts.MEMBER) })
+        }
         return (describing + naming).filterValues { it.words.isNotEmpty() || it.whole.isNotEmpty() }
     }
 

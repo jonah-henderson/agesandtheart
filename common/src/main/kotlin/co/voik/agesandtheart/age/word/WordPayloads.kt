@@ -47,6 +47,12 @@ data class LexiconPayload(
     val wholes: Map<Identifier, Set<Aspect>> = emptyMap(),
     /** How many of the game's own creatures, features, biomes and structures each part of the world holds. */
     val ofTheGame: Map<Aspect, Int> = emptyMap(),
+    /** The concepts [conceptSets] counts into. */
+    val concepts: List<Identifier> = emptyList(),
+    /** Each set of concepts a heading takes a word as, by their places in [concepts]: written once, as few differ. */
+    val conceptSets: List<List<Int>> = emptyList(),
+    /** Beside each of [appliesTo]'s headings, the concepts it takes the word as, by their place in [conceptSets]. */
+    val takenAs: Map<Identifier, List<Int>> = emptyMap(),
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -60,6 +66,11 @@ data class LexiconPayload(
         fun of(vocabulary: Vocabulary): LexiconPayload {
             val headings = vocabulary.appliesTo.values.flatten().distinct().sorted()
             val wholes = vocabulary.applying.mapValues { it.value.whole }.filterValues { it.isNotEmpty() }
+            val listed = vocabulary.applying.filterValues { it.words.isNotEmpty() }
+            val concepts = listed.values.flatMap { it.takenAs }.flatten().distinct().sorted()
+            val conceptAt = concepts.withIndex().associate { (at, concept) -> concept to at }
+            val conceptSets = listed.values.flatMap { it.takenAs }.distinct()
+            val conceptSetAt = conceptSets.withIndex().associate { (at, taken) -> taken to at }
             val headingAt = headings.withIndex().associate { (at, heading) -> heading to at }
             return LexiconPayload(
                 vocabulary.script,
@@ -76,6 +87,9 @@ data class LexiconPayload(
                 headingParts = headings.mapNotNull { heading -> vocabulary.headingParts[heading]?.let { heading to it } }.toMap(),
                 wholes = wholes,
                 ofTheGame = vocabulary.ofTheGame,
+                concepts = concepts,
+                conceptSets = conceptSets.map { taken -> taken.map(conceptAt::getValue) },
+                takenAs = listed.mapValues { (_, applying) -> applying.takenAs.map(conceptSetAt::getValue) },
             )
         }
 
@@ -99,6 +113,8 @@ data class LexiconPayload(
 
         private val INDICES: StreamCodec<ByteBuf, List<Int>> = ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())
 
+        private val INDEX_LISTS: StreamCodec<ByteBuf, List<List<Int>>> = INDICES.apply(ByteBufCodecs.list())
+
         /**
          * **Every id written once**, in a table at the head, and each mention of it after as its place there: a word
          * is named in four or five of the lists, and its id written out each time was most of the payload.
@@ -107,7 +123,7 @@ data class LexiconPayload(
 
         private fun idsIn(payload: LexiconPayload): List<Identifier> = with(payload) {
             (reach.keys + materials + shapes + rarity.keys + headings + appliesTo.keys + structural + renamed.keys + renamed.values +
-                members + parts + headingParts.keys + wholes.keys).distinct()
+                members + parts + headingParts.keys + wholes.keys + concepts + takenAs.keys).distinct()
         }
 
         private fun write(buffer: ByteBuf, payload: LexiconPayload) {
@@ -141,6 +157,9 @@ data class LexiconPayload(
                 ASPECT_STREAM_CODEC.encode(buffer, part)
                 ByteBufCodecs.VAR_INT.encode(buffer, count)
             }
+            ids(payload.concepts)
+            INDEX_LISTS.encode(buffer, payload.conceptSets)
+            map(payload.takenAs) { INDICES.encode(buffer, it) }
         }
 
         private fun read(buffer: ByteBuf): LexiconPayload {
@@ -170,6 +189,9 @@ data class LexiconPayload(
                 ofTheGame = (0 until ByteBufCodecs.VAR_INT.decode(buffer)).associate {
                     ASPECT_STREAM_CODEC.decode(buffer) to ByteBufCodecs.VAR_INT.decode(buffer)
                 },
+                concepts = ids(),
+                conceptSets = INDEX_LISTS.decode(buffer),
+                takenAs = map { INDICES.decode(buffer) },
             )
         }
     }
