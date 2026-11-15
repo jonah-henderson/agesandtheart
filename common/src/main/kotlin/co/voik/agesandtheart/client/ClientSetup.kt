@@ -37,6 +37,8 @@ object ClientSetup {
         Tornadoes.heard(minecraft)
         // A deluge's splashes and roar, both of which want re-asking as a player moves under cover.
         Downpours.pour(minecraft)
+        // An asteroid's end: what is heard of it, and the ash.
+        Impacts.tick(minecraft)
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
         LureLooks.pulse(minecraft)
         // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
@@ -92,6 +94,7 @@ object ClientSetup {
         Surf.forget()
         StrangeMotes.forget()
         TornSky.forget()
+        Impacts.forget()
         StrangeGravity.disconnected()
         KnownMachineRecipes.forget()
         TemptationsHere.forget()

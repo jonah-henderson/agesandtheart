@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.advancement.Link
 import co.voik.agesandtheart.advancement.LinkedInto
@@ -86,6 +87,8 @@ object Linking {
     fun go(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
         // Asked before going: arriving marks the Age visited, and it does so inside the teleport.
         val firstVisit = destinationOf(stack)?.let { !AgeSavedData.get(level.server).hasBeenVisited(it) } ?: true
+        // Broken books lead nowhere: an Age that has ended takes nobody in (design §5.3 "The cataclysm").
+        if (leadsToAnEndedAge(level, stack)) return refuse(player, "age_ended")
         val went = when {
             stack.item === AgeContent.DESCRIPTIVE_BOOK -> goToTheAge(player, level, stack)
             stack.item === AgeContent.LINKING_BOOK -> goToThePlace(player, level, stack)
@@ -93,6 +96,12 @@ object Linking {
         }
         if (went) AgeTriggers.LINKED.trigger(player, linkAsLanded(player, stack, firstVisit))
         return went
+    }
+
+    private fun leadsToAnEndedAge(level: ServerLevel, stack: ItemStack): Boolean {
+        val destination = destinationOf(stack) ?: return false
+        val recipe = AgeSavedData.get(level.server).recipe(destination) ?: return false
+        return Cataclysms.hasEnded(recipe, level.gameTime)
     }
 
     /** The world [stack] leads to, or null for a descriptive book whose Age has not been made yet. */

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.consequence.MotesPayload
 import co.voik.agesandtheart.age.consequence.GravityPayload
 import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.TearsPayload
+import co.voik.agesandtheart.age.cataclysm.CataclysmPayload
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.phenomena.FogPayload
@@ -51,6 +52,7 @@ object ClientPayloads {
         Receiver(GalePayload.TYPE) { Gales.remember(it) },
         Receiver(MotesPayload.TYPE) { StrangeMotes.remember(it) },
         Receiver(TearsPayload.TYPE) { TornSky.remember(it) },
+        Receiver(CataclysmPayload.TYPE) { Impacts.remember(it) },
         Receiver(GravityPayload.TYPE) { StrangeGravity.remember(it) },
         Receiver(LearnedWordsPayload.TYPE) { KnownWords.remember(it) },
         Receiver(DeskSyncPayload.TYPE) { DeskModel.remember(it) },

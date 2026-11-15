@@ -55,8 +55,11 @@ data class StructureWeathering(val crumble: Double, val charred: Boolean, val po
             return StructureWeathering(crumble, options.isTrue(Structures.CHARRED, member = member), porosity, salt)
         }
 
-        /** What burnt wood is: a log basalt along its own axis, wood blackstone where blackstone has the shape. */
-        private fun blackened(state: BlockState): BlockState? {
+        /**
+         * What burnt wood is: a log basalt along its own axis, wood blackstone where blackstone has the shape, and
+         * null where it burns away. Shared with an asteroid's scorch.
+         */
+        fun blackened(state: BlockState): BlockState? {
             // A log is a pillar that burns; hay is one too, and burns away.
             val isALog = state.block is RotatedPillarBlock && !state.`is`(Blocks.HAY_BLOCK)
             if (isALog) return Blocks.BASALT.withPropertiesOf(state)

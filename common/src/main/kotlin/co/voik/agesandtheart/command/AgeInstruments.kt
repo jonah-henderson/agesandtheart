@@ -29,6 +29,7 @@ object AgeInstruments {
         TerrainInstruments.addTo(age)
         PhenomenonInstruments.addTo(age)
         ConsequenceInstruments.addTo(age)
+        CataclysmInstruments.addTo(age)
         PlayerInstruments.addTo(age)
         RewardInstruments.addTo(age)
         LootInstruments.addTo(age)

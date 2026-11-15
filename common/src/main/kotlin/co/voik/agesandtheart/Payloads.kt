@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.consequence.MotesPayload
 import co.voik.agesandtheart.age.consequence.GravityPayload
 import co.voik.agesandtheart.age.consequence.TearsPayload
+import co.voik.agesandtheart.age.cataclysm.CataclysmPayload
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.phenomena.FogPayload
@@ -87,6 +88,7 @@ object Payloads {
         Clientbound(GalePayload.TYPE, GalePayload.STREAM_CODEC),
         Clientbound(MotesPayload.TYPE, MotesPayload.STREAM_CODEC),
         Clientbound(TearsPayload.TYPE, TearsPayload.STREAM_CODEC),
+        Clientbound(CataclysmPayload.TYPE, CataclysmPayload.STREAM_CODEC),
         Clientbound(GravityPayload.TYPE, GravityPayload.STREAM_CODEC),
         Clientbound(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC),
         Clientbound(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC),

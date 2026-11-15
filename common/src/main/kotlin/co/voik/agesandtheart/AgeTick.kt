@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.TornSky
@@ -71,6 +72,8 @@ object AgeTick {
             UncannyMotes.tellTheClients(level, recipe, spending)
             // Nor this: tears in the sky, which the clients lay out and draw — see [TornSky].
             TornSky.tellTheClients(level, recipe, spending)
+            // Nor this, though it ends the Age: an end coming, told to the clients and done — see [Cataclysms].
+            Cataclysms.befall(level, recipe)
             // Not a phenomenon either: the sea following whichever moons pull it — see [Tide].
             Tide.flow(level, Tide.pullsIn(composition, recipe.seed))
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but

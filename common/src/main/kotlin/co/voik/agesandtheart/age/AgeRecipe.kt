@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.cataclysm.Doom
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -78,6 +79,11 @@ data class AgeRecipe(
      * whatever its instability bought. **Never written by the codec**, like [forced].
      */
     val forcedPull: Double? = null,
+    /**
+     * An end set going by hand with `/age cataclysm`, before any instability buys one (design §5.3). **Never
+     * written by the codec**, like [forced].
+     */
+    val forcedCataclysm: Doom? = null,
 ) {
     /** How long this Age has existed, in ticks, against [server]'s overworld clock. Never negative. */
     fun ageAt(server: MinecraftServer): Long =
