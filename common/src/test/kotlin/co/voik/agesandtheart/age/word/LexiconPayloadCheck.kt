@@ -16,12 +16,15 @@ class LexiconPayloadCheck : FunSpec({
         LexiconPayload.STREAM_CODEC.encode(buffer, told)
         val size = buffer.readableBytes()
         val arrived = LexiconPayload.STREAM_CODEC.decode(buffer)
-        check(arrived.rarity == told.rarity && arrived.headings == told.headings && arrived.appliesTo == told.appliesTo &&
-            arrived.members == told.members && arrived.parts == told.parts && arrived.reach == told.reach &&
-            arrived.materials == told.materials && arrived.shapes == told.shapes && arrived.structural == told.structural &&
-            arrived.renamed == told.renamed) {
-            "the lexicon changed in transit"
-        }
+        val fields = mapOf(
+            "rarity" to LexiconPayload::rarity, "headings" to LexiconPayload::headings, "appliesTo" to LexiconPayload::appliesTo,
+            "members" to LexiconPayload::members, "parts" to LexiconPayload::parts, "reach" to LexiconPayload::reach,
+            "materials" to LexiconPayload::materials, "shapes" to LexiconPayload::shapes, "structural" to LexiconPayload::structural,
+            "renamed" to LexiconPayload::renamed, "headingParts" to LexiconPayload::headingParts, "wholes" to LexiconPayload::wholes,
+            "ofTheGame" to LexiconPayload::ofTheGame,
+        )
+        val changed = fields.filter { (_, field) -> field(arrived) != field(told) }.keys
+        check(changed.isEmpty()) { "the lexicon's $changed changed in transit" }
         check(size < MOST_A_PAYLOAD_SHOULD_TAKE) { "the lexicon is $size bytes" }
     }
 })

@@ -16,26 +16,45 @@ import net.minecraft.resources.Identifier
 object Headings {
 
     /**
-     * The words each word applies to: every thing or part's page of a pack's that would take something it offers, and a
-     * creature, feature or structure of the game's only where the word applies to it alone in its part — where every
-     * creature takes it, it is said of the inhabitants, not of each. A word naming members of a part is listed under that
-     * part's page: `zombie` and `monsters` under `inhabitants`.
+     * What a word applies to, as a list shows it: the [words] it is listed under, and the parts of the world it reaches
+     * [whole] — every one of the game's creatures, features, biomes or structures there, said once rather than each.
      */
-    fun appliesTo(usage: Usage): Map<Identifier, List<Identifier>> {
+    data class Applying(val words: List<Identifier>, val whole: Set<Aspect>)
+
+    /** The words each word applies to ([applying]'s words), for a list ordered under them. */
+    fun appliesTo(usage: Usage): Map<Identifier, List<Identifier>> =
+        applying(usage).mapValues { it.value.words }.filterValues { it.isNotEmpty() }
+
+    /**
+     * What each word applies to: every thing or part's page of a pack's that would take something it offers, and each
+     * creature, feature, biome or structure of the game's that would, except where it reaches all of them in that part
+     * — then the part is reached [whole][Applying.whole], and said of its page rather than of each. A word naming
+     * members of a part is listed under that part's page: `zombie` and `monsters` under `inhabitants`.
+     */
+    fun applying(usage: Usage): Map<Identifier, Applying> {
         val words = usage.words
         val takers = takersIn(words)
         val (ofTheGame, headings) = takers.partition { it.word.id in words.derived && it.namesMembers }
+        val ofTheGameIn = ofTheGame.groupingBy { it.part }.eachCount()
         val takerIds = takers.map { it.word.id }.toSet()
         val pagesFor = takers.filter { it.isAPartsPage(words) }.groupBy({ it.part }, { it.word.id })
         fun takersOf(word: Word, among: List<Heading>) = among.filter { usage.takes(it.word, word) }
         val describing = words.all.filter { it.id !in takerIds && it.defaultSense?.behaviour == null }.associate { word ->
             val under = takersOf(word, headings).map { it.word.id }
-            val alone = takersOf(word, ofTheGame).groupBy { it.part }.values.mapNotNull { it.singleOrNull()?.word?.id }
-            word.id to (under + alone).distinct()
+            val (whole, some) = takersOf(word, ofTheGame).groupBy { it.part }.entries
+                .partition { (part, reached) -> reached.size == ofTheGameIn[part] }
+            word.id to Applying((under + some.flatMap { it.value }.map { it.word.id }).distinct(), whole.map { it.key }.toSet())
         }
-        val naming = takers.filter { it.namesMembers }.associate { it.word.id to pagesFor[it.part].orEmpty() }
-        return (describing + naming).filterValues { it.isNotEmpty() }
+        val naming = takers.filter { it.namesMembers }.associate { it.word.id to Applying(pagesFor[it.part].orEmpty(), emptySet()) }
+        return (describing + naming).filterValues { it.words.isNotEmpty() || it.whole.isNotEmpty() }
     }
+
+    /** How many of the game's own creatures, features, biomes and structures each part of the world holds. */
+    fun ofTheGame(words: Words): Map<Aspect, Int> =
+        takersIn(words).filter { it.word.id in words.derived && it.namesMembers }.groupingBy { it.part }.eachCount()
+
+    /** The part of the world each word others may be listed under belongs to. */
+    fun partsOf(words: Words): Map<Identifier, Aspect> = takersIn(words).associate { it.word.id to it.part }
 
     /** The words naming members of a part of the world — `zombie`, `monsters`, `plains`. */
     fun members(words: Words): Set<Identifier> = takersIn(words).filter { it.namesMembers }.map { it.word.id }.toSet()

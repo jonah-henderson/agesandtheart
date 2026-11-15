@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
@@ -30,6 +31,9 @@ object KnownWords {
     private var renamed: Map<Identifier, Identifier> = emptyMap()
     private var members: Set<Identifier> = emptySet()
     private var parts: Set<Identifier> = emptySet()
+    private var headingParts: Map<Identifier, Aspect> = emptyMap()
+    private var wholes: Map<Identifier, Set<Aspect>> = emptyMap()
+    private var ofTheGame: Map<Aspect, Int> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -46,6 +50,9 @@ object KnownWords {
         renamed = payload.renamed
         members = payload.members
         parts = payload.parts
+        headingParts = payload.headingParts
+        wholes = payload.wholes
+        ofTheGame = payload.ofTheGame
     }
 
     /** The id [word] is read as now: what it was retired into, or itself. */
@@ -61,8 +68,29 @@ object KnownWords {
     /** How rare [word]'s page is, as a player is told it — common where the server never said. */
     fun rarityOf(word: Identifier): WordHeadings.Rarity = rarity[word] ?: WordHeadings.Rarity.COMMON
 
-    /** The words [word] applies to — none where it applies only to the Age, or the server never said. */
-    fun appliesTo(word: Identifier): List<Identifier> = appliesTo[word].orEmpty().mapNotNull(headings::getOrNull)
+    /**
+     * The words [word] applies to that this player is shown — none where it applies only to the Age, or the server never
+     * said. Only words the player has learned are named, and the pages for whole parts of the world (Jonah); where every
+     * one is still to learn, the pages of the parts they belong to stand in, so the word is never filed under nothing.
+     */
+    fun appliesTo(word: Identifier): List<Identifier> {
+        val all = appliesTo[word].orEmpty().mapNotNull(headings::getOrNull)
+        val shown = all.filter { it in learned || it in parts }
+        if (shown.isNotEmpty() || all.isEmpty()) return shown
+        return all.mapNotNull(headingParts::get).distinct().map(::pageOf).filter { it in parts }
+    }
+
+    /** The parts of the world whose every one of the game's own members [word] reaches. */
+    fun wholesOf(word: Identifier): Set<Aspect> = wholes[word].orEmpty()
+
+    /** How many of the game's own members [part] holds. */
+    fun ofTheGameIn(part: Aspect): Int = ofTheGame[part] ?: 0
+
+    /** The part of the world [heading] belongs to, or null if the server never said. */
+    fun partOf(heading: Identifier): Aspect? = headingParts[heading]
+
+    /** The page naming the whole of [part]: `inhabitants`, `sky`. */
+    fun pageOf(part: Aspect): Identifier = Identifier.fromNamespaceAndPath(Constants.MOD_ID, part.page)
 
     /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
     fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
@@ -121,6 +149,9 @@ object KnownWords {
         renamed = emptyMap()
         members = emptySet()
         parts = emptySet()
+        headingParts = emptyMap()
+        wholes = emptyMap()
+        ofTheGame = emptyMap()
         learned.clear()
     }
 

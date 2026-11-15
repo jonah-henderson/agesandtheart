@@ -89,11 +89,14 @@ class MemberScopingCheck : FunSpec({
         check(capsOf("dry", "climate").isEmpty()) { "a book asking for no creature moved a cap: ${capsOf("dry", "climate")}" }
     }
 
-    test("a word is listed under what it applies to, and under one of the game's creatures only where it applies to that alone") {
+    test("a word is listed under each of the game's creatures it applies to, and once for the whole part where it applies to all") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        fun wholes(name: String) = vocabulary.applying[vocabulary.word(name)?.id]?.whole.orEmpty()
         check(listOf("sky", "weather", "creeper").all { it in under("charged") }) { "charged is under ${under("charged")}" }
+        check(Aspect.SPAWNS !in wholes("charged")) { "charged reached every creature" }
         check("zombie" !in under("strong") && "monsters" in under("strong")) { "strong is under ${under("strong")}" }
+        check(Aspect.SPAWNS in wholes("strong")) { "strong reaches the whole of only ${wholes("strong")}" }
         check("age" !in under("charged")) { "charged was listed under the Age" }
     }
 

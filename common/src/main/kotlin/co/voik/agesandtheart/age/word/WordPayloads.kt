@@ -41,6 +41,12 @@ data class LexiconPayload(
     val members: Set<Identifier> = emptySet(),
     /** Every word naming a whole part of the world. */
     val parts: Set<Identifier> = emptySet(),
+    /** The part of the world each of [headings] belongs to, which a page's tooltip sorts what it applies to into. */
+    val headingParts: Map<Identifier, Aspect> = emptyMap(),
+    /** The parts of the world whose every one of the game's own members each word reaches, said once rather than each. */
+    val wholes: Map<Identifier, Set<Aspect>> = emptyMap(),
+    /** How many of the game's own creatures, features, biomes and structures each part of the world holds. */
+    val ofTheGame: Map<Aspect, Int> = emptyMap(),
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -53,6 +59,7 @@ data class LexiconPayload(
         /** What [vocabulary] tells a client. */
         fun of(vocabulary: Vocabulary): LexiconPayload {
             val headings = vocabulary.appliesTo.values.flatten().distinct().sorted()
+            val wholes = vocabulary.applying.mapValues { it.value.whole }.filterValues { it.isNotEmpty() }
             val headingAt = headings.withIndex().associate { (at, heading) -> heading to at }
             return LexiconPayload(
                 vocabulary.script,
@@ -66,6 +73,9 @@ data class LexiconPayload(
                 renamed = vocabulary.renamed,
                 members = vocabulary.namingMembers,
                 parts = vocabulary.namingParts,
+                headingParts = headings.mapNotNull { heading -> vocabulary.headingParts[heading]?.let { heading to it } }.toMap(),
+                wholes = wholes,
+                ofTheGame = vocabulary.ofTheGame,
             )
         }
 
@@ -97,7 +107,7 @@ data class LexiconPayload(
 
         private fun idsIn(payload: LexiconPayload): List<Identifier> = with(payload) {
             (reach.keys + materials + shapes + rarity.keys + headings + appliesTo.keys + structural + renamed.keys + renamed.values +
-                members + parts).distinct()
+                members + parts + headingParts.keys + wholes.keys).distinct()
         }
 
         private fun write(buffer: ByteBuf, payload: LexiconPayload) {
@@ -124,6 +134,13 @@ data class LexiconPayload(
             map(payload.renamed) { id(it) }
             ids(payload.members)
             ids(payload.parts)
+            map(payload.headingParts) { ASPECT_STREAM_CODEC.encode(buffer, it) }
+            map(payload.wholes) { ASPECTS.encode(buffer, it) }
+            ByteBufCodecs.VAR_INT.encode(buffer, payload.ofTheGame.size)
+            for ((part, count) in payload.ofTheGame) {
+                ASPECT_STREAM_CODEC.encode(buffer, part)
+                ByteBufCodecs.VAR_INT.encode(buffer, count)
+            }
         }
 
         private fun read(buffer: ByteBuf): LexiconPayload {
@@ -148,6 +165,11 @@ data class LexiconPayload(
                 renamed = map { id() },
                 members = ids().toCollection(LinkedHashSet()),
                 parts = ids().toCollection(LinkedHashSet()),
+                headingParts = map { ASPECT_STREAM_CODEC.decode(buffer) },
+                wholes = map { ASPECTS.decode(buffer) },
+                ofTheGame = (0 until ByteBufCodecs.VAR_INT.decode(buffer)).associate {
+                    ASPECT_STREAM_CODEC.decode(buffer) to ByteBufCodecs.VAR_INT.decode(buffer)
+                },
             )
         }
     }

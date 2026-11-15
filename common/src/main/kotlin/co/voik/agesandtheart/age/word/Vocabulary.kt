@@ -260,8 +260,19 @@ data class Vocabulary(
 
     private val landingOn = java.util.concurrent.ConcurrentHashMap<String, Set<String>>()
 
-    /** The words each word applies to, for a word list ordered under them ([Headings.appliesTo]). Worked out once. */
-    val appliesTo: Map<Identifier, List<Identifier>> by lazy { Headings.appliesTo(usage) }
+    /** What each word applies to, for a word list ordered under it and a page's tooltip ([Headings.applying]). Worked out once. */
+    val applying: Map<Identifier, Headings.Applying> by lazy { Headings.applying(usage) }
+
+    /** The words each word applies to, for a word list ordered under them ([Headings.appliesTo]). */
+    val appliesTo: Map<Identifier, List<Identifier>> by lazy {
+        applying.mapValues { it.value.words }.filterValues { it.isNotEmpty() }
+    }
+
+    /** How many of the game's own members each part of the world holds ([Headings.ofTheGame]). */
+    val ofTheGame: Map<Aspect, Int> by lazy { Headings.ofTheGame(words) }
+
+    /** The part of the world each heading belongs to ([Headings.partsOf]). */
+    val headingParts: Map<Identifier, Aspect> by lazy { Headings.partsOf(words) }
 
     /** The words naming members of a part of the world ([Headings.members]). */
     val namingMembers: Set<Identifier> by lazy { Headings.members(words) }

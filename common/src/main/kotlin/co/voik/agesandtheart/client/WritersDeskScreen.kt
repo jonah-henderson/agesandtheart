@@ -343,7 +343,11 @@ class WritersDeskScreen(
 
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */
     private fun reachTooltip(row: WordRow): List<Component> =
-        if (DeskModel.can(DeskCapability.WORD_REACH)) WordReachTooltip.linesFor(row.word) else emptyList()
+        if (DeskModel.can(DeskCapability.WORD_REACH)) {
+            WordReachTooltip.linesFor(row.word, expanded = Minecraft.getInstance().hasShiftDown())
+        } else {
+            emptyList()
+        }
 
     private fun refreshControls() {
         paperButtons.forEachIndexed { index, button ->
