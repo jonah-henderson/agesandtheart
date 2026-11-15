@@ -5,6 +5,8 @@ import co.voik.agesandtheart.age.cataclysm.Doom
 import co.voik.agesandtheart.age.cataclysm.ImpactPhase
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.player.LocalPlayer
+import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.resources.Identifier
 import net.minecraft.sounds.SoundEvent
@@ -48,11 +50,33 @@ object Impacts {
 
     fun dustAt(doom: Doom, time: Double): Float = doom.dustAt(time)
 
-    /** How bright the impact's flash still is at [time]: whole at the instant, gone in a few seconds. */
+    /** How bright the impact's flash still is at [time]: blinding for a moment, then gone in a few seconds. */
     fun flashAt(doom: Doom, time: Double): Float {
         val since = time - doom.impactAt
         if (since < 0.0 || since > FLASH_LASTS) return NONE
-        return exp(-since / FLASH_FADES).toFloat()
+        if (since < FLASH_BLINDS_FOR) return FULL
+        return exp(-(since - FLASH_BLINDS_FOR) / FLASH_FADES).toFloat()
+    }
+
+    /** How strongly the flash washes out [player]'s picture, in [ScreenEffects.FLASH_LEVELS]; null where it does not. */
+    fun flashLevelFor(player: LocalPlayer): Int? {
+        val level = player.level() as? ClientLevel ?: return null
+        val doom = comingTo(level) ?: return null
+        val flash = flashAt(doom, level.gameTime.toDouble())
+        return Math.round(flash * ScreenEffects.FLASH_LEVELS).takeIf { it > 0 }
+    }
+
+    /**
+     * How hard the air shimmers over [player] in the debris's heat, in [ScreenEffects.HAZE_LEVELS]; null where it does
+     * not, or where they are under cover.
+     */
+    fun hazeLevelFor(player: LocalPlayer): Int? {
+        val level = player.level() as? ClientLevel ?: return null
+        val doom = comingTo(level) ?: return null
+        val heat = heatAt(doom, level.gameTime.toDouble())
+        val isUnderTheSky = level.canSeeSky(BlockPos.containing(player.eyePosition))
+        if (!isUnderTheSky) return null
+        return Math.round(heat * HAZE_UNDER_A_BURNING_SKY).takeIf { it > 0 }
     }
 
     private fun squared(value: Double) = (value * value).toFloat()
@@ -112,8 +136,12 @@ object Impacts {
     private const val FULL = 1.0f
     private const val HEAT_WHILE_TRAVELLING = 0.6f
     private const val HEAT_FADES_FASTER = 3.0
-    private const val FLASH_LASTS = 100.0
-    private const val FLASH_FADES = 14.0
+    private const val FLASH_LASTS = 160.0
+    private const val FLASH_BLINDS_FOR = 8.0
+    private const val FLASH_FADES = 26.0
+
+    /** The haze at its worst under the burning sky: two thirds of a plasma sea's, whose glare is its own. */
+    private const val HAZE_UNDER_A_BURNING_SKY = 6
 
     /** The light comes first and the sound after, which is what says how far away it fell. */
     private const val RUMBLE_ARRIVES_AFTER = 120L

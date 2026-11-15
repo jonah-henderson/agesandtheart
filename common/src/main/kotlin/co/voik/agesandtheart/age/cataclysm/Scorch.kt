@@ -16,7 +16,7 @@ import java.util.WeakHashMap
 
 /**
  * What the firestorm leaves (design §5.3 "The asteroid"): leaves burnt away, logs charred to basalt, wood to
- * blackstone, plants gone, soil turned to coarse dirt, and a few embers — written directly, one column at a time,
+ * blackstone, plants gone, soil turned to coarse dirt and here and there melted to magma, and a few embers — written directly, one column at a time,
  * a chunk or two a tick behind the dust, nearest the players first.
  *
  * **One rule of a column**, which the scorched generation and the catch-up on load will call too. It is safe to
@@ -87,7 +87,7 @@ object Scorch {
             cursor.set(x, y, z)
             val state = chunk.getBlockState(cursor)
             if (state.isAir) continue
-            when (val burned = burned(state)) {
+            when (val burned = burned(state, x, z)) {
                 Burned.Stops -> {
                     leaveAnEmber(level, cursor, x, z)
                     return
@@ -113,23 +113,29 @@ object Scorch {
 
     // NeoForge deprecates `ignitedByLava` for a level-aware form, as `StructureWeathering` says.
     @Suppress("DEPRECATION")
-    private fun burned(state: BlockState): Burned {
+    private fun burned(state: BlockState, x: Int, z: Int): Burned {
         val isFluid = !state.fluidState.isEmpty
         val holdsThings = state.hasBlockEntity()
         val isSnow = state.`is`(Blocks.SNOW) || state.`is`(Blocks.SNOW_BLOCK) || state.`is`(Blocks.POWDER_SNOW)
         val isAPlant = state.canBeReplaced() || state.`is`(BlockTags.FLOWERS) || state.`is`(BlockTags.SAPLINGS) ||
             state.`is`(BlockTags.REPLACEABLE_BY_TREES) || state.`is`(BlockTags.CROPS)
-        val isAlreadyCharred = state.`is`(Blocks.BASALT) || state.`is`(Blocks.COARSE_DIRT)
+        val isAlreadyCharred = state.`is`(Blocks.BASALT) || state.`is`(Blocks.COARSE_DIRT) || state.`is`(Blocks.MAGMA_BLOCK)
         // Grass, moss, mud and every dirt; a field and a path besides, which no soil tag holds.
         val isSoil = state.`is`(BlockTags.SUBSTRATE_OVERWORLD) || state.`is`(Blocks.FARMLAND) || state.`is`(Blocks.DIRT_PATH)
         return when {
             isFluid || holdsThings -> Burned.Stops
             isAlreadyCharred -> Burned.Stops
             state.`is`(BlockTags.LEAVES) || isSnow || isAPlant -> Burned.Into(Blocks.AIR.defaultBlockState())
-            isSoil -> Burned.Into(Blocks.COARSE_DIRT.defaultBlockState(), stops = true)
+            isSoil -> Burned.Into(groundBurnedAt(x, z), stops = true)
             state.ignitedByLava() -> Burned.Into(StructureWeathering.blackened(state) ?: Blocks.AIR.defaultBlockState())
             else -> Burned.Stops
         }
+    }
+
+    /** The soil burned to coarse dirt, or here and there melted to magma. */
+    private fun groundBurnedAt(x: Int, z: Int): BlockState {
+        val isMeltedHere = Math.floorMod((x * MAGMA_MIXER_X) xor (z * MAGMA_MIXER_Z), MAGMA_ONE_IN) == 0
+        return if (isMeltedHere) Blocks.MAGMA_BLOCK.defaultBlockState() else Blocks.COARSE_DIRT.defaultBlockState()
     }
 
     private fun leaveAnEmber(level: ServerLevel, ground: BlockPos, x: Int, z: Int) {
@@ -148,6 +154,10 @@ object Scorch {
 
     /** How far out from a player the scorch looks for chunks, which is past any ordinary view distance. */
     private const val SEARCHED_OUT_TO = 16
+
+    private const val MAGMA_ONE_IN = 11
+    private const val MAGMA_MIXER_X = 83_492_791
+    private const val MAGMA_MIXER_Z = 50_331_653
 
     private const val EMBERS_ONE_IN = 53
     private const val EMBER_MIXER_X = 73_856_093

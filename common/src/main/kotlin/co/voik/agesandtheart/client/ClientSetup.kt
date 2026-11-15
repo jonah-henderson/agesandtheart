@@ -52,8 +52,8 @@ object ClientSetup {
         // Waves on a palm beach: the shore is found and the foam laid on the client, and nowhere else.
         Surf.tick(minecraft)
         StrangeMotes.tick(minecraft)
-        // The haze over a plasma sea, found under the player's feet and drawn as a post effect.
-        PlasmaHaze.tick(minecraft)
+        // Our post effects: the haze over a plasma sea or under a burning sky, and an asteroid's flash.
+        ScreenEffects.tick(minecraft)
         // A worn grindstone's cracks, which the client forgets unless they are drawn again.
         WornGrindstones.tick(minecraft)
         // The beta's word on what this version changed, once per installation after an update.
