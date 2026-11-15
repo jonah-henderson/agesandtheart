@@ -100,6 +100,22 @@ class MemberScopingCheck : FunSpec({
         check("age" !in under("charged")) { "charged was listed under the Age" }
     }
 
+    test("a group takes only what one of its members holds, and a lean is no description") {
+        val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
+        fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        check("arthropods" !in under("charged") && "monsters" in under("charged")) { "charged is under ${under("charged")}" }
+        check("arthropods" !in under("varied") && "inhabitants" in under("varied")) { "varied is under ${under("varied")}" }
+        check("arthropods" in under("friendly")) { "friendly is under ${under("friendly")}" }
+        check("arthropods" !in under("dreamlike")) { "dreamlike is under ${under("dreamlike")}" }
+    }
+
+    test("a thing is listed under its part's page, but never under itself") {
+        val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
+        fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        check(under("spikes") == listOf("features")) { "spikes is under ${under("spikes")}" }
+        check("aurora" !in under("aurora")) { "aurora is under itself" }
+    }
+
     test("a word naming members of a part of the world is listed under the page for that part") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }

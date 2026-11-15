@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.reading
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.words.Acceptance
+import co.voik.agesandtheart.age.words.CoreConcepts
 import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Value
@@ -44,6 +45,16 @@ class Usage(val words: Words, membership: Membership) {
     fun conceptsTaken(taker: Word, word: Word): Set<Identifier> = taker.senses.flatMap { sense ->
         word.senses.flatMap { it.offers }.filter { takes(sense, it) }.map { it.concept }
     }.toSet()
+
+    /**
+     * Whether [taker] would take something of [word]'s that says something of it, more than a lean: `dreamlike` only nudges
+     * which creatures come where `age` hands it out, and said of a group would claim more than it does.
+     */
+    fun describes(taker: Word, word: Word): Boolean = (conceptsTaken(taker, word) - CoreConcepts.LEAN).isNotEmpty()
+
+    /** The parts of the world [word] says something of, more than a lean ([describes]), through the things that take it. */
+    fun partsDescribed(word: Word): Set<Aspect> =
+        takers.filter { it.word.id != word.id && describes(it.word, word) }.mapNotNull(Taker::part).toSet()
 
     /** Every other word's thing that would take something [word] offers. */
     fun takersOf(word: Word): List<Taker> = takers.filter { it.word.id != word.id && takesAnythingOf(it.sense, word) }

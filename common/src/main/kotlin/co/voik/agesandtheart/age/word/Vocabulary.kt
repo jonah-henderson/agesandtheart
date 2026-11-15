@@ -242,10 +242,10 @@ data class Vocabulary(
 
     /** The parts of the world each word reaches, and each page of ours retired into a phrase, as a client is told. */
     val reach: Map<Identifier, Set<Aspect>> by lazy {
-        val ofWords = allWords.filterNot(::isAStructureWord).associate { it.id to usage.partsReached(it) }
+        val ofWords = allWords.filterNot(::isAStructureWord).associate { it.id to usage.partsDescribed(it) }
         val ofPhrases = retired.phraseNames.mapNotNull { name ->
             val phrase = phraseOf(name)?.mapNotNull(words::word)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-            Identifier.fromNamespaceAndPath(Constants.MOD_ID, name) to phrase.flatMap(usage::partsReached).toSet()
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, name) to phrase.flatMap(usage::partsDescribed).toSet()
         }
         ofWords + ofPhrases
     }

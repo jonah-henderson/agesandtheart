@@ -64,6 +64,17 @@ class WorldMembership(private val vocabulary: Vocabulary) : Membership {
         }
     }
 
+    override fun aMemberClearingDoesAnythingWith(part: Aspect, bars: Map<String, Double>, effect: Effect): Boolean =
+        groupAnswers.computeIfAbsent(Triple(part, bars, effect)) {
+            val parameter = (effect as? Effect.Sets)?.parameter?.name ?: (effect as? Effect.Bends)?.parameter?.name
+            val isHeldByThePartAsAWhole = parameter != null && !part.ownsMemberParameterNamed(parameter)
+            val members = vocabulary.candidatesFor(part).filter { Bars.cleared(vocabulary.tagsOf(it), bars) }
+            !isHeldByThePartAsAWhole && members.any { doesAnythingWith(part, it.key, effect) }
+        }
+
+    // Asked of every group for every offer that reaches it, and the answer is the vocabulary's alone.
+    private val groupAnswers = java.util.concurrent.ConcurrentHashMap<Triple<Aspect, Map<String, Double>, Effect>, Boolean>()
+
     /** Whether [member] does anything with the parameter named [name], where [part] holds it member by member. */
     private fun honoursItsOwn(part: Aspect, member: Taggable, name: String): Boolean {
         val heldByEachMember = part.understood.firstOrNull { it.name == name && it.ownedByEachMember } ?: return true

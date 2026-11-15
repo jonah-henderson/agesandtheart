@@ -85,7 +85,10 @@ class Matching(private val membership: Membership, private val concepts: Map<Ide
         return if (sense == null) effects else effects.filter { aMemberItNamesDoesAnythingWith(sense, it) }
     }
 
-    /** Whether a member [sense] names does anything with [effect], or it names none. */
+    /**
+     * Whether a member [sense] names does anything with [effect]; for a group, which names its members by what they are
+     * (`arthropods`), whether one of those does — `charged` charges only creepers; and where it names none, true.
+     */
     private fun aMemberItNamesDoesAnythingWith(sense: Sense, effect: Effect): Boolean {
         val part = sense.speaksFor ?: return true
         val named = sense.means.flatMap { meaning ->
@@ -95,7 +98,10 @@ class Matching(private val membership: Membership, private val concepts: Map<Ide
                 else -> emptyList()
             }
         }
-        return named.isEmpty() || named.any { membership.doesAnythingWith(part, it, effect) }
+        if (named.isNotEmpty()) return named.any { membership.doesAnythingWith(part, it, effect) }
+        val groupedBy = sense.means.filterIsInstance<Effect.Restricts>().filter { it.aspect == part }
+        if (groupedBy.isEmpty()) return true
+        return membership.aMemberClearingDoesAnythingWith(part, groupedBy.fold(emptyMap()) { bars, it -> bars + it.bars }, effect)
     }
 
     /** [offer]'s value with every part it does not give at its concept's default, where its concept is made of parts. */

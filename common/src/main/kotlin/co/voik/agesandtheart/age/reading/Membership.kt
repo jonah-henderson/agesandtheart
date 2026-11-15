@@ -23,4 +23,10 @@ interface Membership {
 
     /** Whether [member] of [part] does anything with [effect], as its code answers: a tempest holds no amount, an inferno no frequency. */
     fun doesAnythingWith(part: Aspect, member: String, effect: Effect): Boolean = true
+
+    /**
+     * Whether a member of [part] whose tags clear [bars] — one of a group — does anything with [effect]. What [part] holds
+     * as a whole rather than member by member (how varied its pool is) is no group's to set, so nothing does.
+     */
+    fun aMemberClearingDoesAnythingWith(part: Aspect, bars: Map<String, Double>, effect: Effect): Boolean = true
 }

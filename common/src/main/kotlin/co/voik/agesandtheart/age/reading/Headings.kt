@@ -27,10 +27,12 @@ object Headings {
         applying(usage).mapValues { it.value.words }.filterValues { it.isNotEmpty() }
 
     /**
-     * What each word applies to: every thing or part's page of a pack's that would take something it offers, and each
+     * What each word applies to: every thing or part's page of a pack's that would take something it offers more than a
+     * lean ([Usage.describes]), and each
      * creature, feature, biome or structure of the game's that would, except where it reaches all of them in that part
      * — then the part is reached [whole][Applying.whole], and said of its page rather than of each. A word naming
-     * members of a part is listed under that part's page: `zombie` and `monsters` under `inhabitants`.
+     * members of a part, or any other thing of one, is listed under that part's page — `zombie` and `monsters` under
+     * `inhabitants`, `spikes` under `features` — unless it is that page (`aurora`).
      */
     fun applying(usage: Usage): Map<Identifier, Applying> {
         val words = usage.words
@@ -39,18 +41,18 @@ object Headings {
         val ofTheGameIn = ofTheGame.groupingBy { it.part }.eachCount()
         val takerIds = takers.map { it.word.id }.toSet()
         val pagesFor = takers.filter { it.isAPartsPage(words) }.groupBy({ it.part }, { it.word.id })
-        fun takersOf(word: Word, among: List<Heading>) = among.filter { usage.takes(it.word, word) }
+        fun takersOf(word: Word, among: List<Heading>) = among.filter { usage.describes(it.word, word) }
         val describing = words.all.filter { it.id !in takerIds && it.defaultSense?.behaviour == null }.associate { word ->
             val under = takersOf(word, headings)
             val (whole, some) = takersOf(word, ofTheGame).groupBy { it.part }.entries
                 .partition { (part, reached) -> reached.size == ofTheGameIn[part] }
             val listedUnder = (under + some.flatMap { it.value }).distinctBy { it.word.id }
-            // A reading is the taker's own idiom, no kind of meaning to file a word under.
-            val takenAs = listedUnder.map { usage.conceptsTaken(it.word, word) - CoreConcepts.READING }
+            // A reading is the taker's own idiom, no kind of meaning to file a word under, and a lean is not said of it.
+            val takenAs = listedUnder.map { usage.conceptsTaken(it.word, word) - CoreConcepts.READING - CoreConcepts.LEAN }
             word.id to Applying(listedUnder.map { it.word.id }, whole.map { it.key }.toSet(), takenAs)
         }
-        val naming = takers.filter { it.namesMembers }.associate { taker ->
-            val pages = pagesFor[taker.part].orEmpty()
+        val naming = takers.filter { it.namesMembers || !it.isAPartsPage(words) }.associate { taker ->
+            val pages = pagesFor[taker.part].orEmpty() - taker.word.id
             taker.word.id to Applying(pages, emptySet(), pages.map { setOf(CoreConcepts.MEMBER) })
         }
         return (describing + naming).filterValues { it.words.isNotEmpty() || it.whole.isNotEmpty() }
