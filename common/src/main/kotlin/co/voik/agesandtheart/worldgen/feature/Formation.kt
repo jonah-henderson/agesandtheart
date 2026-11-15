@@ -115,6 +115,8 @@ data class Formation(
      * part of it agrees — a pool a book named or left unstated — rather than of all of them mingled.
      */
     val drawsOneEach: Boolean = false,
+    /** How heavily each of [substances] is drawn where [drawsOneEach], in their order; empty for evenly. */
+    val substanceWeights: List<Double> = emptyList(),
 ) : Feature {
 
     /**
@@ -362,8 +364,8 @@ data class Formation(
     /** What [formation] is made of where its ground says nothing: one of the substances drawn at its origin, or all of them. */
     private fun ownMaterialOf(formation: Standing, origins: PositionalRandomFactory): TerrainFill {
         if (!drawsOneEach || substances.size < 2) return material
-        val drawn = origins.at(formation.originX, SUBSTANCE_DRAW, formation.originZ).nextInt(substances.size)
-        return madeOf(listOf(substances[drawn]))
+        val roll = origins.at(formation.originX, SUBSTANCE_DRAW, formation.originZ).nextDouble()
+        return madeOf(listOf(substances[WeightedDraw.indexAt(roll, substanceWeights, substances.size)]))
     }
 
     private fun lowestGroundUnder(
@@ -560,10 +562,11 @@ data class Formation(
                 Codec.INT.optionalFieldOf("only_on").forGetter { Optional.ofNullable(it.onlyOn) },
                 GroundSubstance.CODEC.listOf().optionalFieldOf("by_ground", emptyList()).forGetter(Formation::byGround),
                 Codec.BOOL.optionalFieldOf("draws_one_each", false).forGetter(Formation::drawsOneEach),
-            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest, onlyOn, byGround, drawsOneEach ->
+                Codec.DOUBLE.listOf().optionalFieldOf("substance_weights", emptyList()).forGetter(Formation::substanceWeights),
+            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest, onlyOn, byGround, drawsOneEach, weights ->
                 Formation(
                     shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null), largest,
-                    onlyOn.orElse(null), byGround, drawsOneEach,
+                    onlyOn.orElse(null), byGround, drawsOneEach, weights,
                 )
             }
         }

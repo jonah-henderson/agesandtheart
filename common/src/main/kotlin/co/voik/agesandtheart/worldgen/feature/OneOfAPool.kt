@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.feature
 
+import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
@@ -24,7 +25,7 @@ import java.lang.reflect.Proxy
  * Drawn by where it is placed and the world's seed rather than from the feature's own random, so the shape it would
  * have laid is unchanged and a chunk comes out the same every time.
  */
-data class OneOfAPool(val feature: Holder<Feature>, val pool: List<Block>) : Feature {
+data class OneOfAPool(val feature: Holder<Feature>, val pool: List<Block>, val weights: List<Double> = emptyList()) : Feature {
 
     override fun codec(): MapCodec<out Feature> = CODEC
 
@@ -34,8 +35,10 @@ data class OneOfAPool(val feature: Holder<Feature>, val pool: List<Block>) : Fea
         feature.value().place(viewOf(level, pool.toSet(), drawnAt(origin, level.seed)), generator, random, origin)
 
     /** The block of the pool a placement at [origin] in a world of [seed] is laid of. */
-    internal fun drawnAt(origin: BlockPos, seed: Long): Block =
-        pool[Math.floorMod(mixed(origin.asLong() xor seed xor pool.hashCode().toLong()), pool.size)]
+    internal fun drawnAt(origin: BlockPos, seed: Long): Block {
+        val roll = (mixed(origin.asLong() xor seed xor pool.hashCode().toLong()) ushr FRACTION_SHIFT).toDouble() / FRACTION_RANGE
+        return pool[WeightedDraw.indexAt(roll, weights, pool.size)]
+    }
 
     /** Lays each block of the pool as [drawn]; anything else as it was asked. */
     private class Laying(private val real: WorldGenLevel, private val pool: Set<Block>, private val drawn: Block) : InvocationHandler {
@@ -60,6 +63,7 @@ data class OneOfAPool(val feature: Holder<Feature>, val pool: List<Block>) : Fea
             instance.group(
                 Feature.CODEC.fieldOf("feature").forGetter(OneOfAPool::feature),
                 BuiltInRegistries.BLOCK.byNameCodec().listOf().fieldOf("pool").forGetter(OneOfAPool::pool),
+                Codec.DOUBLE.listOf().optionalFieldOf("weights", emptyList()).forGetter(OneOfAPool::weights),
             ).apply(instance, ::OneOfAPool)
         }
 
@@ -74,6 +78,10 @@ data class OneOfAPool(val feature: Holder<Feature>, val pool: List<Block>) : Fea
         }
 
         private const val SET_BLOCK = "setBlock"
+
+        // The top 53 bits of the mix read as a fraction.
+        private const val FRACTION_SHIFT = 11
+        private const val FRACTION_RANGE = (1L shl 53).toDouble()
         private const val SHIFT_ONE = 30
         private const val SHIFT_TWO = 27
         private const val SHIFT_THREE = 31

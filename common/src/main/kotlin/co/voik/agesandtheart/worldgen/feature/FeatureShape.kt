@@ -122,11 +122,17 @@ object FeatureShape {
      * word naming an unmintable one is a content bug rather than a play outcome.
      */
     @Suppress("DEPRECATION")
-    fun mintedFrom(pattern: Holder<PlacedFeature>, substances: List<String>, drawsOneEach: Boolean = false): Holder<PlacedFeature> {
-        val blocks = substances.mapNotNull { substance ->
+    fun mintedFrom(
+        pattern: Holder<PlacedFeature>,
+        substances: List<String>,
+        drawsOneEach: Boolean = false,
+        weights: Map<String, Double> = emptyMap(),
+    ): Holder<PlacedFeature> {
+        val weighed = substances.mapNotNull { substance ->
             val laid = Identifier.tryParse(substance)?.let(Materials::laidAs)
-            laid?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
+            laid?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }?.let { it to (weights[substance] ?: 1.0) }
         }
+        val blocks = weighed.map { it.first }
         val block = blocks.firstOrNull() ?: return pattern
         val placed = pattern.value()
         val rebuilt = when (val feature = placed.feature().value()) {
@@ -175,6 +181,7 @@ object FeatureShape {
             is Formation -> feature.copy(
                 substances = blocks.map { it.defaultBlockState() },
                 drawsOneEach = drawsOneEach,
+                substanceWeights = if (drawsOneEach) weighed.map { it.second } else emptyList(),
                 seed = feature.seed xor substances.hashCode().toLong(),
                 byGround = emptyList(),
             )
@@ -253,10 +260,13 @@ object FeatureShape {
         else -> feature
     }
 
-    /** [placed] laid of one block of [pool] each time it is placed ([OneOfAPool]). */
-    fun oneOfAPool(placed: Holder<PlacedFeature>, pool: List<String>): Holder<PlacedFeature> {
-        val blocks = pool.mapNotNull { Identifier.tryParse(it)?.let { id -> BuiltInRegistries.BLOCK.getOptional(id).orElse(null) } }
-        return Holder.direct(PlacedFeature(Holder.direct(OneOfAPool(placed.value().feature(), blocks)), placed.value().placement()))
+    /** [placed] laid of one block of [pool] each time it is placed, drawn by its weight ([OneOfAPool]). */
+    fun oneOfAPool(placed: Holder<PlacedFeature>, pool: Map<String, Double>): Holder<PlacedFeature> {
+        val weighed = pool.mapNotNull { (named, weight) ->
+            Identifier.tryParse(named)?.let { id -> BuiltInRegistries.BLOCK.getOptional(id).orElse(null) }?.let { it to weight }
+        }
+        val drawn = OneOfAPool(placed.value().feature(), weighed.map { it.first }, weighed.map { it.second })
+        return Holder.direct(PlacedFeature(Holder.direct(drawn), placed.value().placement()))
     }
 
     /** [placed] laid through [LaidWhole], so the beds, tall flowers and doors it is made of stand whole. */

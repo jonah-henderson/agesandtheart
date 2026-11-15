@@ -570,8 +570,8 @@ object Features {
                 // A tag said alone is a pool each placement draws one block from, so piles differ and each is
                 // of one block. Among several substances a tag is drawn once for the Age, and the rest mingle.
                 val pool = claim.substances.singleOrNull()?.let { poolNamed(server, it) }.orEmpty()
-                val substances = pool.ifEmpty { claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) } }
-                val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances, drawsOneEach = pool.size > 1)
+                val substances = pool.keys.toList().ifEmpty { claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) } }
+                val minted = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances, drawsOneEach = pool.size > 1, weights = pool)
                 val scattered = claim.frequency?.let { FeatureShape.scatteredAtFrequency(minted, it) } ?: minted
                 val shaped = FeatureShape.arranged(scattered, claim.arrangement ?: shape.arrangementOf(found), claim.spacing ?: shape.spacingOf(found))
                 // **Shaped before the amount**, so what is scaled is the shape and not the placement the
@@ -624,13 +624,15 @@ object Features {
      * and holds no registry. Salted by what is being made, so two patterns left unstated in one book do
      * not come out of the same rock.
      */
-    /** Every block of the tag [named], by id, or null where it names no tag. */
-    private fun poolNamed(server: MinecraftServer, named: String): List<String>? {
+    /** Every block of the tag [named] by id, in order, with how heavily it is drawn ([PoolWeights]); null where it names no tag. */
+    private fun poolNamed(server: MinecraftServer, named: String): Map<String, Double>? {
         if (!named.startsWith(TAG_MARK)) return null
         val id = Identifier.tryParse(named.drop(1)) ?: return null
         val blocks = server.registryAccess().lookupOrThrow(Registries.BLOCK)
         val pool = blocks.get(TagKey.create(Registries.BLOCK, id)).orElse(null)?.toList().orEmpty()
-        return pool.mapNotNull { it.unwrapKey().orElse(null)?.identifier()?.toString() }.sorted()
+        val weights = PoolWeights.of(server, id)
+        val ids = pool.mapNotNull { it.unwrapKey().orElse(null)?.identifier() }.sortedBy(Identifier::toString)
+        return ids.associate { it.toString() to weights.of(it) }.filterValues { it > 0.0 }
     }
 
     private fun drawnSubstance(server: MinecraftServer, named: String, salt: Long, of: String): String? {

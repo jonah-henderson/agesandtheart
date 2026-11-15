@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "How heavily each stone of #agesandtheart:formation_substance is drawn for a formation a book left unstated: mostly",
+    "the overworld's own stones, now and then tuff or sandstone, rarely the dark ones, and amethyst about once in ten",
+    "thousand (Jonah, 2026-11-14). A stone of the tag not listed here weighs one."
+  ],
+  "weights": {
+    "minecraft:stone": 30.0,
+    "minecraft:granite": 20.0,
+    "minecraft:diorite": 20.0,
+    "minecraft:andesite": 20.0,
+    "minecraft:tuff": 4.0,
+    "minecraft:sandstone": 4.0,
+    "minecraft:deepslate": 1.0,
+    "minecraft:blackstone": 1.0,
+    "minecraft:amethyst_block": 0.01
+  }
+}
