@@ -344,13 +344,16 @@ data class Vocabulary(
      * remember: vagueness draws only from the curated pool because it has nothing else to draw from, and
      * the resolver's work is bounded by our curation rather than by the size of the modpack.
      */
-    override fun candidatesFor(aspect: Aspect): List<Taggable> {
-        if (!aspect.open) return aspect.authored
+    override fun candidatesFor(aspect: Aspect): List<Taggable> = candidates.computeIfAbsent(aspect) {
+        if (!aspect.open) return@computeIfAbsent aspect.authored
         // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
         // A closed aspect gets the same guarantee from its enum's declaration order.
         val described = tagsBySlot[aspect]?.described.orEmpty()
-        return described.distinct().sorted().mapNotNull(aspect::presetFor)
+        described.distinct().sorted().mapNotNull(aspect::presetFor)
     }
+
+    /** Each aspect's [candidatesFor], worked out once: every book resolved asks for them. */
+    private val candidates = java.util.concurrent.ConcurrentHashMap<Aspect, List<Taggable>>()
 
     /**
      * The curated pool less everything kept from broad words — **what a vague word may land on**, and so
@@ -362,11 +365,14 @@ data class Vocabulary(
      * preset in the bag a vague word draws from made it *rarer*, not unreachable: the Spire's sky came up
      * on one Age in three and took its dimension type with it.
      */
+    override fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> = availableToBroadWords.computeIfAbsent(aspect) {
+        candidatesFor(aspect).filter(::isAvailableToBroadWords)
+    }
+
+    private val availableToBroadWords = java.util.concurrent.ConcurrentHashMap<Aspect, List<Taggable>>()
+
     /** Whether the pack says what [key], a member of [aspect], is like — so a word may reach it by what it is. */
     fun describes(aspect: Aspect, key: String): Boolean = key in tagsBySlot[aspect]?.described.orEmpty()
-
-    override fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
-        candidatesFor(aspect).filter(::isAvailableToBroadWords)
 
     /** Whether [preset] and its `preset_tags` entry both allow a broad word to land on it. */
     fun isAvailableToBroadWords(preset: Taggable): Boolean =

@@ -113,7 +113,9 @@ object ProposedBook {
         private fun isAThingThatTakes(word: Word): Boolean =
             word.senses.any { it.endsAPhrase && it.behaviour == null && it.acceptances.isNotEmpty() }
 
-        val modifiers: List<String> = byPage.keys.sorted().filter { page -> page !in heads && wordOf(page) != null }
+        val modifiers: List<String> = heads.toHashSet().let { headPages ->
+            byPage.keys.sorted().filter { page -> page !in headPages && wordOf(page) != null }
+        }
 
         val every: List<String> = byPage.keys.sorted()
 

@@ -53,7 +53,29 @@ data class Dangled(val page: Int, val written: String, val drawnOnto: String?)
  */
 object Draw {
     fun of(reading: Reading, words: Words, membership: Membership, world: WorldFacts, isGated: (Word) -> Boolean, seed: Long): Drawn =
-        Drawing(reading, words, membership, world, isGated, seed).drawn()
+        of(reading, words, membership, world, DanglingTakers(words, isGated), seed)
+
+    fun of(reading: Reading, words: Words, membership: Membership, world: WorldFacts, takers: DanglingTakers, seed: Long): Drawn =
+        Drawing(reading, words, membership, world, takers, seed).drawn()
+}
+
+/**
+ * The words that could take something of a dangling page: no behaviour, not gated, and with a sense whose acceptance
+ * could resolve one of its offers, or of the part one of its readings is for. Whether one does is for reading the two.
+ * Worked out once per dangling word, in the corpus's order, which the draw is made by.
+ */
+class DanglingTakers(private val words: Words, private val isGated: (Word) -> Boolean) {
+    private val drawable: List<Word> by lazy { words.all.filter { it.defaultSense?.behaviour == null && !isGated(it) } }
+    private val byDangling = java.util.concurrent.ConcurrentHashMap<Identifier, List<Word>>()
+
+    fun of(dangling: Word): List<Word> = byDangling.computeIfAbsent(dangling.id) {
+        val offers = dangling.senses.flatMap { it.offers }
+        val concepts = offers.filterNot(Offer::isAReading).map(Offer::concept).toSet()
+        val readingParts = offers.filter(Offer::isAReading).mapNotNull { (it.audience as? Audience.Part)?.aspect }.toSet()
+        fun resolvesOne(sense: Sense) = concepts.any { sense.acceptanceOf(it)?.canResolveDanglingOffers == true }
+        fun couldTakeIt(taker: Word) = taker.senses.any { sense -> resolvesOne(sense) || sense.speaksFor in readingParts }
+        drawable.filter(::couldTakeIt)
+    }
 }
 
 private class Drawing(
@@ -61,7 +83,7 @@ private class Drawing(
     private val words: Words,
     private val membership: Membership,
     private val world: WorldFacts,
-    private val isGated: (Word) -> Boolean,
+    private val takers: DanglingTakers,
     private val seed: Long,
 ) {
     private val written = reading.pages.map { it.written }
@@ -157,7 +179,7 @@ private class Drawing(
         val saidWithAPolarity = reading.pages.getOrNull(page)?.polarity?.let { it != Polarity.ASSERTED } == true
         if (saidWithAPolarity) return Dangled(page, written[page], null) to emptyList()
         val word = words.word(written[page])
-        val candidates = if (word == null || word.defaultSense?.behaviour != null) emptyList() else candidatesFor(word)
+        val candidates = if (word == null || word.defaultSense?.behaviour != null) emptyList() else takers.of(word)
         val drawn = takerDrawn(written[page], candidates, randomFor(page, DANGLING_SALT))
             ?: return Dangled(page, written[page], null) to emptyList()
         val (taker, read) = drawn
@@ -196,19 +218,6 @@ private class Drawing(
         }
         val resolving = phrase.copy(placements = phrase.placements.filter(::resolvesIt))
         return if (resolving.placements.isEmpty()) null else page to read.copy(phrases = listOf(resolving))
-    }
-
-    /**
-     * The words that could take something of [dangling]: no behaviour, not gated, and with a sense whose acceptance could
-     * resolve one of its offers, or of the part one of its readings is for. Whether one does is for reading the two.
-     */
-    private fun candidatesFor(dangling: Word): List<Word> {
-        val offers = dangling.senses.flatMap { it.offers }
-        val concepts = offers.filterNot(Offer::isAReading).map(Offer::concept).toSet()
-        val readingParts = offers.filter(Offer::isAReading).mapNotNull { (it.audience as? Audience.Part)?.aspect }.toSet()
-        fun resolvesOne(sense: Sense) = concepts.any { sense.acceptanceOf(it)?.canResolveDanglingOffers == true }
-        fun couldTakeIt(taker: Word) = taker.senses.any { sense -> resolvesOne(sense) || sense.speaksFor in readingParts }
-        return words.all.filter { it.defaultSense?.behaviour == null && !isGated(it) && couldTakeIt(it) }
     }
 
     // ----- Landings -----

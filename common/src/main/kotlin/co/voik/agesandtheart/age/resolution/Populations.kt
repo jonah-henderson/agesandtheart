@@ -61,11 +61,12 @@ private fun Resolving.weighedIn(
 ): AgeComposition {
     fun namedBy(said: Landing) = said.admitted + listOfNotNull(said.choice?.key)
     val curated = world.availableToBroadWordsIn(aspect)
+    val curatedMembers = curated.toHashSet()
     // Kept from broad words so that `teeming monsters` brings no wardens; `no monsters` strikes them all the same.
-    val struckThoughHeldBack = world.candidatesFor(aspect).filter { it !in curated && isStruckByA(speaking, it) }
+    val struckThoughHeldBack = world.candidatesFor(aspect).filter { it !in curatedMembers && isStruckByA(speaking, it) }
     val named = speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
     val drawnFrom = (curated + named + struckThoughHeldBack).distinct()
-    val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curated, ground) }
+    val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curatedMembers, ground) }
     loseWhatWasStruck(speaking, claims, ::namedBy)
     val reached = drawnAmong(claims, drawnFrom, speaking, aspect)
     val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking, aspect) else composition
