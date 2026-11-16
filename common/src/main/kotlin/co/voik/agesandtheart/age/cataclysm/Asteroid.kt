@@ -12,6 +12,7 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.damagesource.DamageType
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
@@ -34,8 +35,14 @@ object Asteroid {
                 if (level.gameTime % BURNING_EVERY == 0L) burnWhatTheSkySees(level)
                 setTheGroundAlight(level)
             }
-            ImpactPhase.DUST -> if (doom.hidesTheScorchAt(level.gameTime)) Scorch.some(level, CHUNKS_IN_THE_DUST)
-            ImpactPhase.AFTER -> Scorch.some(level, CHUNKS_AFTER)
+            ImpactPhase.DUST -> {
+                if (level.gameTime % BURNING_EVERY == 0L) burnWhatTheSkySees(level, sparingPlayers = true)
+                if (doom.hidesTheScorchAt(level.gameTime)) Scorch.some(level, CHUNKS_IN_THE_DUST)
+            }
+            ImpactPhase.AFTER -> {
+                if (level.gameTime % BURNING_EVERY == 0L) burnWhatTheSkySees(level, sparingPlayers = true)
+                Scorch.some(level, CHUNKS_AFTER)
+            }
             ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, null -> Unit
         }
     }
@@ -62,26 +69,29 @@ object Asteroid {
     }
 
     /**
-     * Burns everything living that the sky can see, players and creatures alike. Under water is sheltered, as
-     * what lived in the sea was; under a roof is sheltered for as long as the roof stands.
+     * Burns everything living that daylight reaches, players and creatures alike, or everything but the players once the
+     * heat has passed: what was out of sight when the sky burned — in a chunk nobody was near — meets the same end
+     * when it is found. Under water is sheltered, as what lived in the sea was; deep enough under a roof or into a cave
+     * is sheltered for as long as the roof stands.
      *
      * Its own damage rather than fire's, so neither a potion nor a creature's own fire immunity is an answer.
      */
-    private fun burnWhatTheSkySees(level: ServerLevel) {
+    private fun burnWhatTheSkySees(level: ServerLevel, sparingPlayers: Boolean = false) {
         val heat = heatIn(level)
         // Gathered first: what burns to death leaves the level's entities while they are being walked.
         val exposed = level.allEntities.filterIsInstance<LivingEntity>().filter { it.isAlive && isUnderTheSky(level, it) }
         for (living in exposed) {
-            if (living is Player && (living.isCreative || living.isSpectator)) continue
+            if (living is Player && (sparingPlayers || living.isCreative || living.isSpectator)) continue
             living.igniteForSeconds(BURNS_FOR_SECONDS)
             living.hurtServer(level, heat, BURN_DAMAGE)
         }
     }
 
+    /** Whether daylight reaches [living], by the sky light where its eyes are, as it reaches the land ([Scorch.IN_DAYLIGHT]). */
     private fun isUnderTheSky(level: ServerLevel, living: LivingEntity): Boolean {
         val isUnderWater = living.isEyeInFluid(FluidTags.WATER)
-        val seesTheSky = level.canSeeSky(BlockPos.containing(living.eyePosition))
-        return seesTheSky && !isUnderWater
+        val isInDaylight = level.getBrightness(LightLayer.SKY, BlockPos.containing(living.eyePosition)) >= Scorch.IN_DAYLIGHT
+        return isInDaylight && !isUnderWater
     }
 
     /**

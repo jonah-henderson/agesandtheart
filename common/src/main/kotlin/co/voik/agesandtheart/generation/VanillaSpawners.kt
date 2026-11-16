@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.ai.village.VillageSiege
@@ -28,7 +29,15 @@ internal object VanillaSpawners {
         CatSpawner(),
         VillageSiege(),
         tradersFor(asked[WANDERING_TRADER], asked[TRADER_LLAMA]),
-    )
+    ).map(::UntilTheEnd)
+
+    /** [spawner], until an end has struck the Age: after it, nothing new comes to a dead world (design §5.3). */
+    private class UntilTheEnd(private val spawner: CustomSpawner) : CustomSpawner {
+        override fun tick(level: ServerLevel, spawnEnemies: Boolean) {
+            val hasEnded = Ages.recipeOf(level)?.let { Cataclysms.hasEnded(it, level.gameTime) } == true
+            if (!hasEnded) spawner.tick(level, spawnEnemies)
+        }
+    }
 
     private fun tradersFor(traders: Double?, llamas: Double?): CustomSpawner {
         if (traders == null && llamas == null) return WanderingTradersOfItsOwn()

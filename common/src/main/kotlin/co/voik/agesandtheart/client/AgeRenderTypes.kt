@@ -86,7 +86,7 @@ object AgeRenderTypes {
     val starFissureVeil: RenderType = RenderType.create(
         "age_star_fissure_veil",
         RenderSetup.builder(
-            RenderPipeline.builder(vanillasEndPortal())
+            RenderPipeline.builder(takenApart(RenderPipelines.END_PORTAL))
                 .withLocation("pipeline/star_fissure_veil".location())
                 .withDepthStencilState(DepthStencilState(CompareOp.ALWAYS_PASS, true))
                 .build(),
@@ -97,12 +97,11 @@ object AgeRenderTypes {
     )
 
     /**
-     * Vanilla's end-portal pipeline taken apart, so one property of it can be put back differently.
+     * A vanilla pipeline taken apart, so one property of it can be put back differently.
      *
      * **Read off the built pipeline rather than restated**, which is what keeps it vanilla's: the shaders,
-     * the bind group layouts, the vertex bindings and the fifteen layers all come from whatever
-     * `RenderPipelines.END_PORTAL` is on the day, so none of it can quietly fall out of step with a version
-     * that adds a uniform. `RenderPipeline` publishes a getter for nearly every field and `Snippet` is a
+     * the bind group layouts, the vertex bindings and the end portal's fifteen layers all come from whatever
+     * [pipeline] is on the day, so none of it can quietly fall out of step with a version that adds a uniform. `RenderPipeline` publishes a getter for nearly every field and `Snippet` is a
      * public record over the same ones, so this needs no widened access at all.
      *
      * The one exception is how many colour targets are live: a built pipeline does not say, so it is
@@ -111,23 +110,40 @@ object AgeRenderTypes {
     // NeoForge's own deprecation, steering to a constructor that takes a field only it has. `common`
     // compiles against vanilla and cannot name it, and vanilla's is the shape this copies from.
     @Suppress("DEPRECATION")
-    private fun vanillasEndPortal(): RenderPipeline.Snippet {
-        val portal = RenderPipelines.END_PORTAL
-        val colourTargets = portal.colorTargetStates.toTypedArray()
+    private fun takenApart(pipeline: RenderPipeline): RenderPipeline.Snippet {
+        val colourTargets = pipeline.colorTargetStates.toTypedArray()
         return RenderPipeline.Snippet(
-            portal.shaders,
-            Optional.of(portal.shaderDefines),
-            Optional.of(portal.bindGroupLayouts),
+            pipeline.shaders,
+            Optional.of(pipeline.shaderDefines),
+            Optional.of(pipeline.bindGroupLayouts),
             colourTargets,
             colourTargets.count { it != null },
             Optional.empty(),
-            Optional.of(portal.polygonMode),
-            Optional.of(portal.isCull),
-            portal.vertexFormatBindings.toTypedArray(),
-            Optional.of(portal.primitiveTopology),
-            portal.pushConstantSize(),
+            Optional.of(pipeline.polygonMode),
+            Optional.of(pipeline.isCull),
+            pipeline.vertexFormatBindings.toTypedArray(),
+            Optional.of(pipeline.primitiveTopology),
+            pipeline.pushConstantSize(),
         )
     }
+
+    /**
+     * Light added to whatever is behind it, fading into the fog: `RenderTypes.dragonRays` exactly, bar the depth
+     * write. 26.3 gave the dragon's rays `DepthStencilState.DEFAULT`, which writes depth, and a glow that stamps
+     * depth makes whatever translucent is drawn after it — water above all — vanish in the patch behind it. Under
+     * sorted transparency it is vanilla's own set for the rays, which accumulates rather than covers.
+     */
+    val addedLight: RenderType = RenderType.create(
+        "age_added_light",
+        RenderSetup.builder(
+            RenderPipeline.builder(takenApart(RenderPipelines.DRAGON_RAYS))
+                .withLocation("pipeline/added_light".location())
+                .withDepthStencilState(DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false))
+                .build(),
+        )
+            .setOitPipelines(RenderPipelines.OIT_DRAGON_RAYS)
+            .createRenderSetup(),
+    )
 
     /** The glow bar how it blends and how it tests depth — see `SandColumnRenderer.SHARED` for why. */
     private val GLOW: RenderPipeline.Snippet = RenderPipeline.builder(MATRICES_AND_PROJECTION)

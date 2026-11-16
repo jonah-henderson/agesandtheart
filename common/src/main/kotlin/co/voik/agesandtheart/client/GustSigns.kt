@@ -39,11 +39,21 @@ object GustSigns {
     private val SIGN = Sign.STREAKS
 
     /** This tick's signs of [gust] around [player], driving along [drivingDegrees], in a gale [lying] this much risen. */
-    fun show(level: ClientLevel, player: LocalPlayer, drivingDegrees: Double, gust: Gust, lying: Double) {
+    fun show(level: ClientLevel, player: LocalPlayer, drivingDegrees: Double, gust: Gust, lying: Double) =
+        showSome(level, player, drivingDegrees, gust.presence * lying * MOST_EACH_TICK)
+
+    /**
+     * This tick's signs of a wind blowing steadily at [strength] around [player], one being as thick as a gust at its
+     * height: an asteroid's blast, which has no gusts of its own to be seen by.
+     */
+    fun showSteady(level: ClientLevel, player: LocalPlayer, drivingDegrees: Double, strength: Double) =
+        showSome(level, player, drivingDegrees, strength * MOST_EACH_TICK)
+
+    private fun showSome(level: ClientLevel, player: LocalPlayer, drivingDegrees: Double, expected: Double) {
         val random = level.random
         val towardsX = cos(Math.toRadians(drivingDegrees))
         val towardsZ = sin(Math.toRadians(drivingDegrees))
-        repeat(howManyNow(random, gust.presence * lying * MOST_EACH_TICK)) {
+        repeat(howManyNow(random, expected)) {
             val upwind = Mth.nextDouble(random, -FURTHEST_UPWIND, FURTHEST_DOWNWIND)
             val across = Mth.nextDouble(random, -FURTHEST_ACROSS, FURTHEST_ACROSS)
             val x = player.x + towardsX * upwind - towardsZ * across

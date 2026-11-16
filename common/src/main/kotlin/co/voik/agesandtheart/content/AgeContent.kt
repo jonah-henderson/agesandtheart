@@ -17,6 +17,7 @@ import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.Tornado
 import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.age.cataclysm.Ejecta
+import co.voik.agesandtheart.age.cataclysm.ImpactSounds
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.book.BookEntity
@@ -1787,7 +1788,7 @@ object AgeContent {
         .updateInterval(BOMB_UPDATE_TICKS)
         .build(ResourceKey.create(Registries.ENTITY_TYPE, Ejecta.ID))
 
-    private const val EJECTA_SIZE = 1.5f
+    private const val EJECTA_SIZE = 3.0f
 
     /** Far, because one is thrown from a long way out and crosses that ground in about a second. */
     private const val METEOR_TRACKING_CHUNKS = 16
@@ -2342,7 +2343,7 @@ object AgeContent {
         GUST_ID to GUST,
         WIND_SHELTERED_ID to WIND_SHELTERED,
         WIND_EXPOSED_ID to WIND_EXPOSED,
-    ) + PalmBeach.soundEvents
+    ) + PalmBeach.soundEvents + ImpactSounds.soundEvents
 
     private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()
 

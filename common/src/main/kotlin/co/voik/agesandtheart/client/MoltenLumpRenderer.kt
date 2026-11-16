@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.block.MovingBlockRenderState
+import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.state.EntityRenderState
@@ -58,7 +59,14 @@ open class MoltenLumpRenderer<T : Entity>(
     private val heatFor: (T, Float) -> Float = { _, bySpeed -> bySpeed },
     /** How many times the usual length its streak is drawn. */
     private val streakStretch: Double = 1.0,
+    /** Whether it is drawn as itself at all, where something else stands in for it for a while. */
+    private val isShown: (T) -> Boolean = { true },
+    /** How big its bloom is, against the usual for its size. */
+    private val bloomStretch: Double = 1.0,
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
+
+    override fun shouldRender(entity: T, frustum: Frustum, x: Double, y: Double, z: Double, partialTick: Float): Boolean =
+        isShown(entity) && super.shouldRender(entity, frustum, x, y, z, partialTick)
 
     override fun createRenderState() = MoltenLumpRenderState()
 
@@ -116,7 +124,7 @@ open class MoltenLumpRenderer<T : Entity>(
         if (heat <= GONE_OUT) return
         val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
         val burning = colour.copy(alpha = colour.alpha * heat)
-        AddedLight.halo(collector, poseStack, towardCamera, burning, scale * BLOOM_ACROSS)
+        AddedLight.halo(collector, poseStack, towardCamera, burning, scale * BLOOM_ACROSS * bloomStretch)
         AddedLight.streak(collector, poseStack, state.travel.scale(streakStretch), towardCamera, burning, scale * STREAK_ACROSS)
     }
 
@@ -127,8 +135,8 @@ open class MoltenLumpRenderer<T : Entity>(
         private const val HALF_BLOCK = 0.5
 
         /** The bloom and the head of the streak, as multiples of how big the lump is drawn. */
-        private const val BLOOM_ACROSS = 1.1
-        private const val STREAK_ACROSS = 0.55
+        const val BLOOM_ACROSS = 1.1
+        const val STREAK_ACROSS = 0.55
 
         /** How fast a lump has to be going to be at its brightest, in blocks a tick. */
         const val GLOWS_AT = 3.0
@@ -148,8 +156,9 @@ open class MoltenLumpRenderer<T : Entity>(
         const val METEOR = 0.75f
 
         /** A fragment of an asteroid's end, a great burning lump, and the fire it burns with. */
-        const val EJECTA = 2.5f
-        const val EJECTA_STREAK = 4.0
+        const val EJECTA = 5.0f
+        const val EJECTA_STREAK = 0.5
+        const val EJECTA_BLOOM = 0.5
         val EJECTA_BURNS = Rgba(1.0f, 0.55f, 0.2f, 0.9f)
 
         /** And made of a violet stone rather than magma, since everything else about one is violet. */

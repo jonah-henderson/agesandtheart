@@ -103,6 +103,10 @@ object Gales {
         if (gust != null && player != null && !client.isPaused) {
             GustSigns.show(level, player, Gale.drivingDegrees(blowing, gust), gust, blowing.lying)
         }
+        val blast = Impacts.comingTo(level)?.let { Blast.blowingAt(it, level.gameTime.toDouble()) }
+        if (blast != null && player != null && !client.isPaused) {
+            GustSigns.showSteady(level, player, blast.bearingDegrees, blast.lying * minOf(blast.fury, BLAST_SIGNS_AT_MOST))
+        }
     }
 
     /** The panel's level this client last blew a gale over, so its wind can be lifted when the gale or the panel goes. */
@@ -181,7 +185,10 @@ object Gales {
         playing.forEach(client.soundManager::play)
     }
 
-    private fun isHeardIn(level: ClientLevel): Boolean = blowingIn(level) != null
+    /** Whether a gale of the Age's own is heard: an asteroid's blast blows with the rest, but is heard by its own ([ImpactLoops]). */
+    private fun isHeardIn(level: ClientLevel): Boolean = galeOfItsOwnIn(level) != null
+
+    private fun galeOfItsOwnIn(level: ClientLevel): Gale.Blowing? = toldAbout(level)?.blowing
 
     private fun isSnowingIn(level: ClientLevel): Boolean = Storms.blowingIn(level) != null
 
@@ -232,7 +239,7 @@ object Gales {
             val player = client.player
             if (level == null || player == null || !isHeardIn(level)) return stop()
             if (isSnowingIn(level) != inABlizzard) return stop()
-            val blowing = blowingIn(level) ?: return stop()
+            val blowing = galeOfItsOwnIn(level) ?: return stop()
             val open = heardOpenness(level, player.blockPosition())
             volume = loudnessOf(blowing) * (if (whenOpen) open else ALL_OF_IT - open) * heardAbove(player)
         }
@@ -261,7 +268,7 @@ object Gales {
             val level = client.level
             val player = client.player
             if (level == null || player == null || !isHeardIn(level)) return stop()
-            val blowing = blowingIn(level) ?: return stop()
+            val blowing = galeOfItsOwnIn(level) ?: return stop()
             val gust = gustIn(level)?.takeIf { it.slot == slot }
             val swell = gust?.presence ?: NOTHING_LEFT
             val open = Sampling.exposureAt(level, player.blockPosition())
@@ -275,6 +282,9 @@ object Gales {
 
     /** How much of the wind is heard: all of it above the water, none with your head under it. */
     private fun heardAbove(player: LocalPlayer): Float = if (player.isUnderWater) SILENT else ALL_OF_IT
+
+    /** How thick the signs of an asteroid's blast are at their thickest, as a multiple of a gust's at its height. */
+    private const val BLAST_SIGNS_AT_MOST = 4.0
 
     /** How much more a boat takes of the gale than a walker, its side being a sail of sorts. */
     private const val SAILING = 0.5

@@ -60,7 +60,7 @@ data class ImpactTimeline(
         /** Short enough to watch whole while the look is being worked out: two minutes from speck to strike. */
         val PROTOTYPE = ImpactTimeline(
             approach = 2 * TICKS_PER_MINUTE,
-            entry = 15 * TICKS_PER_SECOND,
+            entry = 6 * TICKS_PER_SECOND,
             travel = 75 * TICKS_PER_SECOND,
             heat = 45 * TICKS_PER_SECOND,
             dust = 90 * TICKS_PER_SECOND,
@@ -129,18 +129,44 @@ data class Doom(
     /** Whether it has struck by [time]: whether the Age has ended and its links fail. */
     fun hasStruckBy(time: Long): Boolean = time >= impactAt
 
+    /** The moment the ash the strike threw up sets out from where it struck, a wall rolling outward over the land. */
+    val ashSetsOutAt: Long get() = startOf(ImpactPhase.HEAT) + (lengthOf(ImpactPhase.HEAT) * ASH_SETS_OUT_THROUGH_THE_HEAT).toLong()
+
+    /** The moment the wall of ash reaches whoever stands in the Age, and the dust begins. */
+    val ashArrivesAt: Long get() = startOf(ImpactPhase.DUST)
+
+    /**
+     * How far the wall of ash has rolled out from where it struck at [time], as a share of the way to the eye:
+     * nought as it sets out, one as it arrives, and on past one as it rolls on beyond.
+     */
+    fun ashReachedAt(time: Double): Double =
+        ((time - ashSetsOutAt) / (ashArrivesAt - ashSetsOutAt).toDouble()).coerceAtLeast(0.0)
+
+    /** How far the wall of ash still is from the eye at [time], in blocks; nothing once it has arrived. */
+    fun ashDistanceAt(time: Double): Double = ((1.0 - ashReachedAt(time)) * IMPACT_DISTANCE).coerceAtLeast(0.0)
+
     /**
      * How thick the smoke and dust hang at [time], from nought to one: smoke rising from what burns through the heat,
-     * the dust closing in soon after it settles, and some kept for ever in the impact winter.
+     * the dust closing in as the wall of ash arrives, and some kept for ever in the impact winter.
      */
     fun dustAt(time: Double): Float = when (phaseAt(time.toLong())) {
         ImpactPhase.HEAT -> SMOKE_BY_THE_DUST * progressThrough(ImpactPhase.HEAT, time).toFloat()
-        ImpactPhase.DUST -> {
-            val closing = (progressThrough(ImpactPhase.DUST, time) * DUST_CLOSES_FASTER).coerceAtMost(1.0).toFloat()
-            SMOKE_BY_THE_DUST + (WHOLLY - SMOKE_BY_THE_DUST) * closing
-        }
+        ImpactPhase.DUST -> SMOKE_BY_THE_DUST + (WHOLLY - SMOKE_BY_THE_DUST) * chokeAt(time)
         ImpactPhase.AFTER -> WINTER_DUST
         ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, null -> NO_DUST
+    }
+
+    /**
+     * How far the view is closed in at [time], from nought to one: not at all until the wall of ash arrives, all of
+     * it a few seconds after, and the impact winter's share for ever.
+     */
+    fun chokeAt(time: Double): Float = when (phaseAt(time.toLong())) {
+        ImpactPhase.DUST -> {
+            val chokesOver = minOf(ASH_CHOKES_TICKS, lengthOf(ImpactPhase.DUST) * ASH_CHOKES_WITHIN)
+            ((time - ashArrivesAt) / chokesOver).coerceIn(0.0, 1.0).toFloat()
+        }
+        ImpactPhase.AFTER -> WINTER_DUST
+        ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, ImpactPhase.HEAT, null -> NO_DUST
     }
 
     /** Whether the dust is thick enough at [time] that the land can be scorched behind it unseen. */
@@ -165,10 +191,20 @@ data class Doom(
 
         fun bearingFor(seed: Long): Float = (seed xor BEARING_SALT).mod(WHOLE_TURN).toFloat()
 
+        /** How far off the asteroid strikes, in blocks, wherever the eye is: well beyond the horizon. */
+        const val IMPACT_DISTANCE = 30_000.0
+
         private const val NO_DUST = 0.0f
         private const val WHOLLY = 1.0f
         private const val SMOKE_BY_THE_DUST = 0.5f
-        private const val DUST_CLOSES_FASTER = 4.0
+
+        /**
+         * How far into the heat the wall of ash sets out, and how many ticks it takes to choke the view on arriving,
+         * never more than a share of the dust.
+         */
+        private const val ASH_SETS_OUT_THROUGH_THE_HEAT = 0.8
+        private const val ASH_CHOKES_TICKS = 60.0
+        private const val ASH_CHOKES_WITHIN = 0.25
         private const val WINTER_DUST = 0.55f
 
         private const val WHOLE_TURN = 360L

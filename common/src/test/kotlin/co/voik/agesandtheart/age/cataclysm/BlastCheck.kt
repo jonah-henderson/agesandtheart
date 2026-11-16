@@ -26,11 +26,11 @@ class BlastCheck : FunSpec({
         check(towardTheImpact < -0.999) { "it drove at ${Blast.drivingDegrees(doom)}°, ${towardTheImpact} toward the impact" }
     }
 
-    test("it holds through the heat and is gone a quarter of the way into the dust") {
+    test("it holds through the heat, surges with the ash, and is gone half way into the dust") {
         val inTheHeat = Blast.blowingAt(doom, doom.arrivalAt + 10.0)
         check(inTheHeat != null && inTheHeat.lying == 1.0) { "in the heat it blew $inTheHeat" }
         val dustBegins = doom.startOf(ImpactPhase.DUST).toDouble()
-        val stilled = dustBegins + doom.lengthOf(ImpactPhase.DUST) * 0.3
+        val stilled = dustBegins + doom.lengthOf(ImpactPhase.DUST) * 0.55
         check(Blast.blowingAt(doom, stilled) == null) { "it still blew well into the dust" }
         check(Blast.blowingAt(doom, doom.startOf(ImpactPhase.AFTER) + 100.0) == null) { "it blew in the winter after" }
     }

@@ -5,7 +5,10 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
+import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.world.level.ServerLevelAccessor
+import net.minecraft.world.level.levelgen.Heightmap
 
 /**
  * **What a book struck is never made in its Age, by any path** (Jonah, 2026-10-06 for an Age where nothing lives,
@@ -29,11 +32,30 @@ object StruckCreatures {
         if (entity !is Mob) return false
         val generator = level.level.chunkSource.generator as? AgeChunkGenerator ?: return false
         if (generator.nothingLives) return true
+        if (isNearTheSurfaceOfAnEndedAge(level, entity)) return true
         val creature = BuiltInRegistries.ENTITY_TYPE.getKey(entity.type)
         val vocabulary = Vocabulary.of(level.level.server)
         val aBookCouldReachIt = vocabulary.word(creature) != null || vocabulary.describes(Aspect.SPAWNS, creature.toString())
         return aBookCouldReachIt && generator.rungOf(creature, level, entity.blockPosition()) <= NONE_OF_IT
     }
 
+    /**
+     * Whether [entity] would come to the surface of an Age an end has struck (design §5.3): a village built after
+     * it has burned comes without its villagers, its cats or its golems. Deep enough below, life goes on.
+     */
+    private fun isNearTheSurfaceOfAnEndedAge(level: ServerLevelAccessor, entity: Entity): Boolean {
+        val recipe = Ages.recipeOf(level.level) ?: return false
+        if (!Cataclysms.hasEnded(recipe, level.level.gameTime)) return false
+        val surface = level.getHeight(surfaceOf(level), entity.blockX, entity.blockZ)
+        return entity.blockY >= surface - BELOW_THE_SURFACE
+    }
+
+    /** The surface as it stands: while a chunk is generated, the heightmap generation keeps. */
+    private fun surfaceOf(level: ServerLevelAccessor): Heightmap.Types =
+        if (level is WorldGenRegion) Heightmap.Types.WORLD_SURFACE_WG else Heightmap.Types.WORLD_SURFACE
+
     private const val NONE_OF_IT = 0.0
+
+    /** How far below the surface a creature has to be to be kept from an ended Age's: a cellar, a mine. */
+    private const val BELOW_THE_SURFACE = 12
 }

@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
+import co.voik.agesandtheart.age.cataclysm.Scorch
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.LightLayer
 import co.voik.agesandtheart.worldgen.SeaBubbles
 import co.voik.agesandtheart.worldgen.SurfacePits
 import co.voik.agesandtheart.worldgen.Perforation
@@ -474,6 +478,7 @@ class AgeChunkGenerator(
         category: MobCategory,
         at: BlockPos,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
+        if (isDeadUnderTheSky(level, at)) return WeightedList.of()
         val offered = if (!incongruity.spawns) super.getMobsAt(level, structures, category, at) else {
             val everywhere = offeredAnywhere.getValue(category)
             structureSpawnsAt(structures, category, at)?.let { IncongruousSpawns.halfAndHalf(it, everywhere) } ?: everywhere
@@ -492,6 +497,16 @@ class AgeChunkGenerator(
             ),
             offered,
         )
+    }
+
+    /**
+     * Whether [at] is out under the sky of an Age an end has struck (design §5.3): nothing new comes to the surface
+     * of a dead world, by the same daylight the scorch burns by ([Scorch.IN_DAYLIGHT]). Deep enough below, life goes on.
+     */
+    private fun isDeadUnderTheSky(level: Level, at: BlockPos): Boolean {
+        val server = level as? ServerLevel ?: return false
+        val hasEnded = Ages.recipeOf(server)?.let { Cataclysms.hasEnded(it, server.gameTime) } == true
+        return hasEnded && server.getBrightness(LightLayer.SKY, at) >= Scorch.IN_DAYLIGHT
     }
 
     /** What a structure standing at [at] spawns in place of its biome's, as vanilla resolves it, or null where none does. */

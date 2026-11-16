@@ -97,6 +97,8 @@ object ClientRegistrations {
                 MoltenLumpRenderer.EJECTA,
                 burnOf = { MoltenLumpRenderer.EJECTA_BURNS },
                 streakStretch = MoltenLumpRenderer.EJECTA_STREAK,
+                isShown = { fragment -> !fragment.isHeld },
+                bloomStretch = MoltenLumpRenderer.EJECTA_BLOOM,
             )
         },
         RendererForEntity(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) },

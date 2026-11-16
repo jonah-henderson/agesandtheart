@@ -11,7 +11,8 @@ import org.joml.Vector4f
 /**
  * What an asteroid's end does to the air (design §5.3 "The asteroid"): the flash whitening everything for a moment,
  * the sky and the light going red as the debris comes back down, and then the dust — the view closed in, the sky
- * near black, the light failing — easing to a grey impact winter that never lifts.
+ * near black, the light failing — easing to a grey impact winter that never lifts. The view is open until the wall
+ * of ash arrives, so it can be watched coming, and closes in as it passes.
  *
  * Read off the schedule [Impacts] was told and the level's clock, so every layer asks the same moment.
  */
@@ -40,7 +41,7 @@ object ImpactAir {
             val flashed = was + (FULL - was) * moment.flash
             flashed + (DARKEST_LIGHT - flashed) * moment.dust * DUST_DARKENS_BY
         }
-        layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, _, _ -> closedIn(level, was, DUST_FOG_STARTS) }
+        layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, _, _ -> closedIn(level, was, DUST_FOG_STARTS, FOG_STARTS_SHORT_OF_THE_WALL) }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_END_DISTANCE) { was, _, _ -> closedIn(level, was, DUST_FOG_ENDS) }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_FOG_END_DISTANCE) { was, _, _ -> closedIn(level, was, DUST_FOG_ENDS) }
         layers.addPositionalLayer(EnvironmentAttributes.CLOUD_FOG_END_DISTANCE) { was, _, _ -> closedIn(level, was, DUST_FOG_ENDS) }
@@ -51,10 +52,14 @@ object ImpactAir {
     private fun momentIn(level: ClientLevel): Moment? {
         val doom = Impacts.comingTo(level) ?: return null
         val time = level.gameTime.toDouble()
-        return Moment(Impacts.heatAt(doom, time), Impacts.dustAt(doom, time), Impacts.flashAt(doom, time))
+        val wall = if (doom.ashReachedAt(time) > 0.0) doom.ashDistanceAt(time).toFloat() else Float.MAX_VALUE
+        val nearing = (FULL - wall / WALL_DARKENS_FROM).coerceIn(0.0f, FULL)
+        val dust = maxOf(Impacts.dustAt(doom, time), nearing)
+        return Moment(Impacts.heatAt(doom, time), dust, doom.chokeAt(time), Impacts.flashAt(doom, time), wall)
     }
 
-    private data class Moment(val heat: Float, val dust: Float, val flash: Float)
+    /** [wall] is how far off the wall of ash still is, in blocks, or as far as can be where none is rolling. */
+    private data class Moment(val heat: Float, val dust: Float, val choke: Float, val flash: Float, val wall: Float)
 
     private fun coloured(level: ClientLevel, was: Vector3fc, heatTo: Rgba, dustTo: Rgba, howMuch: Float = FULL): Vector3fc {
         val moment = momentIn(level) ?: return was
@@ -63,10 +68,15 @@ object ImpactAir {
         return dusted.lerp(Rgba.WHITE, moment.flash * howMuch).rgb()
     }
 
-    private fun closedIn(level: ClientLevel, was: Float, inTheDust: Float): Float {
+    /**
+     * How far the fog reaches, [was] where nothing closes it: in to [inTheDust] as the dust chokes the view, and no
+     * further than the wall of ash coming on, or [shortOfTheWall] of the way to it, so the land beyond is swallowed.
+     */
+    private fun closedIn(level: ClientLevel, was: Float, inTheDust: Float, shortOfTheWall: Float = FULL): Float {
         val moment = momentIn(level) ?: return was
         val target = minOf(inTheDust, was)
-        return was + (target - was) * moment.dust
+        val choked = was + (target - was) * moment.choke
+        return minOf(choked, maxOf(moment.wall * shortOfTheWall, target))
     }
 
     private val HEAT_SKY = Rgba(0.85f, 0.30f, 0.08f)
@@ -82,4 +92,8 @@ object ImpactAir {
     private const val DUST_DARKENS_BY = 0.85f
     private const val DUST_FOG_STARTS = 2.0f
     private const val DUST_FOG_ENDS = 40.0f
+
+    /** How near the wall of ash is, in blocks, as the air starts to darken with it, and how far short of it the fog starts. */
+    private const val WALL_DARKENS_FROM = 3_000.0f
+    private const val FOG_STARTS_SHORT_OF_THE_WALL = 0.5f
 }

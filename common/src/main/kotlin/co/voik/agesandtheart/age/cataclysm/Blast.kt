@@ -19,7 +19,7 @@ import kotlin.math.sin
  * The air blast of an asteroid's strike (design §5.3 "The asteroid"), reaching the Age long after the flash and after
  * the rumble through the ground: **a shock front** that throws everything out in it away from the impact, then **a
  * wind** out of the impact's quarter harder than any gale, which nobody walks into, howling through the debris' travel
- * and the heat and dying as the dust comes down.
+ * and the heat, surging again with the wall of ash and dying as the dust comes down.
  *
  * **A gale to everything that blows one** ([Gale.Blowing]), so the clouds race, the rain leans, the creatures and the
  * dropped things are driven and it is heard as a gale is; only its fury goes past a gale's whole, which puts its lean
@@ -39,7 +39,11 @@ object Blast {
         val (lying, fury) = when (doom.phaseAt(time.toLong())) {
             ImpactPhase.TRAVEL -> risen to HOWLING + (SHOCK - HOWLING) * exp(-since / SHOCK_EASES_TICKS)
             ImpactPhase.HEAT -> risen to Mth.lerp(doom.progressThrough(ImpactPhase.HEAT, time), HOWLING, FIRESTORM)
-            ImpactPhase.DUST -> (1.0 - doom.progressThrough(ImpactPhase.DUST, time) / STILLED_BY) * risen to FIRESTORM
+            ImpactPhase.DUST -> {
+                val sinceTheAsh = (time - doom.ashArrivesAt).coerceAtLeast(0.0)
+                (1.0 - doom.progressThrough(ImpactPhase.DUST, time) / STILLED_BY) * risen to
+                    FIRESTORM + (ASH_SURGE - FIRESTORM) * exp(-sinceTheAsh / ASH_SURGE_EASES_TICKS)
+            }
             ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.AFTER, null -> NONE to NONE
         }
         if (lying <= NONE) return null
@@ -109,8 +113,10 @@ object Blast {
     private const val FIRESTORM = 1.0
     private const val SHOCK_EASES_TICKS = 300.0
 
-    /** How far through the dust the wind has died. */
-    private const val STILLED_BY = 0.25
+    /** How far through the dust the wind has died, and how hard it surges as the wall of ash arrives, easing over how long. */
+    private const val STILLED_BY = 0.5
+    private const val ASH_SURGE = 1.7
+    private const val ASH_SURGE_EASES_TICKS = 200.0
 
     private const val THROWN_WITHIN = 48.0
     private const val THROWN_ALONG = 1.1

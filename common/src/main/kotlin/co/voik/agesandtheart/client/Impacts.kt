@@ -3,7 +3,10 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.cataclysm.Blast
 import co.voik.agesandtheart.age.cataclysm.CataclysmPayload
 import co.voik.agesandtheart.age.cataclysm.Doom
+import co.voik.agesandtheart.age.cataclysm.Ejecta
 import co.voik.agesandtheart.age.cataclysm.ImpactPhase
+import co.voik.agesandtheart.age.cataclysm.ImpactSounds
+import net.minecraft.client.resources.sounds.EntityBoundSoundInstance
 import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -12,7 +15,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.resources.Identifier
 import net.minecraft.sounds.SoundEvent
-import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.phys.Vec3
 import kotlin.math.exp
@@ -36,6 +38,7 @@ object Impacts {
     }
 
     fun forget() {
+        ImpactLoops.forget()
         told.clear()
         heardUpTo.clear()
         landed = NONE
@@ -48,7 +51,10 @@ object Impacts {
     fun heatAt(doom: Doom, time: Double): Float = when (doom.phaseAt(time.toLong())) {
         ImpactPhase.TRAVEL -> HEAT_WHILE_TRAVELLING * squared(doom.progressThrough(ImpactPhase.TRAVEL, time))
         ImpactPhase.HEAT -> FULL
-        ImpactPhase.DUST -> FULL - (doom.progressThrough(ImpactPhase.DUST, time) * HEAT_FADES_FASTER).coerceAtMost(1.0).toFloat()
+        ImpactPhase.DUST -> {
+            val fading = FULL - (doom.progressThrough(ImpactPhase.DUST, time) * HEAT_FADES_FASTER).coerceAtMost(1.0).toFloat()
+            (FULL - doom.chokeAt(time)) * fading
+        }
         else -> NONE
     }
 
@@ -93,6 +99,7 @@ object Impacts {
         val heardTo = heardUpTo[age] ?: now
         heardUpTo[age] = now
         hear(level, minecraft, doom, heardTo, now)
+        ImpactLoops.hear(minecraft, level)
         if (Blast.shockAt(doom) in (heardTo + 1)..now) thrownByTheShock(level, minecraft, doom)
         scatterAsh(level, minecraft, doom, now)
     }
@@ -108,7 +115,7 @@ object Impacts {
     /**
      * How hard the view shakes now, for [co.voik.ephemeris.client.CameraShake]: a jolt as the rumble through the ground
      * arrives and a tremor growing under it, the shock front's slam, the blast buffeting whoever is out in it, a jolt
-     * as the debris arrives overhead, and a fragment landing close.
+     * as the debris arrives overhead and another as the wall of ash does, and a fragment landing close.
      */
     fun shake(): Float {
         val minecraft = Minecraft.getInstance()
@@ -129,8 +136,16 @@ object Impacts {
         }
         val jolts = jolt(time, rumbleAt, RUMBLE_JOLT, RUMBLE_JOLT_FADES) +
             jolt(time, shockAt, SHOCK_JOLT, SHOCK_JOLT_FADES) +
-            jolt(time, doom.arrivalAt, ARRIVAL_JOLT, ARRIVAL_JOLT_FADES)
-        return tremor + buffeting + jolts + fromALanding
+            jolt(time, doom.arrivalAt, ARRIVAL_JOLT, ARRIVAL_JOLT_FADES) +
+            jolt(time, doom.ashArrivesAt, ASH_JOLT, ASH_JOLT_FADES)
+        val reached = doom.ashReachedAt(time)
+        val ashRumbles = if (reached < 1.0) ASH_RUMBLE * smoothStepUp(ASH_HEARD_FROM, 1.0, reached) else NONE
+        return tremor + buffeting + jolts + fromALanding + ashRumbles
+    }
+
+    private fun smoothStepUp(from: Double, to: Double, at: Double): Float {
+        val along = ((at - from) / (to - from)).coerceIn(0.0, 1.0)
+        return (along * along * (3.0 - 2.0 * along)).toFloat()
     }
 
     private fun jolt(time: Double, at: Long, size: Float, fades: Double): Float {
@@ -155,28 +170,28 @@ object Impacts {
         landedAt = now
     }
 
-    /** Plays whatever falls between [after] and [upTo], so a sound is heard once however the ticks fall. */
+    /**
+     * Plays each moment of the end that falls between [after] and [upTo], so each is heard once however the ticks
+     * fall: the first roar as it burns, the rumble through the ground, the shock front, the debris arriving overhead
+     * and the wall of ash. What is held rather than heard once is [ImpactLoops]'.
+     */
     private fun hear(level: ClientLevel, minecraft: Minecraft, doom: Doom, after: Long, upTo: Long) {
         fun passed(moment: Long) = moment in (after + 1)..upTo
         val listener = minecraft.player ?: return
-        fun play(sound: SoundEvent, volume: Float, pitch: Float) =
-            level.playLocalSound(listener.x, listener.y, listener.z, sound, SoundSource.AMBIENT, volume, pitch, false)
+        fun play(sound: SoundEvent) =
+            level.playLocalSound(listener.x, listener.y, listener.z, sound, SoundSource.AMBIENT, LOUD, AS_WRITTEN, false)
 
-        if (passed(doom.startOf(ImpactPhase.ENTRY))) play(SoundEvents.BLAZE_SHOOT, LOUD, DEEPEST)
-        if (passed(doom.impactAt + RUMBLE_ARRIVES_AFTER)) {
-            play(SoundEvents.LIGHTNING_BOLT_THUNDER, LOUD, DEEPEST)
-            play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEPEST)
-        }
-        if (passed(Blast.shockAt(doom))) {
-            play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEPEST)
-            play(SoundEvents.LIGHTNING_BOLT_THUNDER, LOUD, DEEP)
-        }
-        if (passed(doom.arrivalAt)) {
-            play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEP)
-            play(SoundEvents.LIGHTNING_BOLT_IMPACT, LOUD, DEEP)
-        }
-        val isBurning = doom.phaseAt(upTo) == ImpactPhase.HEAT
-        if (isBurning && upTo % CRACKLES_EVERY == 0L) play(SoundEvents.FIRE_AMBIENT, LOUD, DEEP)
+        if (passed(doom.startOf(ImpactPhase.ENTRY))) play(ImpactSounds.ENTRY)
+        if (passed(doom.impactAt + RUMBLE_ARRIVES_AFTER)) play(ImpactSounds.RUMBLE)
+        if (passed(Blast.shockAt(doom))) play(ImpactSounds.SHOCK)
+        if (passed(doom.arrivalAt)) play(ImpactSounds.ARRIVAL)
+        if (passed(doom.ashArrivesAt)) play(ImpactSounds.ASH_ARRIVAL)
+    }
+
+    /** A fragment let go to fall near the eye: heard from it as it comes down. */
+    fun fragmentLetGo(fragment: Ejecta) {
+        val sounds = Minecraft.getInstance().soundManager
+        sounds.play(EntityBoundSoundInstance(ImpactSounds.FRAGMENT_FALLING, SoundSource.AMBIENT, FALLING_LOUD, AS_WRITTEN, fragment, fragment.id.toLong()))
     }
 
     /** Ash falling round the camera while the dust is up, and a little through the winter after. */
@@ -212,10 +227,10 @@ object Impacts {
 
     /** The light comes first and the sound after, which is what says how far away it fell. */
     private const val RUMBLE_ARRIVES_AFTER = 120L
-    private const val CRACKLES_EVERY = 13L
+    /** How loud a moment is played, which is also how far off it carries; how its pitch is left, to `sounds.json`. */
     private const val LOUD = 4.0f
-    private const val DEEP = 0.6f
-    private const val DEEPEST = 0.5f
+    private const val AS_WRITTEN = 1.0f
+    private const val FALLING_LOUD = 3.0f
 
     /** How hard each moment shakes the view, a blast close by being one, and over how many ticks a jolt dies. */
     private const val RUMBLE_JOLT = 0.5f
@@ -228,6 +243,12 @@ object Impacts {
     private const val GUSTS_BUFFET = 0.25f
     private const val ARRIVAL_JOLT = 0.7f
     private const val ARRIVAL_JOLT_FADES = 40.0
+    private const val ASH_JOLT = 0.45f
+
+    /** The wall of ash rumbling as it comes: how hard by the time it arrives, and from how far along its way. */
+    private const val ASH_RUMBLE = 0.5f
+    private const val ASH_HEARD_FROM = 0.3
+    private const val ASH_JOLT_FADES = 60.0
     private const val LANDING_JOLT = 0.8f
     private const val LANDING_FADES = 12.0
 

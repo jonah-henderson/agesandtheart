@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.rendertype.RenderType
-import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4fc
 import kotlin.math.cos
@@ -18,16 +17,13 @@ import kotlin.math.sin
  * interpolated across the triangles. There are no textures anywhere in this file and the vertex format
  * carries a position and a colour, so a soft edge has to come from the geometry or not at all.
  *
- * `RenderTypes.dragonRays()` is vanilla's own arrangement for exactly this and is borrowed whole: a bare
- * position and a colour, blended `SRC_ALPHA, ONE`, which is what "glowing" means and what an ordinary
- * translucent quad cannot do however bright its colour. It needs no texture, so nothing here waits on the
- * asset pass.
+ * Drawn on [AgeRenderTypes.addedLight], which is vanilla's dragon rays: a bare position and a colour, blended
+ * `SRC_ALPHA, ONE`, which is what "glowing" means and what an ordinary translucent quad cannot do however
+ * bright its colour. It needs no texture, so nothing here waits on the asset pass.
  *
- * **It must not write depth, and the sibling that looks right does.** This was `RenderTypes.lightning()`,
- * which is the same blend on `DepthStencilState.DEFAULT` — so every glow stamped the depth buffer, and
- * water drawn afterwards failed its test and simply vanished in the patch behind one (Jonah, walked). The
- * dragon's rays are the same thing with the write turned off. The cost is that they are triangles rather
- * than quads, which is why the shapes below are assembled a triangle at a time.
+ * **It must not write depth**, or water drawn afterwards fails its test and vanishes in the patch behind a
+ * glow (Jonah, walked) — which is why it is ours and not vanilla's, whose rays write depth since 26.3. It
+ * draws triangles rather than quads, which is why the shapes below are assembled a triangle at a time.
  *
  * **Every face is wound both ways** because the pipeline culls back faces and neither of these shapes has
  * a front — a ribbon is a ribbon from either side, and which way round it came out would otherwise depend
@@ -55,7 +51,7 @@ object AddedLight {
         val back = travel.scale(-ONE_WHOLE / speed)
         val side = acrossFrom(back, towardCamera) ?: return
         val length = speed * TICKS_OF_TRAIL
-        collector.submitCustomGeometry(poseStack, RenderTypes.dragonRays()) { pose, buffer ->
+        collector.submitCustomGeometry(poseStack, AgeRenderTypes.addedLight) { pose, buffer ->
             val matrix = pose.pose()
             ribbon(matrix, buffer, Ribbon(back, side, length, headWidth * SPREAD, colour.faded(HALO_KEEPS)))
             ribbon(matrix, buffer, Ribbon(back, side, length, headWidth, colour))
@@ -78,7 +74,7 @@ object AddedLight {
         towardCamera: Vec3,
         colour: Rgba,
         radius: Double,
-        drawnOn: RenderType = RenderTypes.dragonRays(),
+        drawnOn: RenderType = AgeRenderTypes.addedLight,
     ) {
         val facing = towardCamera.normalize()
         val right = acrossFrom(facing, ANY_OTHER_WAY) ?: acrossFrom(facing, OR_THIS_WAY) ?: return
@@ -176,11 +172,11 @@ object AddedLight {
     private fun Rgba.faded(to: Float) = copy(alpha = alpha * to)
 
     /** How many ticks of movement a streak lies over, so speed alone decides its length. */
-    private const val TICKS_OF_TRAIL = 2.6
+    const val TICKS_OF_TRAIL = 2.6
 
     /** How much wider the outer bloom is than the core, and how much of the core's strength it keeps. */
-    private const val SPREAD = 3.0
-    private const val HALO_KEEPS = 0.28f
+    const val SPREAD = 3.0
+    const val HALO_KEEPS = 0.28f
 
     /** Enough for the taper to read; a streak is a shape, not a mesh. */
     private const val SEGMENTS = 8
