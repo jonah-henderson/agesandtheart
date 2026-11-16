@@ -11,7 +11,6 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
-import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
@@ -58,14 +57,17 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
         val level = level()
         if (level !is ServerLevel) return
         settleIn(level)
-        if (!showedTheCracks) showTheCracks(level)
+        // Near somebody the column cracks and goes a layer at a time; where nobody is, it all goes at once, with no
+        // cracks and no rubble, so each section it passes through is rebuilt on a client once rather than once a layer.
+        val isSeen = FallingRubble.isSeen(level, blockPosition())
+        if (!showedTheCracks && isSeen) showTheCracks(level)
         val elapsed = level.gameTime - startedAt
         for (y in nextToGo..top) {
             val sinceItStarted = elapsed - waitsFor(level, y)
             // Each layer waits longer than the one under it, so nothing above can be due yet either.
-            if (sinceItStarted < 0) break
+            if (isSeen && sinceItStarted < 0) break
             val stage = CRACKED_TO + (sinceItStarted / A_STAGE).toInt()
-            if (stage < GONE) {
+            if (isSeen && stage < GONE) {
                 crack(level, at(y), stage)
                 continue
             }
@@ -118,7 +120,7 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
         val throwsRubble = random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender && couldBeBroken
         if (throwsRubble && threwRubbleAt != y - 1) {
             threwRubbleAt = y
-            FallingBlockEntity.fall(level, at, standing)
+            FallingRubble.throwDown(level, at, standing)
         }
     }
 

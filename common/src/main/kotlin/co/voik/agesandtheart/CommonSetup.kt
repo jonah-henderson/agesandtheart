@@ -4,6 +4,7 @@ import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
 import co.voik.agesandtheart.age.cataclysm.AwayForTheEnd
+import co.voik.agesandtheart.age.consequence.FallingRubble
 import co.voik.agesandtheart.age.consequence.Dispositions
 import co.voik.agesandtheart.age.consequence.Taming
 import co.voik.agesandtheart.age.consequence.ChargedCreatures
@@ -107,6 +108,8 @@ object CommonSetup {
         ChargedMetal.stir(server)
         // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
         PanelViews.tick(server)
+        // And rubble a tear or a cave-in threw down, gone once it has fallen far enough down the hole.
+        FallingRubble.tick(server)
         // And the arrivals visitors were sent to before their ground was built, carved once it is.
         Ages.openUpWaitingArrivals()
         // And the charged creatures that died last tick, and whatever their blasts have killed since.

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.consequence.FallingRubble
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.consequence.BetweenCompoundedStone
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
@@ -14,7 +15,6 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
-import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
@@ -91,6 +91,8 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         val level = level()
         if (level !is ServerLevel) return
         if (startedAt == NOT_STARTED) settleIn(level)
+        // Where nobody is near enough to see it, the whole swathe goes at once — see [FallingRubble].
+        if (!FallingRubble.isSeen(level, blockPosition())) return goAllAtOnce(level)
         val elapsed = level.gameTime - startedAt
         // **It can always die**, which an entity must be able to do: this one is saved, so a cave-in that
         // somehow found nothing to eat would otherwise sit in the chunk for the life of the world.
@@ -215,7 +217,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         val column = BlockPos.asLong(at.x, 0, at.z)
         if (random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender && threwRubble[column] != at.y + 1) {
             threwRubble[column] = at.y
-            FallingBlockEntity.fall(level, at, standing)
+            FallingRubble.throwDown(level, at, standing)
         }
     }
 
@@ -268,6 +270,32 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
                 }
             }
         }
+    }
+
+    /**
+     * Everything the swathe takes, gone at once with no cracks and no rubble, and the cave-in over: what one does where
+     * nobody is near enough to see it, whether it began there or somebody walked away from it.
+     */
+    private fun goAllAtOnce(level: ServerLevel) {
+        cracking.keys.forEach { clearCrack(level, it) }
+        cracking.clear()
+        val middle = blockPosition()
+        val swathe = swathe()
+        val cursor = BlockPos.MutableBlockPos()
+        for (awayX in -swathe.reachesOut..swathe.reachesOut) {
+            for (awayZ in -swathe.reachesOut..swathe.reachesOut) {
+                val howCentral = swathe.howCentral(awayX, awayZ)
+                if (howCentral < OUTSIDE_IT) continue
+                for (awayY in -swathe.reachesDown..swathe.reachesUp) {
+                    if (!swathe.takes(awayX, awayY, awayZ, howCentral)) continue
+                    cursor.set(middle.x + awayX, middle.y + awayY, middle.z + awayZ)
+                    if (cursor.y < level.minY) continue
+                    val isTaken = isGround(level.getBlockState(cursor)) && !immune(level, cursor)
+                    if (isTaken) giveWay(level, cursor.immutable())
+                }
+            }
+        }
+        discard()
     }
 
     /**

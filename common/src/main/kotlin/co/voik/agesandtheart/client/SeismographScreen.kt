@@ -11,7 +11,7 @@ import net.minecraft.world.entity.player.Inventory
  * What the seismograph says, on its own panel.
  *
  * **A headline and a list, not a sentence** (Jonah, 2026-09-07). The headline is the one line the asset
- * pass replaces — the block gets an animation per [Footing], so a writer who has learned the three shapes
+ * pass replaces — the block gets an animation per [Footing], so a writer who has learned the shapes
  * reads the state off the instrument across the room and opens this only for the specifics. The specifics
  * are therefore terse and itemised: a reader scanning a list wants nouns, and prose would make the panel
  * something to read rather than something to check.
@@ -19,7 +19,7 @@ import net.minecraft.world.entity.player.Inventory
 class SeismographScreen(menu: SeismographMenu, inventory: Inventory, title: Component) :
     ReadoutScreen<SeismographMenu>(
         menu, inventory, title,
-        mostListedLines = Manifestation.entries.size,
+        mostListedLines = Manifestation.entries.size + AN_END,
         translationPrefix = "container.agesandtheart.seismograph",
     ) {
 
@@ -35,7 +35,7 @@ class SeismographScreen(menu: SeismographMenu, inventory: Inventory, title: Comp
     override fun lines(): List<Component> {
         if (menu.source == ReadingSource.AN_IDLE_DESK) return listOf(translated("desk_idle"))
         val state = Footing.entries.getOrNull(menu.footing) ?: Footing.STABLE
-        if (state != Footing.STABLE) return listOf(translated("headline_${state.key}")) + bought()
+        if (state != Footing.STABLE) return listOf(translated("headline_${state.key}")) + bought() + listOfNotNull(coming())
         val calm = when (menu.source) {
             ReadingSource.A_PLAIN_WORLD -> "world_stable"
             ReadingSource.AN_AGE -> "age_stable"
@@ -48,4 +48,11 @@ class SeismographScreen(menu: SeismographMenu, inventory: Inventory, title: Comp
         Manifestation.entries
             .filter { menu.bought and (1 shl it.ordinal) != 0 }
             .map { translated("bought", translated("manifest_${it.key}")) }
+
+    /** The end coming, last on the list, under everything else the Age does. */
+    private fun coming(): Component? = menu.end?.let { translated("bought", translated("end_${it.key}")) }
+
+    private companion object {
+        const val AN_END = 1
+    }
 }

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.cataclysm
 
+import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.phenomena.Happenings
@@ -41,7 +42,7 @@ object Cataclysms {
         synchronized(remembered) {
             if (remembered.containsKey(recipe)) return remembered[recipe]
         }
-        val cause = writtenIn(recipe) ?: inflictedOn(server, recipe)
+        val cause = writtenIn(recipe.composition) ?: inflictedOn(server, recipe)
         synchronized(remembered) {
             if (remembered.size > MOST_REMEMBERED) remembered.clear()
             remembered[recipe] = cause
@@ -49,8 +50,15 @@ object Cataclysms {
         return cause
     }
 
-    private fun writtenIn(recipe: AgeRecipe): Cause? {
-        val composition = recipe.composition ?: return null
+    /**
+     * The end an Age about to be written as [composition], unravelling as [age], would bring — what the instruments at
+     * the desk read, before there is a recipe.
+     */
+    fun causeFor(server: MinecraftServer, composition: AgeComposition?, age: Unravelling): Cause? =
+        writtenIn(composition) ?: inflictedBy(server, age)
+
+    private fun writtenIn(composition: AgeComposition?): Cause? {
+        composition ?: return null
         val written = Happenings.claimsIn(composition).map { it.value }.toSet()
         return CataclysmKind.entries.firstOrNull { it.writtenAs.key in written }?.let { Cause(it, isWritten = true) }
     }
@@ -58,10 +66,13 @@ object Cataclysms {
     /** The kind the Age's instability calls down, drawn from its seed where several would. */
     private fun inflictedOn(server: MinecraftServer, recipe: AgeRecipe): Cause? {
         if (recipe.generatorVersion < FIRST_GENERATOR_INFLICTING_ENDS) return null
-        val age = Unravelling(recipe.instability, Spending.of(server, recipe), recipe.seed)
+        return inflictedBy(server, Unravelling(recipe.instability, Spending.of(server, recipe), recipe.seed))
+    }
+
+    private fun inflictedBy(server: MinecraftServer, age: Unravelling): Cause? {
         val calling = CataclysmRule.list(server).filter { (kind, rule) -> rule.inflictedWhen?.holdsFor(age, kind) == true }.keys
         if (calling.isEmpty()) return null
-        val drawn = calling.sortedBy { it.ordinal }[XoroshiroRandomSource(recipe.seed xor KIND_SALT).nextInt(calling.size)]
+        val drawn = calling.sortedBy { it.ordinal }[XoroshiroRandomSource(age.seed xor KIND_SALT).nextInt(calling.size)]
         return Cause(drawn, isWritten = false)
     }
 

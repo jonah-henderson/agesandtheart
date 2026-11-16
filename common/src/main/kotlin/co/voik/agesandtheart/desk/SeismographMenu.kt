@@ -3,6 +3,8 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Instability
+import co.voik.agesandtheart.age.cataclysm.CataclysmKind
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import co.voik.agesandtheart.age.reward.Footing
 import co.voik.agesandtheart.age.reward.Tremor
 import co.voik.agesandtheart.age.resolution.Resolution
@@ -75,6 +77,9 @@ class SeismographMenu(
      */
     val source: ReadingSource get() = ReadingSource.ofOrdinal(reading.get(SOURCE))
 
+    /** The end the Age has coming, or null where none is: a `CataclysmKind` ordinal, one past, so nought is none. */
+    val end: CataclysmKind? get() = CataclysmKind.entries.getOrNull(reading.get(END) - 1)
+
     /** No slots at all, so nothing can be moved into or out of this. */
     override fun quickMoveStack(player: Player, index: Int): ItemStack = ItemStack.EMPTY
 
@@ -91,7 +96,8 @@ class SeismographMenu(
          */
         const val BOUGHT_SLOTS = 2
         const val SOURCE = BOUGHT + BOUGHT_SLOTS
-        const val READINGS = SOURCE + 1
+        const val END = SOURCE + 1
+        const val READINGS = END + 1
 
         /** A short's bits, short of its sign. */
         const val BITS_A_SLOT = 15
@@ -116,6 +122,7 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
 
     private var footing = Footing.STABLE.ordinal
     private var bought = NOTHING_BOUGHT
+    private var end = NO_END
 
     override fun getCount(): Int = SeismographMenu.READINGS
 
@@ -124,6 +131,7 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
         return when (index) {
             SeismographMenu.FOOTING -> footing
             in SeismographMenu.BOUGHT..<SeismographMenu.SOURCE -> SeismographMenu.piece(bought, index - SeismographMenu.BOUGHT)
+            SeismographMenu.END -> end
             else -> source.ordinal
         }
     }
@@ -139,23 +147,30 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
      *
      * **Read off the Age's own recipe**, so it is the same instability the generator built the place from
      * rather than a second opinion about it — and an ordinary world, which was never written, is exactly
-     * what [Instability.NONE] describes.
+     * what [Instability.NONE] describes. Its end is the one actually coming, until it strikes.
      */
-    override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Tremor =
-        Tremor.of(
-            writer.level().server,
+    override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Tremor {
+        val server = writer.level().server
+        val tremor = Tremor.of(
+            server,
             recipe?.instability ?: Instability.NONE,
             recipe?.seed ?: writer.writingSeed,
             recipe?.composition,
             recipe?.template ?: AgeTemplate.ORDINARY,
         )
+        val doom = recipe?.let { Cataclysms.of(server, it) }
+        val stillComing = doom?.takeUnless { it.hasStruckBy(server.overworld().gameTime) }
+        return tremor.withEnd(stillComing?.kind)
+    }
 
     override fun record(reading: Tremor) {
         footing = reading.footing.ordinal
         bought = reading.manifests.fold(NOTHING_BOUGHT) { mask, it -> mask or (1 shl it.ordinal) }
+        end = reading.end?.let { it.ordinal + 1 } ?: NO_END
     }
 
     private companion object {
         const val NOTHING_BOUGHT = 0
+        const val NO_END = 0
     }
 }
