@@ -1,0 +1,13 @@
+[feature] reworked the Art significantly, should more closely mimic natural english and do what you expect
+[feature] "charged" word now can charge all creatures like creepers. be careful if they are also big
+[feature] multicoloured skies will cycle through their colours over a day
+[feature] big improvements to the sort by meaning functionality and tooltips if you have a grammar guide near a desk
+[feature] using filled notebooks to make an archive will put their pages into the resulting archive
+[balance] made solid amethyst boulders rarer
+[bugfix] changing the colour of leaves for a certain kind of tree no longer changes every tree's leaves
+[bugfix] 2-block features like beds and tall flowers should no longer be placed cut in half
+[bugfix] certain formations should no longer change their composition across chunk boundaries
+[bugfix] unspecified piles of things can now be of different things in different piles
+[bugfix] fixed the link in logic to not be so aggressive at mowing the nearby grass
+[bugfix] opening a book with a panel looking at a rainy age will no longer place the rain fog where you are
+[bugfix] "no" can properly ban blocks now. try "no dirt" or "no stone" for an interesting time
