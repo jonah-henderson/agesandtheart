@@ -211,6 +211,7 @@ data_component_type agesandtheart:book_reading
 data_component_type agesandtheart:book_seed
 data_component_type agesandtheart:book_title
 data_component_type agesandtheart:book_words
+data_component_type agesandtheart:book_written_at
 data_component_type agesandtheart:cover_layout
 data_component_type agesandtheart:link_target
 data_component_type agesandtheart:notebook_pages
@@ -400,6 +401,7 @@ payload agesandtheart:archive_withdraw
 payload agesandtheart:archive_write
 payload agesandtheart:blizzard
 payload agesandtheart:bookbinder_rename
+payload agesandtheart:charged_creature
 payload agesandtheart:client_build
 payload agesandtheart:deluge
 payload agesandtheart:desk_bind
@@ -445,6 +447,7 @@ recipe_book_category agesandtheart:grinding
 recipe_book_category agesandtheart:pulping
 recipe_display agesandtheart:compounding
 recipe_serializer agesandtheart:compounding
+recipe_serializer agesandtheart:crafting_archive
 recipe_serializer agesandtheart:crafting_shapeless_into_one_bottle
 recipe_serializer agesandtheart:crafting_shapeless_keeping
 recipe_serializer agesandtheart:drying
