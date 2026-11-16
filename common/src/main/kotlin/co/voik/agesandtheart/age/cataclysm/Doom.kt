@@ -1,12 +1,13 @@
 package co.voik.agesandtheart.age.cataclysm
 
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
-/** Which cataclysm ends an Age (design §5.3 "The cataclysm"). Only the asteroid is built. */
-enum class CataclysmKind(val key: String) {
-    ASTEROID("asteroid"),
+/** Which cataclysm ends an Age (design §5.3 "The cataclysm"), and the phenomenon a word writes it as. Only the asteroid is built. */
+enum class CataclysmKind(val key: String, val writtenAs: Phenomenon) {
+    ASTEROID("asteroid", Phenomenon.ASTEROID),
     ;
 
     companion object {

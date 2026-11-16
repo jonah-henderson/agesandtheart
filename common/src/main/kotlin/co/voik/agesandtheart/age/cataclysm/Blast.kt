@@ -66,7 +66,7 @@ object Blast {
 
     /** [blowing] over [level] with the blast of whatever end is coming to it over that. */
     fun over(level: ServerLevel, blowing: Gale.Blowing?): Gale.Blowing? {
-        val doom = Ages.recipeOf(level)?.let(Cataclysms::of) ?: return blowing
+        val doom = Ages.recipeOf(level)?.let { Cataclysms.of(level.server, it) } ?: return blowing
         return over(blowing, blowingAt(doom, level.gameTime.toDouble()))
     }
 

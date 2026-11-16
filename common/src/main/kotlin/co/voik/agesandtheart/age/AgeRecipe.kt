@@ -81,8 +81,8 @@ data class AgeRecipe(
      */
     val forcedPull: Double? = null,
     /**
-     * An end set going by hand with `/age cataclysm`, before any instability buys one (design §5.3). **Written**,
-     * unlike [forced], so an Age that has ended stays ended.
+     * An end set going by hand with `/age cataclysm`, over whatever end the Age has of its own (design §5.3).
+     * **Written**, unlike [forced], so an Age that has ended stays ended.
      */
     val forcedCataclysm: Doom? = null,
 ) {
@@ -174,7 +174,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 28
+        const val CURRENT_GENERATOR_VERSION = 29
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(

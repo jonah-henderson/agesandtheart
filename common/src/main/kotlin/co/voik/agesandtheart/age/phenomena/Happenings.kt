@@ -273,7 +273,7 @@ object Happenings {
             Phenomenon.TEMPEST -> if (recurrence.isConstant) NEVER_BREAKING else insistsOn
             Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
             Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.FOG,
-            Phenomenon.OVERGROWTH, Phenomenon.GALE, Phenomenon.TORNADO -> insistsOn
+            Phenomenon.OVERGROWTH, Phenomenon.GALE, Phenomenon.TORNADO, Phenomenon.ASTEROID -> insistsOn
         }
     }
 
@@ -315,6 +315,8 @@ object Happenings {
             // Blown with a blizzard's wind once every phenomenon has had its tick, in [befallAll].
             Phenomenon.GALE -> Unit
             Phenomenon.TORNADO -> TornadoStorms.gather(level, befalling, TornadoDials.of(spending, written, befalling.pace))
+            // Nothing: an end runs on its own clock, from `AgeTick` — see [Cataclysms].
+            Phenomenon.ASTEROID -> Unit
         }
     }
 

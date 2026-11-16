@@ -21,13 +21,13 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 
 /**
- * `/age cataclysm` — an Age's end set going by hand, in the Age stood in, until a restart (design §5.3).
+ * `/age cataclysm` — an Age's end set going by hand, in the Age stood in, over whatever end it has of its own (design §5.3).
  *
  * - `/age cataclysm` says what end is coming and where it has got to.
  * - `/age cataclysm asteroid` starts an asteroid's approach now; `/age cataclysm asteroid <phase>` starts it so
  *   that phase begins now, and `/age cataclysm asteroid <phase> <seconds>` so it began that long ago, to look at
  *   one moment without waiting through the others.
- * - `/age cataclysm clear` calls it off, the Age's links included.
+ * - `/age cataclysm clear` calls off one set by hand, the Age's links included; one written or inflicted stays.
  * - `/age cataclysm scorch` scorches the chunks around you as the firestorm would.
  */
 object CataclysmInstruments {
@@ -65,13 +65,21 @@ object CataclysmInstruments {
 
     private fun runReport(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val (id, recipe) = theAgeStoodIn(context, report) ?: return FAILURE
-        val doom = Cataclysms.of(recipe)
+        val level = context.source.level
+        val doom = Cataclysms.of(level.server, recipe)
         if (doom == null) {
             report.say { "${id.path} has no end coming" }
             report.finish()
             return SUCCESS
         }
-        sayWhereItHasGot(context.source.level, doom, report)
+        val cause = Cataclysms.causeOf(level.server, recipe)
+        val how = when {
+            recipe.forcedCataclysm != null -> "set going by hand"
+            cause?.isWritten == true -> "written"
+            else -> "inflicted by its instability"
+        }
+        report.fact("cause", how) { "${id.path} has ${doom.kind.key} coming, $how" }
+        sayWhereItHasGot(level, doom, report)
         report.finish()
         return SUCCESS
     }
@@ -98,8 +106,13 @@ object CataclysmInstruments {
 
     private fun runClear(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val (id, recipe) = theAgeStoodIn(context, report) ?: return FAILURE
-        retellTheEnd(context.source.level, recipe, doom = null)
-        report.say { "${id.path} has no end coming any more, and its links hold" }
+        val level = context.source.level
+        retellTheEnd(level, recipe, doom = null)
+        val stillComing = Cataclysms.of(level.server, recipe.copy(forcedCataclysm = null))
+        report.say {
+            if (stillComing == null) "${id.path} has no end coming any more, and its links hold"
+            else "${id.path} has no end set by hand, but its own ${stillComing.kind.key} is still coming"
+        }
         report.finish()
         return SUCCESS
     }
@@ -120,8 +133,9 @@ object CataclysmInstruments {
     }
 
     private fun retellTheEnd(level: ServerLevel, recipe: AgeRecipe, doom: Doom?) {
-        Ages.retell(level.server, level.dimension().identifier(), recipe.copy(forcedCataclysm = doom))
-        Cataclysms.tellTheClients(level, doom)
+        val retold = recipe.copy(forcedCataclysm = doom)
+        Ages.retell(level.server, level.dimension().identifier(), retold)
+        Cataclysms.tellTheClients(level, Cataclysms.of(level.server, retold))
     }
 
     private fun sayWhereItHasGot(level: ServerLevel, doom: Doom, report: Report) {

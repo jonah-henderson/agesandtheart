@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "How an asteroid ends an Age (design 5.3). `timeline` is each stage in ticks once the end is bought: three",
+    "in-game days of approach from the bind, then the entry, the travel, the heat and the dust.",
+    "",
+    "`inflicted_when` is when the Age's own instability calls it down unasked; a word naming the `asteroid`",
+    "phenomenon calls it down whatever this says. A condition is one of: `reach` (how far into a manifestation,",
+    "or one of its dials, from 0 to 1), `flaws` (at least so many distinct flaws, of one `register` if named),",
+    "`tier` (the flaws reaching `strange`, `harmful` or `failing`), `chance` (one Age in `share`, from its seed),",
+    "and `all_of`, `any_of` and `not` over others. Left out, only a word calls it down.",
+    "",
+    "For now, an Age whose collapse is at its fastest: `spread` bought in full."
+  ],
+  "timeline": {
+    "approach": 72000,
+    "entry": 120,
+    "travel": 1500,
+    "heat": 900,
+    "dust": 1800
+  },
+  "inflicted_when": {
+    "type": "reach",
+    "manifestation": "collapse",
+    "dial": "spread",
+    "at_least": 1.0
+  }
+}

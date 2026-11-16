@@ -185,7 +185,8 @@ class ResolutionCheck : FunSpec({
         val zombie = coloursOf("age red zombie")
         check(zombie.byType.keys.map { it.toString() } == listOf("minecraft:zombie") && zombie.everyCreature == null) { "$zombie" }
         check(coloursOf("age red inhabitants").everyCreature != null) { "red inhabitants left the creatures their own colours" }
-        check(coloursOf("age red").isNone) { "a red Age recoloured its creatures" }
+        // A bare colour dangles and is drawn onto any word of the corpus that takes it, a creature among them.
+        check(coloursOf("age red").everyCreature == null) { "a red Age recoloured every creature" }
         check(coloursOf("age black sheep").isNone) { "black sheep recoloured the sheep rather than its wool" }
     }
 

@@ -98,5 +98,9 @@
   "gale": {
     "_comment": "Named outright -- by `gale`, and by `stormy` and `windswept age` now and then -- and never reached by a tag: a lean on the hostile or the watery should not raise a wind that pushes you.",
     "available_to_broad_words": false
+  },
+  "asteroid": {
+    "_comment": "An end, so only a word naming it outright calls it down: no lean on the hostile may end an Age by accident.",
+    "available_to_broad_words": false
   }
 }

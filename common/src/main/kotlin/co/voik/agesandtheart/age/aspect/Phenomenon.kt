@@ -275,6 +275,13 @@ enum class Phenomenon(
      * Age thunders too seldom for one a day, so this raises the floor for rain and thunder both.
      */
     TORNADO("tornado", WeatherConditions(rainfall = OFTEN, thunder = OFTEN), Manifestation.TORNADO),
+
+    /**
+     * An asteroid that ends the Age ([co.voik.agesandtheart.age.cataclysm.Cataclysms], design §5.3 "The cataclysm"):
+     * the written way in to an end, where instability's way in is a cataclysm's own rule rather than a manifestation.
+     * It befalls nothing as a phenomenon; the end runs on its own clock.
+     */
+    ASTEROID("asteroid"),
     ;
 
     override val aspect = Aspect.PHENOMENA
@@ -298,6 +305,7 @@ enum class Phenomenon(
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)
             OVERGROWTH -> listOf(Phenomena.PACE)
+            ASTEROID -> emptyList()
         }
 
     override fun getSerializedName(): String = key

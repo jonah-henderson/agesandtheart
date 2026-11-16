@@ -30,7 +30,8 @@
     "",
     "`features`: the worst one named counts, as one hazard.",
     "",
-    "`phenomena` lists the sights at nothing so that a missing entry reads as an oversight. `phenomenon_dials`",
+    "`phenomena` lists the sights at nothing so that a missing entry reads as an oversight, and a written end too,",
+    "which was asked for and pays nothing (Jonah, 2026-11-16). `phenomenon_dials`",
     "scale a written phenomenon by how often and how hard it comes; an inflicted one scores by how far it was bought.",
     "",
     "`gravity`: a little while a block can still be jumped, and `unjumpable` from `unjumpable_from` times vanilla's.",
@@ -135,7 +136,8 @@
     "tempest": 0.1,
     "deluge": 0.05,
     "aurora": 0.0,
-    "rainbow": 0.0
+    "rainbow": 0.0,
+    "asteroid": 0.0
   },
   "phenomenon_dials": {
     "frequency": { "raised": 1.31, "lowered": 0.31 },

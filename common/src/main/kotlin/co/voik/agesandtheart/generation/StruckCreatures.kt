@@ -45,7 +45,7 @@ object StruckCreatures {
      */
     private fun isNearTheSurfaceOfAnEndedAge(level: ServerLevelAccessor, entity: Entity): Boolean {
         val recipe = Ages.recipeOf(level.level) ?: return false
-        if (!Cataclysms.hasEnded(recipe, level.level.gameTime)) return false
+        if (!Cataclysms.hasEnded(level.level.server, recipe, level.level.gameTime)) return false
         val surface = level.getHeight(surfaceOf(level), entity.blockX, entity.blockZ)
         return entity.blockY >= surface - BELOW_THE_SURFACE
     }

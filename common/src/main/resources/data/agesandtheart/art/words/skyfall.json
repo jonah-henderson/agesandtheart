@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "A stand-in name until Jonah names it: an asteroid ends the Age (design 5.3), three days after the bind."
+  ],
+  "speech": "noun",
+  "kind": "phenomenon",
+  "means": [
+    {
+      "chooses": {
+        "phenomena": "asteroid"
+      }
+    }
+  ]
+}

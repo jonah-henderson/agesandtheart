@@ -101,7 +101,7 @@ object Linking {
     private fun leadsToAnEndedAge(level: ServerLevel, stack: ItemStack): Boolean {
         val destination = destinationOf(stack) ?: return false
         val recipe = AgeSavedData.get(level.server).recipe(destination) ?: return false
-        return Cataclysms.hasEnded(recipe, level.gameTime)
+        return Cataclysms.hasEnded(level.server, recipe, level.gameTime)
     }
 
     /** The world [stack] leads to, or null for a descriptive book whose Age has not been made yet. */

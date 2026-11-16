@@ -34,7 +34,7 @@ internal object VanillaSpawners {
     /** [spawner], until an end has struck the Age: after it, nothing new comes to a dead world (design §5.3). */
     private class UntilTheEnd(private val spawner: CustomSpawner) : CustomSpawner {
         override fun tick(level: ServerLevel, spawnEnemies: Boolean) {
-            val hasEnded = Ages.recipeOf(level)?.let { Cataclysms.hasEnded(it, level.gameTime) } == true
+            val hasEnded = Ages.recipeOf(level)?.let { Cataclysms.hasEnded(level.server, it, level.gameTime) } == true
             if (!hasEnded) spawner.tick(level, spawnEnemies)
         }
     }

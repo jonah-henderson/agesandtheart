@@ -505,7 +505,7 @@ class AgeChunkGenerator(
      */
     private fun isDeadUnderTheSky(level: Level, at: BlockPos): Boolean {
         val server = level as? ServerLevel ?: return false
-        val hasEnded = Ages.recipeOf(server)?.let { Cataclysms.hasEnded(it, server.gameTime) } == true
+        val hasEnded = Ages.recipeOf(server)?.let { Cataclysms.hasEnded(server.server, it, server.gameTime) } == true
         return hasEnded && server.getBrightness(LightLayer.SKY, at) >= Scorch.IN_DAYLIGHT
     }
 
