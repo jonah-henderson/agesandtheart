@@ -56,6 +56,8 @@ open class MoltenLumpRenderer<T : Entity>(
     private val burnOf: (T) -> Rgba? = { null },
     /** How hot one looks, given how hot its speed says: a caught meteor only ever cools. */
     private val heatFor: (T, Float) -> Float = { _, bySpeed -> bySpeed },
+    /** How many times the usual length its streak is drawn. */
+    private val streakStretch: Double = 1.0,
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
 
     override fun createRenderState() = MoltenLumpRenderState()
@@ -115,7 +117,7 @@ open class MoltenLumpRenderer<T : Entity>(
         val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
         val burning = colour.copy(alpha = colour.alpha * heat)
         AddedLight.halo(collector, poseStack, towardCamera, burning, scale * BLOOM_ACROSS)
-        AddedLight.streak(collector, poseStack, state.travel, towardCamera, burning, scale * STREAK_ACROSS)
+        AddedLight.streak(collector, poseStack, state.travel.scale(streakStretch), towardCamera, burning, scale * STREAK_ACROSS)
     }
 
     companion object {
@@ -144,6 +146,11 @@ open class MoltenLumpRenderer<T : Entity>(
          * this came up as the sky came down and they meet in the middle.
          */
         const val METEOR = 0.75f
+
+        /** A fragment of an asteroid's end, a great burning lump, and the fire it burns with. */
+        const val EJECTA = 2.5f
+        const val EJECTA_STREAK = 4.0
+        val EJECTA_BURNS = Rgba(1.0f, 0.55f, 0.2f, 0.9f)
 
         /** And made of a violet stone rather than magma, since everything else about one is violet. */
         val METEOR_ROCK: Block = Blocks.AMETHYST_BLOCK

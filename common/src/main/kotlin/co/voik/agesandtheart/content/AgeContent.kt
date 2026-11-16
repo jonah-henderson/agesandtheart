@@ -16,6 +16,7 @@ import co.voik.agesandtheart.portal.LinkingPortalShape
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.Tornado
 import co.voik.agesandtheart.age.phenomena.CaveIn
+import co.voik.agesandtheart.age.cataclysm.Ejecta
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.book.BookEntity
@@ -1778,6 +1779,16 @@ object AgeContent {
 
     private const val METEOR_SIZE = 0.7f
 
+    /** A burning fragment of an asteroid's end, falling near a player. See [co.voik.agesandtheart.age.cataclysm.Ejecta]. */
+    val EJECTA: EntityType<Ejecta> = EntityType.Builder
+        .of({ type, level -> Ejecta(type, level) }, MobCategory.MISC)
+        .sized(EJECTA_SIZE, EJECTA_SIZE)
+        .clientTrackingRange(METEOR_TRACKING_CHUNKS)
+        .updateInterval(BOMB_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, Ejecta.ID))
+
+    private const val EJECTA_SIZE = 1.5f
+
     /** Far, because one is thrown from a long way out and crosses that ground in about a second. */
     private const val METEOR_TRACKING_CHUNKS = 16
     private const val STORM_SIZE = 0.5f
@@ -1851,6 +1862,7 @@ object AgeContent {
         "lava_droplet".location() to LAVA_DROPLET,
         Meteor.ID to METEOR,
         MeteorStorm.ID to METEOR_STORM,
+        Ejecta.ID to EJECTA,
         "drifting_ore".location() to DRIFTING_ORE,
         "arc_bolt".location() to ARC_BOLT,
     ) + PalmWood.entities

@@ -20,12 +20,14 @@ import kotlin.math.abs
 
 /**
  * What an asteroid's end does on the server (design §5.3 "The asteroid"): the sky, the flash and the dust are the
- * client's, drawn off the schedule; what is left here is **the heat**, which kills whatever the glowing sky can
- * see and sets what it shines on alight, and **the scorch** behind the dust.
+ * client's, drawn off the schedule; what is left here is **the fragments** falling round players as the debris
+ * arrives, **the heat**, which kills whatever the glowing sky can see and sets what it shines on alight, and **the
+ * scorch** behind the dust.
  */
 object Asteroid {
 
     fun befall(level: ServerLevel, doom: Doom) {
+        throwFragments(level, doom)
         when (doom.phaseAt(level.gameTime)) {
             ImpactPhase.HEAT -> {
                 if (level.gameTime % BURNING_EVERY == 0L) burnWhatTheSkySees(level)
@@ -35,6 +37,27 @@ object Asteroid {
             ImpactPhase.AFTER -> Scorch.some(level, CHUNKS_AFTER)
             ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.TRAVEL, null -> Unit
         }
+    }
+
+    /** Fragments coming down round each player, from late in the debris' travel and through the heat. */
+    private fun throwFragments(level: ServerLevel, doom: Doom) {
+        val perSecond = fragmentsPerSecondAt(doom, level.gameTime.toDouble())
+        if (perSecond <= 0.0) return
+        for (player in level.players()) {
+            if (player.isSpectator) continue
+            val isThrown = level.random.nextDouble() < perSecond / ImpactTimeline.TICKS_PER_SECOND
+            if (isThrown) Ejecta.throwNear(level, player, doom.bearingDegrees)
+        }
+    }
+
+    /** How many fragments a second fall round a player: gathering through the end of the travel, and steady in the heat. */
+    fun fragmentsPerSecondAt(doom: Doom, time: Double): Double = when (doom.phaseAt(time.toLong())) {
+        ImpactPhase.TRAVEL -> {
+            val gathering = (doom.progressThrough(ImpactPhase.TRAVEL, time) - FRAGMENTS_FROM) / (1.0 - FRAGMENTS_FROM)
+            if (gathering <= 0.0) 0.0 else FIRST_FRAGMENTS + (FRAGMENTS_IN_THE_HEAT - FIRST_FRAGMENTS) * gathering
+        }
+        ImpactPhase.HEAT -> FRAGMENTS_IN_THE_HEAT
+        ImpactPhase.APPROACH, ImpactPhase.ENTRY, ImpactPhase.DUST, ImpactPhase.AFTER, null -> 0.0
     }
 
     /**
@@ -100,6 +123,11 @@ object Asteroid {
     private const val COLUMNS_LIT_PER_PLAYER = 24
     private const val LIT_ACROSS = 96
     private const val LEAVES_BURNED_STRAIGHT_AWAY = 0.5f
+
+    /** How far through the travel the first fragments fall, and how many a second then and through the heat. */
+    private const val FRAGMENTS_FROM = 0.6
+    private const val FIRST_FRAGMENTS = 0.1
+    private const val FRAGMENTS_IN_THE_HEAT = 0.5
 
     /** How many chunks the scorch works through a tick: quickly behind the dust, and steadily after it. */
     private const val CHUNKS_IN_THE_DUST = 2

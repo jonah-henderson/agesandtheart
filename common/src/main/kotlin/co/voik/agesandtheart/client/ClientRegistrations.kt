@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.cataclysm.Ejecta
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.book.Bookbinder
@@ -88,6 +89,14 @@ object ClientRegistrations {
                 MoltenLumpRenderer.METEOR_ROCK,
                 burnOf = { meteor -> MeteorLights.of(meteor.colour, meteor.cyclePeriod, meteor.level().gameTime).rock },
                 heatFor = { meteor, bySpeed -> meteor.reentryGlow(bySpeed) },
+            )
+        },
+        RendererForEntity(AgeContent.EJECTA) {
+            MoltenLumpRenderer<Ejecta>(
+                it,
+                MoltenLumpRenderer.EJECTA,
+                burnOf = { MoltenLumpRenderer.EJECTA_BURNS },
+                streakStretch = MoltenLumpRenderer.EJECTA_STREAK,
             )
         },
         RendererForEntity(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) },
