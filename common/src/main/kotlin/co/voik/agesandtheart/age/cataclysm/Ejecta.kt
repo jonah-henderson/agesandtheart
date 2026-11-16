@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.cataclysm
 
+import co.voik.agesandtheart.client.Impacts
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
@@ -59,10 +60,19 @@ class Ejecta(type: EntityType<out Ejecta>, level: Level) : ThrowableProjectile(t
 
     override fun onHit(hit: HitResult) {
         super.onHit(hit)
-        val level = level() as? ServerLevel ?: return
-        strike(level)
-        discard()
+        val level = level()
+        if (level is ServerLevel) {
+            strike(level)
+            discard()
+            return
+        }
+        // Felt on the client, once: it goes on hitting there until the server's word that it is gone arrives.
+        if (hasLanded) return
+        hasLanded = true
+        Impacts.landedNear(hit.location)
     }
+
+    private var hasLanded = false
 
     override fun tick() {
         super.tick()

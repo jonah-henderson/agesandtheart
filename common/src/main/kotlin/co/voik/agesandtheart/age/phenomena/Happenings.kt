@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.ORDINARY_SPELL
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.cataclysm.Blast
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -58,7 +59,8 @@ object Happenings {
         val gale = befalls[Phenomenon.GALE]
         val blowing = Gale.blowingOver(level, gale, befalls[Phenomenon.BLIZZARD], spending)
         val gusts = Gale.gustsOver(level, gale, spending)
-        Gale.blow(level, blowing, gusts)
+        // An end's blast over it, which each client lays over what it is told from the schedule itself.
+        Gale.blow(level, Blast.over(level, blowing), gusts)
         // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
         // rather than on change, because "changed" would need a memory per player and the message is
         // a dozen bytes.

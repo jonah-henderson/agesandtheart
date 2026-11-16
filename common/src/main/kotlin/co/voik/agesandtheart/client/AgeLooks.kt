@@ -3,6 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.ephemeris.client.EntitySwirls
 import co.voik.agesandtheart.AgeClientLook
 import co.voik.ephemeris.client.AuroraPainter
+import co.voik.ephemeris.client.CameraShake
 import co.voik.ephemeris.client.LevelRendering
 
 /**
@@ -28,8 +29,9 @@ object AgeLooks {
         MeteorSky.register()
         // Tears in an Age's sky, likewise an overlay — see [TornSky].
         TornSky.register()
-        // An asteroid's end, likewise — see [ImpactSky].
+        // An asteroid's end, likewise — see [ImpactSky] — and the ground and air shaking under it.
         ImpactSky.register()
+        CameraShake.shakenBy(Impacts::shake)
 
         // A creature its Age wrote charged, wrapped in a charged creeper's swirl — see [ChargedCreaturesSeen].
         EntitySwirls.drawWhere(ChargedCreaturesSeen::isCharged)

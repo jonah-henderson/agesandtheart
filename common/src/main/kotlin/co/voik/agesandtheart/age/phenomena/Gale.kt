@@ -83,8 +83,9 @@ object Gale {
     fun furyOf(push: Double): Double = (ORDINARY_FURY + push * (WHOLLY - ORDINARY_FURY)).coerceIn(GENTLEST, WHOLLY)
 
     /**
-     * How hard [blowing] leans, from nought to one, with [scale] the server's dial: as the square of its fury, so an
-     * ordinary gale leans and a fierce one shoves, and only as much as has risen.
+     * How hard [blowing] leans, from nought to one for any gale, with [scale] the server's dial: as the square of its
+     * fury, so an ordinary gale leans and a fierce one shoves, and only as much as has risen. An asteroid's blast,
+     * furious past a gale's whole, leans past one.
      */
     fun pushStrength(scale: Double, blowing: Blowing): Double = scale * blowing.fury * blowing.fury * blowing.lying
 
@@ -95,7 +96,7 @@ object Gale {
     fun pushStrength(scale: Double, blowing: Blowing, gusts: Gusts, gust: Gust?): Double {
         val steady = pushStrength(scale, blowing)
         val gusting = gust?.gusting ?: return steady
-        val gustingAt = maxOf(steady, scale * gusts.strength * blowing.lying)
+        val gustingAt = maxOf(steady, (scale * gusts.strength * blowing.lying).coerceAtMost(WHOLLY))
         return steady + (gustingAt - steady) * gusting
     }
 
@@ -215,12 +216,13 @@ object Gale {
      * [strength] from nought to one, as [exposed] as it stands, on ground as slippery as [friction] — ordinary ground
      * in the air.
      *
-     * **Capped below a sprint on the ground underfoot**, so sprinting into the wind always gets somewhere, ice
-     * included; walking into the fiercest of it may not. In the air a player gains far less and loses far less to
+     * **Capped below a sprint on the ground underfoot** at a [strength] of one, the most any gale or gust leans, so
+     * sprinting into the wind always gets somewhere, ice included; walking into the fiercest of it may not. Only an
+     * asteroid's blast leans harder, up to [PAST_ANY_GALE], and nothing walks into that. In the air a player gains far less and loses far less to
      * drag, so the same push carries them much further, and a jump or a bridge's edge is where it is felt.
      */
     fun windPush(strength: Double, exposed: Float, friction: Float): Double =
-        MOST_OF_A_SPRINT * sprintGainOn(friction) * strength.coerceIn(NONE, WHOLLY) * exposed
+        MOST_OF_A_SPRINT * sprintGainOn(friction) * strength.coerceIn(NONE, PAST_ANY_GALE) * exposed
 
     /** What a sprint gains each tick on ground of [friction], as `LivingEntity.getFrictionInfluencedSpeed` has it. */
     fun sprintGainOn(friction: Float): Double {
@@ -269,8 +271,11 @@ object Gale {
     /** How much of a gale's fury a storm blowing with it takes on. */
     private const val STORM_TAKES = 0.5
 
-    /** How much of a sprint's gain the fiercest wind takes back. */
+    /** How much of a sprint's gain the fiercest gale takes back. */
     private const val MOST_OF_A_SPRINT = 0.75
+
+    /** The hardest lean of all, an asteroid's blast's: half again a sprint. */
+    private const val PAST_ANY_GALE = 2.0
 
     /** A player's sprinting speed — vanilla's walking 0.1 and its sprint's 30% — and ordinary ground's friction. */
     private const val SPRINT_SPEED = 0.13

@@ -20,13 +20,14 @@ import kotlin.math.abs
 
 /**
  * What an asteroid's end does on the server (design §5.3 "The asteroid"): the sky, the flash and the dust are the
- * client's, drawn off the schedule; what is left here is **the fragments** falling round players as the debris
- * arrives, **the heat**, which kills whatever the glowing sky can see and sets what it shines on alight, and **the
+ * client's, drawn off the schedule, and the wind of the blast is a gale's ([Blast]); what is left here is **the shock
+ * front** throwing what is out in it, **the fragments** falling round players as the debris arrives, **the heat**, which kills whatever the glowing sky can see and sets what it shines on alight, and **the
  * scorch** behind the dust.
  */
 object Asteroid {
 
     fun befall(level: ServerLevel, doom: Doom) {
+        if (level.gameTime == Blast.shockAt(doom)) Blast.strike(level, doom)
         throwFragments(level, doom)
         when (doom.phaseAt(level.gameTime)) {
             ImpactPhase.HEAT -> {

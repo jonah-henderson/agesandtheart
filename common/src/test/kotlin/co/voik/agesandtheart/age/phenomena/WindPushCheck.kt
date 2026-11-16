@@ -68,9 +68,18 @@ class WindPushCheck : FunSpec({
         check(biggestTurn < MOST_A_TICK_MAY_TURN) { "a blizzard turned $biggestTurn° in one tick" }
     }
 
-    test("a strength past one is held at one") {
-        val most = Gale.windPush(strength = 1.0, exposed = 1.0f, friction = ICE)
-        check(Gale.windPush(strength = 3.0, exposed = 1.0f, friction = ICE) == most)
+    test("no gale or gust leans past a strength of one, at the fiercest dial") {
+        val fiercest = Gale.Blowing(lying = 1.0, bearingDegrees = 0.0, fury = 1.0)
+        val gusts = Gusts(seed = SEED, often = 1.0, force = 1.0, sudden = 1.0)
+        val gust = Gust(slot = 0L, warned = 1.0, gusting = 1.0, presence = 1.0, veerDegrees = 0.0)
+        val strength = Gale.pushStrength(scale = 1.0, blowing = fiercest, gusts = gusts, gust = gust)
+        check(strength <= 1.0) { "the fiercest gale gusting leaned at $strength" }
+    }
+
+    test("only a blast leans past a sprint, and a strength past its own is held there") {
+        val hardest = Gale.windPush(strength = 2.0, exposed = 1.0f, friction = Gale.ORDINARY_FRICTION)
+        check(Gale.windPush(strength = 3.0, exposed = 1.0f, friction = Gale.ORDINARY_FRICTION) == hardest)
+        check(sprintSpeedInto(hardest, Gale.ORDINARY_FRICTION) < 0.0) { "a sprint into the blast got somewhere" }
     }
 }) {
     private companion object {

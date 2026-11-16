@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.cataclysm.Blast
 import co.voik.agesandtheart.age.cataclysm.CataclysmPayload
 import co.voik.agesandtheart.age.cataclysm.Doom
 import co.voik.agesandtheart.age.cataclysm.ImpactPhase
+import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.player.LocalPlayer
@@ -12,12 +14,13 @@ import net.minecraft.resources.Identifier
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
+import net.minecraft.world.phys.Vec3
 import kotlin.math.exp
 
 /**
  * What the client has been told of an end coming to the Age it stands in (design §5.3 "The asteroid"), and what
- * is heard and felt of it: the roar of entry, the rumble arriving long after the light, the blast of the debris
- * reaching overhead, the crackle under the burning sky and the ash after. [ImpactSky] draws it and [ImpactAir]
+ * is heard and felt of it: the roar of entry, the rumble arriving long after the light, the shock front, the blast of
+ * the debris reaching overhead, the view shaken by each and by fragments landing close, the crackle under the burning sky and the ash after. [ImpactSky] draws it and [ImpactAir]
  * colours the air, both from the same schedule.
  */
 object Impacts {
@@ -35,6 +38,7 @@ object Impacts {
     fun forget() {
         told.clear()
         heardUpTo.clear()
+        landed = NONE
     }
 
     /** The end coming to [level], or null where none is. */
@@ -89,7 +93,66 @@ object Impacts {
         val heardTo = heardUpTo[age] ?: now
         heardUpTo[age] = now
         hear(level, minecraft, doom, heardTo, now)
+        if (Blast.shockAt(doom) in (heardTo + 1)..now) thrownByTheShock(level, minecraft, doom)
         scatterAsh(level, minecraft, doom, now)
+    }
+
+    /** The local player thrown by the shock front as it passes, here because a client moves its own player. */
+    private fun thrownByTheShock(level: ClientLevel, minecraft: Minecraft, doom: Doom) {
+        val player = minecraft.player ?: return
+        val isOutOfIt = player.isSpectator || player.abilities.flying || player.isPassenger
+        if (isOutOfIt) return
+        Blast.throwOff(player, doom, Sampling.exposureAt(level, player.blockPosition()))
+    }
+
+    /**
+     * How hard the view shakes now, for [co.voik.ephemeris.client.CameraShake]: a jolt as the rumble through the ground
+     * arrives and a tremor growing under it, the shock front's slam, the blast buffeting whoever is out in it, a jolt
+     * as the debris arrives overhead, and a fragment landing close.
+     */
+    fun shake(): Float {
+        val minecraft = Minecraft.getInstance()
+        val level = minecraft.level ?: return NONE
+        val player = minecraft.player ?: return NONE
+        val time = level.gameTime + minecraft.deltaTracker.getGameTimeDeltaPartialTick(false).toDouble()
+        val fromALanding = landed * exp(-(time - landedAt) / LANDING_FADES).toFloat()
+        val doom = comingTo(level) ?: return fromALanding
+        val rumbleAt = doom.impactAt + RUMBLE_ARRIVES_AFTER
+        val shockAt = Blast.shockAt(doom)
+        val isTrembling = time >= rumbleAt && time < shockAt
+        val tremor = if (isTrembling) TREMOR + (TREMOR_BY_THE_SHOCK - TREMOR) * ((time - rumbleAt) / (shockAt - rumbleAt)).toFloat() else NONE
+        val blowing = Blast.blowingAt(doom, time)
+        val buffeting = if (blowing == null) NONE else {
+            val gusting = Gales.gustIn(level)?.gusting?.toFloat() ?: NONE
+            val exposed = Sampling.exposureAt(level, player.blockPosition())
+            (BUFFETED + GUSTS_BUFFET * gusting) * blowing.lying.toFloat() * exposed
+        }
+        val jolts = jolt(time, rumbleAt, RUMBLE_JOLT, RUMBLE_JOLT_FADES) +
+            jolt(time, shockAt, SHOCK_JOLT, SHOCK_JOLT_FADES) +
+            jolt(time, doom.arrivalAt, ARRIVAL_JOLT, ARRIVAL_JOLT_FADES)
+        return tremor + buffeting + jolts + fromALanding
+    }
+
+    private fun jolt(time: Double, at: Long, size: Float, fades: Double): Float {
+        val since = time - at
+        return if (since < 0.0) NONE else size * exp(-since / fades).toFloat()
+    }
+
+    /** How hard the last fragment to land shook the view, and when, so a nearer one coming after outdoes it. */
+    private var landed = NONE
+    private var landedAt = 0.0
+
+    /** A fragment landing at [at]: felt the harder the closer it came down. */
+    fun landedNear(at: Vec3) {
+        val minecraft = Minecraft.getInstance()
+        val level = minecraft.level ?: return
+        val player = minecraft.player ?: return
+        val away = player.position().distanceTo(at)
+        val closeness = (1.0 - (away - FELT_WHOLLY_WITHIN) / (FELT_UNTIL - FELT_WHOLLY_WITHIN)).coerceIn(0.0, 1.0).toFloat()
+        val now = level.gameTime.toDouble()
+        val stillShaking = landed * exp(-(now - landedAt) / LANDING_FADES).toFloat()
+        landed = maxOf(stillShaking, LANDING_JOLT * closeness)
+        landedAt = now
     }
 
     /** Plays whatever falls between [after] and [upTo], so a sound is heard once however the ticks fall. */
@@ -103,6 +166,10 @@ object Impacts {
         if (passed(doom.impactAt + RUMBLE_ARRIVES_AFTER)) {
             play(SoundEvents.LIGHTNING_BOLT_THUNDER, LOUD, DEEPEST)
             play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEPEST)
+        }
+        if (passed(Blast.shockAt(doom))) {
+            play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEPEST)
+            play(SoundEvents.LIGHTNING_BOLT_THUNDER, LOUD, DEEP)
         }
         if (passed(doom.arrivalAt)) {
             play(SoundEvents.GENERIC_EXPLODE.value(), LOUD, DEEP)
@@ -149,6 +216,24 @@ object Impacts {
     private const val LOUD = 4.0f
     private const val DEEP = 0.6f
     private const val DEEPEST = 0.5f
+
+    /** How hard each moment shakes the view, a blast close by being one, and over how many ticks a jolt dies. */
+    private const val RUMBLE_JOLT = 0.5f
+    private const val RUMBLE_JOLT_FADES = 40.0
+    private const val TREMOR = 0.08f
+    private const val TREMOR_BY_THE_SHOCK = 0.25f
+    private const val SHOCK_JOLT = 1.0f
+    private const val SHOCK_JOLT_FADES = 50.0
+    private const val BUFFETED = 0.1f
+    private const val GUSTS_BUFFET = 0.25f
+    private const val ARRIVAL_JOLT = 0.7f
+    private const val ARRIVAL_JOLT_FADES = 40.0
+    private const val LANDING_JOLT = 0.8f
+    private const val LANDING_FADES = 12.0
+
+    /** How near a fragment lands to be felt wholly, and how far off it is felt at all, in blocks. */
+    private const val FELT_WHOLLY_WITHIN = 10.0
+    private const val FELT_UNTIL = 90.0
 
     private const val SPARKS_IN_THE_HEAT = 6
     private const val ASH_IN_THE_DUST = 30

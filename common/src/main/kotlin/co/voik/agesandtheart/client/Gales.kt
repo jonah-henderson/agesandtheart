@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.AgeConfig
+import co.voik.agesandtheart.age.cataclysm.Blast
 import co.voik.agesandtheart.age.phenomena.ConeExposure
 import co.voik.agesandtheart.age.phenomena.Gale
 import co.voik.agesandtheart.age.phenomena.GalePayload
@@ -34,13 +35,19 @@ object Gales {
     /** What each Age's gale was last told as — the one stood in, and any a panel looks into. */
     private val told = mutableMapOf<Identifier, GalePayload>()
 
-    /** The gale over [level] now, or null — including where the last word was about another Age. */
-    fun blowingIn(level: ClientLevel): Gale.Blowing? = toldAbout(level)?.blowing
+    /**
+     * The gale over [level] now, or null — including where the last word was about another Age — with the blast of
+     * any end coming to it laid over it, worked out here from the schedule rather than told.
+     */
+    fun blowingIn(level: ClientLevel): Gale.Blowing? {
+        val blast = Impacts.comingTo(level)?.let { Blast.blowingAt(it, level.gameTime.toDouble()) }
+        return Blast.over(toldAbout(level)?.blowing, blast)
+    }
 
     /** The gust over [level] now, warning or blowing, or null. */
     fun gustIn(level: ClientLevel): Gust? {
         val heard = toldAbout(level) ?: return null
-        if (heard.blowing == null) return null
+        if (blowingIn(level) == null) return null
         return heard.gusts.at(level.gameTime)
     }
 
