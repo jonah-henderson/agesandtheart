@@ -2,6 +2,7 @@ package co.voik.agesandtheart.server
 
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.world.entity.LivingEntity
 
 /**
  * A creature an Age wrote something of vanilla's own about — a creeper charged, a sheep's wool — comes into it so,
@@ -83,6 +84,34 @@ class WrittenCreaturesOnServerCheck : FunSpec({
         check(alone.size <= GOLEMS_TOGETHER_UNHERDED) { "golems unherded came ${alone.size} together" }
     }
 
+    test("a charged cow bursts as its death ends, and not as it begins") {
+        server.run("age write $CHARGED_COWS $SEED age charged cow")
+        inThe(CHARGED_COWS, "forceload add $FAR $FAR")
+        server.waitUntil("the chunk a charged cow dies in loading") {
+            inThe(CHARGED_COWS, "execute if loaded $FAR $PROBE_HEIGHT $FAR").startsWith("Test passed")
+        }
+        val floor = "$FAR $COW_FLOOR $FAR"
+        inThe(CHARGED_COWS, "fill ${FAR - 2} $COW_FLOOR ${FAR - 2} ${FAR + 2} $COW_FLOOR ${FAR + 2} minecraft:stone")
+        inThe(CHARGED_COWS, "summon minecraft:cow $FAR ${COW_FLOOR + 1} $FAR {NoAI:1b}")
+        val isCharged = inThe(CHARGED_COWS, "execute if entity @e[distance=0..,type=minecraft:cow,tag=agesandtheart.charged]")
+        check(isCharged.startsWith("Test passed")) { "a cow in 'charged cow' came uncharged: $isCharged" }
+        server.run("tick freeze")
+        try {
+            inThe(CHARGED_COWS, "kill @e[distance=0..,type=minecraft:cow]")
+            server.step(HALF_A_DEATH)
+            check(inThe(CHARGED_COWS, "execute if block $floor minecraft:stone").startsWith("Test passed")) {
+                "a charged cow burst before its death was over"
+            }
+            server.step(LivingEntity.DEATH_DURATION)
+            check(inThe(CHARGED_COWS, "execute if block $floor minecraft:air").startsWith("Test passed")) {
+                "a charged cow never burst"
+            }
+        } finally {
+            server.run("tick unfreeze")
+            inThe(CHARGED_COWS, "forceload remove all")
+        }
+    }
+
     test("a sheep summoned into a black-sheep Age is black") {
         check(summoned(BLACK_SHEEP, "age black sheep", "sheep", BLACK_WOOL)) { "a sheep in 'black sheep' came another colour" }
     }
@@ -90,6 +119,9 @@ class WrittenCreaturesOnServerCheck : FunSpec({
 
 private const val SEED = 4786177076396069349L
 private const val CHARGED = "chargedcreepers"
+private const val CHARGED_COWS = "chargedcows"
+private const val COW_FLOOR = 200
+private const val HALF_A_DEATH = 10
 private const val UNCHARGED = "plaincreepers"
 private const val BLACK_SHEEP = "blacksheep"
 private const val TEEMING = "teemingspawns"

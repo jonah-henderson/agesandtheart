@@ -27,8 +27,8 @@ import kotlin.math.sin
  * charged creeper's swirl, and bursts when it dies with an ordinary creeper's blast at its size: a colossal cow's is
  * wider than the wither's. Its drops are kept out of its own blast and flung by it, harder the wider it was.
  *
- * A blast goes off on the tick after the death, so a herd caught in one goes up in a ripple, as primed TNT does.
- * Blocks break only where `mobGriefing` lets them, as a creeper's do.
+ * A blast goes off where the body lies as its death ends, so it falls over first and is not flung by its own blast,
+ * and a herd caught in one goes up in a ripple. Blocks break only where `mobGriefing` lets them, as a creeper's do.
  */
 object ChargedCreatures {
 
@@ -52,17 +52,17 @@ object ChargedCreatures {
 
     private fun tell(player: ServerPlayer, entity: Entity) = Services.NETWORK.sendToPlayer(player, ChargedCreaturePayload(entity.uuid))
 
-    /** [victim] dying: a charged one other than a creeper, whose own blast is its fuse's, bursts on the next tick. */
+    /** [victim] dying: a charged one other than a creeper, whose own blast is its fuse's, bursts as its death ends. */
     fun died(victim: LivingEntity) {
         val level = victim.level() as? ServerLevel ?: return
         if (victim is Creeper || !isCharged(victim)) return
         val size = WrittenCreatures.dropsOf(victim) ?: AS_IT_IS
-        bursting += Burst(level, victim.position(), blastRadiusAt(size), level.gameTime)
+        bursting += Burst(level, victim, blastRadiusAt(size), level.gameTime)
     }
 
-    /** The blasts of the creatures that died on an earlier tick, and whatever those kill, on the next. */
+    /** The blasts of the creatures whose deaths have run their course, and later those of whatever they kill. */
     fun burst() {
-        val due = bursting.filter { it.level.gameTime > it.diedAt }
+        val due = bursting.filter { it.level.gameTime - it.diedAt >= LivingEntity.DEATH_DURATION }
         bursting.removeAll(due)
         due.filter { !it.level.isClientSide }.forEach(::burst)
     }
@@ -72,9 +72,11 @@ object ChargedCreatures {
     }
 
     private fun burst(burst: Burst) {
-        val (level, at, radius) = burst
+        val (level, body, radius, diedAt) = burst
+        val at = body.position()
+        val droppedSince = level.gameTime - diedAt + DROPS_AGE
         val reach = AABB.ofSize(at, DROPS_REACH * 2, DROPS_REACH * 2, DROPS_REACH * 2)
-        val drops = level.getEntitiesOfClass(ItemEntity::class.java, reach) { it.age <= DROPS_AGE && !it.isPermanentlyInvulnerable }
+        val drops = level.getEntitiesOfClass(ItemEntity::class.java, reach) { it.age <= droppedSince && !it.isPermanentlyInvulnerable }
         drops.forEach { it.isPermanentlyInvulnerable = true }
         level.explode(null, at.x, at.y, at.z, radius, Level.ExplosionInteraction.MOB)
         drops.forEach { drop ->
@@ -97,7 +99,7 @@ object ChargedCreatures {
     /** A creeper's own blast radius at [size] times its own size, which its charge then doubles as vanilla's does. */
     fun creeperRadiusAt(size: Double): Int = (CREEPER_BLAST * size).roundToInt().coerceAtLeast(1)
 
-    private data class Burst(val level: ServerLevel, val at: Vec3, val radius: Float, val diedAt: Long)
+    private data class Burst(val level: ServerLevel, val body: LivingEntity, val radius: Float, val diedAt: Long)
 
     private val bursting = mutableListOf<Burst>()
 
@@ -107,8 +109,8 @@ object ChargedCreatures {
     private const val CREEPER_BLAST = 3.0
     private const val AS_IT_IS = 1.0
 
-    /** How far from where it died a creature's drops are found, and how many ticks old they may be. */
-    private const val DROPS_REACH = 2.0
+    /** How far from the body a creature's drops are found, and how many ticks older than its death they may be. */
+    private const val DROPS_REACH = 3.0
     private const val DROPS_AGE = 2
 
     /** A drop's speed out of a blast and up, in blocks a tick for each block of its radius. */
