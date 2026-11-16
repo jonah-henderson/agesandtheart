@@ -6,6 +6,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.PanelView
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
+import co.voik.agesandtheart.book.EndedAges
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LecternBooks
@@ -105,6 +106,10 @@ object PanelViews {
                 Services.NETWORK.sendToPlayer(player, PanelDeclined)
                 return
             }
+        }
+        if (leadsToAnEnd(server, player, book)) {
+            Services.NETWORK.sendToPlayer(player, PanelOfAnEnd)
+            return
         }
         val destination = destinationFor(server, player, book) ?: return
         val lyingOpen = LyingOpen(book, player.level().dimension()).takeIf { isLyingOpen(book) }
@@ -299,6 +304,11 @@ object PanelViews {
             Constants.LOG.info("Panel refused: {} asked after {}, with no open book of ours there in reach", player.name.string, book)
             return null
         }
+        // Before the destination is resolved, which would open the Age, or make it for a book never opened.
+        if (EndedAges.leadsToAnEndedAge(server, stack)) {
+            Constants.LOG.info("Panel refused: {} asked after {}, whose Age has ended", player.name.string, stack.item)
+            return null
+        }
         val destination = destinationOf(server, stack)
         if (destination == null) {
             Constants.LOG.info("Panel refused: {} asked after {}, which leads nowhere that will open", player.name.string, stack.item)
@@ -323,6 +333,13 @@ object PanelViews {
             if (target == null || level == null) null else Destination(level, BlockPos.containing(target.position))
         }
         else -> null
+    }
+
+    /** Whether the book [player] asks after leads into an Age that has ended, which shows its end rather than the Age. */
+    private fun leadsToAnEnd(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead): Boolean {
+        if (book == BookBeingRead.AtACrystalViewer) return false
+        val stack = bookSeenBy(player, book) ?: return false
+        return EndedAges.leadsToAnEndedAge(server, stack)
     }
 
     private fun dimensionTypeIdOf(level: ServerLevel) =

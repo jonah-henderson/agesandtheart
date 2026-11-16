@@ -14,7 +14,7 @@ import net.minecraft.util.RandomSource
 
 /**
  * What an asteroid's end is heard by while it lasts (design §5.3 "The asteroid"), as against the moments [Impacts]
- * plays once: the drone of the approach, the roar of its burning, the blast's wind, the firestorm, the wall of ash
+ * plays once: the drone of the approach's last minutes, the roar of its burning, the blast's wind, the firestorm, the wall of ash
  * coming on, the dust and the winter after.
  *
  * Each loop's loudness is worked out every tick from the schedule, so each swells and dies with its part of the end,
@@ -29,7 +29,11 @@ object ImpactLoops {
     private val LOOPS = listOf(
         Loop(ImpactSounds.APPROACH) { doom, _, time ->
             when (doom.phaseAt(time.toLong())) {
-                ImpactPhase.APPROACH -> APPROACH_LOUDEST * squared(doom.progressThrough(ImpactPhase.APPROACH, time))
+                ImpactPhase.APPROACH -> {
+                    val heardFrom = doom.startOf(ImpactPhase.ENTRY) - APPROACH_HEARD_FOR
+                    val swelling = ((time - heardFrom) / APPROACH_HEARD_FOR).coerceIn(0.0, 1.0)
+                    if (swelling <= 0.0) null else APPROACH_LOUDEST * squared(swelling)
+                }
                 ImpactPhase.ENTRY -> APPROACH_LOUDEST * (1.0f - doom.progressThrough(ImpactPhase.ENTRY, time).toFloat())
                 else -> null
             }
@@ -115,6 +119,9 @@ object ImpactLoops {
     private const val MUFFLED = 0.3f
     private const val UNDER_WATER = 0.15f
     private const val APPROACH_LOUDEST = 0.8f
+
+    /** How long before its entry the asteroid's drone begins, in ticks: the last two minutes, however long the warning. */
+    private const val APPROACH_HEARD_FOR = 2_400.0
     private const val BURNING_LOUDEST = 1.0f
     private const val ASH_WALL_LOUDEST = 1.0f
     private const val WINTER_LOUDNESS = 0.5f

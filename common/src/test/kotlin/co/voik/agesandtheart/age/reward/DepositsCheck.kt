@@ -30,7 +30,7 @@ class DepositsCheck : FunSpec({
 
     test("an Age that earns nothing lays no layer, and so is handed its own settings back") {
         val safe = danger(materials = 0.0)
-        check(Deposits.layer(safe, ROCK) == null) { "a safe Age was given a deposit" }
+        check(Deposits.layer(safe, ROCK, isEnding = false) == null) { "a safe Age was given a deposit" }
         // The identity this protects is now [Decoration]'s to keep: a reward that lays nothing contributes
         // no layer, and an empty list hands the base back rather than rebuilding it — which is what costs
         // every feature in it the identity `FeatureSorter` indexes by.
@@ -65,6 +65,15 @@ class DepositsCheck : FunSpec({
         check(held.zipWithNext().none { (lower, higher) -> higher < lower }) { "a dearer Age held less than a cheaper one: $held" }
     }
 
+    test("an Age its instability ends holds the hoard through all its ground, well past a collapse's") {
+        val collapsing = danger(materials = 0.0, terminal = ALL_OF_IT)
+        val collapse = Deposits.heldAt(collapsing)
+        val ending = Deposits.heldAt(collapsing, isEnding = true)
+        check(ending >= collapse * ENDING_HOLDS_AT_LEAST) { "an ending Age held $ending against a collapse's $collapse" }
+        val endingQuietly = Deposits.heldAt(danger(materials = 0.0), isEnding = true)
+        check(endingQuietly >= Deposits.leastHoard) { "an Age ended without collapsing held only $endingQuietly" }
+    }
+
     test("a quiet Age that collapses lays the doomed hoard, and holds no ruins") {
         val quietAndCollapsing = danger(materials = 0.0, terminal = A_PART_OF_IT)
         check(quietAndCollapsing.paysOut && !quietAndCollapsing.allowsRuins) { "a collapsing Age scoring nothing paid nothing" }
@@ -77,6 +86,9 @@ class DepositsCheck : FunSpec({
     companion object {
         /** What a doomed Age is offered at the least: one vein, multiplied. */
         private const val DOOMED_AT_LEAST = 40
+
+        /** How many collapses' hoards an ending Age holds in the ground at the least. */
+        private const val ENDING_HOLDS_AT_LEAST = 2.0
 
         /** Well past where the ceiling falls. */
         private const val FURTHEST_SCORE = 30

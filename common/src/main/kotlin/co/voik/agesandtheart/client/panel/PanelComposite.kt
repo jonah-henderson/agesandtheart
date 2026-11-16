@@ -116,6 +116,7 @@ object PanelComposite {
         lastLive = when (source) {
             is PreviewLevel -> PanelPicture.strokes(source.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of), stillMissing)
             is PanelMap -> PanelPicture.strokesOfMap(source.inView, stillMissing)
+            is EndedAgeView -> PanelPicture.strokesOfAnEnd(stillMissing)
             null -> PanelPicture.strokes(age = null, mist = stillMissing)
         }
         val target = live ?: newTarget("live", LIVE_TEXELS_PER_PAGE_PIXEL).also { live = it }
@@ -250,10 +251,11 @@ object PanelComposite {
         is PanelStroke.Field -> PanelRenderTypes.field(stroke.field)
         is PanelStroke.Map -> PanelRenderTypes.mapField(stroke.slot)
         is PanelStroke.Mist -> PanelRenderTypes.mist
+        is PanelStroke.Ended -> PanelRenderTypes.ended
     }
 
     private fun formatOf(stroke: PanelStroke): VertexFormat = when (stroke) {
-        is PanelStroke.Fill, is PanelStroke.Mist -> DefaultVertexFormat.POSITION_COLOR
+        is PanelStroke.Fill, is PanelStroke.Mist, is PanelStroke.Ended -> DefaultVertexFormat.POSITION_COLOR
         is PanelStroke.Field, is PanelStroke.Map -> DefaultVertexFormat.POSITION_TEX_COLOR
     }
 
@@ -317,6 +319,15 @@ object PanelComposite {
             is PanelStroke.Mist -> {
                 val clock = mistClock()
                 val colour = ARGB.color((stroke.strength * FULLY).toInt(), clock shr BYTE, clock and FULLY, FULLY)
+                builder.addVertex(left, top, 0.0f).setColor(colour)
+                builder.addVertex(left, bottom, 0.0f).setColor(colour)
+                builder.addVertex(right, bottom, 0.0f).setColor(colour)
+                builder.addVertex(right, top, 0.0f).setColor(colour)
+            }
+            is PanelStroke.Ended -> {
+                // The same clock as the mist's, carried the same way; `panel_ended.fsh` reads it back.
+                val clock = mistClock()
+                val colour = ARGB.color(FULLY, clock shr BYTE, clock and FULLY, FULLY)
                 builder.addVertex(left, top, 0.0f).setColor(colour)
                 builder.addVertex(left, bottom, 0.0f).setColor(colour)
                 builder.addVertex(right, bottom, 0.0f).setColor(colour)

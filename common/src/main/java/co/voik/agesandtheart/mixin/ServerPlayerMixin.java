@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.age.cataclysm.AwayForTheEnd;
 import co.voik.agesandtheart.age.word.LearnedWords;
 import co.voik.agesandtheart.age.word.LearnedWordsHolder;
 import co.voik.agesandtheart.page.PageLearning;
@@ -91,6 +92,8 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
         if (input.getBooleanOr(StarFissureFall.SAVE_KEY, false)) {
             ((ServerPlayer) (Object) this).noPhysics = true;
         }
+        // And when they were last saved, so an end that struck their Age while they were away is answered as they join.
+        AwayForTheEnd.loaded((ServerPlayer) (Object) this, input.getLongOr(AwayForTheEnd.SAVE_KEY, AwayForTheEnd.NOT_KEPT));
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
@@ -101,6 +104,7 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
             output.putIntArray(WritingSeedKt.TUNING_KEY, this.agesandtheart$tuning);
         }
         output.putBoolean(StarFissureFall.SAVE_KEY, StarFissureFall.isFalling((ServerPlayer) (Object) this));
+        output.putLong(AwayForTheEnd.SAVE_KEY, AwayForTheEnd.savingAt((ServerPlayer) (Object) this));
     }
 
     @Inject(method = "restoreFrom", at = @At("TAIL"))

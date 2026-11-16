@@ -15,6 +15,7 @@ import co.voik.agesandtheart.book.LinkEnded
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelWeatherPayload
 import co.voik.agesandtheart.book.panel.PanelDeclined
+import co.voik.agesandtheart.book.panel.PanelOfAnEnd
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelMapChunkPayload
 import co.voik.agesandtheart.book.panel.PanelMapPayload
@@ -70,6 +71,7 @@ object ClientPayloads {
         Receiver(PanelMapPayload.TYPE) { BookMaps.accept(it) },
         Receiver(PanelMapChunkPayload.TYPE) { BookMaps.accept(it) },
         Receiver(PanelDeclined.TYPE) { LinkingPanel.declined() },
+        Receiver(PanelOfAnEnd.TYPE) { LinkingPanel.ended() },
         Receiver(LinkEnded.TYPE) { LinkTransit.ended() },
         Receiver(MachineCatalogPayload.TYPE) { KnownMachineRecipes.remember(it) },
         Receiver(TemptationsHerePayload.TYPE) { TemptationsHere.heard(it) },

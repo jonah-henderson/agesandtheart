@@ -219,6 +219,19 @@ object PanelDeclined : CustomPacketPayload {
 }
 
 /**
+ * *"That Age has ended."* — the answer to an open onto a book whose Age an end has struck (design §5.3 "The dead link"):
+ * nothing is streamed, and the panel shows the end where the Age was.
+ */
+object PanelOfAnEnd : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelOfAnEnd> = TYPE
+
+    val TYPE: CustomPacketPayload.Type<PanelOfAnEnd> = CustomPacketPayload.Type("panel_of_an_end".location())
+
+    val STREAM_CODEC: StreamCodec<ByteBuf, PanelOfAnEnd> = StreamCodec.unit(PanelOfAnEnd)
+}
+
+/**
  * *"Map that book."* — asked for every open book in reach when `AgeConfig.panelMode` is MAP, since a map costs the
  * server one read of each chunk and holds nothing afterwards, so any number of books may show one at once.
  *

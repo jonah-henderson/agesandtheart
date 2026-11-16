@@ -129,6 +129,20 @@ object PanelRenderTypes {
         ).createRenderSetup(),
     )
 
+    /** An Age an end has struck, laid out as the mist is and through its vertex shader. */
+    val ended: RenderType = RenderType.create(
+        "age_linking_panel_ended",
+        RenderSetup.builder(
+            RenderPipeline.builder(LAID)
+                .withLocation("pipeline/linking_panel_ended".location())
+                .withVertexShader("panel_mist".location())
+                .withFragmentShader("panel_ended".location())
+                .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
+                .withPrimitiveTopology(PrimitiveTopology.QUADS)
+                .build(),
+        ).createRenderSetup(),
+    )
+
     /**
      * A finished picture on a book in the world: opaque, since the picture always is, and writing depth, since
      * it lies on the page as solidly as the page does.

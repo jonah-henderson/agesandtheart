@@ -1,18 +1,29 @@
 package co.voik.agesandtheart.generation
 
-import co.voik.agesandtheart.book.DescriptiveBookRecipe
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
+import co.voik.agesandtheart.age.consequence.Consequence
+import co.voik.agesandtheart.book.DescriptiveBookRecipe
+import co.voik.agesandtheart.worldgen.ruins.CavernRuins
 import co.voik.ephemeris.RuntimeLevelConfig
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.RuntimeLevels
 import co.voik.ephemeris.sky.LevelAppearance
+import java.util.WeakHashMap
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceKey
+import net.minecraft.nbt.NbtAccounter
+import net.minecraft.nbt.NbtIo
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -22,17 +33,10 @@ import net.minecraft.world.level.NoiseColumn
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LeavesBlock
-import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
-import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Atmosphere
-import co.voik.agesandtheart.age.aspect.Terrain
-import java.util.WeakHashMap
-import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.consequence.Consequence
-import co.voik.agesandtheart.worldgen.ruins.CavernRuins
+import net.minecraft.world.level.material.Fluids
+import net.minecraft.world.level.storage.LevelResource
 
 /**
  * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this
@@ -698,6 +702,36 @@ object Ages {
     }
 
     /**
+     * Deletes every Age an end has struck that nobody is in (design §5.3 "The dead link"): no link leads into one, so
+     * nothing could reach it again. Asked as the server boots, before any Age opens, of where every player was saved.
+     */
+    private fun sweepTheEnded(server: MinecraftServer) {
+        val saved = AgeSavedData.get(server)
+        val now = server.overworld().gameTime
+        val ended = saved.ages.filter { id -> saved.recipe(id)?.let { Cataclysms.hasEnded(server, it, now) } == true }
+        if (ended.isEmpty()) return
+        val occupied = dimensionsPlayersWereSavedIn(server)
+        for (id in ended.filterNot { it in occupied }) {
+            Constants.LOG.info("Sweeping Age {}: its end has struck and nobody is in it", id)
+            delete(server, id)
+        }
+    }
+
+    /** The dimension each player's save stands in, the host's included: nobody is online as the server boots. */
+    private fun dimensionsPlayersWereSavedIn(server: MinecraftServer): Set<Identifier> {
+        val folder = server.getWorldPath(LevelResource.PLAYER_DATA_DIR).toFile()
+        val saves = folder.listFiles { file -> file.name.endsWith(PLAYER_SAVE_SUFFIX) } ?: return emptySet()
+        fun dimensionOf(save: java.io.File): Identifier? {
+            val read = runCatching { NbtIo.readCompressed(save.toPath(), NbtAccounter.unlimitedHeap()) }.getOrNull()
+            return read?.getString(SAVED_DIMENSION)?.orElse(null)?.let(Identifier::tryParse)
+        }
+        return saves.mapNotNull(::dimensionOf).toSet()
+    }
+
+    private const val PLAYER_SAVE_SUFFIX = ".dat"
+    private const val SAVED_DIMENSION = "Dimension"
+
+    /**
      * Makes every rename still owed from a server that stopped before it could, while no Age is open — so
      * each is a move of a closed folder.
      */
@@ -722,6 +756,7 @@ object Ages {
     /** Re-opens every persisted Age. Call once per server start (from a loader lifecycle hook). */
     fun reloadSaved(server: MinecraftServer) {
         settleOwedRenames(server)
+        sweepTheEnded(server)
         val ages = AgeSavedData.get(server).ages
         if (ages.isEmpty()) return
         Constants.LOG.info("Re-opening {} saved Age(s)", ages.size)

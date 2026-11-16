@@ -5,6 +5,7 @@ import co.voik.agesandtheart.worldgen.PorousLand
 import co.voik.agesandtheart.worldgen.SurfacePits
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import co.voik.agesandtheart.worldgen.Sastrugi
+import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.TreeFoliage
@@ -445,7 +446,7 @@ object AgeGeneration {
                     veinsMadeUpFor = composition.optionsFor(Aspect.UNDERGROUND, 0).steer(Underground.VEINS, seed).takeIf { ourGround != null },
                 ),
                 listOfNotNull(
-                    Deposits.layer(danger, rockBlocks),
+                    Deposits.layer(danger, rockBlocks, isEnding = Cataclysms.causeOf(server, recipe)?.isWritten == false),
                     // The buried lava tubes were laid here until 2026-09-11. They are their own page now
                     // (`agesandtheart:lava_tubes`) and reach the world through the ordinary claim path,
                     // which also gets them the Age's own rock in their ore targets — something a layer

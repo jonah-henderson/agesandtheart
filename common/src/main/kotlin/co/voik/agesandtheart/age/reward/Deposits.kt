@@ -25,7 +25,8 @@ import kotlin.math.roundToInt
  *
  * **Each yield is laid as a vanilla ore is** (Jonah, 2026-10-22): traces as emerald, a little as diamond, some as
  * iron, a good deal between iron and copper, large amounts as copper — their vein sizes, counts and heights — so
- * a word the survey says means what a player already knows by sight. A collapsing Age lays the hoard instead.
+ * a word the survey says means what a player already knows by sight. A collapsing Age lays the hoard instead, and an
+ * Age whose instability called down its end lays it through the whole of its ground as well.
  *
  * **Not a feature a writer can ask for.** The stone has a word, but it demands masterwork ink
  * (`#agesandtheart:requires_masterwork_ink`), so an Age made of the stuff is priced rather than free.
@@ -45,8 +46,8 @@ object Deposits {
      * list in the middle of generation. [Features] pays for this lesson twice in its own comments; this is
      * the third place it applies.
      */
-    fun layer(danger: Danger, rock: List<BlockState>): Decoration.Layer? {
-        val veins = veinsOf(Yield.of(danger), danger)
+    fun layer(danger: Danger, rock: List<BlockState>, isEnding: Boolean): Decoration.Layer? {
+        val veins = veinsOf(Yield.of(danger), danger) + listOfNotNull(hoardThroughout(danger).takeIf { isEnding })
         if (veins.isEmpty()) return null
         val targets = targetsIn(rock)
         return Decoration.layerOf(GenerationStep.Decoration.UNDERGROUND_ORES, veins.map { it.placed(targets) })
@@ -72,7 +73,8 @@ object Deposits {
         (danger.score / danger.lineFor(Yield.IMMENSE)).coerceIn(ONE.toDouble(), MOST_PAST_THE_TOP)
 
     /** How much deretheni a chunk of this Age holds in the ground ([Vein.inTheGround]) — what [leastHoard] is compared against. */
-    internal fun heldAt(danger: Danger): Double = veinsOf(Yield.of(danger), danger).sumOf(Vein::inTheGround)
+    internal fun heldAt(danger: Danger, isEnding: Boolean = false): Double =
+        (veinsOf(Yield.of(danger), danger) + listOfNotNull(hoardThroughout(danger).takeIf { isEnding })).sumOf(Vein::inTheGround)
 
     /** How much the least of a collapse's hoard holds a chunk: one step's veins. */
     internal val leastHoard: Double get() = hoardOf(TERMINAL_VEINS).inTheGround
@@ -109,6 +111,22 @@ object Deposits {
      * the part that does not.
      */
     private fun hoard(danger: Danger) = hoardOf(hoardVeinsPerChunk(danger))
+
+    /**
+     * The hoard of an Age whose own instability called down its end (design §5.3): [THROUGHOUT_HOARDS] times a collapse's
+     * veins, laid evenly from where the bedrock fades to the top of any ground, so it is met wherever a player digs rather
+     * than only low down where the floor tears. It is the reason to brave the end; one a word called down pays nothing.
+     */
+    private fun hoardThroughout(danger: Danger) = Vein(
+        size = HOARD_VEIN_SIZE,
+        discardedInAir = 0.0f,
+        perChunk = hoardVeinsPerChunk(danger) * THROUGHOUT_HOARDS,
+        band = Band(
+            Height(SurfacingStrategy.BEDROCK_FADE, fromTheBottom = true),
+            Height(TOP_OF_ANY_GROUND),
+            thickestMidway = false,
+        ),
+    )
 
     private fun hoardOf(veins: Int) = Vein(
         size = HOARD_VEIN_SIZE,
@@ -153,6 +171,10 @@ object Deposits {
 
     /** How many layers the hoard is laid through, from where the bedrock floor has faded out. */
     private const val REACHES_OVER_THE_BEDROCK = 6
+
+    /** How many collapses' hoards an ending Age lays through its ground, and how high that ground can stand. */
+    private const val THROUGHOUT_HOARDS = 3
+    private const val TOP_OF_ANY_GROUND = 256
 }
 
 /**

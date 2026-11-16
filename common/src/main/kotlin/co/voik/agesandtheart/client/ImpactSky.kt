@@ -12,7 +12,12 @@ import co.voik.ephemeris.client.SkyCorner
 import co.voik.ephemeris.client.SkyMoment
 import co.voik.ephemeris.client.SkyDrift
 import co.voik.ephemeris.client.SkyQuad
+import co.voik.ephemeris.client.SkyTurn
+import co.voik.ephemeris.sky.LevelLooks
+import co.voik.ephemeris.sky.StarField
+import net.minecraft.client.multiplayer.ClientLevel
 import org.joml.Quaternionf
+import org.joml.Vector3d
 import org.joml.Vector3f
 import kotlin.math.PI
 import kotlin.math.abs
@@ -71,7 +76,7 @@ object ImpactSky {
         Blaze3dSkyCanvas.drawShapes(plumeSmoke, SkyBlend.SHADE)
         Blaze3dSkyCanvas.drawShapes(plumeGlow, SkyBlend.LIGHT)
         drawTheTrails(doom, time)
-        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) drawTheAsteroid(doom, time)
+        if (phase == ImpactPhase.APPROACH || phase == ImpactPhase.ENTRY) drawTheAsteroid(doom, time, turnedWithTheStars(moment.level, doom, time))
         if (!hasStruck) return
         val heads = mutableListOf<Glow>()
         val comingSolid = mutableListOf<SkyQuad>()
@@ -106,10 +111,14 @@ object ImpactSky {
      * swerve: the impact lies [IMPACT_BELOW_THE_EYE] below the eye, as ground that far off over a planet's curve would,
      * so the rock sinks out of sight a moment before it strikes without its path bending to do it.
      */
-    private fun sightingOf(doom: Doom, ticksToImpact: Double): Sighting = sightingAlong(doom, remainingPathAt(doom, ticksToImpact))
+    private fun sightingOf(doom: Doom, ticksToImpact: Double): Sighting =
+        sightingAlong(doom, remainingPathAt(doom, ticksToImpact), NOT_TURNED)
 
-    /** Where a point [back] blocks back up the asteroid's path from the impact is seen from the eye. */
-    private fun sightingAlong(doom: Doom, back: Double): Sighting {
+    /**
+     * Where a point [back] blocks back up the asteroid's path from the impact is seen from the eye, the whole path
+     * [turned] as the sky has turned between now and the strike.
+     */
+    private fun sightingAlong(doom: Doom, back: Double, turned: Quaternionf): Sighting {
         val bearing = Math.toRadians(doom.bearingDegrees.toDouble())
         val alongX = sin(bearing)
         val alongZ = -cos(bearing)
@@ -121,9 +130,21 @@ object ImpactSky {
         val sideways = cos(climb) * sin(slant) * back
         val x = alongX * (Doom.IMPACT_DISTANCE + outward) + acrossX * sideways
         val z = alongZ * (Doom.IMPACT_DISTANCE + outward) + acrossZ * sideways
-        val y = sin(climb) * back - IMPACT_BELOW_THE_EYE
-        val horizontal = hypot(x, z)
-        return Sighting(atan2(x, -z), atan2(y, horizontal), sqrt(horizontal * horizontal + y * y))
+        val seen = turned.transform(Vector3d(x, sin(climb) * back - IMPACT_BELOW_THE_EYE, z))
+        val horizontal = hypot(seen.x, seen.z)
+        return Sighting(atan2(seen.x, -seen.z), atan2(seen.y, horizontal), seen.length())
+    }
+
+    /**
+     * How the sky turns between [time] and the strike, which carries the asteroid with the stars until it comes: far
+     * off it rises and sets as they do, and nearing the strike the turn left shrinks to nothing, so it comes in on its
+     * path as it lies over the ground and always down out of the sky. A turn at the stars' own pace, about their axis.
+     */
+    private fun turnedWithTheStars(level: ClientLevel, doom: Doom, time: Double): Quaternionf {
+        val pace = LevelLooks.of(level.dimension())?.sky?.stars?.pace ?: StarField.VANILLAS_PACE
+        val turnsStillToCome = pace * (doom.impactAt - time) / TICKS_PER_DAY
+        val turnedBackBy = (-turnsStillToCome * WHOLE_TURN).toFloat()
+        return SkyTurn.byVanillasAxis(turnedBackBy).mul(SkyTurn.byVanillasAxis(NOT_AT_ALL).invert())
     }
 
     /** How far up its path the asteroid still is [ticksToImpact] before it strikes: as far as it goes in that time. */
@@ -137,24 +158,27 @@ object ImpactSky {
      *
      * Drawn in layers, each over the last: the speck, the tail, the cube, the sheath.
      */
-    private fun drawTheAsteroid(doom: Doom, time: Double) {
+    private fun drawTheAsteroid(doom: Doom, time: Double, turned: Quaternionf) {
         val ticksToImpact = doom.impactAt - time
         val back = remainingPathAt(doom, ticksToImpact)
-        val sighting = sightingAlong(doom, back)
+        val sighting = sightingAlong(doom, back, turned)
         val burning = doom.progressThrough(ImpactPhase.ENTRY, time).toFloat()
-        val size = sizeAt(sighting.distance)
+        val nearing = doom.progressThrough(ImpactPhase.APPROACH, time).toFloat()
+        val bodySize = bodySizeAt(sighting.distance)
+        val size = maxOf(speckSizeAt(nearing), bodySize)
         // Drawn on into the strike, cut off at the horizon as it goes down behind it, until the last of it has gone.
         val isWhollyGone = sighting.elevation < -angularRadiusOf(size) * GONE_BELOW_BY
         if (isWhollyGone) return
-        val solid = smoothStep(SPECK_UNTIL, SOLID_BY, size.toDouble())
+        val solid = smoothStep(SPECK_UNTIL, SOLID_BY, bodySize.toDouble())
         val frame = DiscFrame(sighting.direction, angularRadiusOf(size))
-        val tail = tailOf(frame, sightingAlong(doom, back + TAIL_BEHIND).direction)
+        val tail = tailOf(frame, sightingAlong(doom, back + TAIL_BEHIND, turned).direction)
         val corona = coronaAt(burning, time)
         val centre = Vector3f(sighting.direction).mul(GLOW_DISTANCE.toFloat())
         val halfEdge = GLOW_DISTANCE.toFloat() * tan(angularRadiusOf(size)) * CUBE_HALF_EDGE
-        val travel = Vector3f(positionAlong(doom, back - TRAVEL_STEP)).sub(positionAlong(doom, back)).normalize()
+        val travel = Vector3f(positionAlong(doom, back - TRAVEL_STEP, turned)).sub(positionAlong(doom, back, turned)).normalize()
 
-        val speck = PALE_ROCK.lerp(BURNING, sqrt(burning)).dimmed((FULL - solid) * AsteroidBody.aboveTheHorizon(sighting.direction))
+        val speckShows = (FULL - solid) * AsteroidBody.aboveTheHorizon(sighting.direction) * speckLightAt(nearing)
+        val speck = PALE_ROCK.lerp(BURNING, sqrt(burning)).dimmed(speckShows)
         Blaze3dSkyCanvas.drawShapes(discAt(sighting.direction, size, speck, haloStrength = BODY_HALO + BURNING_HALO * burning), SkyBlend.LIGHT)
         if (corona > NOTHING) {
             val outline = outlineOf(frame, centre, AsteroidBody.cornersOf(halfEdge, time))
@@ -182,8 +206,8 @@ object ImpactSky {
     }
 
     /** Where a point [back] blocks back up the asteroid's path is from the eye, in blocks. */
-    private fun positionAlong(doom: Doom, back: Double): Vector3f {
-        val sighting = sightingAlong(doom, back)
+    private fun positionAlong(doom: Doom, back: Double, turned: Quaternionf): Vector3f {
+        val sighting = sightingAlong(doom, back, turned)
         return Vector3f(sighting.direction).mul(sighting.distance.toFloat())
     }
 
@@ -264,8 +288,20 @@ object ImpactSky {
     private fun turnOf(segment: Int): Double = 2.0 * PI * segment / DISC_SEGMENTS
 
     /** How big a body of [ASTEROID_RADIUS] looks [distance] blocks off, in the units `drawGlow` takes. */
-    private fun sizeAt(distance: Double): Float =
-        maxOf(SPECK, (GLOW_DISTANCE * ASTEROID_RADIUS / distance).toFloat())
+    private fun sizeAt(distance: Double): Float = maxOf(SPECK, bodySizeAt(distance))
+
+    /** The same, as the rock itself would look, however small. */
+    private fun bodySizeAt(distance: Double): Float = (GLOW_DISTANCE * ASTEROID_RADIUS / distance).toFloat()
+
+    /**
+     * How big and how bright the speck is [nearing] of the way through the approach: growing steadily from a star's
+     * size and light at the bind to well past any star's by the end, so each night it is plainly larger than the last.
+     * Not as it would truly look, which would be the same point of light for days and then all at once a rock; the
+     * rock's own size takes over in the last minute, where it outgrows this.
+     */
+    private fun speckSizeAt(nearing: Float): Float = SPECK_FARTHEST + (SPECK_NEAREST - SPECK_FARTHEST) * nearing
+
+    private fun speckLightAt(nearing: Float): Float = SPECK_FAINTEST + (FULL - SPECK_FAINTEST) * nearing
 
     /** How far a thing of [size] reaches from its centre, in radians. */
     private fun angularRadiusOf(size: Float): Float = atan(size / GLOW_DISTANCE.toFloat())
@@ -891,6 +927,17 @@ object ImpactSky {
     private const val ENTRY_CLIMB_DEGREES = 40.0
     private const val ENTRY_SLANT_DEGREES = 65.0
     private const val PATH_AT_ENTRY = 120_000.0
+
+    /** The sky as it stands now, and how far it turns in a day at a pace of one. */
+    private val NOT_TURNED = Quaternionf()
+    private const val NOT_AT_ALL = 0.0f
+    private const val TICKS_PER_DAY = 24_000.0
+    private const val WHOLE_TURN = 2.0 * PI
+
+    /** The speck at the bind and at the end of the approach: a star's size and light, and well past any star's. */
+    private const val SPECK_FARTHEST = 0.2f
+    private const val SPECK_NEAREST = 0.9f
+    private const val SPECK_FAINTEST = 0.3f
 
     /** The fire beyond the horizon as the rock goes down behind it: from how far through the entry, and how bright. */
     private const val BEYOND_THE_HORIZON_FROM = 0.7

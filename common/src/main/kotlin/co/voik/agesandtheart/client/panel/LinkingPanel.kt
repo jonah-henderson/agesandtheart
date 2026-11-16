@@ -22,6 +22,9 @@ object LinkingPanel {
 
     private var showing: PreviewLevel? = null
 
+    /** What is shown in place of an Age that has ended, once the server has said so. */
+    private var ended: EndedAgeView? = null
+
     /** The level the panel is showing, while it shows one. */
     val showingLevel: ClientLevel? get() = showing?.level
 
@@ -44,7 +47,7 @@ object LinkingPanel {
      * Whatever is being shown: the live Age, or where panels are maps, the book's map ([BookMaps]), which
      * this then only pins for as long as it is asked for.
      */
-    val source: PanelSource? get() = showing ?: BookMaps.mapOf(showingFor)
+    val source: PanelSource? get() = showing ?: ended ?: BookMaps.mapOf(showingFor)
 
     /**
      * Whether there is still something to wait for, which is what the screen says out loud.
@@ -54,7 +57,7 @@ object LinkingPanel {
      */
     val isWaiting: Boolean
         get() {
-            if (isDeclined) return false
+            if (isDeclined || ended != null) return false
             if (BookMaps.isOn) return asked && BookMaps.isWaiting(askedFor)
             val load = source?.load ?: return asked && asksSoFar < MOST_ASKS
             return !load.hasAnything
@@ -139,6 +142,11 @@ object LinkingPanel {
         showing?.accept(payload)
     }
 
+    /** Called when the Age asked after has ended: the panel shows its end, and is not asked after again. */
+    fun ended() {
+        if (asked) ended = EndedAgeView()
+    }
+
     /** Called when the server shows no panels: the one asked for stays misted, and is not asked after again. */
     fun declined() {
         if (asked) isDeclined = true
@@ -180,6 +188,7 @@ object LinkingPanel {
         val had = showing != null || asked
         showing?.close()
         showing = null
+        ended = null
         askedFor?.let(BookMaps::unpin)
         isDeclined = false
         asked = false

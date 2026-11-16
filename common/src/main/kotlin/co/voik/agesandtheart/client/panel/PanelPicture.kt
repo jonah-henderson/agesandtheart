@@ -41,6 +41,9 @@ sealed interface PanelStroke {
 
     /** The mist, at [strength] from nothing to opaque. */
     data class Mist(override val rect: PanelRect, val strength: Float) : PanelStroke
+
+    /** What a panel shows where an Age an end has struck would be: dark cells crackling with light. */
+    data class Ended(override val rect: PanelRect) : PanelStroke
 }
 
 /** What a panel's picture needs to know of the Age behind it, this frame. */
@@ -100,6 +103,11 @@ object PanelPicture {
         val markHeart = PanelRect(map.markX - MARK_HEART, map.markY - MARK_HEART, map.markX + MARK_HEART, map.markY + MARK_HEART)
         add(PanelStroke.Fill(markEdge, FRAME))
         add(PanelStroke.Fill(markHeart, MARK))
+    }
+
+    /** The same for an Age an end has struck (design §5.3 "The dead link"): its end where the Age would be. */
+    fun strokesOfAnEnd(mist: Float): List<PanelStroke> = framedAndMisted(mist) {
+        add(PanelStroke.Ended(WHOLE))
     }
 
     /** The frame and the black under [picture], and the mist at [mist] over it. */

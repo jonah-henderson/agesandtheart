@@ -18,6 +18,7 @@ import co.voik.agesandtheart.book.panel.PanelWeatherPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelDeclined
+import co.voik.agesandtheart.book.panel.PanelOfAnEnd
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelMapChunkPayload
 import co.voik.agesandtheart.book.panel.PanelMapPayload
@@ -125,6 +126,7 @@ object Payloads {
         Clientbound(PanelMapPayload.TYPE, PanelMapPayload.STREAM_CODEC),
         Clientbound(PanelMapChunkPayload.TYPE, PanelMapChunkPayload.STREAM_CODEC),
         Clientbound(PanelDeclined.TYPE, PanelDeclined.STREAM_CODEC),
+        Clientbound(PanelOfAnEnd.TYPE, PanelOfAnEnd.STREAM_CODEC),
         Serverbound(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { player, request ->
             PanelViews.open(player.level().server, player, request.book)
         },

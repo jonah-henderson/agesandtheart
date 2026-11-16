@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
+import co.voik.agesandtheart.age.cataclysm.AwayForTheEnd
 import co.voik.agesandtheart.age.consequence.Dispositions
 import co.voik.agesandtheart.age.consequence.Taming
 import co.voik.agesandtheart.age.consequence.ChargedCreatures
@@ -180,6 +181,8 @@ object CommonSetup {
         PageLearning.tellEverything(player)
         // And a fall through a tear resumes, or ends where the tear no longer does.
         TheFall.resumed(player)
+        // And out of an Age whose end struck while they were away.
+        AwayForTheEnd.joined(player)
     }
 
     /** A player arriving in another level, however they came: a book, a portal, a fissure or a command. */

@@ -53,10 +53,15 @@ object TheFall {
 
     /** Out where the Age's fissures lead — see [FissureExits] and [HomeLanding]. */
     private fun putBackInTheOverworld(player: ServerPlayer) {
+        putOut(player)
+        AgeTriggers.FELL_HOME.trigger(player)
+    }
+
+    /** Out of the Age [player] is in as a fall through it ends, without the fall: where its fissures lead. */
+    fun putOut(player: ServerPlayer) {
         player.noPhysics = false
         player.resetFallDistance()
         val exit = FissureExits.of(player.level())
         HomeLanding.putDown(player, exit)
-        AgeTriggers.FELL_HOME.trigger(player)
     }
 }

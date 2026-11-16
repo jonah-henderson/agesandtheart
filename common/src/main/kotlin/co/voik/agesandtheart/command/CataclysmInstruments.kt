@@ -6,6 +6,8 @@ import co.voik.agesandtheart.age.cataclysm.Cataclysms
 import co.voik.agesandtheart.age.cataclysm.Doom
 import co.voik.agesandtheart.age.cataclysm.ImpactPhase
 import co.voik.agesandtheart.age.cataclysm.ImpactTimeline
+import co.voik.agesandtheart.age.cataclysm.CataclysmKind
+import co.voik.agesandtheart.age.cataclysm.CataclysmRule
 import co.voik.agesandtheart.age.cataclysm.Scorch
 import co.voik.agesandtheart.generation.Ages
 import com.mojang.brigadier.arguments.IntegerArgumentType
@@ -24,7 +26,7 @@ import net.minecraft.world.level.ChunkPos
  * `/age cataclysm` — an Age's end set going by hand, in the Age stood in, over whatever end it has of its own (design §5.3).
  *
  * - `/age cataclysm` says what end is coming and where it has got to.
- * - `/age cataclysm asteroid` starts an asteroid's approach now; `/age cataclysm asteroid <phase>` starts it so
+ * - `/age cataclysm asteroid` starts an asteroid's approach now, on its rule's timeline (`art/cataclysm/asteroid.json`); `/age cataclysm asteroid <phase>` starts it so
  *   that phase begins now, and `/age cataclysm asteroid <phase> <seconds>` so it began that long ago, to look at
  *   one moment without waiting through the others.
  * - `/age cataclysm clear` calls off one set by hand, the Age's links included; one written or inflicted stays.
@@ -94,7 +96,7 @@ object CataclysmInstruments {
     private fun runAsteroid(context: CommandContext<CommandSourceStack>, report: Report, from: ImpactPhase, secondsIn: Int = 0): Int {
         val (id, recipe) = theAgeStoodIn(context, report) ?: return FAILURE
         val level = context.source.level
-        val timeline = ImpactTimeline.PROTOTYPE
+        val timeline = CataclysmRule.list(level.server).getValue(CataclysmKind.ASTEROID).timeline
         val startsAt = level.gameTime - timeline.startOf(from) - secondsIn * TICKS_PER_SECOND
         val doom = Doom.asteroid(recipe.seed, startsAt, timeline)
         retellTheEnd(level, recipe, doom)
