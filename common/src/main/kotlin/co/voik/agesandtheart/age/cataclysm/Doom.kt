@@ -1,8 +1,20 @@
 package co.voik.agesandtheart.age.cataclysm
 
+import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
+import com.mojang.serialization.codecs.RecordCodecBuilder
+
 /** Which cataclysm ends an Age (design §5.3 "The cataclysm"). Only the asteroid is built. */
 enum class CataclysmKind(val key: String) {
     ASTEROID("asteroid"),
+    ;
+
+    companion object {
+        val CODEC: Codec<CataclysmKind> = Codec.STRING.comapFlatMap(
+            { key -> entries.firstOrNull { it.key == key }?.let { DataResult.success(it) } ?: DataResult.error { "No cataclysm called $key" } },
+            CataclysmKind::key,
+        )
+    }
 }
 
 /** The stages of an asteroid's end, in order, each running until the next begins. */
@@ -53,6 +65,16 @@ data class ImpactTimeline(
             heat = 45 * TICKS_PER_SECOND,
             dust = 90 * TICKS_PER_SECOND,
         )
+
+        val CODEC: Codec<ImpactTimeline> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.INT.fieldOf("approach").forGetter(ImpactTimeline::approach),
+                Codec.INT.fieldOf("entry").forGetter(ImpactTimeline::entry),
+                Codec.INT.fieldOf("travel").forGetter(ImpactTimeline::travel),
+                Codec.INT.fieldOf("heat").forGetter(ImpactTimeline::heat),
+                Codec.INT.fieldOf("dust").forGetter(ImpactTimeline::dust),
+            ).apply(instance, ::ImpactTimeline)
+        }
 
         const val TICKS_PER_SECOND = 20
         private const val TICKS_PER_MINUTE = 60 * TICKS_PER_SECOND
@@ -125,6 +147,15 @@ data class Doom(
     fun hidesTheScorchAt(time: Long): Boolean = phaseAt(time) == ImpactPhase.AFTER || dustAt(time.toDouble()) >= WHOLLY
 
     companion object {
+        val CODEC: Codec<Doom> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                CataclysmKind.CODEC.fieldOf("kind").forGetter(Doom::kind),
+                Codec.LONG.fieldOf("starts_at").forGetter(Doom::startsAt),
+                ImpactTimeline.CODEC.fieldOf("timeline").forGetter(Doom::timeline),
+                Codec.FLOAT.fieldOf("bearing").forGetter(Doom::bearingDegrees),
+            ).apply(instance, ::Doom)
+        }
+
         /**
          * An asteroid whose approach begins at [startsAt], on the bearing an Age of [seed] draws: the same Age
          * is always struck from the same quarter.

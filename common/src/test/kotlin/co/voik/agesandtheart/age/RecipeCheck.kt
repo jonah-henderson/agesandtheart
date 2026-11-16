@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
 import com.google.gson.JsonParser
+import co.voik.agesandtheart.age.cataclysm.Doom
 import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -216,6 +217,19 @@ class RecipeCheck : FunSpec({
         val encoded = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, written).getOrThrow()
         val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow()
         check(read.template == AgeTemplate.INFERNAL) { "the recipe came back on ${read.template}" }
+    }
+
+    test("an end coming to an Age round-trips, and an Age with none reads back with none") {
+        val doomed = AgeRecipe(
+            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.HILLS))),
+            seed = 11L,
+            forcedCataclysm = Doom.asteroid(seed = 11L, startsAt = 4_000L),
+        )
+        val encoded = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, doomed).getOrThrow()
+        val read = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, encoded).getOrThrow()
+        check(read.forcedCataclysm == doomed.forcedCataclysm) { "the end came back as ${read.forcedCataclysm}" }
+        val spared = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, doomed.copy(forcedCataclysm = null)).getOrThrow()
+        check(AgeRecipe.CODEC.parse(NbtOps.INSTANCE, spared).getOrThrow().forcedCataclysm == null) { "an end came from nowhere" }
     }
 
     /**

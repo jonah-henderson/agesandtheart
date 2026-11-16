@@ -21,6 +21,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.RandomSupport
+import java.util.Optional
 
 /**
  * What an Age is, as data — the description its world is rebuilt from on every open.
@@ -80,8 +81,8 @@ data class AgeRecipe(
      */
     val forcedPull: Double? = null,
     /**
-     * An end set going by hand with `/age cataclysm`, before any instability buys one (design §5.3). **Never
-     * written by the codec**, like [forced].
+     * An end set going by hand with `/age cataclysm`, before any instability buys one (design §5.3). **Written**,
+     * unlike [forced], so an Age that has ended stays ended.
      */
     val forcedCataclysm: Doom? = null,
 ) {
@@ -194,8 +195,10 @@ data class AgeRecipe(
                 AgeTemplate.CODEC.optionalFieldOf("template", AgeTemplate.ORDINARY)
                     .forGetter(AgeRecipe::template),
                 Codec.BOOL.optionalFieldOf("authored", false).forGetter(AgeRecipe::authored),
+                // Absent on every Age with no end coming.
+                Doom.CODEC.optionalFieldOf("cataclysm").forGetter { Optional.ofNullable(it.forcedCataclysm) },
             ).apply(instance) {
-                world, seed, version, character, instability, words, writtenAt, template, authored,
+                world, seed, version, character, instability, words, writtenAt, template, authored, cataclysm,
                 ->
                 AgeRecipe(
                     world = world
@@ -238,6 +241,7 @@ data class AgeRecipe(
                     template = template,
                     writtenAt = writtenAt,
                     authored = authored,
+                    forcedCataclysm = cataclysm.orElse(null),
                 )
             }
         }

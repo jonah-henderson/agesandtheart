@@ -90,7 +90,7 @@ object CataclysmInstruments {
         val startsAt = level.gameTime - timeline.startOf(from) - secondsIn * TICKS_PER_SECOND
         val doom = Doom.asteroid(recipe.seed, startsAt, timeline)
         retellTheEnd(level, recipe, doom)
-        report.say { "An asteroid is coming to ${id.path}, from the bearing %.0f°, until a restart".format(doom.bearingDegrees) }
+        report.say { "An asteroid is coming to ${id.path}, from the bearing %.0f°".format(doom.bearingDegrees) }
         sayWhereItHasGot(level, doom, report)
         report.finish()
         return SUCCESS
