@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age.phenomena
 
 
+import net.minecraft.server.level.ServerPlayer
+import co.voik.agesandtheart.content.DriftingOre
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
@@ -52,6 +54,25 @@ object Tempest {
             ) ?: return@repeat
             level.tickThunder(chunk)
         }
+        drawToTheCrystal(level, watching, random)
+    }
+
+    /**
+     * Now and then a bolt drawn to a body of arc crystal drifting near somebody, which it charges (Jonah, 2026-11-16) —
+     * see `DriftingOre.thunderHit`. Brought down at the body itself rather than aimed as vanilla aims a bolt, which
+     * snaps to the ground under it; and marked, so [struck] spares it the blast that would break the body it charges.
+     */
+    private fun drawToTheCrystal(level: ServerLevel, watching: List<ServerPlayer>, random: RandomSource) {
+        if (random.nextDouble() >= CRYSTAL_DRAWS_A_BOLT) return
+        val near = watching[random.nextInt(watching.size)]
+        val around = near.boundingBox.inflate(DRAWN_WITHIN, level.height.toDouble(), DRAWN_WITHIN)
+        val bodies = level.getEntitiesOfClass(DriftingOre::class.java, around)
+        if (bodies.isEmpty()) return
+        val body = bodies[random.nextInt(bodies.size)]
+        val bolt = EntityTypes.LIGHTNING_BOLT.create(level, EntitySpawnReason.EVENT) ?: return
+        bolt.snapTo(body.boundingBox.center)
+        bolt.addTag(AT_THE_CRYSTAL)
+        level.addFreshEntity(bolt)
     }
 
     /**
@@ -96,6 +117,7 @@ object Tempest {
     @JvmStatic
     fun struck(level: ServerLevel, bolt: LightningBolt, struckPosition: BlockPos) {
         if (!Happenings.befalls(level, Phenomenon.TEMPEST)) return
+        if (AT_THE_CRYSTAL in bolt.entityTags()) return
         if (level.getBlockState(struckPosition).block is LightningRodBlock) return
         val dials = TempestDials.of(Happenings.spendingIn(level))
         val blast = PhenomenonBehaviour.of(level.server).blast * (ONE_WHOLE + dials.blast * BIGGER_WHEN_BOUGHT).toFloat()
@@ -149,4 +171,13 @@ object Tempest {
 
     /** A weak storm sets nothing alight, and never fewer than nothing. */
     private const val NO_ATTEMPTS = 0
+
+    /** How often a tempest's tick draws a bolt to the arc crystal near somebody: about every ten seconds. */
+    private const val CRYSTAL_DRAWS_A_BOLT = 1.0 / 200.0
+
+    /** How far from somebody a body is drawn to, in blocks across the ground. */
+    private const val DRAWN_WITHIN = 96.0
+
+    /** What a bolt drawn to arc crystal carries, so the tempest's blast spares it. */
+    private const val AT_THE_CRYSTAL = "agesandtheart:at_the_crystal"
 }

@@ -200,6 +200,10 @@ object CommonSetup {
     fun entityUsed(player: Player, level: Level, hand: InteractionHand, entity: Entity): InteractionResult? =
         Taming.used(player, level, hand, entity)
 
+    /** Whether [victim] is to be hurt by [source] at all, asked by each loader before any damage is dealt. */
+    fun livingWouldBeHurt(victim: LivingEntity, source: DamageSource): Boolean =
+        !ProtectiveSuit.withstands(victim, source)
+
     /** A creature dying on the server, of [source]. */
     fun livingDied(victim: LivingEntity, source: DamageSource) {
         PlasmaBurst.died(victim, source)

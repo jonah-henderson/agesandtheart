@@ -1,19 +1,12 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.content.DriftingOre
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.ExperienceOrb
 import net.minecraft.world.entity.LivingEntity
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon
-import net.minecraft.world.entity.boss.wither.WitherBoss
-import net.minecraft.world.entity.item.FallingBlockEntity
-import net.minecraft.world.entity.item.ItemEntity
-import net.minecraft.world.entity.item.PrimedTnt
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.entity.projectile.Projectile
-import net.minecraft.world.entity.vehicle.VehicleEntity
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -295,6 +288,7 @@ object TornadoWinds {
             val exposed = Sampling.exposureAt(level, entity.blockPosition())
             val next = carry(entity, vortex, lifted[entity], now, level.random, exposed)
             if (next == null) lifted.remove(entity) else lifted[entity] = next
+            (entity as? DriftingOre)?.sweptAlong()
         }
         for ((entity, lift) in lifted.entries.toList()) {
             if (entity in seen || !entity.isAlive) continue
@@ -305,17 +299,8 @@ object TornadoWinds {
         lifted.keys.retainAll(seen)
     }
 
-    /**
-     * What the winds move, besides players: what lives, what was dropped, thrown or lit, what fell, and what is ridden
-     * — not what rides it, which goes with it, nor anything too great to be moved.
-     */
-    private fun isCarried(entity: Entity): Boolean {
-        val isLoose = entity is LivingEntity || entity is ItemEntity || entity is ExperienceOrb ||
-            entity is FallingBlockEntity || entity is VehicleEntity || entity is Projectile || entity is PrimedTnt
-        val isBeyondIt = entity is Player || entity is EnderDragon || entity is WitherBoss || entity is Tornado
-        val isHeld = entity.isPassenger || entity.isSpectator || entity.isNoGravity
-        return isLoose && !isBeyondIt && !isHeld
-    }
+    /** What the winds move, besides players, whose own clients move them: everything that can be moved ([Swept]). */
+    private fun isCarried(entity: Entity): Boolean = entity !is Player && Swept.canBeMoved(entity)
 
     /** It blows once the funnel is this far down, at full might once it is on the ground. */
     private const val BLOWS_FROM = 0.7f

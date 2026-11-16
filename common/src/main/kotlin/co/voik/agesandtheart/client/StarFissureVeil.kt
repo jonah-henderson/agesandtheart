@@ -82,7 +82,7 @@ object StarFissureVeil {
     )
 
     /**
-     * Whether a tear is being fallen through, which is [StarFissureRenderer]'s cue to draw none of them.
+     * Whether a tear is being fallen through, which is [FissureField]'s cue to draw none of them.
      *
      * A tear's own downward face is the one thing that can stand *in* the hole the lid leaves, and being a
      * star fissure it would fill the opening with the same field the opening exists to interrupt.

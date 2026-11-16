@@ -2,6 +2,7 @@ package co.voik.agesandtheart.mixin.client;
 
 import co.voik.agesandtheart.age.consequence.Wounds;
 import co.voik.agesandtheart.client.WornGrindstones;
+import co.voik.agesandtheart.client.FissureField;
 import co.voik.agesandtheart.client.WoundField;
 import co.voik.agesandtheart.client.light.DeepLights;
 import co.voik.agesandtheart.client.light.TintedLights;
@@ -44,5 +45,6 @@ public class ClientLevelMixin {
         TintedLights.INSTANCE.noticed(level, pos, oldState, newState);
         DeepLights.INSTANCE.noticed(level, pos, oldState, newState);
         WornGrindstones.INSTANCE.noticed(level, pos, oldState, newState);
+        FissureField.INSTANCE.noticed(level, pos, oldState, newState);
     }
 }

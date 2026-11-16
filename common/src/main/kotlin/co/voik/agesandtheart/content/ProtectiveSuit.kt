@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.content
 
+import java.util.WeakHashMap
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.damagesource.DamageType
+import net.minecraft.world.damagesource.DamageSource
 import co.voik.agesandtheart.location
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -38,7 +42,8 @@ import net.minecraft.server.level.ServerPlayer
  * Lava and open flame damage you where you stand rather than by igniting you, so those need [tick].
  *
  * The fourth condition it answers, the deep, is charged in `DeepWater.crush` through [wearingTheWholeSuit]
- * and [wearOut].
+ * and [wearOut], and the plasma field's heat in `PlasmaField`. And it refuses outright what [withstands] names: the
+ * asteroid's heat, a sandfall's scouring, every suffocation, a charged run's bite, thorns, cactus and astrite.
  *
  * That is design §7.7's claim confirming itself rather than being stretched: the suit protects against
  * hostile *conditions* and not against damage, and pressure is exactly a condition — which is also why
@@ -50,6 +55,31 @@ import net.minecraft.server.level.ServerPlayer
  * out. A player who wants to cross a lava sea is spending the suit to do it, and can watch it go.
  */
 object ProtectiveSuit {
+
+    /** What the whole suit refuses outright — `#agesandtheart:withstood_by_suit`: see [withstands]. */
+    val WITHSTOOD: TagKey<DamageType> = TagKey.create(Registries.DAMAGE_TYPE, "withstood_by_suit".location())
+
+    /**
+     * Whether a whole suit refuses [source] for [victim] outright (Jonah, 2026-11-16): the asteroid's heat, a sandfall's
+     * scouring, every suffocation, a charged run's bite, and the thorns, cactus and astrite you brush against. Not
+     * drowning, for now, nor being thrown about, a fall, an explosion, a bolt, a wound, or plasma, which goes through
+     * anything but nara. Asked by each loader's incoming-damage event, through `CommonSetup.livingWouldBeHurt`.
+     *
+     * **Worn out by what it refuses**, as it is by fire, at most once a second, since some of it comes every tick.
+     */
+    fun withstands(victim: LivingEntity, source: DamageSource): Boolean {
+        if (victim !is ServerPlayer || !source.`is`(WITHSTOOD) || !wearingTheWholeSuit(victim)) return false
+        val now = victim.level().gameTime
+        val lastWorn = wornFor[victim]
+        if (lastWorn == null || now - lastWorn >= A_SECOND) {
+            wornFor[victim] = now
+            wearOut(victim)
+        }
+        return true
+    }
+
+    /** When each wearer was last charged for what [withstands] refused. */
+    private val wornFor = WeakHashMap<ServerPlayer, Long>()
 
     /** What may mend it at an anvil — a tag, so a pack can add to it. */
     val REPAIRS_SUIT: TagKey<Item> = TagKey.create(Registries.ITEM, "repairs_pitchstone_armor".location())

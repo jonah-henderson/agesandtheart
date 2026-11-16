@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.world.entity.LightningBolt
+import co.voik.ephemeris.sky.LevelWind
 import kotlin.math.abs
 import kotlin.math.atan2
 import net.minecraft.core.BlockPos
@@ -78,6 +80,40 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         builder.define(SHAKEN_BY, 0.0f)
         builder.define(SHAKEN_TOWARD, 0.0f)
         builder.define(SHAKES_FIRST, 1)
+        builder.define(CHARGED, false)
+    }
+
+    /**
+     * Whether a bolt has struck it (Jonah, 2026-11-16): a tempest draws its bolts to the bodies near somebody, and one
+     * struck holds the charge, giving charged crystal when it breaks and passing it to the pieces it breaks into.
+     */
+    var isCharged: Boolean
+        get() = entityData.get(CHARGED)
+        private set(value) = entityData.set(CHARGED, value)
+
+    /**
+     * A charged body sparking, as charged crystal set down does (`ArcSparks`): a spark leaping off its surface every so
+     * often, more of them the bigger the body. Drawn on the client, from its own tick.
+     */
+    private fun sparkOff() {
+        val box = boundingBox
+        repeat(tier + 1) {
+            if (random.nextInt(SPARKS_ONE_TICK_IN) != 0) return@repeat
+            val x = box.minX + random.nextDouble() * box.xsize
+            val y = box.minY + random.nextDouble() * box.ysize
+            val z = box.minZ + random.nextDouble() * box.zsize
+            val out = Vec3(x, y, z).subtract(box.center).normalize().scale(SPARK_LEAPS)
+            level().addParticle(ParticleTypes.ELECTRIC_SPARK, x, y, z, out.x, out.y, out.z)
+        }
+    }
+
+    /** Struck by lightning: charged, rather than burned and hurt as anything else is. */
+    override fun thunderHit(level: ServerLevel, lightning: LightningBolt) {
+        if (isCharged) return
+        isCharged = true
+        val middle = boundingBox.center
+        val spread = OreClusters.spanOf(tier) * HALF
+        level.sendParticles(ChargedMetal.ARC_GREEN, middle.x, middle.y, middle.z, SPARKS_WHEN_CHARGED, spread, spread, spread, 0.0)
     }
 
     /** How much it has taken so far, which its cracks are drawn from. */
@@ -138,11 +174,22 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         super.tick()
         // On both sides, as a boat's is, so the swing counts down every tick between the server's updates.
         settleAfterABlow()
+        if (level().isClientSide && isCharged) sparkOff()
         // **The client never simulates one, it only catches up**, and the catching up is vanilla's:
         // `commonTick` steps the interpolation before `tick` runs. Both sides running the physics was the
         // jitter — the client's `deltaMovement` starts at nothing and is never sent, so the two drift apart
         // and every position packet snapped the body back. See [createInterpolationHandler].
-        if (!level().isClientSide) {
+        if (!level().isClientSide && isBeingSwept()) {
+            // Carried by a tornado or driven down by a sand column: what moves it sets its course, and it keeps
+            // only its drag until that lets go, when it seeks its band again.
+            deltaMovement = deltaMovement.scale(SETTLING)
+            move(MoverType.SELF, deltaMovement)
+            if (hasLeftTheSimulation()) {
+                discard()
+                return
+            }
+        }
+        else if (!level().isClientSide) {
             // **The push first, because it is the only term that can be expensive**, and it answers zero
             // for nearly every body on nearly every tick — see [pushedFromRock].
             val pushed = pushedFromRock()
@@ -150,9 +197,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             val settled = deltaMovement.add(pushed).add(sought).scale(SETTLING)
             // Drift is added rather than accumulated, so it is a *current* the body sits in rather than a
             // shove it remembers: everything charged in the Age moves the same way at the same speed,
-            // which is what sells a field they are all following.
+            // which is what sells a field they are all following. The Age's wind, a gale's included, leans
+            // on that current.
             deltaMovement = settled
-            move(MoverType.SELF, settled.add(driftOf(level()).scale(driftPace)))
+            val current = driftOf(level()).add(windOver(level()))
+            move(MoverType.SELF, settled.add(current.scale(driftPace)))
             if (hasLeftTheSimulation()) {
                 discard()
                 return
@@ -399,11 +448,13 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
                 // arrangement and a break reads as one — the pieces blowing apart and only then settling
                 // to seek their own bands.
                 body.deltaMovement = outward.scale(thrownHard())
+                body.isCharged = isCharged
                 level.addFreshEntity(body)
             }
         }
         else {
-            repeat(crystal) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
+            val dropped = ItemStack(if (isCharged) AgeContent.CHARGED_ARC_CRYSTAL else AgeContent.ARC_CRYSTAL, crystal)
+            if (crystal > 0) spawnAtLocation(level, dropped)
         }
         discard()
     }
@@ -448,12 +499,14 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         tier = input.getIntOr(TIER_KEY, 0)
         shape = input.getIntOr(SHAPE_KEY, 0)
         struck = input.getFloatOr(STRUCK_KEY, 0.0f)
+        isCharged = input.getBooleanOr(CHARGED_KEY, false)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
         output.putInt(TIER_KEY, tier)
         output.putInt(SHAPE_KEY, shape)
         output.putFloat(STRUCK_KEY, struck)
+        output.putBoolean(CHARGED_KEY, isCharged)
     }
 
     /**
@@ -469,6 +522,19 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
      * is the server's business alone and costs nothing to keep.
      */
     private val driftPace = PACE_LEAST + random.nextDouble() * (PACE_MOST - PACE_LEAST)
+
+    /** Until when something else moves it — see [sweptAlong]. Not saved: a moment's carrying is all it is. */
+    private var sweptUntil = Long.MIN_VALUE
+
+    /**
+     * Something moving everything it can is moving this: a tornado carrying it, a sand column driving it down
+     * (`Swept`). For as long as it keeps being told so, it gives up its own drift and its pull toward its band.
+     */
+    fun sweptAlong() {
+        sweptUntil = level().gameTime + SWEPT_FOR
+    }
+
+    private fun isBeingSwept(): Boolean = level().gameTime < sweptUntil
     private val climbPace = PACE_LEAST + random.nextDouble() * (PACE_MOST - PACE_LEAST)
 
     companion object {
@@ -486,6 +552,13 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.FLOAT)
         private val SHAKES_FIRST: EntityDataAccessor<Int> =
             SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
+        private val CHARGED: EntityDataAccessor<Boolean> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.BOOLEAN)
+
+        /** How many sparks a body throws off as a bolt charges it, and how often one leaps off it while it holds the charge. */
+        private const val SPARKS_WHEN_CHARGED = 40
+        private const val SPARKS_ONE_TICK_IN = 3
+        private const val SPARK_LEAPS = 0.08
 
         /** A boat's wobble: ten ticks of it, ten points a point of damage, and no more than a boat takes unbroken. */
         private const val SHAKES_FOR = 10
@@ -495,6 +568,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val TIER_KEY = "tier"
         private const val SHAPE_KEY = "shape"
         private const val STRUCK_KEY = "struck"
+        private const val CHARGED_KEY = "charged"
 
         /** How much a body of this tier takes before it comes apart. Bigger bodies are more work. */
         fun holdsTogether(tier: Int): Float = SMALLEST_TOUGHNESS + tier * TOUGHNESS_A_TIER
@@ -546,6 +620,12 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
          * Which way everything charged in this Age drifts, and how fast — **one current for the whole
          * world**, drawn from the level's own seed so every body agrees without being told.
          */
+        /** What the Age's wind adds to the current: a gale's, while one blows, or the wind it was written with. */
+        fun windOver(level: Level): Vec3 {
+            val blowing = LevelWind.now(level)
+            return Vec3(blowing.x, 0.0, blowing.z).scale(blowing.strength * WIND_CARRIES)
+        }
+
         fun driftOf(level: Level): Vec3 {
             val bearing = level.dimension().identifier().hashCode() * DRIFT_SALT
             return Vec3(Math.cos(bearing), 0.0, Math.sin(bearing)).scale(DRIFT_SPEED)
@@ -602,6 +682,12 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         /** Doubled 2026-09-09 (Jonah): a sky that barely moves reads as scenery rather than weather. */
         private const val DRIFT_SPEED = 0.034
+
+        /** How long a body stays swept after the last tick something moved it. */
+        private const val SWEPT_FOR = 10L
+
+        /** How far the Age's wind at its hardest carries a body, in blocks a tick, on top of the current. */
+        private const val WIND_CARRIES = 0.08
         private const val DRIFT_SALT = 0.000_37
 
         /** How often the emptiness around it is checked, and how far away is far enough to forget it. */

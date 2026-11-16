@@ -499,6 +499,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         val random = level.random
         repeat(SAND_BURST) {
             val sand = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+            sand.disableDrop()
             val speed = SAND_SLOWEST + random.nextDouble() * (SAND_FASTEST - SAND_SLOWEST)
             sand.deltaMovement = Vec3(
                 heading.x * speed + (random.nextDouble() - HALF) * SAND_SPREAD,

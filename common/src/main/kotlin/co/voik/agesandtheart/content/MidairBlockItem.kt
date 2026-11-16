@@ -27,7 +27,7 @@ import net.minecraft.world.phys.Vec3
  * this is the material you had to fly, shoot and break for, so a bridge of it is expensive in the only
  * currency the material has.
  */
-class MidairBlockItem(block: Block, properties: Properties) : BlockItem(block, properties) {
+open class MidairBlockItem(block: Block, properties: Properties) : BlockItem(block, properties) {
 
     /**
      * **Vanilla only calls this when nothing was targeted**, which is what makes the gesture unambiguous:

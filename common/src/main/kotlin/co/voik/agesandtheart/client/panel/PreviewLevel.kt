@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.client.FissureField
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelRing
@@ -67,6 +68,8 @@ class PreviewLevel private constructor(
             Constants.LOG.warn("Panel chunk {},{} fell outside the preview's own range", payload.x, payload.z)
             return
         }
+        // Its fissures, which nothing else tells about a chunk a preview receives.
+        FissureField.stocked(level, chunk)
 
         val lightEngine = cache.lightEngine
         val light = payload.light

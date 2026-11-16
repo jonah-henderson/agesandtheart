@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "What a whole deretheni suit refuses outright (ProtectiveSuit.withstands, Jonah 2026-11-16): the conditions an Age",
+    "inflicts and what you brush against in it, never what throws you about, a fall, an explosion or a bolt, a wound,",
+    "nor plasma, which goes through anything but nara. The asteroid's heat, a sandfall's scouring, every suffocation",
+    "(drowning is not here, deliberately, for now), a charged run's bite (chainmail stops its field, never the bite),",
+    "thorns -- overgrowth's vines are a berry bush's -- cactus and astrite. Fire, cold, the plasma field and the deep",
+    "are answered where they are dealt."
+  ],
+  "values": [
+    "agesandtheart:falling_sky",
+    "agesandtheart:scouring_sand",
+    "minecraft:in_wall",
+    "agesandtheart:arc_current",
+    "minecraft:sweet_berry_bush",
+    "minecraft:cactus",
+    "agesandtheart:astrite_shard"
+  ]
+}

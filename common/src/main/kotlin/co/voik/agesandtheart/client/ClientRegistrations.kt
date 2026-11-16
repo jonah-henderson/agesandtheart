@@ -117,7 +117,6 @@ object ClientRegistrations {
 
     val BLOCK_ENTITY_RENDERERS: List<RendererForBlockEntity<*, *>> = listOf(
         // The fissure's shaft, a block entity drawn by shader rather than by a baked model.
-        RendererForBlockEntity(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() },
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },

@@ -1,0 +1,13 @@
+{
+  "_comment": "Drops itself, as arc crystal does: the charge a bolt left in it goes where it goes.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:charged_arc_crystal" }],
+      "condition": { "type": "minecraft:survives_explosion" }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/charged_arc_crystal"
+}

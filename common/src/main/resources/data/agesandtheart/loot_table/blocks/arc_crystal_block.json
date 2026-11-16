@@ -1,10 +1,39 @@
 {
+  "_comment": "A block with charge left in it comes away as a block of charged arc crystal holding exactly what it had, so setting it down again puts the charge back; one spent flat comes away plain.",
   "type": "minecraft:block",
   "pools": [
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
-      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:arc_crystal_block" }],
+      "entries": [
+        {
+          "type": "minecraft:alternatives",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "name": "agesandtheart:arc_crystal_block",
+              "conditions": [
+                {
+                  "condition": "minecraft:block_state_property",
+                  "block": "agesandtheart:arc_crystal_block",
+                  "properties": { "charge": "0" }
+                }
+              ]
+            },
+            {
+              "type": "minecraft:item",
+              "name": "agesandtheart:charged_arc_crystal_block",
+              "functions": [
+                {
+                  "function": "minecraft:copy_state",
+                  "block": "agesandtheart:arc_crystal_block",
+                  "properties": ["charge"]
+                }
+              ]
+            }
+          ]
+        }
+      ],
       "condition": { "type": "minecraft:survives_explosion" }
     }
   ],

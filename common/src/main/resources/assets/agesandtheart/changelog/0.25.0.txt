@@ -1,0 +1,9 @@
+[feature] cataclysms: sufficiently unstable ages will now be destroyed. currently, the only one is an asteroid impact that strikes in three days. use the time to cart out the even more abundant deretheni than in collapsing ages. once the age is destroyed, you can never return (though you can stay there if you figure out a way to survive the impact)
+[feature] drifting arc crystal can now be charged by lightning strikes
+[feature] drifting arc crystal is now pushed around by wind and windy storms
+[performance] performance improvements for busy unstable ages with lots of cave-ins, star fissures, etc.
+[art] charged arc crystal and charged blocks now show spark effects and emit light
+[bugfix] deretheni armour now protects against more kinds of damage it was meant to protect against
+[bugfix] tornadoes and sand columns now push all the stuff they were meant to, like loose items, charged TNT, boats, etc.
+[bugfix] damaged arc crystal boulders should now properly show cracks
+[bugfix] clouds no longer jump when a wind starts

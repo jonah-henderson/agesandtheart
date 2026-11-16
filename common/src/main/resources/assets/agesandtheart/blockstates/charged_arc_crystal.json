@@ -1,0 +1,4 @@
+{
+  "_comment": "minecraft:block/amethyst_cluster stands in until the model pass, as it does for arc crystal -- a charged one is told apart by its light and its sparks.",
+  "variants": { "": { "model": "minecraft:block/amethyst_cluster" } }
+}

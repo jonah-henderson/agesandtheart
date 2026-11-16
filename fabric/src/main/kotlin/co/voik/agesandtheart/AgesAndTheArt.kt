@@ -144,6 +144,7 @@ fun init() {
         CommonSetup.playerChangedLevel(player, to)
     }
     ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
+    ServerLivingEntityEvents.ALLOW_DAMAGE.register { victim, source, _ -> CommonSetup.livingWouldBeHurt(victim, source) }
     EntityTrackingEvents.START_TRACKING.register { entity, player -> CommonSetup.startedTracking(player, entity) }
     UseEntityCallback.EVENT.register { player, level, hand, entity, _ ->
         CommonSetup.entityUsed(player, level, hand, entity) ?: InteractionResult.PASS

@@ -28,6 +28,21 @@ object Cataclysms {
     /** The end coming to the Age [recipe] describes, or null where none is. */
     fun of(server: MinecraftServer, recipe: AgeRecipe): Doom? {
         recipe.forcedCataclysm?.let { return it }
+        // A preview's end starts now, whenever it is asked, so only a bound Age's is remembered.
+        if (recipe.writtenAt == AgeRecipe.NOT_YET_WRITTEN) return derivedFor(server, recipe)
+        val remembered = dooms.of(server)
+        synchronized(remembered) {
+            if (remembered.containsKey(recipe)) return remembered[recipe]
+        }
+        val doom = derivedFor(server, recipe)
+        synchronized(remembered) {
+            if (remembered.size > MOST_REMEMBERED) remembered.clear()
+            remembered[recipe] = doom
+        }
+        return doom
+    }
+
+    private fun derivedFor(server: MinecraftServer, recipe: AgeRecipe): Doom? {
         val cause = causeOf(server, recipe) ?: return null
         val rule = CataclysmRule.list(server).getValue(cause.kind)
         return Doom(cause.kind, approachBeginsFor(server, recipe), rule.timeline, Doom.bearingFor(recipe.seed))
@@ -104,6 +119,9 @@ object Cataclysms {
      * made, and a recipe retold is a new one.
      */
     private val causes = PerReload { Collections.synchronizedMap(IdentityHashMap<AgeRecipe, Cause?>()) }
+
+    /** And each bound recipe's end, the same way: every spawn check under the sky asks whether the Age has ended. */
+    private val dooms = PerReload { Collections.synchronizedMap(IdentityHashMap<AgeRecipe, Doom?>()) }
 
     /** Ages written before this are never struck by their own instability, so a collapse already under way is not ended at once. */
     private const val FIRST_GENERATOR_INFLICTING_ENDS = 29

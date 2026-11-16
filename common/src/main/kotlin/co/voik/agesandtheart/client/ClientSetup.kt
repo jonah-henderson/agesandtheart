@@ -68,6 +68,7 @@ object ClientSetup {
         // Where the wounds are, on this side too — the corruption gradient asks many times a frame and
         // `WoundField` draws straight out of it.
         Wounds.stocked(level, chunk)
+        FissureField.stocked(level, chunk)
         // The coloured-light index.
         TintedLights.stocked(level, chunk)
         // And what can be seen from across an abyss — the same index shape, for the same reason.
@@ -78,6 +79,7 @@ object ClientSetup {
     /** A chunk leaving the client. */
     fun chunkUnloaded(level: ClientLevel, at: ChunkPos) {
         Wounds.emptied(level, at)
+        FissureField.emptied(level, at)
         TintedLights.emptied(level, at)
         DeepLights.emptied(level, at)
         WornGrindstones.emptied(level, at)
@@ -101,6 +103,7 @@ object ClientSetup {
         ChargedCreaturesSeen.forget()
         DeskModel.forget()
         Wounds.forget()
+        FissureField.forget()
         TintedLights.forget()
         DeepLights.forget()
         WornGrindstones.forget()

@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.core.BlockPos
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
@@ -26,6 +29,11 @@ class ArcCrystalBlock(properties: Properties) : Block(properties) {
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(CHARGE)
+    }
+
+    /** A charged block sparks — see [ArcSparks]. */
+    override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
+        if (state.getValue(CHARGE) > FLAT) ArcSparks.around(level, pos, random)
     }
 
     companion object {

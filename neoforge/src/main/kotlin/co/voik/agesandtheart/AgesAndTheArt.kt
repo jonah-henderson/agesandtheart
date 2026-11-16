@@ -31,6 +31,7 @@ import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent
 import net.minecraft.world.entity.item.ItemEntity
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -85,6 +86,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onLivingDeath)
+        NeoForge.EVENT_BUS.addListener(::onIncomingDamage)
         NeoForge.EVENT_BUS.addListener(::onStartTracking)
         NeoForge.EVENT_BUS.addListener(::onEntityInteract)
         NeoForge.EVENT_BUS.addListener(::onLivingDrops)
@@ -345,6 +347,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onStartTracking(event: PlayerEvent.StartTracking) {
         val player = event.entity as? ServerPlayer ?: return
         CommonSetup.startedTracking(player, event.target)
+    }
+
+    private fun onIncomingDamage(event: LivingIncomingDamageEvent) {
+        if (event.entity.level().isClientSide) return
+        if (!CommonSetup.livingWouldBeHurt(event.entity, event.source)) event.isCanceled = true
     }
 
     private fun onLivingDeath(event: LivingDeathEvent) {

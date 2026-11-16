@@ -1,5 +1,11 @@
 package co.voik.agesandtheart.client
 
+import net.minecraft.resources.Identifier
+import net.minecraft.core.Direction
+import net.minecraft.client.resources.model.ModelBakery
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.client.renderer.rendertype.RenderTypes
+import com.mojang.blaze3d.vertex.VertexConsumer
 import co.voik.agesandtheart.content.DriftingOre
 import co.voik.agesandtheart.content.OreClusters
 import co.voik.agesandtheart.content.AgeContent
@@ -14,9 +20,6 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart
-import net.minecraft.util.RandomSource
 import com.mojang.math.Axis
 import org.joml.Vector3f
 import kotlin.math.cos
@@ -92,6 +95,7 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         state.wobbleTowardX = cos(entity.shakenToward)
         state.wobbleTowardZ = sin(entity.shakenToward)
         state.crackStage = crackStageOf(entity.brokenShare)
+        state.isCharged = entity.isCharged
     }
 
     /**
@@ -144,18 +148,51 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             // `DriftingOre.makeBoundingBox`, since the offsets run from `-side / 2`.
             poseStack.translate(drawn.at.x.toDouble(), drawn.at.y.toDouble(), drawn.at.z.toDouble())
             collector.submitMovingBlock(poseStack, drawn.block, NO_OUTLINE)
-            if (state.crackStage != NO_CRACKS) submitCracks(poseStack, collector, drawn.block.blockState, state.crackStage)
+            if (state.crackStage != NO_CRACKS) submitCracks(poseStack, collector, state.crackStage)
+            if (state.isCharged && drawn.block.blockState.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) submitGlow(poseStack, collector)
             poseStack.popPose()
         }
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
     }
 
-    /** Vanilla's mining cracks over one cell, drawn as `LevelRenderer` draws them over a block being broken. */
-    private fun submitCracks(poseStack: PoseStack, collector: SubmitNodeCollector, block: BlockState, stage: Int) {
-        val model = Minecraft.getInstance().modelManager.blockStateModelSet.get(block)
-        val parts = mutableListOf<BlockStateModelPart>().also { model.collectParts(RandomSource.create(CRACK_SEED), it) }
-        collector.submitBreakingBlockModel(poseStack, parts, stage, model.hasMaterialFlag(BREAKING_MATERIAL_FLAG))
+    /**
+     * Vanilla's mining cracks over one cell, through its own crumbling render type — drawn as plain geometry, since the
+     * breaking-block submission draws nothing for a block an entity submits, and **a hair larger than the cell**, so its
+     * faces never cover them.
+     */
+    private fun submitCracks(poseStack: PoseStack, collector: SubmitNodeCollector, stage: Int) =
+        collector.order(AFTER_THE_BLOCKS).submitCustomGeometry(poseStack, ModelBakery.DESTROY_TYPES[stage]) { pose, buffer ->
+            cube(pose, buffer, CRACKS_STAND_OUT)
+        }
+
+    /**
+     * A charged body's crystal shining, as a spider's eyes do: its texture again over the cell, drawn full bright and
+     * added to what is under it, so it glows in the dark — an entity cannot light the world, but it can be lit itself.
+     */
+    private fun submitGlow(poseStack: PoseStack, collector: SubmitNodeCollector) =
+        collector.order(AFTER_THE_BLOCKS).submitCustomGeometry(poseStack, RenderTypes.eyes(CRYSTAL_TEXTURE)) { pose, buffer ->
+            cube(pose, buffer, GLOW_STANDS_OUT)
+        }
+
+    /** The unit cell, every face outward, scaled by [scale] about its middle. */
+    private fun cube(pose: PoseStack.Pose, buffer: VertexConsumer, scale: Float) {
+        for (face in Direction.entries) {
+            val normal = face.unitVec3f
+            for ((corner, uv) in CORNERS.getValue(face).zip(UVS)) {
+                buffer.addVertex(
+                    pose,
+                    CELL_MIDDLE + (corner.x() - CELL_MIDDLE) * scale,
+                    CELL_MIDDLE + (corner.y() - CELL_MIDDLE) * scale,
+                    CELL_MIDDLE + (corner.z() - CELL_MIDDLE) * scale,
+                )
+                    .setColor(WHITE)
+                    .setUv(uv.first, uv.second)
+                    .setOverlay(OverlayTexture.NO_OVERLAY)
+                    .setLight(FULL_BRIGHT)
+                    .setNormal(pose, normal.x(), normal.y(), normal.z())
+            }
+        }
     }
 
     /** One cell of the cluster: where it sits against the middle, and the block being drawn there. */
@@ -190,11 +227,32 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         const val CRACK_STAGES = 10
         const val NO_CRACKS = -1
 
-        /** The material flag `LevelRenderer` asks of a block model when it draws its cracks. */
-        const val BREAKING_MATERIAL_FLAG = 1
+        /** How much larger than its cell a crack and a charged crystal's glow are drawn, so the cell never covers them. */
+        const val CRACKS_STAND_OUT = 1.006f
+        const val GLOW_STANDS_OUT = 1.003f
+        const val CELL_MIDDLE = 0.5f
 
-        /** Any seed: the cracks take the shape of the block, not the variant of its texture. */
-        const val CRACK_SEED = 0L
+        /** The submission order the cracks and the glow go in, after the body's own blocks, which would otherwise cover them. */
+        const val AFTER_THE_BLOCKS = 1
+
+        /** What a charged crystal cell glows with: the texture its block is drawn in, standing in until the asset pass. */
+        val CRYSTAL_TEXTURE: Identifier = Identifier.withDefaultNamespace("textures/block/emerald_block.png")
+
+        const val WHITE = -1
+
+        /** Full block and sky light, packed: what a draw is lit at to be unlit by the world. */
+        const val FULL_BRIGHT = (15 shl 20) or (15 shl 4)
+
+        /** The unit cube, each face wound so it faces outward where back faces are culled, and each face's texture corners. */
+        val CORNERS: Map<Direction, List<Vector3f>> = mapOf(
+            Direction.DOWN to listOf(Vector3f(1f, 0f, 0f), Vector3f(1f, 0f, 1f), Vector3f(0f, 0f, 1f), Vector3f(0f, 0f, 0f)),
+            Direction.UP to listOf(Vector3f(0f, 1f, 1f), Vector3f(1f, 1f, 1f), Vector3f(1f, 1f, 0f), Vector3f(0f, 1f, 0f)),
+            Direction.NORTH to listOf(Vector3f(0f, 1f, 0f), Vector3f(1f, 1f, 0f), Vector3f(1f, 0f, 0f), Vector3f(0f, 0f, 0f)),
+            Direction.SOUTH to listOf(Vector3f(1f, 0f, 1f), Vector3f(1f, 1f, 1f), Vector3f(0f, 1f, 1f), Vector3f(0f, 0f, 1f)),
+            Direction.WEST to listOf(Vector3f(0f, 0f, 1f), Vector3f(0f, 1f, 1f), Vector3f(0f, 1f, 0f), Vector3f(0f, 0f, 0f)),
+            Direction.EAST to listOf(Vector3f(1f, 1f, 0f), Vector3f(1f, 1f, 1f), Vector3f(1f, 0f, 1f), Vector3f(1f, 0f, 0f)),
+        )
+        val UVS: List<Pair<Float, Float>> = listOf(0f to 0f, 0f to 1f, 1f to 1f, 1f to 0f)
 
         private val clusters = java.util.concurrent.ConcurrentHashMap<Int, Map<BlockPos, BlockState>>()
     }
@@ -206,4 +264,5 @@ class DriftingOreRenderState : EntityRenderState() {
     var wobbleTowardX: Float = 1.0f
     var wobbleTowardZ: Float = 0.0f
     var crackStage: Int = -1
+    var isCharged: Boolean = false
 }

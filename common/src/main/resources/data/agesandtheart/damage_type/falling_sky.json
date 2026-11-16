@@ -1,5 +1,5 @@
 {
-  "_comment": "An asteroid's end: the debris coming back down heats the sky until whatever it can see burns (design 5.3). Not fire, so neither a potion nor fire immunity stops it; armour does nothing either. Only shelter does.",
+  "_comment": "An asteroid's end: the debris coming back down heats the sky until whatever it can see burns (design 5.3). Not fire, so neither a potion nor fire immunity stops it; armour does nothing either. Shelter does, and a whole deretheni suit (#agesandtheart:withstood_by_suit).",
   "message_id": "falling_sky",
   "scaling": "never",
   "exhaustion": 0.0

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.content.DriftingOre
 import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.worldgen.fissure.FissureExits
@@ -207,11 +208,13 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         if (standing <= NOTHING || behaviour.push <= NOTHING) return
         val force = behaviour.push * (standing / behaviour.widestHalfWidth)
         val scours = scour > NOTHING && age % SCOURS_EVERY == 0
-        for (caught in level.getEntitiesOfClass(LivingEntity::class.java, sweptVolume(level, standing))) {
+        for (caught in level.getEntities(this, sweptVolume(level, standing), Swept::canBeMoved)) {
             if (!covers(caught.x, caught.z, standing)) continue
             caught.push(NOTHING, -force, NOTHING)
             caught.syncVelocity = true
-            if (scours) caught.hurtServer(level, scouredBy(level), scourDamage())
+            (caught as? DriftingOre)?.sweptAlong()
+            // Everything is driven down; only what lives is scoured.
+            if (scours && caught is LivingEntity) caught.hurtServer(level, scouredBy(level), scourDamage())
         }
     }
 
@@ -347,6 +350,8 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         }
         val from = topOf(level, fromX, fromZ) ?: return
         val thrown = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+        // Sand that cannot settle where it lands is gone, never an item: a column throws a great deal of it.
+        thrown.disableDrop()
         thrown.deltaMovement = Vec3(outX * across, up, outZ * across)
         thrown.syncVelocity = true
         level.sendParticles(
@@ -432,7 +437,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         if (dramatically && !burying) {
             val from = top.atY((top.y + FALLS_FROM).coerceAtMost(level.maxY - 1))
             if (from.y > top.y && level.getBlockState(from).isAir) {
-                FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+                FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState()).disableDrop()
                 return
             }
         }

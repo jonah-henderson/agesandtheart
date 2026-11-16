@@ -130,6 +130,8 @@
   "block.agesandtheart.algae": "Algae",
   "block.agesandtheart.analysis_machine": "D'ni Analysis Machine",
   "block.agesandtheart.arc_crystal": "Arc Crystal",
+  "block.agesandtheart.charged_arc_crystal": "Charged Arc Crystal",
+  "item.agesandtheart.charged_arc_crystal_block": "Block of Charged Arc Crystal",
   "block.agesandtheart.arc_crystal_block": "Block of Arc Crystal",
   "block.agesandtheart.archive": "Archive",
   "block.agesandtheart.astrite_block": "Block of Astrite",

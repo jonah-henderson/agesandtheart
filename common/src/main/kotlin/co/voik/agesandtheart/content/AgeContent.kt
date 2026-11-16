@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.world.item.component.BlockItemStateProperties
 import co.voik.agesandtheart.age.phenomena.Overgrowth
 import co.voik.agesandtheart.page.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
@@ -697,6 +698,8 @@ object AgeContent {
 
     private val ARC_CRYSTAL_ID: Identifier = "arc_crystal".location()
     private val ARC_CRYSTAL_BLOCK_ID: Identifier = "arc_crystal_block".location()
+    private val CHARGED_ARC_CRYSTAL_ID: Identifier = "charged_arc_crystal".location()
+    private val CHARGED_ARC_CRYSTAL_BLOCK_ID: Identifier = "charged_arc_crystal_block".location()
 
     /**
      * **Arc crystal** — what a charged Age's drifting ore comes apart into (design §7.1.2).
@@ -749,10 +752,50 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_BLOCK_ID)).useBlockDescriptionPrefix(),
     )
 
+    /**
+     * **Charged arc crystal**, which a body a bolt has struck comes apart into (Jonah, 2026-11-16): the crystal as a bolt
+     * leaves it, sparking and lit all about it. Nine make a block of arc crystal already charged.
+     */
+    val CHARGED_ARC_CRYSTAL_CLUSTER: Block = ChargedArcCrystal(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, CHARGED_ARC_CRYSTAL_ID))
+            .mapColor(MapColor.EMERALD)
+            .forceSolidOn()
+            .noOcclusion()
+            .sound(SoundType.AMETHYST_CLUSTER)
+            .lightLevel { CHARGED_CRYSTAL_GLOW }
+            .strength(ARC_CRYSTAL_STRENGTH),
+    )
+
+    val CHARGED_ARC_CRYSTAL: Item = BlockItem(
+        CHARGED_ARC_CRYSTAL_CLUSTER,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, CHARGED_ARC_CRYSTAL_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /**
+     * **A block of arc crystal holding a charge**, as an item: what nine charged crystals make, and what a charged block
+     * breaks into, keeping whatever charge it has left (its loot copies the state). It places the same block, charged.
+     *
+     * **A second item for one block**, so it must not claim the block: what is picked from a placed one, or asked of
+     * the block, stays the plain block's item.
+     */
+    val CHARGED_ARC_CRYSTAL_BLOCK: Item = object : MidairBlockItem(
+        ARC_CRYSTAL_BLOCK_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, CHARGED_ARC_CRYSTAL_BLOCK_ID))
+            .component(
+                DataComponents.BLOCK_STATE,
+                BlockItemStateProperties.EMPTY.with(ArcCrystalBlock.CHARGE, ArcCrystalBlock.FULLY_CHARGED),
+            ),
+    ) {
+        override fun registerBlocks(blockToItem: MutableMap<Block, Item>, item: Item) = Unit
+    }
+
     /** Faint on its own and brighter in bulk, so a stack of blocks reads as the power supply it is. */
     private const val ARC_CRYSTAL_GLOW = 4
     private const val ARC_CRYSTAL_BLOCK_GLOW = 7
-    private const val CHARGED_CRYSTAL_GLOW = 14
+    /** Charged, as bright as anything gets. */
+    private const val CHARGED_CRYSTAL_GLOW = 15
 
     private const val ARC_CRYSTAL_STRENGTH = 1.5f
     private const val ARC_CRYSTAL_BLOCK_STRENGTH = 5.0f
@@ -2015,6 +2058,7 @@ object AgeContent {
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK_BLOCK,
+        CHARGED_ARC_CRYSTAL_ID to CHARGED_ARC_CRYSTAL_CLUSTER,
         ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
         ALGAE_ID to ALGAE_BLOCK,
         Overgrowth.ID to Overgrowth.BLOCK,
@@ -2257,6 +2301,8 @@ object AgeContent {
         FrequencyTuner.ID to FrequencyTuner.ITEM,
         ARC_CRYSTAL_ID to ARC_CRYSTAL,
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK,
+        CHARGED_ARC_CRYSTAL_ID to CHARGED_ARC_CRYSTAL,
+        CHARGED_ARC_CRYSTAL_BLOCK_ID to CHARGED_ARC_CRYSTAL_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         Overgrowth.ID to Overgrowth.ITEM,

@@ -274,14 +274,14 @@ object WoundField {
     /** How wide a spread of phases wounds are dealt from, in milliseconds. */
     private const val PHASES_OVER = 100_000L
 
-    /** The unit cube, wound anticlockwise per face so every one of them faces outward. */
+    /** The unit cube, each face wound so it faces outward where back faces are culled. */
     private val CORNERS: Map<Direction, List<Triple<Float, Float, Float>>> = mapOf(
-        Direction.DOWN to listOf(t(0, 0, 0), t(0, 0, 1), t(1, 0, 1), t(1, 0, 0)),
-        Direction.UP to listOf(t(0, 1, 0), t(1, 1, 0), t(1, 1, 1), t(0, 1, 1)),
-        Direction.NORTH to listOf(t(0, 0, 0), t(1, 0, 0), t(1, 1, 0), t(0, 1, 0)),
-        Direction.SOUTH to listOf(t(0, 0, 1), t(0, 1, 1), t(1, 1, 1), t(1, 0, 1)),
-        Direction.WEST to listOf(t(0, 0, 0), t(0, 1, 0), t(0, 1, 1), t(0, 0, 1)),
-        Direction.EAST to listOf(t(1, 0, 0), t(1, 0, 1), t(1, 1, 1), t(1, 1, 0)),
+        Direction.DOWN to listOf(t(1, 0, 0), t(1, 0, 1), t(0, 0, 1), t(0, 0, 0)),
+        Direction.UP to listOf(t(0, 1, 1), t(1, 1, 1), t(1, 1, 0), t(0, 1, 0)),
+        Direction.NORTH to listOf(t(0, 1, 0), t(1, 1, 0), t(1, 0, 0), t(0, 0, 0)),
+        Direction.SOUTH to listOf(t(1, 0, 1), t(1, 1, 1), t(0, 1, 1), t(0, 0, 1)),
+        Direction.WEST to listOf(t(0, 0, 1), t(0, 1, 1), t(0, 1, 0), t(0, 0, 0)),
+        Direction.EAST to listOf(t(1, 1, 0), t(1, 1, 1), t(1, 0, 1), t(1, 0, 0)),
     )
 
     private fun t(x: Int, y: Int, z: Int) = Triple(x.toFloat(), y.toFloat(), z.toFloat())

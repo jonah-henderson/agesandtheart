@@ -6,7 +6,6 @@ import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.generation.Ages
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
@@ -17,10 +16,9 @@ import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelAccessor
-import net.minecraft.world.level.block.BaseEntityBlock
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.LiquidBlockContainer
 import net.minecraft.world.level.block.RenderShape
-import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.Fluid
@@ -52,11 +50,9 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * a little above the world's spawn already falling, so the last thing the fissure does is the same thing it
  * started with. That is the escape hatch's whole shape: found rather than carried, and never a route back.
  */
-open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), LiquidBlockContainer {
+open class StarFissureBlock(properties: Properties) : Block(properties), LiquidBlockContainer {
 
-    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = StarFissureBlockEntity(pos, state)
-
-    /** Drawn by its block entity — the starfield is a renderer, not a texture. */
+    /** Drawn by `FissureField`, all of them at once — the starfield is a renderer, not a texture. */
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.INVISIBLE
 
     /** Nothing to stand on: a fissure you could walk over would not be one. */
@@ -161,25 +157,8 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
 }
 
 /**
- * Nothing of its own — it exists so vanilla's end-portal renderer has something to draw.
- *
- * Extending `TheEndPortalBlockEntity` rather than copying it is what buys the **actual** starfield: the
- * renderer is typed to that class and takes ours without knowing the difference, so the shader, the
- * transformation and the depth layers are vanilla's rather than an imitation of them.
+ * What a fissure carried before `FissureField` drew them all at once: **nothing makes one now**. Its type stays
+ * registered so a world saved with one still loads, vanilla dropping a block entity whose block no longer has one.
  */
 class StarFissureBlockEntity(pos: BlockPos, state: BlockState) :
-    TheEndPortalBlockEntity(AgeContent.STAR_FISSURE_ENTITY, pos, state) {
-
-    /**
-     * **Every face, including the buried ones.**
-     *
-     * Vanilla answers `axis == Y` here, because an end portal is one layer on a floor and only ever seen
-     * from above. Stack that and the sides are missing.
-     *
-     * Drawing only the shell was the obvious economy and it was wrong (Jonah, 2026-08-05, walked): a face
-     * between two fissure blocks faces *away* from someone falling between them, so from inside the shaft
-     * you looked straight out through the rock at the daylit world. Being inside a star fissure has to look
-     * like being inside one, and the overdraw is a handful of quads in a hole nobody stands in for long.
-     */
-    override fun shouldRenderFace(direction: Direction): Boolean = true
-}
+    TheEndPortalBlockEntity(AgeContent.STAR_FISSURE_ENTITY, pos, state)
