@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.24
-generator=28
+line=0.25
+generator=29
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -12,6 +12,7 @@ block agesandtheart:astrite_block
 block agesandtheart:astrite_shard
 block agesandtheart:blue_rime_crystal
 block agesandtheart:bookbinder
+block agesandtheart:charged_arc_crystal
 block agesandtheart:coconut
 block agesandtheart:collapsing_fissure
 block agesandtheart:compounded_stone
@@ -120,6 +121,7 @@ block_states agesandtheart:astrite_block 2
 block_states agesandtheart:astrite_shard 24
 block_states agesandtheart:blue_rime_crystal 48
 block_states agesandtheart:bookbinder 8
+block_states agesandtheart:charged_arc_crystal 1
 block_states agesandtheart:coconut 1
 block_states agesandtheart:collapsing_fissure 1
 block_states agesandtheart:compounded_stone 1
@@ -227,6 +229,7 @@ entity_type agesandtheart:cave_in
 entity_type agesandtheart:crumbling_column
 entity_type agesandtheart:descriptive_book
 entity_type agesandtheart:drifting_ore
+entity_type agesandtheart:ejecta
 entity_type agesandtheart:hadalfish
 entity_type agesandtheart:lava_droplet
 entity_type agesandtheart:meteor
@@ -256,6 +259,8 @@ item agesandtheart:astrite_shard
 item agesandtheart:blue_rime_crystal
 item agesandtheart:bookbinder
 item agesandtheart:carapace_powder
+item agesandtheart:charged_arc_crystal
+item agesandtheart:charged_arc_crystal_block
 item agesandtheart:coconut
 item agesandtheart:coconut_half
 item agesandtheart:compounded_stone
@@ -401,6 +406,7 @@ payload agesandtheart:archive_withdraw
 payload agesandtheart:archive_write
 payload agesandtheart:blizzard
 payload agesandtheart:bookbinder_rename
+payload agesandtheart:cataclysm
 payload agesandtheart:charged_creature
 payload agesandtheart:client_build
 payload agesandtheart:deluge
@@ -430,6 +436,7 @@ payload agesandtheart:panel_level
 payload agesandtheart:panel_map
 payload agesandtheart:panel_map_chunk
 payload agesandtheart:panel_map_request
+payload agesandtheart:panel_of_an_end
 payload agesandtheart:panel_open
 payload agesandtheart:panel_weather
 payload agesandtheart:server_build
@@ -457,6 +464,20 @@ recipe_type agesandtheart:compounding
 recipe_type agesandtheart:drying
 recipe_type agesandtheart:grinding
 recipe_type agesandtheart:pulping
+sound_event agesandtheart:asteroid_approach
+sound_event agesandtheart:asteroid_arrival
+sound_event agesandtheart:asteroid_ash_arrival
+sound_event agesandtheart:asteroid_ash_wall
+sound_event agesandtheart:asteroid_blast_wind
+sound_event agesandtheart:asteroid_burning
+sound_event agesandtheart:asteroid_dust
+sound_event agesandtheart:asteroid_entry
+sound_event agesandtheart:asteroid_firestorm
+sound_event agesandtheart:asteroid_fragment_falling
+sound_event agesandtheart:asteroid_fragment_impact
+sound_event agesandtheart:asteroid_rumble
+sound_event agesandtheart:asteroid_shock
+sound_event agesandtheart:asteroid_winter
 sound_event agesandtheart:blizzard_exposed
 sound_event agesandtheart:blizzard_sheltered
 sound_event agesandtheart:gale_exposed
