@@ -1,0 +1,3 @@
+[feature] image recording: create an image recorder and photographic plates, then take pictures of your Ages. recorded images can be placed on the wall like a painting, or placed into a slide carousel to be projected onto a wall. place a light source behind the carousel and a glass block in front of it to project.
+[feature] flash bombs: grind up temperstone into flashpowder and make flash bombs. they dazzle players and mobs alike!
+[bugfix] lakes in underground chambers no longer have dry shafts carved through them
