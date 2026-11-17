@@ -186,6 +186,51 @@ internal object TerrainInstruments {
             )
         }
 
+    /**
+     * A column of vanilla's rock: what the overlay lays into it after vanilla's own fill (an underground's cut and the
+     * lakes standing in it) beside what actually stands there. The overlay's fields are
+     * given as they are, before each column's crust under its own ground is taken off.
+     */
+    private fun probeVanillasRock(level: ServerLevel, generator: AgeChunkGenerator, x: Int, z: Int, report: Report): Int {
+        val overlay = generator.overlay
+        report.say { "Column ($x, $z), vanilla's rock, as the overlay lays into it:" }
+        val cut = overlay.beneath?.columnSpans(x, z) ?: Spans.EMPTY
+        report.fact("cut", said(cut)) { "  cut beneath the ground: ${said(cut)}" }
+        overlay.poursBeneath.forEachIndexed { index, body ->
+            val stands = body.where.columnSpans(x, z)
+            report.fact("poursBeneath$index", said(stands)) { "  ${body.fluid.block.descriptionId} beneath the ground: ${said(stands)}" }
+        }
+        level.getChunk(x shr CHUNK_BITS, z shr CHUNK_BITS)
+        val ground = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, x, z) - 1
+        report.fact("groundTop", "$ground") { "  ground or seabed tops out at y=$ground" }
+        // From the bottom of the world: an underground's lakes stand well below where a rift's floor can.
+        sayWhatStands(level, x, z, report, from = level.minY)
+        return SUCCESS
+    }
+
+    /**
+     * What actually stands in a column, as runs. **`getChunk` rather than a `forceload` from the console**: a forceload
+     * only schedules generation, and an ungenerated chunk answers air to every query, which reads exactly like data.
+     */
+    private fun sayWhatStands(level: ServerLevel, x: Int, z: Int, report: Report, from: Int = PROBE_FROM) {
+        level.getChunk(x shr CHUNK_BITS, z shr CHUNK_BITS)
+        report.say { "  and what actually stands there:" }
+        var runFrom = from
+        var running = blockName(level, x, from, z)
+        fun sayRun(from: Int, to: Int, what: String) {
+            val where = if (from == to) "y $from" else "y $from..$to"
+            report.fact("laid", "$where $what") { "    ${where.padEnd(PROBE_RUN_COLUMN)} $what" }
+        }
+        for (y in (from + 1)..PROBE_TO) {
+            val here = blockName(level, x, y, z)
+            if (here == running) continue
+            sayRun(runFrom, y - 1, running)
+            runFrom = y
+            running = here
+        }
+        sayRun(runFrom, PROBE_TO, running)
+    }
+
     private fun runProbe(
         context: CommandContext<CommandSourceStack>,
         x: Int,
@@ -200,10 +245,7 @@ internal object TerrainInstruments {
             return FAILURE
         }
 
-        val ours = generator.rock as? AgeRock.Ours ?: run {
-            source.sendFailure(Component.literal("Age '$name' wears vanilla's own rock, which has no field of ours to probe"))
-            return FAILURE
-        }
+        val ours = generator.rock as? AgeRock.Ours ?: return probeVanillasRock(level, generator, x, z, report)
 
         val seaFill = generator.seaFill
         val rock = ours.field.columnSpans(x, z)
@@ -235,22 +277,7 @@ internal object TerrainInstruments {
         //
         // Printed as runs, because a column is mostly repetition and its *shape* is the question: where
         // the water stops, how much air is over it, what the floor is made of.
-        level.getChunk(x shr CHUNK_BITS, z shr CHUNK_BITS)
-        report.say { "  and what actually stands there:" }
-        var runFrom = PROBE_FROM
-        var running = blockName(level, x, PROBE_FROM, z)
-        fun sayRun(from: Int, to: Int, what: String) {
-            val where = if (from == to) "y $from" else "y $from..$to"
-            report.fact("laid", "$where $what") { "    ${where.padEnd(PROBE_RUN_COLUMN)} $what" }
-        }
-        for (y in (PROBE_FROM + 1)..PROBE_TO) {
-            val here = blockName(level, x, y, z)
-            if (here == running) continue
-            sayRun(runFrom, y - 1, running)
-            runFrom = y
-            running = here
-        }
-        sayRun(runFrom, PROBE_TO, running)
+        sayWhatStands(level, x, z, report)
 
         // The aquifer's claim, and the one that hid a flooded rift: it is asked *before* the sea and
         // answers from the water table, so anything it claims is wet whatever keeps the sea out.

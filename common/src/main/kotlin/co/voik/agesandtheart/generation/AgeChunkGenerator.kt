@@ -741,7 +741,12 @@ class AgeChunkGenerator(
             )
             clearWhatTheSurfaceStoodIn(chunk, empty)
             if (ours == null) {
-                region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfacedBy) }
+                region?.let {
+                    // Vanilla's carvers know nothing of the lakes the overlay poured; see [HeldShore].
+                    val shore = HeldShore.of(chunk, overlay.poursBeneath)
+                    generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfacedBy)
+                    shore?.putBack(chunk)
+                }
                 raiseVanillasSeaToWhereItStands(chunk)
                 layTheAbyssOverVanillasRock(chunk)
             } else {
