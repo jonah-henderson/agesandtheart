@@ -1148,6 +1148,7 @@ object AgeContent {
     private val PITCHSTONE_DUST_ID: Identifier = "pitchstone_dust".location()
     private val SOOT_ID: Identifier = "soot".location()
     private val FLASHPOWDER_ID: Identifier = "flashpowder".location()
+    private val FLASH_BOMB_ID: Identifier = "flash_bomb".location()
     private val PULP_ID: Identifier = "pulp".location()
 
     /** What the grinder makes of deretheni, and what fine ink is coloured with. */
@@ -1158,6 +1159,11 @@ object AgeContent {
 
     /** What the grinder makes of temperstone: a photographic plate's flash, and a flash bomb's. */
     val FLASHPOWDER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FLASHPOWDER_ID)))
+
+    /** Thrown, it bursts in a flash that blinds whoever sees it ([Flash]). Four to a craft and sixty-four to a stack, as fireworks are. */
+    val FLASH_BOMB: Item = FlashBombItem(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FLASH_BOMB_ID)).stacksTo(FLASH_BOMBS_TO_A_STACK))
+
+    private const val FLASH_BOMBS_TO_A_STACK = 64
 
     /** What the pulper makes of a stripped log, and what fine paper is pressed from. */
     val PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PULP_ID)))
@@ -1681,6 +1687,18 @@ object AgeContent {
      * Updated every tick, unlike the sand column: this one arcs, and the whole of its counterplay is
      * watching where it is going to land.
      */
+    /** A thrown flash bomb, sized and tracked as a snowball is. */
+    val FLASH_BOMB_ENTITY: EntityType<FlashBomb> = EntityType.Builder
+        .of({ type: EntityType<FlashBomb>, level -> FlashBomb(type, level) }, MobCategory.MISC)
+        .sized(THROWN_SIZE, THROWN_SIZE)
+        .clientTrackingRange(THROWN_TRACKING_CHUNKS)
+        .updateInterval(THROWN_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, FLASH_BOMB_ID))
+
+    private const val THROWN_SIZE = 0.25f
+    private const val THROWN_TRACKING_CHUNKS = 4
+    private const val THROWN_UPDATE_TICKS = 10
+
     val VOLCANIC_BOMB: EntityType<VolcanicBomb> = EntityType.Builder
         .of({ type, level -> VolcanicBomb(type, level) }, MobCategory.MISC)
         .sized(BOMB_SIZE, BOMB_SIZE)
@@ -1907,6 +1925,7 @@ object AgeContent {
         "sand_column".location() to SAND_COLUMN,
         "tornado".location() to TORNADO,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
+        FLASH_BOMB_ID to FLASH_BOMB_ENTITY,
         "lava_droplet".location() to LAVA_DROPLET,
         Meteor.ID to METEOR,
         MeteorStorm.ID to METEOR_STORM,
@@ -2270,6 +2289,7 @@ object AgeContent {
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         FLASHPOWDER_ID to FLASHPOWDER,
+        FLASH_BOMB_ID to FLASH_BOMB,
         PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         SCARAB_CARAPACE_ID to SCARAB_CARAPACE,
@@ -2421,6 +2441,7 @@ object AgeContent {
     val mobEffects: List<Pair<Identifier, MobEffect>> = listOf(
         PRESSURE_EFFECT_ID to PRESSURE_EFFECT_INSTANCE,
         CrushingResistance.EFFECT_ID to CrushingResistance.EFFECT_INSTANCE,
+        Dazzled.EFFECT_ID to Dazzled.EFFECT_INSTANCE,
     )
 
     /** Registered after [mobEffects], whose holders they carry. */

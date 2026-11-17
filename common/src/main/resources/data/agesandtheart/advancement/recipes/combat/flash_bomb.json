@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding flashpowder.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_flashpowder": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart:flashpowder" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:flash_bomb" } }
+  },
+  "requirements": [["has_flashpowder", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:flash_bomb"] }
+}

@@ -25,6 +25,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.NoopRenderer
+import net.minecraft.client.renderer.entity.ThrownItemRenderer
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
@@ -77,6 +78,7 @@ object ClientRegistrations {
 
     val ENTITY_RENDERERS: List<RendererForEntity<*>> = listOf(
         RendererForEntity(AgeContent.HADALFISH, ::HadalfishRenderer),
+        RendererForEntity(AgeContent.FLASH_BOMB_ENTITY) { ThrownItemRenderer(it) },
         RendererForEntity(AgeContent.BOOK_ENTITY, ::BookEntityRenderer),
         RendererForEntity(AgeContent.SAND_COLUMN, ::SandColumnRenderer),
         RendererForEntity(AgeContent.TORNADO, ::TornadoRenderer),

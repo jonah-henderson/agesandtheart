@@ -34,6 +34,8 @@ import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
 import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent
+import co.voik.agesandtheart.client.DazzledView
 
 /**
  * NeoForge's client entrypoint: a second `@Mod` with the same id and `dist = [Dist.CLIENT]`, so nothing
@@ -45,6 +47,9 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // The Art's skies, clouds and air, handed to the library that owns those seams.
         AgeLooks.register()
         Constants.LOG.info("Ages client init (NeoForge)")
+        // A flash bomb's dazzle: its fog, and the white and afterimage over everything else on the screen.
+        DazzledView.install()
+        eventBus.addListener { event: RegisterGuiLayersEvent -> event.registerAboveAll(DazzledView.HUD_LAYER, DazzledView::draw) }
         // Forgetting the cache is a game-bus concern: these dimension keys mean nothing on the next server,
         // and an Age id can be reused, so one world's sky could otherwise appear in another's.
         NeoForge.EVENT_BUS.addListener(::onLoggingOut)

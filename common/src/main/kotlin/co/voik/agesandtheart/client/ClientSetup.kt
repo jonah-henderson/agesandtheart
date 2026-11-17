@@ -54,6 +54,8 @@ object ClientSetup {
         StrangeMotes.tick(minecraft)
         // Our post effects: the haze over a plasma sea or under a burning sky, and an asteroid's flash.
         ScreenEffects.tick(minecraft)
+        // A flash bomb's dazzle, whose afterimage is the frame it arrived on.
+        DazzledView.tick(minecraft)
         // A worn grindstone's cracks, which the client forgets unless they are drawn again.
         WornGrindstones.tick(minecraft)
         // The beta's word on what this version changed, once per installation after an update.
@@ -92,6 +94,7 @@ object ClientSetup {
     }
 
     fun disconnected() {
+        DazzledView.forget()
         KnownWords.forgetAll()
         Surf.forget()
         StrangeMotes.forget()

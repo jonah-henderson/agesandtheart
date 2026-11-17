@@ -1,0 +1,7 @@
+{
+  "_comment": "Flashpowder and gunpowder wrapped in paper, thrown to blind whoever sees it burst.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["agesandtheart:flashpowder", "minecraft:gunpowder", "minecraft:paper"],
+  "result": { "id": "agesandtheart:flash_bomb", "count": 4 }
+}

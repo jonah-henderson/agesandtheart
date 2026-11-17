@@ -52,6 +52,7 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.DispenserBlock
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -93,6 +94,8 @@ object CommonSetup {
         fire.`agesandtheart$setFlammable`(AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK, CATCHES_AS_A_DEAD_BUSH_DOES, BURNS_AS_A_DEAD_BUSH_DOES)
         // A spent fuel's empty unit, which the item builder could not name before the unit was registered.
         Plasma.leaveTheUnitBehind()
+        // A dispenser throws a flash bomb as it does a snowball; vanilla lists only its own projectiles.
+        DispenserBlock.registerProjectileBehavior(AgeContent.FLASH_BOMB)
     }
 
     /** The end of every server tick. */

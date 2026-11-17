@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.age.consequence.Dispositions;
+import co.voik.agesandtheart.content.Dazzled;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
@@ -15,7 +16,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * A friendly creature attacks nothing, and a passive one only what hit it ({@link Dispositions#forbids}).
+ * A friendly creature attacks nothing, and a passive one only what hit it ({@link Dispositions#forbids}); and a
+ * creature dazzled by a flash cannot take a player for its target ({@link Dazzled#hidesFrom}).
  *
  * <p>{@code canAttack} is the question every way of taking a target asks first: {@code setTarget} through
  * {@code asValidTarget}, a target goal's search and its keeping on through {@code TargetingConditions}, and a brain's
@@ -32,7 +34,8 @@ public abstract class CanAttackMixin {
 
     @Inject(method = "canAttack(Lnet/minecraft/world/entity/LivingEntity;)Z", at = @At("HEAD"), cancellable = true)
     private void agesandtheart$asItsAgeWroteIt(LivingEntity target, CallbackInfoReturnable<Boolean> may) {
-        if (Dispositions.forbids((LivingEntity) (Object) this, target)) {
+        LivingEntity attacker = (LivingEntity) (Object) this;
+        if (Dispositions.forbids(attacker, target) || Dazzled.hidesFrom(attacker, target)) {
             may.setReturnValue(false);
         }
     }

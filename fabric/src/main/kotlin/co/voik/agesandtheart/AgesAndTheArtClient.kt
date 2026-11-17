@@ -30,6 +30,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.client.renderer.special.SpecialModelRenderers
 import net.minecraft.world.level.block.entity.BlockEntity
 import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
+import co.voik.agesandtheart.client.DazzledView
 import co.voik.agesandtheart.client.settings.ClothPresence
 import co.voik.agesandtheart.client.settings.ClothSettings
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -47,6 +49,9 @@ fun initClient() {
 
     // The Art's skies, clouds and air, handed to the library that owns those seams.
     AgeLooks.register()
+    // A flash bomb's dazzle: its fog, and the white and afterimage over everything else on the screen.
+    DazzledView.install()
+    HudElementRegistry.addLast(DazzledView.HUD_LAYER, DazzledView::draw)
 
     for ((tier, identity) in AgeFluids.INKS) {
         FluidRenderingRegistry.register(FabricInkFluids.still(tier), FabricInkFluids.flowing(tier), AgeFluidLooks.ink(identity))
