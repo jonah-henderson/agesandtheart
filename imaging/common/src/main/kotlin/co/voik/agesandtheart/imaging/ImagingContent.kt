@@ -73,6 +73,7 @@ object ImagingContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, SLIDE_CAROUSEL_ID))
             .strength(CAROUSEL_STRENGTH)
+            .noOcclusion()
             .sound(SoundType.WOOD),
     )
 

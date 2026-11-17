@@ -20,6 +20,13 @@ class SlideCarouselItem(block: Block, properties: Properties) : BlockItem(block,
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
-        builder.accept(Component.translatable("block.agesandtheart_imaging.slide_carousel.how").withStyle(ChatFormatting.GRAY))
+        // A line a key, since a tooltip does not wrap.
+        for (line in 1..HOW_LINES) {
+            builder.accept(Component.translatable("block.agesandtheart_imaging.slide_carousel.how.$line").withStyle(ChatFormatting.GRAY))
+        }
+    }
+
+    private companion object {
+        const val HOW_LINES = 3
     }
 }

@@ -2,6 +2,8 @@ package co.voik.agesandtheart.imaging
 
 import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
+import co.voik.agesandtheart.imaging.client.BlurredPictures
+import co.voik.agesandtheart.imaging.client.CarouselParts
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -35,7 +37,9 @@ fun initClient() {
         PictureTextures.forget()
         ProjectorThrows.forget()
         MaskedPictures.forget()
+        BlurredPictures.forget()
     }
     SpecialModelRenderers.ID_MAPPER.put(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
     ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(ProjectorLights.ID, ProjectorLights)
+    ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(CarouselParts.ID, CarouselParts)
 }

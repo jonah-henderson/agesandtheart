@@ -27,6 +27,8 @@ import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
+import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
@@ -36,12 +38,17 @@ import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
+import net.minecraft.world.level.BlockGetter
 
 /**
- * The projector's slide carousel: sixteen recorded images round a wheel, the one at the front thrown through the lens
- * ahead of it. A recorded image used on it goes into the front slot, or the next empty one; an empty hand takes out the
- * front slide; sneaking with an empty hand turns it by one, as each pulse of redstone does. A comparator reads which
- * slot is at the front.
+ * The projector's slide carousel: sixteen recorded images round a disk, the one at the front lifted by the selector arm
+ * before the focusing lens and thrown through the lens ahead. A recorded image used on it goes into the front slot, or
+ * the next empty one; an empty hand takes out the front slide; sneaking with an empty hand turns it on by one, as each
+ * pulse of redstone does, and its two buttons turn it either way. A comparator reads which slot is at the front.
  */
 class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -61,6 +68,35 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
+    /** One box round the whole model, buttons and lens included, turned the way it faces. */
+    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+        SHAPES.getValue(state.getValue(FACING))
+
+    /** The machinery moves on the client, catching up with the front slot ([CarouselMotion]). */
+    override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
+        if (level.isClientSide) createTickerHelper(type, ImagingContent.SLIDE_CAROUSEL_ENTITY) { _, _, _, carousel -> carousel.tickTheMachinery() } else null
+
+    /**
+     * One of the two buttons on the carousel's left flank, as it faces, where [hitResult] struck, or null. The block's
+     * box reaches out to the buttons' faces, so a button is found by where on that side the click landed.
+     */
+    private fun buttonUnder(state: BlockState, pos: BlockPos, hitResult: BlockHitResult): CarouselButton? {
+        val facing = state.getValue(FACING)
+        if (hitResult.direction != facing.counterClockWise) return null
+        val (_, modelY, modelZ) = CarouselButton.inTheModel(facing, hitResult.location.subtract(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()))
+        return CarouselButton.entries.firstOrNull { it.covers(modelY, modelZ) }
+    }
+
+    private fun press(button: CarouselButton, level: Level, pos: BlockPos): InteractionResult {
+        val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
+        if (!level.isClientSide) {
+            level.playSound(null, pos, SoundEvents.STONE_BUTTON_CLICK_ON, SoundSource.BLOCKS, BUTTON_VOLUME, BUTTON_PITCH)
+            level.blockEvent(pos, this, SlideCarouselBlockEntity.BUTTON_PRESSED, button.ordinal)
+            carousel.turn(button.step)
+        }
+        return InteractionResult.SUCCESS
+    }
+
     override fun useItemOn(
         stack: ItemStack,
         state: BlockState,
@@ -70,6 +106,7 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
         hand: InteractionHand,
         hitResult: BlockHitResult,
     ): InteractionResult {
+        buttonUnder(state, pos, hitResult)?.let { return press(it, level, pos) }
         // A blank plate is a slide too, and throws plain light.
         val isASlide = stack.`is`(ImagingContent.RECORDED_IMAGE) || stack.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
         if (!isASlide) return InteractionResult.TRY_WITH_EMPTY_HAND
@@ -80,6 +117,7 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
+        buttonUnder(state, pos, hitResult)?.let { return press(it, level, pos) }
         val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
         if (player.isSecondaryUseActive) {
             if (!level.isClientSide) carousel.turn()
@@ -111,6 +149,50 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
     companion object {
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
         val POWERED: BooleanProperty = BlockStateProperties.POWERED
+        /** The model's bounds facing north, in pixels: from the buttons to the base's far side, up to the lens's top. */
+        private val SHAPES: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(Block.box(0.5, 0.0, 0.5, 15.0, 10.0, 16.0))
+        private const val BUTTON_VOLUME = 0.3f
+        private const val BUTTON_PITCH = 1.2f
+    }
+}
+
+/**
+ * The carousel's two buttons, where they stand on its left flank in the model's own pixels, facing north, and which way
+ * each turns the disk: clockwise seen from above is on, the way redstone turns it.
+ */
+enum class CarouselButton(private val fromZ: Double, private val toZ: Double, val step: Int) {
+    CLOCKWISE(10.25, 11.25, 1),
+    COUNTER_CLOCKWISE(11.75, 12.75, -1),
+    ;
+
+    fun covers(modelY: Double, modelZ: Double): Boolean {
+        val isLevelWithIt = modelY in (LOWEST - REACH)..(HIGHEST + REACH)
+        val isAlongIt = modelZ in (fromZ - REACH)..(toZ + REACH)
+        return isLevelWithIt && isAlongIt
+    }
+
+    companion object {
+        private const val LOWEST = 1.5
+        private const val HIGHEST = 2.5
+        private const val REACH = 0.2
+        private const val PIXELS = 16.0
+
+        /**
+         * A point in the block, nought to one, as pixels of the model facing north: the blockstate turns the model
+         * clockwise from above a quarter for each step from north, and this turns it back.
+         */
+        fun inTheModel(facing: Direction, inTheBlock: Vec3): Triple<Double, Double, Double> {
+            var x = inTheBlock.x * PIXELS
+            var z = inTheBlock.z * PIXELS
+            repeat(Math.floorMod(facing.get2DDataValue() - Direction.NORTH.get2DDataValue(), QUARTERS)) {
+                val turnedX = z
+                z = PIXELS - x
+                x = turnedX
+            }
+            return Triple(x, inTheBlock.y * PIXELS, z)
+        }
+
+        private const val QUARTERS = 4
     }
 }
 
@@ -122,7 +204,28 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
     var frontSlot = 0
         private set
 
+    /** Which way it last turned, on (1) or back (-1), so a client turns its disk the same way. */
+    var lastTurn = 1
+        private set
+
+    /** How the machinery stands on this client; never saved or sent. */
+    val motion = CarouselMotion()
+
+    /** When each button was last pressed, by [CarouselButton.ordinal], in this client's level time. */
+    val pressedAt = LongArray(CarouselButton.entries.size) { NEVER }
+
     fun front(): ItemStack = slides[frontSlot]
+
+    fun slideIn(slot: Int): ItemStack = slides[slot]
+
+    fun tickTheMachinery() = motion.tick(frontSlot, { !slides[it].isEmpty }, lastTurn)
+
+    override fun triggerEvent(id: Int, param: Int): Boolean {
+        if (id != BUTTON_PRESSED) return super.triggerEvent(id, param)
+        val level = level ?: return true
+        if (param in pressedAt.indices) pressedAt[param] = level.gameTime
+        return true
+    }
 
     /** Its slides seen as it loads, so a carousel's pictures never shrink while it stands where somebody goes. */
     override fun setLevel(level: Level) {
@@ -147,8 +250,10 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         return taken
     }
 
-    fun turn() {
-        frontSlot = (frontSlot + 1) % SLIDES
+    /** On by [by] slots, on (positive) or back (negative). */
+    fun turn(by: Int = 1) {
+        frontSlot = Math.floorMod(frontSlot + by, SLIDES)
+        lastTurn = if (by < 0) -1 else 1
         val level = level as? ServerLevel ?: return
         level.playSound(null, blockPos, SoundEvents.DISPENSER_DISPENSE, SoundSource.BLOCKS, TURN_VOLUME, TURN_PITCH)
         changed()
@@ -173,12 +278,14 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         slides.clear()
         ContainerHelper.loadAllItems(input, slides)
         frontSlot = input.getIntOr(FRONT_KEY, 0).coerceIn(0, SLIDES - 1)
+        lastTurn = if (input.getIntOr(LAST_TURN_KEY, 1) < 0) -1 else 1
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         ContainerHelper.saveAllItems(output, slides, true)
         output.putInt(FRONT_KEY, frontSlot)
+        output.putInt(LAST_TURN_KEY, lastTurn)
     }
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
@@ -189,6 +296,11 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         const val SLIDES = 16
         private const val MOST_SIGNAL = 15
         private const val FRONT_KEY = "front"
+        private const val LAST_TURN_KEY = "last_turn"
+
+        /** The block event a button press is sent to clients as, its parameter the button. */
+        const val BUTTON_PRESSED = 1
+        private const val NEVER = Long.MIN_VALUE / 2
         private const val TURN_VOLUME = 0.6f
         private const val TURN_PITCH = 1.6f
     }

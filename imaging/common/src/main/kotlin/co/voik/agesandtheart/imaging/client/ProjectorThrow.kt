@@ -34,9 +34,12 @@ class ProjectorThrow private constructor(
 
     /**
      * What the throw was worked out from, so it is only worked out again when one of them moves. [tint] is the lens's
-     * colour, mixed from its stained layers as a beacon mixes its beam's, white where every layer is clear.
+     * colour, mixed from its stained layers as a beacon mixes its beam's, white where every layer is clear. With no lens
+     * [toLens] is nought and the throw is unfocused, spreading wide from the carousel's own front.
      */
-    data class Assembly(val facing: Direction, val light: BlockState, val toLens: Int, val layers: Int, val tint: Int)
+    data class Assembly(val facing: Direction, val light: BlockState, val toLens: Int, val layers: Int, val tint: Int) {
+        val isFocused: Boolean get() = toLens > 0
+    }
 
     companion object {
 
@@ -45,6 +48,10 @@ class ProjectorThrow private constructor(
         const val SLIDE_WIDTH = 0.5
         private const val PICTURE_ASPECT = 16.0 / 9.0
         const val EACH_LAYER = 1.5
+
+        /** With no lens: how a throw is marked, and how fast it spreads, half again as wide as it is far. */
+        private const val UNFOCUSED = 0
+        private const val UNFOCUSED_SPREAD = 0.75
         const val REACH = 32.0
         private const val FARTHEST_LENS = 8
         private const val MOST_LAYERS = 4
@@ -77,6 +84,14 @@ class ProjectorThrow private constructor(
             return Assembly(facing, light, toLens, layers, tint)
         }
 
+        /** A lit carousel with no lens ahead of it, throwing unfocused; null where there is no light behind it. */
+        fun unfocusedAt(level: Level, carousel: BlockPos, state: BlockState): Assembly? {
+            val facing = state.getValue(SlideCarouselBlock.FACING)
+            val light = level.getBlockState(carousel.relative(facing.opposite))
+            if (light.lightEmission <= 0) return null
+            return Assembly(facing, light, UNFOCUSED, UNFOCUSED, WHITE)
+        }
+
         /** Clear glass, or stained, which colours the throw as it colours a beacon's beam. */
         private fun isALens(state: BlockState): Boolean = state.`is`(LENSES) || state.block is BeaconBeamBlock
 
@@ -86,9 +101,13 @@ class ProjectorThrow private constructor(
             val forward = Vec3.atLowerCornerOf(assembly.facing.unitVec3i)
             val right = Vec3.atLowerCornerOf(assembly.facing.clockWise.unitVec3i)
             val up = Vec3(0.0, 1.0, 0.0)
-            // From the far side of the lens, so the glass itself is never what is lit.
-            val lens = Vec3.atCenterOf(carousel.relative(assembly.facing, assembly.toLens + assembly.layers - 1)).add(forward.scale(0.5))
-            val tanAcross = SLIDE_WIDTH / 2.0 / assembly.toLens * EACH_LAYER.pow(assembly.layers - 1)
+            // From the far side of the lens, so the glass itself is never what is lit; unfocused, from the carousel's front.
+            val lens = if (assembly.isFocused) {
+                Vec3.atCenterOf(carousel.relative(assembly.facing, assembly.toLens + assembly.layers - 1)).add(forward.scale(0.5))
+            } else {
+                Vec3.atCenterOf(carousel).add(forward.scale(0.5))
+            }
+            val tanAcross = if (assembly.isFocused) SLIDE_WIDTH / 2.0 / assembly.toLens * EACH_LAYER.pow(assembly.layers - 1) else UNFOCUSED_SPREAD
             val tanDown = tanAcross / PICTURE_ASPECT
             val cone = Cone(lens, forward, right, up, tanAcross, tanDown)
 

@@ -2,19 +2,15 @@ package co.voik.agesandtheart.imaging.client
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec3
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The light leaving a lit carousel, in the light's own tint ([ProjectorLights]): a cone from its front, a fainter one
- * round a brighter, added to what is behind it,
- * flickering gently, with a faint tinge of red, green or blue now and then drifting round its side. Unfocused it widens
- * a little way out and fades to nothing; with a lens ahead it gathers to the lens's middle, still a hand across where it
- * meets the glass so it never narrows to a beam.
+ * The light through a lit projector, in its light's own tint ([ProjectorLights]): beams between two points, each a cone
+ * a fainter layer round a brighter, added to what is behind it and flickering gently. Light that has passed the slide
+ * carries the picture's colours, so now and then an arc of its side drifts toward red, green or blue.
  *
  * Drawn on Ages and the Art's `addedLight`, which writes no depth: a glow that did would hide the clouds, water and
  * anything else translucent drawn after it wherever it stood in front of them.
@@ -23,44 +19,44 @@ object ProjectorRays {
 
     private class Shape(val radiusFrom: Double, val radiusTo: Double, val light: Float)
 
-    private val GATHERED = listOf(Shape(0.34, 0.16, 0.05f), Shape(0.2, 0.08, 0.07f))
-    private val SPILLED = listOf(Shape(0.3, 0.62, 0.05f), Shape(0.18, 0.4, 0.07f))
+    /** A beam's two layers, as shares of its own radii: a broad faint one round a narrower brighter one. */
+    private val BEAM_LAYERS = listOf(Shape(1.0, 1.0, 0.05f), Shape(0.6, 0.6, 0.07f))
+    private const val MOSTLY_UPRIGHT = 0.9
 
-    private const val SPILL = 1.1
-    private const val LIGHT_AT_THE_LENS = 0.55f
-    private const val LIGHT_SPILLED = 0.0f
+    private val UNTINGED = Triple(1.0f, 1.0f, 1.0f)
     private const val SIDES = 24
     private const val FLICKER = 0.25f
     private const val FRAMES_A_SECOND = 24
     private const val JITTER_SHARE = 0.6
     private const val TINGE_EVERY_MILLIS = 5_200L
-    private const val TINGE_FOR_MILLIS = 700L
-    private const val TINGE = 0.35f
-    private const val TINGED_ARC = 6
+    private const val TINGE_FOR_MILLIS = 900L
+    private const val TINGE = 0.6f
+    private const val TINGED_ARC = 8
 
     /**
-     * Draws the light for the carousel at [carousel] facing [facing], gathered to the lens [toLens] blocks ahead where
-     * there is one, with positions taken from the block's corner as a block entity's are.
+     * Light passing from [from] to [to], [radiusFrom] across at one end and [radiusTo] at the other: from the light
+     * into the focusing lens, on to the raised slide, and out to the lens ahead. [brightness] scales both layers, the far
+     * end keeps [lightAtTheEnd] of it, and light that has passed the slide is [tinged].
      */
-    fun draw(pose: PoseStack.Pose, buffer: VertexConsumer, carousel: BlockPos, facing: Direction, toLens: Int?, tint: Int, millis: Long) {
-        val forward = Vec3.atLowerCornerOf(facing.unitVec3i)
-        val right = Vec3.atLowerCornerOf(facing.clockWise.unitVec3i)
-        val up = Vec3(0.0, 1.0, 0.0)
-        val front = Vec3(0.5, 0.5, 0.5).add(forward.scale(0.5 + 0.01))
-        val seed = carousel.asLong()
+    fun beam(
+        pose: PoseStack.Pose, buffer: VertexConsumer, from: Vec3, to: Vec3, radiusFrom: Double, radiusTo: Double,
+        brightness: Float, lightAtTheEnd: Float, tint: Int, millis: Long, seed: Long, tinged: Boolean = false,
+    ) {
+        val along = to.subtract(from).normalize()
+        val across = if (kotlin.math.abs(along.y) < MOSTLY_UPRIGHT) Vec3(0.0, 1.0, 0.0) else Vec3(1.0, 0.0, 0.0)
+        val right = along.cross(across).normalize()
+        val up = right.cross(along).normalize()
         val flickered = 1.0f - FLICKER * flicker(millis, seed)
-        val isGathered = toLens != null
-        val end = if (toLens != null) Vec3(0.5, 0.5, 0.5).add(forward.scale(toLens - 0.5)) else front.add(forward.scale(SPILL))
-        val lightAtTheEnd = if (isGathered) LIGHT_AT_THE_LENS else LIGHT_SPILLED
-        for (shape in if (isGathered) GATHERED else SPILLED) {
-            cone(pose, buffer, front, end, right, up, shape, shape.light * flickered, lightAtTheEnd, tint, millis, seed)
+        for (layer in BEAM_LAYERS) {
+            val shape = Shape(radiusFrom * layer.radiusFrom, radiusTo * layer.radiusTo, layer.light * brightness)
+            cone(pose, buffer, from, to, right, up, shape, shape.light * flickered, lightAtTheEnd, tint, millis, seed, tinged)
         }
     }
 
     /** A cone's side from [shape]'s near ring round [from] to its far ring round [to], seen from inside and out. */
     private fun cone(
         pose: PoseStack.Pose, buffer: VertexConsumer, from: Vec3, to: Vec3, right: Vec3, up: Vec3,
-        shape: Shape, light: Float, lightAtTheEnd: Float, tint: Int, millis: Long, seed: Long,
+        shape: Shape, light: Float, lightAtTheEnd: Float, tint: Int, millis: Long, seed: Long, tinged: Boolean,
     ) {
         val tintRed = (tint shr 16 and 0xFF) / 255.0f
         val tintGreen = (tint shr 8 and 0xFF) / 255.0f
@@ -71,7 +67,7 @@ object ProjectorRays {
             return centre.add(right.scale(cos(angle) * radius)).add(up.scale(sin(angle) * radius))
         }
         fun corner(at: Vec3, brightness: Float, step: Int) {
-            val (red, green, blue) = tinge(millis, step, seed)
+            val (red, green, blue) = if (tinged) tinge(millis, step, seed) else UNTINGED
             buffer.addVertex(pose, at.x.toFloat(), at.y.toFloat(), at.z.toFloat())
                 .setColor(red * tintRed * brightness, green * tintGreen * brightness, blue * tintBlue * brightness, 1.0f)
         }

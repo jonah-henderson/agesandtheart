@@ -2,6 +2,8 @@ package co.voik.agesandtheart.imaging
 
 import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
+import co.voik.agesandtheart.imaging.client.BlurredPictures
+import co.voik.agesandtheart.imaging.client.CarouselParts
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import net.neoforged.fml.ModContainer
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -38,8 +40,12 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
             PictureTextures.forget()
             ProjectorThrows.forget()
             MaskedPictures.forget()
+            BlurredPictures.forget()
         }
-        eventBus.addListener { event: AddClientReloadListenersEvent -> event.addListener(ProjectorLights.ID, ProjectorLights) }
+        eventBus.addListener { event: AddClientReloadListenersEvent ->
+            event.addListener(ProjectorLights.ID, ProjectorLights)
+            event.addListener(CarouselParts.ID, CarouselParts)
+        }
         eventBus.addListener { event: RegisterSpecialModelRendererEvent ->
             event.register(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
         }
