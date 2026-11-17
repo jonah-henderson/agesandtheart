@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
+import net.neoforged.fml.config.ModConfig
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
@@ -20,7 +21,8 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener(::onRegister)
         eventBus.addListener(::onBuildCreativeTab)
         eventBus.addListener(::onRegisterPayloads)
-        NeoForge.EVENT_BUS.addListener { event: ServerTickEvent.Post -> Viewfinder.serverTick(event.server) }
+        NeoForge.EVENT_BUS.addListener { event: ServerTickEvent.Post -> Imaging.serverTick(event.server) }
+        modContainer.registerConfig(ModConfig.Type.SERVER, ImagingConfig.SPEC)
     }
 
     private fun onRegister(event: RegisterEvent) {
@@ -29,6 +31,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         }
         event.register(Registries.BLOCK) { helper -> ImagingContent.blocks.forEach { (id, block) -> helper.register(id, block) } }
         event.register(Registries.ITEM) { helper -> ImagingContent.items.forEach { (id, item) -> helper.register(id, item) } }
+        event.register(Registries.SOUND_EVENT) { helper -> ImagingContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) } }
         event.register(Registries.ENTITY_TYPE) { helper -> ImagingContent.entities.forEach { (id, type) -> helper.register(id, type) } }
     }
 

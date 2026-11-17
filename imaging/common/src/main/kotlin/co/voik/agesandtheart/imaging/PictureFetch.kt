@@ -24,8 +24,11 @@ data class PictureWanted(val id: UUID, val size: Int) : CustomPacketPayload {
     }
 }
 
-/** The picture asked for, or no bytes where it has not been developed yet, or never will be. */
-class PictureSent(val id: UUID, val size: Int, val bytes: ByteArray) : CustomPacketPayload {
+/**
+ * The picture asked for, or the server's sketch of it where the asker may not see the photograph or it never came, or
+ * no bytes where neither is ready yet.
+ */
+class PictureSent(val id: UUID, val size: Int, val isSketch: Boolean, val bytes: ByteArray) : CustomPacketPayload {
     override fun type(): CustomPacketPayload.Type<PictureSent> = TYPE
 
     companion object {
@@ -36,6 +39,7 @@ class PictureSent(val id: UUID, val size: Int, val bytes: ByteArray) : CustomPac
         val STREAM_CODEC: StreamCodec<ByteBuf, PictureSent> = StreamCodec.composite(
             UUIDUtil.STREAM_CODEC, PictureSent::id,
             ByteBufCodecs.VAR_INT, PictureSent::size,
+            ByteBufCodecs.BOOL, PictureSent::isSketch,
             ByteBufCodecs.byteArray(MOST_BYTES), PictureSent::bytes,
             ::PictureSent,
         )
@@ -56,9 +60,10 @@ object PictureFetch {
         if (!allow(player)) return
         val server = player.level().server
         Util.ioPool().execute {
-            val bytes = PictureStore.read(server, wanted.id, size) ?: ByteArray(0)
+            val seen = runCatching { PictureStore.seenBy(server, player.uuid, wanted.id, size) }.getOrNull()
+            val sent = PictureSent(wanted.id, wanted.size, seen?.isSketch ?: false, seen?.bytes ?: ByteArray(0))
             server.execute {
-                if (!player.hasDisconnected()) player.connection.send(ClientboundCustomPayloadPacket(PictureSent(wanted.id, wanted.size, bytes)))
+                if (!player.hasDisconnected()) player.connection.send(ClientboundCustomPayloadPacket(sent))
             }
         }
     }

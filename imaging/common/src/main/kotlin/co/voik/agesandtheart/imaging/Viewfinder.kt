@@ -3,7 +3,6 @@ package co.voik.agesandtheart.imaging
 import co.voik.agesandtheart.age.word.WordNames
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
@@ -64,7 +63,8 @@ object Viewfinder {
         val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
         player.inventory.placeItemBackInInventory(recordedImage, Prediction.SERVER_ONLY)
         Shots.taken(player, picture.id)
-        player.level().playSound(null, player.x, player.eyeY, player.z, SoundEvents.SPYGLASS_STOP_USING, SoundSource.PLAYERS, 1.0f, 1.4f)
+        // Heard by everyone near but the photographer, whose own client played it the moment the shutter went.
+        player.level().playSound(player, player.x, player.eyeY, player.z, ImagingContent.SHUTTER, SoundSource.PLAYERS, 1.0f, 1.0f)
         stopLooking(player)
     }
 

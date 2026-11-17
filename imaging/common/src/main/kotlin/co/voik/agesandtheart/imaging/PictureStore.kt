@@ -18,6 +18,7 @@ object PictureStore {
     data class About(val photographer: UUID, val pose: Shots.Pose, val fieldOfView: Float, val takenAt: Long)
 
     private const val ABOUT_FILE = "about.json"
+    private const val SKETCH_FILE = "sketch.jpg"
     private val GSON = GsonBuilder().setPrettyPrinting().create()
 
     fun folderOf(server: MinecraftServer, id: UUID): Path =
@@ -44,11 +45,34 @@ object PictureStore {
         Imaging.LOG.info("Developed picture {}, {} by {}", id, picture.width, picture.height)
     }
 
-    /** The picture at [size], or null where it was never developed. */
-    fun read(server: MinecraftServer, id: UUID, size: PictureSizes.Size): ByteArray? {
-        val file = folderOf(server, id).resolve(size.fileName)
-        return if (Files.isRegularFile(file)) Files.readAllBytes(file) else null
+    /** The server's own drawing of the picture, kept beside it, and the picture's particulars if they are not yet. */
+    fun keepSketch(server: MinecraftServer, id: UUID, sketch: java.awt.image.BufferedImage, about: About) {
+        val folder = folderOf(server, id)
+        Files.createDirectories(folder)
+        Files.write(folder.resolve(SKETCH_FILE), PictureSizes.written(sketch))
+        val aboutFile = folder.resolve(ABOUT_FILE)
+        if (!Files.exists(aboutFile)) Files.writeString(aboutFile, GSON.toJson(aboutJson(about)))
     }
+
+    /** What [viewer] may see of a picture at [size]: the photograph, or the sketch where they may not or it never came. */
+    class Seen(val bytes: ByteArray, val isSketch: Boolean)
+
+    fun seenBy(server: MinecraftServer, viewer: UUID, id: UUID, size: PictureSizes.Size): Seen? {
+        val folder = folderOf(server, id)
+        val photograph = folder.resolve(size.fileName)
+        val sketch = folder.resolve(SKETCH_FILE)
+        val mayBeShownThePhotograph = ImagingConfig.sharesPictures.get() || photographerOf(folder) == viewer
+        return when {
+            mayBeShownThePhotograph && Files.isRegularFile(photograph) -> Seen(Files.readAllBytes(photograph), isSketch = false)
+            Files.isRegularFile(sketch) -> Seen(Files.readAllBytes(sketch), isSketch = true)
+            else -> null
+        }
+    }
+
+    private fun photographerOf(folder: Path): UUID? = runCatching {
+        val about = GSON.fromJson(Files.readString(folder.resolve(ABOUT_FILE)), JsonObject::class.java)
+        UUID.fromString(about.get("photographer").asString)
+    }.getOrNull()
 
     private fun aboutJson(about: About) = JsonObject().apply {
         addProperty("photographer", about.photographer.toString())

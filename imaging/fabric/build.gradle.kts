@@ -13,6 +13,9 @@ dependencies {
 
     // Ages and the Art, compiled against and run beside. Its jar carries Ephemeris and the config port with it.
     implementation(project(":fabric"))
+
+    // The config port's API, for the companion's own server settings; Ages and the Art's jar brings the port itself.
+    compileOnly(libs.forgeConfigApiPort.fabric)
 }
 
 loom {

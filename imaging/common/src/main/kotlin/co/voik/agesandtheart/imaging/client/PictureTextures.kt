@@ -63,9 +63,12 @@ object PictureTextures {
             return
         }
         Util.ioPool().execute {
-            runCatching {
-                Files.createDirectories(cacheFolder())
-                Files.write(cacheFile(sent.id, size), sent.bytes)
+            // A sketch is never kept: the server may start sharing photographs, and the next visit should ask again.
+            if (!sent.isSketch) {
+                runCatching {
+                    Files.createDirectories(cacheFolder())
+                    Files.write(cacheFile(sent.id, size), sent.bytes)
+                }
             }
             decodeAndUpload(sent.id, size, sent.bytes)
         }

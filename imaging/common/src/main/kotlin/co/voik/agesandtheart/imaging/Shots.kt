@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.imaging
 
 import net.minecraft.resources.ResourceKey
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.util.Util
 import net.minecraft.world.level.Level
@@ -19,7 +20,7 @@ object Shots {
     /** Where and which way a picture was taken from, for the server's own drawing of it where pictures are not shared. */
     data class Pose(val dimension: ResourceKey<Level>, val eyeX: Double, val eyeY: Double, val eyeZ: Double, val yaw: Float, val pitch: Float)
 
-    private class Shot(val id: UUID, val pose: Pose, val takenOnTick: Int)
+    private class Shot(val id: UUID, val photographer: UUID, val pose: Pose, val takenOnTick: Int)
 
     private class Arrival(val count: Int, val fieldOfView: Float) {
         val pieces = arrayOfNulls<ByteArray>(count)
@@ -42,9 +43,22 @@ object Shots {
         val server = player.level().server
         val pose = Pose(player.level().dimension(), player.x, player.eyeY, player.z, player.yRot, player.xRot)
         val shots = waiting.getOrPut(player.uuid) { ArrayDeque() }
-        shots.removeAll { server.tickCount - it.takenOnTick > TICKS_TO_ARRIVE }
-        while (shots.size >= MOST_WAITING) shots.removeFirst()
-        shots.addLast(Shot(id, pose, server.tickCount))
+        while (shots.size >= MOST_WAITING) sketchOnly(server, shots.removeFirst())
+        shots.addLast(Shot(id, player.uuid, pose, server.tickCount))
+    }
+
+    /** Shots whose photograph never came are drawn by the server alone. */
+    fun tick(server: MinecraftServer) {
+        waiting.values.forEach { shots ->
+            while (shots.isNotEmpty() && server.tickCount - shots.first().takenOnTick > TICKS_TO_ARRIVE) {
+                sketchOnly(server, shots.removeFirst())
+            }
+        }
+        waiting.values.removeIf { it.isEmpty() }
+    }
+
+    private fun sketchOnly(server: MinecraftServer, shot: Shot) {
+        Sketches.draw(server, shot.id, PictureStore.About(shot.photographer, shot.pose, Sketches.ORDINARY_FIELD_OF_VIEW, System.currentTimeMillis()))
     }
 
     fun pieceArrived(player: ServerPlayer, piece: PicturePiece) {
@@ -70,5 +84,6 @@ object Shots {
             takenAt = System.currentTimeMillis(),
         )
         Util.backgroundExecutor().execute { PictureStore.develop(server, shot.id, upload, about) }
+        Sketches.draw(server, shot.id, about)
     }
 }

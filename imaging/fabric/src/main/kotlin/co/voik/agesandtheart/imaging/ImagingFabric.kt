@@ -5,7 +5,9 @@ import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.minecraft.core.Registry
+import net.neoforged.fml.config.ModConfig
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 
@@ -13,12 +15,14 @@ fun init() {
     ImagingComponents.components.forEach { (id, type) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, type) }
     ImagingContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     ImagingContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
+    ImagingContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     ImagingContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     CreativeModeTabEvents.modifyOutputEvent(ImagingContent.TAB).register { output ->
         ImagingContent.shownInTheTab.forEach(output::accept)
     }
     ImagingPayloads.ROUTES.forEach { registerPayload(it) }
-    ServerTickEvents.END_SERVER_TICK.register(Viewfinder::serverTick)
+    ServerTickEvents.END_SERVER_TICK.register(Imaging::serverTick)
+    ConfigRegistry.INSTANCE.register(Imaging.MOD_ID, ModConfig.Type.SERVER, ImagingConfig.SPEC)
 }
 
 /** As Ages and the Art registers its own: a client's payload is handled on the server thread. */

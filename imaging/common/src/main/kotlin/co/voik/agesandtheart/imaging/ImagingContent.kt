@@ -4,6 +4,7 @@ import co.voik.agesandtheart.content.AgeCreativeTab
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTab
@@ -20,6 +21,7 @@ object ImagingContent {
     private val IMAGE_RECORDER_ID: Identifier = Imaging.id("image_recorder")
     private val RECORDED_IMAGE_ID: Identifier = Imaging.id("recorded_image")
     private val HUNG_PICTURE_ID: Identifier = Imaging.id("hung_picture")
+    private val SHUTTER_ID: Identifier = Imaging.id("image_recorder.shutter")
 
     private const val PLATES_TO_A_STACK = 16
 
@@ -56,6 +58,11 @@ object ImagingContent {
         .build(ResourceKey.create(Registries.ENTITY_TYPE, HUNG_PICTURE_ID))
 
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(HUNG_PICTURE_ID to HUNG_PICTURE)
+
+    /** The shutter going; vanilla's click stands in until a shutter of its own is recorded (`sounds.json`). */
+    val SHUTTER: SoundEvent = SoundEvent.createVariableRangeEvent(SHUTTER_ID)
+
+    val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(SHUTTER_ID to SHUTTER)
 
     /** What the creative tab shows: a recorded image means nothing without a picture taken. */
     val shownInTheTab: List<Item> = listOf(IMAGE_RECORDER, PHOTOGRAPHIC_PLATE)

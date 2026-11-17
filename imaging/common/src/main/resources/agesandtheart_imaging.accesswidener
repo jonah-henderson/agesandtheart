@@ -1,0 +1,7 @@
+accessWidener v2 official
+
+# Kept in step with META-INF/accesstransformer.cfg, which is what `common` compiles against; this is Fabric's half.
+
+# A biome's rainfall, which the server's sketch tints grass and leaves by (`BiomeTints`).
+accessible class net/minecraft/world/level/biome/Biome$ClimateSettings
+accessible field net/minecraft/world/level/biome/Biome climateSettings Lnet/minecraft/world/level/biome/Biome$ClimateSettings;

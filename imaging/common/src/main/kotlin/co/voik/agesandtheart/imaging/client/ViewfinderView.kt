@@ -34,7 +34,7 @@ object ViewfinderView {
     @JvmStatic
     fun isLooking(): Boolean {
         val player = Minecraft.getInstance().player ?: return false
-        return Viewfinder.isLooking(player) || Capture.isPending()
+        return Viewfinder.isLooking(player) || Capture.isPending() || ShutterIris.isPlaying()
     }
 
     /** Hands [Viewfinder] what the shutter does here. Called once by each loader's client entrypoint. */
@@ -61,7 +61,7 @@ object ViewfinderView {
         val player = minecraft.player ?: return
         Viewfinder.tick(player)
         val looking = Viewfinder.isLooking(player)
-        if (Capture.isPending()) return
+        if (Capture.isPending() || ShutterIris.isPlaying()) return
         val justRaised = looking && cameraBefore == null
         if (justRaised) sayHowToLowerIt(minecraft)
         holdInFirstPerson(minecraft, looking)

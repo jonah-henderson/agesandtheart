@@ -2,6 +2,7 @@ package co.voik.agesandtheart.imaging.client
 
 import co.voik.agesandtheart.client.sendToServer
 import co.voik.agesandtheart.imaging.Imaging
+import co.voik.agesandtheart.imaging.ImagingContent
 import co.voik.agesandtheart.imaging.PicturePiece
 import co.voik.agesandtheart.imaging.PictureSizes
 import com.mojang.blaze3d.platform.NativeImage
@@ -34,6 +35,8 @@ object Capture {
 
     fun request(minecraft: Minecraft) {
         isWanted = true
+        ShutterIris.start()
+        minecraft.player?.playSound(ImagingContent.SHUTTER, 1.0f, 1.0f)
         fieldOfView = minecraft.options.fov().get() * ViewfinderView.fieldOfViewModifier()
         ViewfinderView.dropTheEffect(minecraft)
     }

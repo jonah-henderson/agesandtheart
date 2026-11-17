@@ -1,0 +1,12 @@
+{
+  "image_recorder.shutter": {
+    "subtitle": "subtitles.agesandtheart_imaging.image_recorder.shutter",
+    "sounds": [
+      {
+        "name": "minecraft:random/click",
+        "pitch": 1.25,
+        "volume": 0.8
+      }
+    ]
+  }
+}
