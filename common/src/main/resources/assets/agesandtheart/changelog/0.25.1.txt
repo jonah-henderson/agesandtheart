@@ -1,0 +1,2 @@
+[bugfix] prevent ages that are taking a while to generate from crashing the server when displayed in linking panels
+[bugfix] charged arc crystal blocks no longer lose their charge when mined
