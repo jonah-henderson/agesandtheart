@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parents[2] / "imaging/common/src/main/resources/assets/agesandtheart_imaging"
-TEXTURE = "agesandtheart_imaging:item/image_recorder"
+TEXTURE = "agesandtheart_imaging:block/image_recorder"
 HELD_BEFORE_THE_FACE = {"translation": [0, 6.5, -11.2], "scale": [1.6, 1.6, 1.6]}
 TURNED_ON_THE_GROUND = 22.5
 BLOCK_CENTRE = (8.0, 0.0, 8.0)
