@@ -31,6 +31,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         }
         event.register(Registries.BLOCK) { helper -> ImagingContent.blocks.forEach { (id, block) -> helper.register(id, block) } }
         event.register(Registries.ITEM) { helper -> ImagingContent.items.forEach { (id, item) -> helper.register(id, item) } }
+        event.register(Registries.BLOCK_ENTITY_TYPE) { helper -> ImagingContent.blockEntities.forEach { (id, type) -> helper.register(id, type) } }
         event.register(Registries.SOUND_EVENT) { helper -> ImagingContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) } }
         event.register(Registries.ENTITY_TYPE) { helper -> ImagingContent.entities.forEach { (id, type) -> helper.register(id, type) } }
     }

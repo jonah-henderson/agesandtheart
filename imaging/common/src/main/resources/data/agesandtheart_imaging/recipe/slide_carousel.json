@@ -1,0 +1,13 @@
+{
+  "_comment": "Jonah's, for now: a wheel of iron nuggets on a wooden base with redstone to turn it and arc crystal to drive it, and a nugget up at the top right for the arm that holds the plates up.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": ["  N", "NNN", "PRA"],
+  "key": {
+    "N": "minecraft:iron_nugget",
+    "P": "#minecraft:planks",
+    "R": "minecraft:redstone",
+    "A": "agesandtheart:arc_crystal_block"
+  },
+  "result": { "id": "agesandtheart_imaging:slide_carousel" }
+}

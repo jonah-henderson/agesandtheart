@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding a recorded image, which is what it holds.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_recorded_image": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart_imaging:recorded_image" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart_imaging:slide_carousel" } }
+  },
+  "requirements": [["has_recorded_image", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart_imaging:slide_carousel"] }
+}

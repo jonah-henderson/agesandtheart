@@ -8,7 +8,9 @@ import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTab
+import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
+import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockBehaviour
@@ -22,8 +24,10 @@ object ImagingContent {
     private val RECORDED_IMAGE_ID: Identifier = Imaging.id("recorded_image")
     private val HUNG_PICTURE_ID: Identifier = Imaging.id("hung_picture")
     private val SHUTTER_ID: Identifier = Imaging.id("image_recorder.shutter")
+    private val SLIDE_CAROUSEL_ID: Identifier = Imaging.id("slide_carousel")
 
     private const val PLATES_TO_A_STACK = 16
+    private const val CAROUSEL_STRENGTH = 1.5f
 
     /** A painting's footprint and tracking range, before its bounds are worked out from its wall. */
     private const val HANGING_SIZE = 0.5f
@@ -64,19 +68,35 @@ object ImagingContent {
 
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(SHUTTER_ID to SHUTTER)
 
-    /** What the creative tab shows: a recorded image means nothing without a picture taken. */
-    val shownInTheTab: List<Item> = listOf(IMAGE_RECORDER, PHOTOGRAPHIC_PLATE)
+    /** The projector's slide carousel, which the light behind it throws through the glass ahead of it. */
+    val SLIDE_CAROUSEL_BLOCK: Block = SlideCarouselBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SLIDE_CAROUSEL_ID))
+            .strength(CAROUSEL_STRENGTH)
+            .sound(SoundType.WOOD),
+    )
 
-    val blocks: List<Pair<Identifier, Block>> = listOf(IMAGE_RECORDER_ID to IMAGE_RECORDER_BLOCK)
+    val SLIDE_CAROUSEL: Item = BlockItem(SLIDE_CAROUSEL_BLOCK, properties(SLIDE_CAROUSEL_ID).useBlockDescriptionPrefix())
+
+    val SLIDE_CAROUSEL_ENTITY: BlockEntityType<SlideCarouselBlockEntity> =
+        BlockEntityType({ pos, state -> SlideCarouselBlockEntity(pos, state) }, setOf(SLIDE_CAROUSEL_BLOCK))
+
+    val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL_ENTITY)
+
+    val blocks: List<Pair<Identifier, Block>> = listOf(IMAGE_RECORDER_ID to IMAGE_RECORDER_BLOCK, SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL_BLOCK)
 
     val items: List<Pair<Identifier, Item>> = listOf(
         IMAGE_RECORDER_ID to IMAGE_RECORDER,
         PHOTOGRAPHIC_PLATE_ID to PHOTOGRAPHIC_PLATE,
         RECORDED_IMAGE_ID to RECORDED_IMAGE,
+        SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL,
     )
 
     /** Ages and the Art's creative tab, where the companion's items are shown. */
     val TAB: ResourceKey<CreativeModeTab> = ResourceKey.create(Registries.CREATIVE_MODE_TAB, AgeCreativeTab.ID)
+
+    /** What the creative tab shows: a recorded image means nothing without a picture taken. */
+    val shownInTheTab: List<Item> = listOf(IMAGE_RECORDER, PHOTOGRAPHIC_PLATE, SLIDE_CAROUSEL)
 
     private fun properties(id: Identifier): Item.Properties = Item.Properties().setId(ResourceKey.create(Registries.ITEM, id))
 }

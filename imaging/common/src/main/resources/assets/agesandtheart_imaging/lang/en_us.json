@@ -1,6 +1,7 @@
 {
   "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",
+  "block.agesandtheart_imaging.slide_carousel": "Slide Carousel",
   "config.agesandtheart_imaging.pictures": "Pictures",
   "config.agesandtheart_imaging.shares_pictures": "Share pictures",
   "item.agesandtheart_imaging.image_recorder": "Image Recorder",

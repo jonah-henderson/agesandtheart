@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart_imaging:block/slide_carousel"
+    },
+    "facing=east": {
+      "model": "agesandtheart_imaging:block/slide_carousel",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart_imaging:block/slide_carousel",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart_imaging:block/slide_carousel",
+      "y": 270
+    }
+  }
+}
