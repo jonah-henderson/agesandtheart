@@ -59,6 +59,7 @@ object PictureFetch {
         val size = PictureSizes.Size.entries.getOrNull(wanted.size) ?: return
         if (!allow(player)) return
         val server = player.level().server
+        PicturesSeen.of(server).saw(wanted.id)
         Util.ioPool().execute {
             val seen = runCatching { PictureStore.seenBy(server, player.uuid, wanted.id, size) }.getOrNull()
             val sent = PictureSent(wanted.id, wanted.size, seen?.isSketch ?: false, seen?.bytes ?: ByteArray(0))

@@ -10,8 +10,11 @@ layout(location = 0) in vec2 texCoord;
 
 layout(location = 0) out vec4 fragColor;
 
-// How far the middle swells toward the corners, which stay where they are.
-const float SWELL = 0.24;
+// How far the middle swells toward the corners, which stay where they are: less as the view narrows, since a narrow
+// view has less of a straight lens's stretch at its edges for the swell to take back.
+layout(std140) uniform ViewfinderConfig {
+    float Swell;
+};
 // How dark the corners go, and from how far out the darkening starts.
 const float VIGNETTE = 0.75;
 const float VIGNETTE_FROM = 0.2;
@@ -28,7 +31,7 @@ void main() {
     vec2 shaped = centred * vec2(aspect, 1.0);
     float reach = dot(shaped, shaped) / (aspect * aspect + 1.0);
 
-    vec2 sampled = centred * (1.0 + SWELL * reach) / (1.0 + SWELL);
+    vec2 sampled = centred * (1.0 + Swell * reach) / (1.0 + Swell);
     vec3 seen = texture(InSampler, sampled * 0.5 + 0.5).rgb;
 
     seen *= 1.0 - VIGNETTE * smoothstep(VIGNETTE_FROM, 1.0, reach);

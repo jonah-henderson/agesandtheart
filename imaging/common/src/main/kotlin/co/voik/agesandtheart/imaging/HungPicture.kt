@@ -57,6 +57,13 @@ class HungPicture(type: EntityType<out HungPicture>, level: Level) : HangingEnti
         if (!takenDownInCreative) spawnAtLocation(level, image.copy())
     }
 
+    /** Seen as it loads, and every few minutes it stays loaded, so a picture on a wall never shrinks ([PictureSweep]). */
+    override fun tick() {
+        super.tick()
+        val level = level() as? ServerLevel ?: return
+        if (tickCount % TICKS_BETWEEN_SIGHTINGS == 1) image.get(ImagingComponents.PICTURE)?.let { PicturesSeen.of(level.server).saw(it.id) }
+    }
+
     override fun playPlacementSound() {
         playSound(SoundEvents.PAINTING_PLACE, 1.0f, 1.0f)
     }
@@ -90,5 +97,6 @@ class HungPicture(type: EntityType<out HungPicture>, level: Level) : HangingEnti
         private const val IMAGE_KEY = "image"
         private const val OFF_THE_WALL = 0.46875
         private const val THICKNESS = 0.0625
+        private const val TICKS_BETWEEN_SIGHTINGS = 6000
     }
 }

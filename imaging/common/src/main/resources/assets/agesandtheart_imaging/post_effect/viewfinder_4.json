@@ -12,7 +12,16 @@
           "target": "minecraft:main"
         }
       ],
-      "output": "swap"
+      "output": "swap",
+      "uniforms": {
+        "ViewfinderConfig": [
+          {
+            "name": "Swell",
+            "type": "float",
+            "value": 0.1236
+          }
+        ]
+      }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",

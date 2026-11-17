@@ -70,7 +70,9 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
         hand: InteractionHand,
         hitResult: BlockHitResult,
     ): InteractionResult {
-        if (!stack.`is`(ImagingContent.RECORDED_IMAGE)) return InteractionResult.TRY_WITH_EMPTY_HAND
+        // A blank plate is a slide too, and throws plain light.
+        val isASlide = stack.`is`(ImagingContent.RECORDED_IMAGE) || stack.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
+        if (!isASlide) return InteractionResult.TRY_WITH_EMPTY_HAND
         val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
         if (!carousel.hasRoom()) return InteractionResult.FAIL
         if (!level.isClientSide) carousel.load(stack.consumeAndReturn(1, player))
@@ -121,6 +123,13 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         private set
 
     fun front(): ItemStack = slides[frontSlot]
+
+    /** Its slides seen as it loads, so a carousel's pictures never shrink while it stands where somebody goes. */
+    override fun setLevel(level: Level) {
+        super.setLevel(level)
+        val server = (level as? ServerLevel)?.server ?: return
+        slides.forEach { slide -> slide.get(ImagingComponents.PICTURE)?.let { PicturesSeen.of(server).saw(it.id) } }
+    }
 
     fun hasRoom(): Boolean = slides.any { it.isEmpty }
 

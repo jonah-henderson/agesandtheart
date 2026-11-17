@@ -2,6 +2,10 @@ package co.voik.agesandtheart.imaging
 
 import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
+import co.voik.agesandtheart.imaging.client.PictureSpace
+import net.neoforged.fml.ModContainer
+import net.neoforged.neoforge.client.gui.ConfigurationScreen
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory
 import co.voik.agesandtheart.imaging.client.PictureTextures
 import co.voik.agesandtheart.imaging.client.ProjectorLights
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent
@@ -22,9 +26,13 @@ import net.neoforged.neoforge.common.NeoForge
 
 /** The companion's client entrypoint on NeoForge: a second `@Mod` of the same id, loaded only on a client. */
 @Mod(value = Imaging.MOD_ID, dist = [Dist.CLIENT])
-class ImagingNeoForgeClient(eventBus: IEventBus) {
+class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         ViewfinderView.install()
+        modContainer.registerExtensionPoint(
+            IConfigScreenFactory::class.java,
+            IConfigScreenFactory { container, parent -> ConfigurationScreen(container, parent, PictureSpace.SHOWN) },
+        )
         NeoForge.EVENT_BUS.addListener { _: ClientTickEvent.Post -> ViewfinderView.tick(Minecraft.getInstance()) }
         NeoForge.EVENT_BUS.addListener { _: ClientPlayerNetworkEvent.LoggingOut ->
             PictureTextures.forget()

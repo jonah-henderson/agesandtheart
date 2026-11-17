@@ -17,12 +17,14 @@ object PictureStore {
     /** What is known about a picture besides its pixels. */
     data class About(val photographer: UUID, val pose: Shots.Pose, val fieldOfView: Float, val takenAt: Long)
 
+    private const val IMAGING_FOLDER = "agesandtheart_imaging"
+    private const val PICTURES_FOLDER = "pictures"
     private const val ABOUT_FILE = "about.json"
     private const val SKETCH_FILE = "sketch.jpg"
     private val GSON = GsonBuilder().setPrettyPrinting().create()
 
     fun folderOf(server: MinecraftServer, id: UUID): Path =
-        server.getWorldPath(LevelResource.ROOT).resolve("agesandtheart_imaging").resolve("pictures").resolve(id.toString())
+        server.getWorldPath(LevelResource.ROOT).resolve(IMAGING_FOLDER).resolve(PICTURES_FOLDER).resolve(id.toString())
 
     /** Writes [upload] out at every size, or refuses it. Off the server thread: decoding and scaling take a moment. */
     fun develop(server: MinecraftServer, id: UUID, upload: ByteArray, about: About) {
@@ -59,7 +61,9 @@ object PictureStore {
 
     fun seenBy(server: MinecraftServer, viewer: UUID, id: UUID, size: PictureSizes.Size): Seen? {
         val folder = folderOf(server, id)
-        val photograph = folder.resolve(size.fileName)
+        // A picture shrunk for want of being seen keeps only its smallest size, which stands in for the larger.
+        val photograph = PictureSizes.Size.entries.drop(size.ordinal).map { folder.resolve(it.fileName) }.firstOrNull(Files::isRegularFile)
+            ?: folder.resolve(size.fileName)
         val sketch = folder.resolve(SKETCH_FILE)
         val mayBeShownThePhotograph = ImagingConfig.sharesPictures.get() || photographerOf(folder) == viewer
         return when {
@@ -68,6 +72,44 @@ object PictureStore {
             else -> null
         }
     }
+
+    /** How many bytes the world's pictures take on disk, every size and sketch together. */
+    fun bytesTaken(server: MinecraftServer): Long = pictureFolders(server).sumOf { bytesIn(it) }
+
+    /**
+     * While the pictures take more than [budget] bytes, the one seen least lately keeps only its thumbnail and sketch,
+     * leaving alone any seen since [sparedSince]. A picture never seen counts as seen when it was taken. Off the server
+     * thread: it reads every picture's folder.
+     */
+    fun shrinkToFit(server: MinecraftServer, seen: Map<UUID, Long>, budget: Long, sparedSince: Long) {
+        class Held(val folder: Path, val lastSeen: Long, val bytes: Long)
+        val held = pictureFolders(server).mapNotNull { folder ->
+            val id = runCatching { UUID.fromString(folder.fileName.toString()) }.getOrNull() ?: return@mapNotNull null
+            val lastSeen = seen[id] ?: runCatching { Files.getLastModifiedTime(folder.resolve(ABOUT_FILE)).toMillis() }.getOrDefault(0L)
+            Held(folder, lastSeen, bytesIn(folder))
+        }
+        var taken = held.sumOf { it.bytes }
+        if (taken <= budget) return
+        var shrunk = 0
+        for (picture in held.filter { it.lastSeen < sparedSince }.sortedBy { it.lastSeen }) {
+            if (taken <= budget) break
+            val largerSizes = listOf(PictureSizes.Size.FULL, PictureSizes.Size.MIDDLE).map { picture.folder.resolve(it.fileName) }
+            val freed = largerSizes.sumOf { file -> runCatching { Files.size(file).also { Files.delete(file) } }.getOrDefault(0L) }
+            if (freed > 0) shrunk++
+            taken -= freed
+        }
+        if (shrunk > 0) Imaging.LOG.info("Shrank the {} pictures seen least lately to their thumbnails; pictures now take {} bytes", shrunk, taken)
+    }
+
+    private fun pictureFolders(server: MinecraftServer): List<Path> {
+        val pictures = server.getWorldPath(LevelResource.ROOT).resolve(IMAGING_FOLDER).resolve(PICTURES_FOLDER)
+        if (!Files.isDirectory(pictures)) return emptyList()
+        return Files.list(pictures).use { folders -> folders.filter(Files::isDirectory).toList() }
+    }
+
+    private fun bytesIn(folder: Path): Long = runCatching {
+        Files.list(folder).use { files -> files.mapToLong { runCatching { Files.size(it) }.getOrDefault(0L) }.sum() }
+    }.getOrDefault(0L)
 
     private fun photographerOf(folder: Path): UUID? = runCatching {
         val about = GSON.fromJson(Files.readString(folder.resolve(ABOUT_FILE)), JsonObject::class.java)

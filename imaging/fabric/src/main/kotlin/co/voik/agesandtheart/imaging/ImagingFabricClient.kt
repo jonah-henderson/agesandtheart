@@ -2,6 +2,9 @@ package co.voik.agesandtheart.imaging
 
 import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
+import co.voik.agesandtheart.imaging.client.PictureSpace
+import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
+import net.neoforged.neoforge.client.gui.ConfigurationScreen
 import co.voik.agesandtheart.imaging.client.PictureTextures
 import co.voik.agesandtheart.imaging.client.ProjectorLights
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader
@@ -19,6 +22,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 
 fun initClient() {
     ViewfinderView.install()
+    ConfigScreenFactoryRegistry.INSTANCE.register(Imaging.MOD_ID) { modId, parent -> ConfigurationScreen(modId, parent, PictureSpace.SHOWN) }
     ClientTickEvents.END_CLIENT_TICK.register(ViewfinderView::tick)
     // Fabric's own registry rather than vanilla's, which is private and widened only by a widener this project leaves
     // to the loader.

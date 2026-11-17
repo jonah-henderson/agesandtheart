@@ -11,6 +11,9 @@ object ImagingConfig {
      */
     val sharesPictures: ModConfigSpec.BooleanValue
 
+    /** How many megabytes a world's pictures may take before the least lately seen shrink ([PictureSweep]); nought is no limit. */
+    val picturesMayTakeMegabytes: ModConfigSpec.IntValue
+
     val SPEC: ModConfigSpec
 
     init {
@@ -25,6 +28,15 @@ object ImagingConfig {
             )
             .translation(translationOf("shares_pictures"))
             .define("sharesPictures", true)
+        picturesMayTakeMegabytes = builder
+            .comment(
+                "Megabytes this world's pictures may take on disk. Past it, the pictures seen least lately keep only",
+                "a thumbnail, about a twentieth of their size, until they fit again; none seen in the last day is",
+                "touched. Seen means fetched by anyone, hung on a wall or set in a carousel that loads, or carried by",
+                "a player. 0 keeps every picture whole however much they take.",
+            )
+            .translation(translationOf("pictures_may_take_megabytes"))
+            .defineInRange("picturesMayTakeMegabytes", DEFAULT_MEGABYTES, 0, MOST_MEGABYTES)
         builder.pop()
         SPEC = builder.build()
     }
@@ -32,4 +44,6 @@ object ImagingConfig {
     private fun translationOf(option: String): String = "config.${Imaging.MOD_ID}.$option"
 
     private const val PICTURES = "pictures"
+    private const val DEFAULT_MEGABYTES = 256
+    private const val MOST_MEGABYTES = 1_000_000
 }

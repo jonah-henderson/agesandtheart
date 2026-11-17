@@ -3,6 +3,7 @@ package co.voik.agesandtheart.imaging.client
 import co.voik.agesandtheart.client.AgeRenderTypes
 import co.voik.agesandtheart.imaging.ImagingClientLook
 import co.voik.agesandtheart.imaging.ImagingComponents
+import co.voik.agesandtheart.imaging.ImagingContent
 import co.voik.agesandtheart.imaging.PictureSizes
 import co.voik.agesandtheart.imaging.SlideCarouselBlock
 import co.voik.agesandtheart.imaging.SlideCarouselBlockEntity
@@ -30,6 +31,7 @@ class SlideCarouselRenderState : BlockEntityRenderState() {
     var toLens: Int? = null
     var effect: ProjectorLights.Effect? = null
     var lightTint: Int = WHITE
+    var development = 1.0f
 }
 
 private const val WHITE = 0xFFFFFF
@@ -54,7 +56,9 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         super.extractRenderState(carousel, state, partialTicks, cameraPosition, breakProgress)
         // A carousel drawn is in the client's level, which is the one that knows how its blocks are tinted.
         val level = carousel.level as? ClientLevel ?: return
-        val pictureId = carousel.front().get(ImagingComponents.PICTURE)?.id
+        val front = carousel.front()
+        val pictureId = front.get(ImagingComponents.PICTURE)?.id
+        val isABlankPlate = front.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
         state.facing = carousel.blockState.getValue(SlideCarouselBlock.FACING)
         state.toLens = ProjectorThrow.assemblyAt(level, carousel.blockPos, carousel.blockState)?.toLens
         // A whole block of glass right against the front leaves no room for the light to be seen in.
@@ -65,8 +69,10 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         val lightAt = carousel.blockPos.relative(state.facing.opposite)
         val lightEffect = ProjectorLights.effectOf(level, lightAt, behind)
         state.lightTint = if (state.showsItsLight) lightEffect.tint else WHITE
-        state.thrown = if (pictureId == null) null else ProjectorThrows.thrownBy(level, carousel.blockPos, carousel.blockState)
-        val picture = pictureId?.let { PictureTextures.textureFor(it, PictureSizes.Size.MIDDLE) }
+        val throwsAnything = pictureId != null || isABlankPlate
+        state.thrown = if (throwsAnything) ProjectorThrows.thrownBy(level, carousel.blockPos, carousel.blockState) else null
+        val picture = if (isABlankPlate) PictureTextures.blank() else pictureId?.let { PictureTextures.textureFor(it, PictureSizes.Size.MIDDLE) }
+        state.development = pictureId?.let(PictureTextures::development) ?: 1.0f
         val effect = state.thrown?.let { lightEffect }
         state.effect = effect
         state.picture = if (picture != null && effect?.overlay != null) MaskedPictures.masked(picture, effect.overlay) else picture
@@ -83,7 +89,8 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         val picture = state.picture ?: return
         val effect = state.effect ?: return
         val origin = state.blockPos
-        val flickered = ProjectorLights.brightnessOf(effect, thrown.assembly.light) * (1.0f - effect.flicker * ProjectorRays.flicker(System.currentTimeMillis(), origin.asLong()))
+        val flicker = 1.0f - effect.flicker * ProjectorRays.flicker(System.currentTimeMillis(), origin.asLong())
+        val flickered = ProjectorLights.brightnessOf(effect, thrown.assembly.light) * flicker * state.development
         val colour = OPAQUE or ARGB.scaleRGB(ARGB.multiply(effect.tint, thrown.assembly.tint), flickered.coerceIn(0.0f, 1.0f))
         // Light added to what is already there, so a dim light washes out in daylight rather than throwing a dark patch. A
         // purpose-built light may be drawn as a decal instead, clear however the wall is lit, where a player sets it so.

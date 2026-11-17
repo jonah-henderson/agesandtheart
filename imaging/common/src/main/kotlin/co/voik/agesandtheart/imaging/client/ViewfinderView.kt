@@ -8,15 +8,21 @@ import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.tan
 
 /**
  * What looking through an image recorder looks like: no HUD and no hand (the client Mixins ask [isLooking]), the
  * view put in first person and held there (in a development run F5 still works, so the pose can be seen), a slight vignette and fisheye with the 16:9 crop marked (`post_effect/viewfinder`), and
- * a zoom the scroll wheel turns between the player's own field of view and a spyglass's.
+ * a zoom the scroll wheel turns between the player's own field of view and a spyglass's. The fisheye eases as the view
+ * narrows (`post_effect/viewfinder_<n>`, one strength a file, since a post pass's uniforms are fixed in it).
  */
 object ViewfinderView {
 
-    private val EFFECT: Identifier = Imaging.id("viewfinder")
+    /** From the gentlest fisheye, a third of the widest view's, to the widest's. */
+    private const val SWELL_LEVELS = 12
+    private const val LEAST_SWELL_SHARE = 1.0 / 3.0
+    private val EFFECTS: List<Identifier> = (1..SWELL_LEVELS).map { Imaging.id("viewfinder_$it") }
 
     /** The player's own field of view, and a spyglass's. */
     private const val WIDEST = 1.0f
@@ -45,7 +51,24 @@ object ViewfinderView {
     /** The vignette and fisheye off, for the frame a picture is taken from. */
     fun dropTheEffect(minecraft: Minecraft) {
         val player = minecraft.player ?: return
-        if (EFFECT in player.activePostEffects) player.setActivePostEffects(player.activePostEffects - EFFECT)
+        val withoutOurs = player.activePostEffects.filterNot { it in EFFECTS }
+        if (withoutOurs != player.activePostEffects) player.setActivePostEffects(withoutOurs)
+    }
+
+    /**
+     * The fisheye for the zoom: as strong as the widest view's share of a straight lens's stretch at its edges, which a
+     * fisheye takes back, and the narrow view's is far less. Held to a third of the widest's so the viewfinder still
+     * looks like one.
+     */
+    private fun effectFor(minecraft: Minecraft): Identifier {
+        fun stretch(fieldOfViewDegrees: Double): Double {
+            val halfAngle = Math.toRadians(fieldOfViewDegrees / 2.0)
+            return tan(halfAngle) / halfAngle - 1.0
+        }
+        val widest = minecraft.options.fov().get().toDouble()
+        val share = (stretch(widest * zoom) / stretch(widest)).coerceIn(LEAST_SWELL_SHARE, 1.0)
+        val level = ((share - LEAST_SWELL_SHARE) / (1.0 - LEAST_SWELL_SHARE) * (SWELL_LEVELS - 1)).roundToInt()
+        return EFFECTS[level]
     }
 
     @JvmStatic
@@ -66,15 +89,17 @@ object ViewfinderView {
         if (justRaised) sayHowToLowerIt(minecraft)
         holdInFirstPerson(minecraft, looking)
         if (!looking) zoom = WIDEST
-        val hasEffect = EFFECT in player.activePostEffects
-        if (looking && !hasEffect) player.setActivePostEffects(player.activePostEffects + EFFECT)
-        if (!looking && hasEffect) player.setActivePostEffects(player.activePostEffects - EFFECT)
+        val wanted = player.activePostEffects.filterNot { it in EFFECTS } + listOfNotNull(effectFor(minecraft).takeIf { looking })
+        if (wanted != player.activePostEffects) player.setActivePostEffects(wanted)
     }
 
-    /** "Press [Sneak] to exit the viewfinder", in the action bar, as a boat says how to get out of it. */
+    /** How to lower it and how to zoom, in the action bar, as a boat says how to get out of it. */
     private fun sayHowToLowerIt(minecraft: Minecraft) {
         val sneak = minecraft.options.keyShift.translatedKeyMessage
-        minecraft.gui.hud.setOverlayMessage(Component.translatable("agesandtheart_imaging.viewfinder.lower", sneak), false)
+        ViewfinderHint.show(
+            Component.translatable("agesandtheart_imaging.viewfinder.lower", sneak),
+            Component.translatable("agesandtheart_imaging.viewfinder.zoom"),
+        )
     }
 
     private fun holdInFirstPerson(minecraft: Minecraft, looking: Boolean) {

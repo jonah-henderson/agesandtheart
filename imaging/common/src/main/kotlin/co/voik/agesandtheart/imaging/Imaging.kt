@@ -16,5 +16,6 @@ object Imaging {
         Viewfinder.serverTick(server)
         Shots.tick(server)
         Sketches.tick(server)
+        PictureSweep.tick(server)
     }
 }

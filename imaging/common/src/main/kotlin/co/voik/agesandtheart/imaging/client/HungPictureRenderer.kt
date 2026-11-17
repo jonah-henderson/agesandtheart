@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.util.ARGB
 import java.util.UUID
 import kotlin.math.sqrt
 import kotlin.math.tan
@@ -24,6 +25,8 @@ class HungPictureRenderState : EntityRenderState() {
     var facing: Direction = Direction.SOUTH
     var picture: UUID? = null
     var size: PictureSizes.Size = PictureSizes.Size.SMALL
+    var texture: Identifier? = null
+    var development = 1.0f
 }
 
 /**
@@ -39,6 +42,8 @@ class HungPictureRenderer(context: EntityRendererProvider.Context) : EntityRende
         state.facing = entity.direction
         state.picture = entity.image.get(ImagingComponents.PICTURE)?.id
         state.size = sizeFor(sqrt(state.distanceToCameraSq))
+        state.texture = state.picture?.let { PictureTextures.textureFor(it, state.size) }
+        state.development = state.picture?.let(PictureTextures::development) ?: 1.0f
     }
 
     override fun submit(state: HungPictureRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
@@ -46,8 +51,9 @@ class HungPictureRenderer(context: EntityRendererProvider.Context) : EntityRende
         poseStack.rotateDegrees(Axis.YP, TURN_FROM_SOUTH - state.facing.toYRot())
         val light = state.lightCoords
         collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(FRAME)) { pose, buffer -> frame(pose, buffer, light) }
-        val texture = state.picture?.let { PictureTextures.textureFor(it, state.size) } ?: UNDEVELOPED
-        collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(texture)) { pose, buffer -> picture(pose, buffer, light) }
+        val texture = state.texture ?: UNDEVELOPED
+        val developed = ARGB.scaleRGB(WHITE, state.development)
+        collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(texture)) { pose, buffer -> picture(pose, buffer, light, developed) }
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
     }
@@ -72,16 +78,19 @@ class HungPictureRenderer(context: EntityRendererProvider.Context) : EntityRende
     }
 
     /** The picture, the frame's whole width and nine sixteenths of its height, just proud of its face. */
-    private fun picture(pose: PoseStack.Pose, buffer: VertexConsumer, light: Int) {
+    private fun picture(pose: PoseStack.Pose, buffer: VertexConsumer, light: Int, colour: Int) {
         val z = -HALF_DEPTH - PROUD
-        quad(pose, buffer, light, floatArrayOf(HALF, -PICTURE_HALF_HEIGHT, z, -HALF, -PICTURE_HALF_HEIGHT, z, -HALF, PICTURE_HALF_HEIGHT, z, HALF, PICTURE_HALF_HEIGHT, z), 0f, 0f, -1f)
+        quad(pose, buffer, light, floatArrayOf(HALF, -PICTURE_HALF_HEIGHT, z, -HALF, -PICTURE_HALF_HEIGHT, z, -HALF, PICTURE_HALF_HEIGHT, z, HALF, PICTURE_HALF_HEIGHT, z), 0f, 0f, -1f, colour)
     }
 
     /** Four corners counter-clockwise as seen from outside, given the texture's bottom left, bottom right, top right, top left. */
-    private fun quad(pose: PoseStack.Pose, buffer: VertexConsumer, light: Int, corners: FloatArray, normalX: Float, normalY: Float, normalZ: Float) {
+    private fun quad(
+        pose: PoseStack.Pose, buffer: VertexConsumer, light: Int, corners: FloatArray,
+        normalX: Float, normalY: Float, normalZ: Float, colour: Int = WHITE,
+    ) {
         for (corner in 0..<CORNERS) {
             buffer.addVertex(pose, corners[corner * 3], corners[corner * 3 + 1], corners[corner * 3 + 2])
-                .setColor(WHITE)
+                .setColor(colour)
                 .setUv(CORNER_U[corner], CORNER_V[corner])
                 .setOverlay(OverlayTexture.NO_OVERLAY)
                 .setLight(light)
