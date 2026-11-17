@@ -6,6 +6,8 @@ import co.voik.agesandtheart.imaging.client.PictureTextures
 import co.voik.agesandtheart.imaging.client.ProjectorLights
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent
 import co.voik.agesandtheart.imaging.client.ProjectorThrows
+import co.voik.agesandtheart.imaging.client.RecordedImageRenderer
+import net.neoforged.neoforge.client.event.RegisterSpecialModelRendererEvent
 import co.voik.agesandtheart.imaging.client.SlideCarouselRenderer
 import co.voik.agesandtheart.imaging.client.ViewfinderView
 import net.minecraft.client.Minecraft
@@ -30,6 +32,9 @@ class ImagingNeoForgeClient(eventBus: IEventBus) {
             MaskedPictures.forget()
         }
         eventBus.addListener { event: AddClientReloadListenersEvent -> event.addListener(ProjectorLights.ID, ProjectorLights) }
+        eventBus.addListener { event: RegisterSpecialModelRendererEvent ->
+            event.register(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
+        }
         eventBus.addListener { event: EntityRenderersEvent.RegisterRenderers ->
             event.registerEntityRenderer(ImagingContent.HUNG_PICTURE) { HungPictureRenderer(it) }
             event.registerBlockEntityRenderer(ImagingContent.SLIDE_CAROUSEL_ENTITY) { SlideCarouselRenderer(it) }

@@ -1,1 +1,8 @@
-{ "model": { "type": "minecraft:model", "model": "agesandtheart_imaging:item/recorded_image" } }
+{
+  "_comment": "Its own picture, in a frame, wherever the item shows (`RecordedImageRenderer`).",
+  "model": {
+    "type": "minecraft:special",
+    "base": "agesandtheart_imaging:item/recorded_image",
+    "model": { "type": "agesandtheart_imaging:recorded_image" }
+  }
+}

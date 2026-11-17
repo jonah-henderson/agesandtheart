@@ -7,6 +7,8 @@ import co.voik.agesandtheart.imaging.client.ProjectorLights
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader
 import net.minecraft.server.packs.PackType
 import co.voik.agesandtheart.imaging.client.ProjectorThrows
+import co.voik.agesandtheart.imaging.client.RecordedImageRenderer
+import net.minecraft.client.renderer.special.SpecialModelRenderers
 import co.voik.agesandtheart.imaging.client.SlideCarouselRenderer
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry
 import co.voik.agesandtheart.imaging.client.ViewfinderView
@@ -30,5 +32,6 @@ fun initClient() {
         ProjectorThrows.forget()
         MaskedPictures.forget()
     }
+    SpecialModelRenderers.ID_MAPPER.put(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
     ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(ProjectorLights.ID, ProjectorLights)
 }

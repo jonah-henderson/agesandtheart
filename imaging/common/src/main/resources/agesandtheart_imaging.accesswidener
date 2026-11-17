@@ -5,3 +5,7 @@ accessWidener v2 official
 # A biome's rainfall, which the server's sketch tints grass and leaves by (`BiomeTints`).
 accessible class net/minecraft/world/level/biome/Biome$ClimateSettings
 accessible field net/minecraft/world/level/biome/Biome climateSettings Lnet/minecraft/world/level/biome/Biome$ClimateSettings;
+
+# Vanilla's table of special item models, which the recorded image's own picture is drawn through on Fabric
+# (`RecordedImageRenderer`). Fabric API's transitive wideners open it, and this project leaves those to the loader.
+accessible field net/minecraft/client/renderer/special/SpecialModelRenderers ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;

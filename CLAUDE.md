@@ -499,7 +499,7 @@ The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` no
 
 ## Ages and the Art: Imaging
 
-**The camera is a companion mod of its own, `agesandtheart_imaging`, in `imaging/`** (`notes/image-recorder.md`): its
+**The camera is a companion mod of its own, `agesandtheart_imaging`, in `imaging/`** (`notes/decisions.md`, "Imaging"): its
 own `common`, `fabric` and `neoforge` on the same convention plugins, its identity in `imaging/mod.properties`, and the
 same version as Ages and the Art, since both are built from the same release tags, and it requires exactly that
 version. It compiles against Ages and the Art and never the other way round: nothing in the main mod may name it.
