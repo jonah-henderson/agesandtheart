@@ -167,3 +167,9 @@ loom {
         }
     }
 }
+
+// The dev client plays with the camera companion loaded: its own run is Ages and the Art and the companion together,
+// in this project's game folder. `runClient` still runs Ages and the Art alone.
+tasks.named("dev") {
+    setDependsOn(listOf(":imaging:fabric:runClient"))
+}

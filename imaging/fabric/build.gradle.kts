@@ -30,7 +30,8 @@ loom {
         named("client") {
             client()
             displayName = "Fabric Client (Imaging)"
-            runDirectory = layout.projectDirectory.dir("runs/client")
+            // Ages and the Art's own game folder, so `:fabric:dev`, which runs this, plays the same worlds.
+            runDirectory = rootProject.layout.projectDirectory.dir("fabric/runs/client")
         }
         named("server") {
             server()

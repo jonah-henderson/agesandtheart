@@ -127,7 +127,8 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_
 ./gradlew :fabric:runClient
 ./gradlew :neoforge:runClient
 
-# The same, without the Ephemeris version requirement — for when the catalog is ahead of the Ephemeris checkout
+# The same, without the Ephemeris version requirement — for when the catalog is ahead of the Ephemeris checkout. On
+# Fabric it also loads the camera companion (Ages and the Art: Imaging), in the same game folder
 ./gradlew :fabric:dev
 ./gradlew :neoforge:dev
 
@@ -503,7 +504,7 @@ The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` no
 own `common`, `fabric` and `neoforge` on the same convention plugins, its identity in `imaging/mod.properties`, and the
 same version as Ages and the Art, since both are built from the same release tags, and it requires exactly that
 version. It compiles against Ages and the Art and never the other way round: nothing in the main mod may name it.
-`./gradlew :imaging:fabric:runClient` runs both. Its Loom project leaves the main mod's access widener to the loader
+`./gradlew :fabric:dev` runs both, in `fabric/runs/client`, through the companion's own `runClient`. Its Loom project leaves the main mod's access widener to the loader
 (`enableTransitiveAccessWideners = false`), since Loom would read it off the unprocessed template.
 
 ## Ages / runtime dimensions
