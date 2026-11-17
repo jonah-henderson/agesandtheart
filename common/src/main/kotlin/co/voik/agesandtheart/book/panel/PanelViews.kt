@@ -176,7 +176,11 @@ object PanelViews {
             "Panel: {} asked again for {} of {}'s chunks",
             player.name.string, wanted.size, watch.dimension.identifier(),
         )
-        wanted.forEach { send(server, player, level, watch, it) }
+        // Off the server thread, as the ring's first sending is (see [openLive]): this runs from a payload handler on
+        // the server thread, where waiting on a chunk still being generated held the server past its watchdog.
+        Util.backgroundExecutor().execute {
+            wanted.forEach { send(server, player, level, watch, it) }
+        }
     }
 
     /**
