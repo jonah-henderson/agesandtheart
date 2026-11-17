@@ -46,9 +46,9 @@ import net.minecraft.world.level.BlockGetter
 
 /**
  * The projector's slide carousel: sixteen recorded images round a disk, the one at the front lifted by the selector arm
- * before the focusing lens and thrown through the lens ahead. A recorded image used on it goes into the front slot, or
- * the next empty one; an empty hand takes out the front slide; sneaking with an empty hand turns it on by one, as each
- * pulse of redstone does, and its two buttons turn it either way. A comparator reads which slot is at the front.
+ * before the focusing lens and thrown through the lens ahead. A slide goes into whichever empty slot it is used on, and
+ * an empty hand takes the slide out of whichever slot it is used on, the raised one included. Its two buttons turn it
+ * either way, and each pulse of redstone turns it on by one. A comparator reads which slot is at the front.
  */
 class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -111,20 +111,18 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
         val isASlide = stack.`is`(ImagingContent.RECORDED_IMAGE) || stack.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
         if (!isASlide) return InteractionResult.TRY_WITH_EMPTY_HAND
         val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
-        if (!carousel.hasRoom()) return InteractionResult.FAIL
-        if (!level.isClientSide) carousel.load(stack.consumeAndReturn(1, player))
+        val slot = CarouselSlots.under(state, pos, player.eyePosition, hitResult.location, carousel) ?: return InteractionResult.PASS
+        if (!carousel.slideIn(slot).isEmpty) return InteractionResult.FAIL
+        if (!level.isClientSide) carousel.putIn(slot, stack.consumeAndReturn(1, player))
         return InteractionResult.SUCCESS
     }
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
         buttonUnder(state, pos, hitResult)?.let { return press(it, level, pos) }
         val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
-        if (player.isSecondaryUseActive) {
-            if (!level.isClientSide) carousel.turn()
-            return InteractionResult.SUCCESS
-        }
-        if (carousel.front().isEmpty) return InteractionResult.PASS
-        if (!level.isClientSide) player.inventory.placeItemBackInInventory(carousel.takeTheFront(), Prediction.SERVER_ONLY)
+        val slot = CarouselSlots.under(state, pos, player.eyePosition, hitResult.location, carousel) ?: return InteractionResult.PASS
+        if (carousel.slideIn(slot).isEmpty) return InteractionResult.PASS
+        if (!level.isClientSide) player.inventory.placeItemBackInInventory(carousel.takeOut(slot), Prediction.SERVER_ONLY)
         return InteractionResult.SUCCESS
     }
 
@@ -234,18 +232,17 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         slides.forEach { slide -> slide.get(ImagingComponents.PICTURE)?.let { PicturesSeen.of(server).saw(it.id) } }
     }
 
-    fun hasRoom(): Boolean = slides.any { it.isEmpty }
-
-    /** Into the front slot where it is empty, otherwise the next empty one round; the wheel does not turn. */
-    fun load(slide: ItemStack) {
-        val slot = (0..<SLIDES).map { (frontSlot + it) % SLIDES }.firstOrNull { slides[it].isEmpty } ?: return
+    /** [slide] into [slot], which is empty; the disk does not turn. */
+    fun putIn(slot: Int, slide: ItemStack) {
+        if (!slides[slot].isEmpty) return
         slides[slot] = slide
         changed()
     }
 
-    fun takeTheFront(): ItemStack {
-        val taken = slides[frontSlot]
-        slides[frontSlot] = ItemStack.EMPTY
+    /** What stands in [slot], taken out of it. */
+    fun takeOut(slot: Int): ItemStack {
+        val taken = slides[slot]
+        slides[slot] = ItemStack.EMPTY
         changed()
         return taken
     }
@@ -304,4 +301,77 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         private const val TURN_VOLUME = 0.6f
         private const val TURN_PITCH = 1.6f
     }
+}
+
+/**
+ * Which slot a player is reaching for: where their line of sight, from their eye through the point they clicked on the
+ * carousel's box, meets the raised slide or the top of the disk. The box stands well above the disk, so the click itself
+ * says only which way they were looking. Measured in the model's own pixels, facing north, as Jonah's model is drawn.
+ */
+object CarouselSlots {
+
+    /** The slot under [eye]'s line through [clicked] on the carousel at [pos], or null where it misses the disk. */
+    fun under(state: BlockState, pos: BlockPos, eye: Vec3, clicked: Vec3, carousel: SlideCarouselBlockEntity): Int? {
+        val facing = state.getValue(SlideCarouselBlock.FACING)
+        val corner = Vec3(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+        val (eyeX, eyeY, eyeZ) = CarouselButton.inTheModel(facing, eye.subtract(corner))
+        val (clickedX, clickedY, clickedZ) = CarouselButton.inTheModel(facing, clicked.subtract(corner))
+        val from = Vec3(eyeX, eyeY, eyeZ)
+        val along = Vec3(clickedX - eyeX, clickedY - eyeY, clickedZ - eyeZ)
+        val front = carousel.frontSlot
+        if (!carousel.slideIn(front).isEmpty && meetsTheRaisedSlide(from, along)) return front
+        if (along.y >= 0.0) return null
+        val reach = (DISK_TOP - from.y) / along.y
+        val acrossFromTheAxle = from.x + along.x * reach - AXLE_X
+        val alongFromTheAxle = from.z + along.z * reach - AXLE_Z
+        val distance = kotlin.math.hypot(acrossFromTheAxle, alongFromTheAxle)
+        val isOnTheDisk = distance in HUB..RIM
+        if (!isOnTheDisk) return null
+        // The front slot stands out toward the model's west, and each slot on is a sixteenth of a turn round from it.
+        val degrees = Math.toDegrees(kotlin.math.atan2(alongFromTheAxle, -acrossFromTheAxle))
+        val slotsRound = Math.round(degrees / DEGREES_A_SLOT).toInt()
+        return Math.floorMod(front + slotsRound, SlideCarouselBlockEntity.SLIDES)
+    }
+
+    /** Whether the line from [from] along [along] passes through the raised slide, the slab way. */
+    private fun meetsTheRaisedSlide(from: Vec3, along: Vec3): Boolean {
+        var nearest = 0.0
+        var farthest = Double.MAX_VALUE
+        for (axis in 0..<AXES) {
+            val start = from.get(axis)
+            val step = along.get(axis)
+            val low = RAISED_LOW[axis]
+            val high = RAISED_HIGH[axis]
+            if (kotlin.math.abs(step) < TINY) {
+                if (start < low || start > high) return false
+                continue
+            }
+            val first = (low - start) / step
+            val second = (high - start) / step
+            nearest = maxOf(nearest, minOf(first, second))
+            farthest = minOf(farthest, maxOf(first, second))
+            if (nearest > farthest) return false
+        }
+        return true
+    }
+
+    private fun Vec3.get(axis: Int): Double = when (axis) {
+        0 -> x
+        1 -> y
+        else -> z
+    }
+
+    /** Where the disk turns, its top, and the ring the slots stand on, from the hub out to the rim. */
+    private const val AXLE_X = 8.0
+    private const val AXLE_Z = 7.5
+    private const val DISK_TOP = 4.0
+    private const val HUB = 1.5
+    private const val RIM = 7.2
+    private const val DEGREES_A_SLOT = 360.0 / SlideCarouselBlockEntity.SLIDES
+
+    /** The raised slide's box, before the focusing lens. */
+    private val RAISED_LOW = doubleArrayOf(7.75, 7.0, 7.0)
+    private val RAISED_HIGH = doubleArrayOf(11.75, 9.0, 8.0)
+    private const val AXES = 3
+    private const val TINY = 1.0e-9
 }

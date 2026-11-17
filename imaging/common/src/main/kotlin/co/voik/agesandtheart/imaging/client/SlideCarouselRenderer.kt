@@ -35,10 +35,13 @@ class SlideCarouselRenderState : BlockEntityRenderState() {
     var effect: ProjectorLights.Effect? = null
     var lightTint: Int = WHITE
     var development = 1.0f
+
+    /** Whether the raised slide is a blank plate, which throws plain light rather than a picture. */
+    var isBlank = false
     var machinery: CarouselMotion.Pose? = null
     val occupied = BooleanArray(SlideCarouselBlockEntity.SLIDES)
 
-    /** The picture on each slot's slide, or null where it is a blank plate or its picture has not come. */
+    /** The picture on each slot's slide, or null where it is a blank plate or its picture has not come, drawn white. */
     val pictures = arrayOfNulls<Identifier>(SlideCarouselBlockEntity.SLIDES)
     val buttonDepth = FloatArray(CarouselButton.entries.size)
 }
@@ -87,6 +90,7 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         val front = carousel.front()
         val pictureId = front.get(ImagingComponents.PICTURE)?.id
         val isABlankPlate = front.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
+        state.isBlank = isABlankPlate
         state.facing = carousel.blockState.getValue(SlideCarouselBlock.FACING)
         state.toLens = ProjectorThrow.assemblyAt(level, carousel.blockPos, carousel.blockState)?.toLens
         state.showsItsLight = ProjectorThrow.isLit(level, carousel.blockPos, carousel.blockState)
@@ -116,10 +120,13 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         val flicker = 1.0f - effect.flicker * ProjectorRays.flicker(System.currentTimeMillis(), origin.asLong())
         val spread = if (thrown.assembly.isFocused) 1.0f else UNFOCUSED_LIGHT
         val flickered = ProjectorLights.brightnessOf(effect, thrown.assembly.light) * flicker * state.development * spread
-        val colour = OPAQUE or ARGB.scaleRGB(ARGB.multiply(effect.tint, thrown.assembly.tint), flickered.coerceIn(0.0f, 1.0f))
         // Light added to what is already there, so a dim light washes out in daylight rather than throwing a dark patch. A
         // purpose-built light may be drawn as a decal instead, clear however the wall is lit, where a player sets it so.
         val isADecal = effect.isPerfect && ImagingClientLook.perfectThrow.get() == ImagingClientLook.PerfectThrow.DECAL
+        // Pure white added at full strength saturates any wall to white, which a picture's mid-tones never do; a blank
+        // plate adds about what an average picture does, so the wall brightens and keeps its own face. A decal stays white.
+        val asLight = if (state.isBlank && !isADecal) BLANK_ADDS else 1.0f
+        val colour = OPAQUE or ARGB.scaleRGB(ARGB.multiply(effect.tint, thrown.assembly.tint), (flickered * asLight).coerceIn(0.0f, 1.0f))
         val drawnAs = if (isADecal) RenderTypes.eyes(picture) else RenderTypes.energySwirl(picture, 0.0f, 0.0f)
         collector.submitCustomGeometry(poseStack, drawnAs) { pose, buffer ->
             val pieces = thrown.pieces
@@ -153,13 +160,20 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         turnedAbout(poseStack, parts.axle, Axis.YP, -machinery.diskSlot * DEGREES_A_SLOT) {
             CarouselParts.draw(DISK, poseStack, collector, light)
         }
+        // Every slot's own mark on the disk, whether a slide stands in it or not.
+        for (slot in 0..<SlideCarouselBlockEntity.SLIDES) {
+            turnedAbout(poseStack, parts.axle, Axis.YP, (slot - machinery.diskSlot) * DEGREES_A_SLOT) {
+                CarouselParts.draw(SLOT, poseStack, collector, light, decal = true)
+            }
+        }
         for (slot in 0..<SlideCarouselBlockEntity.SLIDES) {
             if (!state.occupied[slot]) continue
             turnedAbout(poseStack, parts.axle, Axis.YP, (slot - machinery.diskSlot) * DEGREES_A_SLOT) {
                 // The slide at the arm turns up with the hook, about the hook's pivot where the lowered arm meets it.
                 val hookTurn = if (slot == machinery.atTheArm) -HALF_TURN * machinery.hookUp else 0.0f
                 turnedAbout(poseStack, parts.slidePivot, Axis.ZP, hookTurn) {
-                    CarouselParts.draw(SLIDE, poseStack, collector, light, picture = state.pictures[slot])
+                    // A blank plate, or one whose picture has not come, is plain white where a picture would be.
+                    CarouselParts.draw(SLIDE, poseStack, collector, light, picture = state.pictures[slot] ?: PictureTextures.blank())
                 }
             }
         }
@@ -185,9 +199,9 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
     }
 
     /**
-     * From the light behind into the focusing lens; and, with a slide up, from the lens to the slide and from the slide on
-     * to the lens ahead, gathering to its middle, or out of the front spilling and fading where there is none. Light past
-     * the slide carries the picture's colours, so it alone is tinged.
+     * With a slide up, light from the focusing lens to the slide, and from the slide on to the lens ahead, gathering to its
+     * middle with its ends flat to the faces it runs between, or out of the front spilling and fading where there is
+     * none. Light past the slide carries the picture's colours, so it alone is tinged.
      */
     private fun drawTheLightInside(
         state: SlideCarouselRenderState,
@@ -201,11 +215,8 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         val millis = System.currentTimeMillis()
         val seed = state.blockPos.asLong()
         val tint = state.lightTint
+        if (!machinery.isReady) return
         collector.submitCustomGeometry(poseStack, AgeRenderTypes.addedLight) { pose, buffer ->
-            val behind = Vec3(lensMiddle.x, lensMiddle.y, BACK)
-            val lensBack = Vec3(lensMiddle.x, lensMiddle.y, parts.lensHigh.z.toDouble())
-            ProjectorRays.beam(pose, buffer, behind, lensBack, INTO_THE_LENS, LENS_RADIUS, INSIDE, 1.0f, tint, millis, seed)
-            if (!machinery.isReady) return@submitCustomGeometry
             val lensFront = Vec3(lensMiddle.x, lensMiddle.y, parts.lensLow.z.toDouble())
             val slideBack = Vec3(slideMiddle.x, slideMiddle.y, parts.heldSlideHigh.z.toDouble())
             val slideFront = Vec3(slideMiddle.x, slideMiddle.y, parts.heldSlideLow.z.toDouble())
@@ -215,7 +226,10 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
                 // The middle of the lens block's near face, toLens blocks ahead of a model whose front is at nought: the
                 // plate stands off the middle, and its light is gathered to the lens's middle all the same.
                 val atTheLens = Vec3(BLOCK / 2.0, BLOCK / 2.0, BLOCK - BLOCK * toLens)
-                ProjectorRays.beam(pose, buffer, slideFront, atTheLens, SLIDE_RADIUS, GATHERED_AT_THE_LENS, INSIDE, LIGHT_AT_THE_LENS, tint, millis, seed, tinged = true)
+                ProjectorRays.beam(
+                    pose, buffer, slideFront, atTheLens, SLIDE_RADIUS, GATHERED_AT_THE_LENS, INSIDE, LIGHT_AT_THE_LENS, tint, millis, seed,
+                    tinged = true, endsFacing = ALONG_THE_THROW,
+                )
             } else {
                 val spilled = Vec3(slideMiddle.x, slideMiddle.y, -SPILLS_OUT)
                 ProjectorRays.beam(pose, buffer, slideFront, spilled, SLIDE_RADIUS, SPILLED_WIDE, INSIDE, 0.0f, tint, millis, seed, tinged = true)
@@ -265,6 +279,7 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
 
         const val DISK = "disk"
         const val SLIDE = "slide"
+        const val SLOT = "slot"
         const val ARM = "arm"
         const val HOOK = "hook"
         val BUTTONS = mapOf(CarouselButton.CLOCKWISE to "button_clockwise", CarouselButton.COUNTER_CLOCKWISE to "button_counter_clockwise")
@@ -285,10 +300,11 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
         const val RELEASING = 4.0f
 
         /** The light inside, in pixels: from the back of the block, across the lens, the slide, and out of the front. */
-        const val BACK = 16.0
         const val BLOCK = 16.0
-        const val INTO_THE_LENS = 3.0
         const val LENS_RADIUS = 2.0
+
+        /** The way the throw runs in the model, out of its front, which the faces light passes through are square to. */
+        val ALONG_THE_THROW = Vec3(0.0, 0.0, -1.0)
         const val SLIDE_RADIUS = 1.2
         const val INSIDE = 1.6f
 
@@ -302,6 +318,9 @@ class SlideCarouselRenderer(@Suppress("UNUSED_PARAMETER") context: BlockEntityRe
 
         /** How much of a lens's light an unfocused throw lands with, spread so much wider. */
         const val UNFOCUSED_LIGHT = 0.5f
+
+        /** How much of the light a blank plate adds to a wall, thrown as light rather than as a decal. */
+        const val BLANK_ADDS = 0.5f
     }
 }
 

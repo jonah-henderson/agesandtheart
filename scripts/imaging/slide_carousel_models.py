@@ -12,14 +12,18 @@ Writes, under the companion's assets:
   occupied slot), the selector arm, its hook and the two buttons, as quads in the model's own pixels, with the pivots
   each turns about read off the project.
 
-Run it again whenever the project changes. Three things are ours rather than the project's:
+and `textures/block/slide_carousel.png`, the project's own texture as it is embedded in it, which every face of the
+project must use; UVs go onto Minecraft's 0-16 scale whatever the texture's size.
+
+Run it again whenever the project changes. Two things are ours rather than the project's:
 
 - **The disk turns about its fillers' middle**, wherever their pivot was left. The fillers stand a hair apart in height
   in the project, so their tops and bottoms do not fight in one plane.
-- **Textures stand in** by part until the project has its own: oak for the base and disk, glass for the slides' faces and
-  the lens with grey for the slides' edges, iron for the arms, the hook and the lens arm, stone for the buttons.
-- **The main slide** is the one slide the project leaves unturned; every other slot draws it turned about the axle.
+- **The main slide** is the one slide the project leaves unturned; every other slot draws it turned about the axle. A
+  `slot` element in the carousel, a thin mark lying on the disk under the main slide, turned about y or not, is drawn at all sixteen slots the
+  same way, slide or none, since marks painted on the overlapping fillers' tops are covered where they cross.
 """
+import base64
 import json
 import math
 import sys
@@ -27,12 +31,9 @@ from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parents[2] / "imaging/common/src/main/resources/assets/agesandtheart_imaging"
 
-OAK = "minecraft:block/oak_planks"
-GLASS = "minecraft:block/glass"
-IRON = "minecraft:block/iron_block"
-STONE = "minecraft:block/stone"
-PLATE_EDGE = "minecraft:block/gray_concrete"
-TEXTURES = {"oak": OAK, "glass": GLASS, "iron": IRON, "stone": STONE, "plate_edge": PLATE_EDGE}
+TEXTURE = "agesandtheart_imaging:block/slide_carousel"
+UV_INSET = 0.02
+TEXTURE_FILE = ASSETS / "textures/block/slide_carousel.png"
 
 def rotation_x(degrees):
     c, s = math.cos(math.radians(degrees)), math.sin(math.radians(degrees))
@@ -85,15 +86,24 @@ def has_area(name, low, high):
     return high[first] - low[first] > 1e-6 and high[second] - low[second] > 1e-6
 
 
-def corner_uvs(uv, rotation):
-    u1, v1, u2, v2 = [value / 16.0 for value in uv]
+def corner_uvs(uv, rotation, resolution):
+    """
+    A face's UV corners, nought to one over the texture, in the order its corners are, turned as the face's UV is, and
+    drawn in by [UV_INSET] of a texel as vanilla draws in a block model's, so an edge lying on a texel's border never
+    samples the texel beside it where the face is seen at an angle.
+    """
+    u1, v1, u2, v2 = uv
+    inset_u = UV_INSET if u2 >= u1 else -UV_INSET
+    inset_v = UV_INSET if v2 >= v1 else -UV_INSET
+    u1, u2 = (u1 + inset_u) / resolution[0], (u2 - inset_u) / resolution[0]
+    v1, v2 = (v1 + inset_v) / resolution[1], (v2 - inset_v) / resolution[1]
     corners = [(u1, v1), (u1, v2), (u2, v2), (u2, v1)]
     steps = (rotation or 0) // 90
     return corners[-steps:] + corners[:-steps] if steps else corners
 
 
-def quads_of(element, texture, edges=None):
-    """An element's faces as quads in the model's pixels, turned as the element is turned, its edges in [edges] if said."""
+def quads_of(element, resolution):
+    """An element's faces as quads in the model's pixels, turned as the element is turned."""
     low, high = element["from"], element["to"]
     m = turning(element.get("rotation"))
     origin = element.get("origin", [0, 0, 0])
@@ -101,17 +111,16 @@ def quads_of(element, texture, edges=None):
     for name, face in element["faces"].items():
         if face.get("enabled") is False or not has_area(name, low, high):
             continue
-        uvs = corner_uvs(face["uv"], face.get("rotation"))
+        uvs = corner_uvs(face["uv"], face.get("rotation"), resolution)
         corners = []
         for (x, y, z), (u, v) in zip(FACE_CORNERS[name](low, high), uvs):
             turned = applied(m, [x - origin[0], y - origin[1], z - origin[2]])
             corners.append(rounded([turned[0] + origin[0], turned[1] + origin[1], turned[2] + origin[2]]) + [round(u, 5), round(v, 5)])
-        own = texture if edges is None or name in ("north", "south") else edges
-        quads.append({"texture": TEXTURES[own], "normal": rounded(applied(m, FACE_NORMALS[name])), "corners": corners})
+        quads.append({"texture": TEXTURE, "normal": rounded(applied(m, FACE_NORMALS[name])), "corners": corners})
     return quads
 
 
-def json_element(element, texture):
+def json_element(element, resolution):
     """An element as the block model format says it, its rotation in the three-axis form 26.3 reads."""
     out = {"from": rounded(element["from"]), "to": rounded(element["to"])}
     rotation = element.get("rotation")
@@ -121,12 +130,33 @@ def json_element(element, texture):
     for name, face in element["faces"].items():
         if face.get("enabled") is False or not has_area(name, element["from"], element["to"]):
             continue
-        f = {"uv": face["uv"], "texture": f"#{texture}"}
+        uv = face["uv"]
+        f = {"uv": rounded([uv[0] * 16 / resolution[0], uv[1] * 16 / resolution[1], uv[2] * 16 / resolution[0], uv[3] * 16 / resolution[1]]), "texture": "#0"}
         if face.get("rotation"):
             f["rotation"] = face["rotation"]
         faces[name] = f
     out["faces"] = faces
     return out
+
+
+def turned_about_the_axle(element, degrees, axle):
+    """
+    [element] turned [degrees] about the y axis through [axle] after its own turn, said as the one turn about its own
+    origin a block model allows: its own turn and this one about y together, its box moved by however far turning about
+    the axle rather than its origin carries it. Only turns about y are added, which commute with any about y.
+    """
+    own = element.get("rotation") or [0, 0, 0]
+    assert own[0] == 0 and own[2] == 0, f"{element['name']} turns about more than y"
+    origin = element.get("origin", axle)
+    both = rotation_y(own[1] + degrees)
+    from_origin = [origin[i] - axle[i] for i in range(3)]
+    carried = [a - b for a, b in zip(applied(rotation_y(degrees), from_origin), from_origin)]
+    shift = applied([[both[j][i] for j in range(3)] for i in range(3)], carried)
+    moved = dict(element)
+    moved["from"] = [element["from"][i] + shift[i] for i in range(3)]
+    moved["to"] = [element["to"][i] + shift[i] for i in range(3)]
+    moved["rotation"] = [0, own[1] + degrees, 0]
+    return moved
 
 
 def walk(project):
@@ -151,6 +181,14 @@ def walk(project):
 def main():
     project = json.loads(Path(sys.argv[1]).read_text())
     assert project["meta"]["model_format"] == "java_block", "the carousel is a Java block model"
+    assert len(project["textures"]) == 1, "the carousel is one texture"
+    untextured = [e["name"] for e in project["elements"] for face in e["faces"].values() if face.get("texture") is None and face.get("enabled") is not False]
+    assert not untextured, f"faces with no texture on {sorted(set(untextured))}"
+    resolution = (project["resolution"]["width"], project["resolution"]["height"])
+    source = project["textures"][0]["source"]
+    assert source.startswith("data:image/png;base64,"), "the texture is embedded in the project"
+    TEXTURE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    TEXTURE_FILE.write_bytes(base64.b64decode(source.split(",", 1)[1]))
     walked = walk(project)
 
     def under(name):
@@ -161,6 +199,7 @@ def main():
     controls = under("controls")
     wedges = [e for e in under("carousel") if e["name"] == "wedge"]
     slides = [e for e in under("carousel") if e["name"] == "slide"]
+    slots = [e for e in under("carousel") if e["name"] == "slot"]
     hook = under("hook")
     arm = [e for e in under("selector arm") if e not in hook]
 
@@ -169,26 +208,25 @@ def main():
     filler = wedges[0]
     axle = [(filler["from"][0] + filler["to"][0]) / 2, (filler["from"][1] + filler["to"][1]) / 2, (filler["from"][2] + filler["to"][2]) / 2]
 
-    def lens_texture(e):
-        return "glass" if e["name"] == "lens" else "iron"
-
-    static = [(e, "oak") for e in base] + [(e, lens_texture(e)) for e in lens]
+    static = base + lens
     buttons = {e["name"]: e for e in controls}
-    textures = {"oak": OAK, "glass": GLASS, "iron": IRON, "stone": STONE, "particle": OAK}
+    textures = {"0": TEXTURE, "particle": TEXTURE}
 
     block = {
         "_comment": "Generated by scripts/imaging/slide_carousel_models.py from Jonah's Blockbench project: what never moves, "
                     "the base and the focusing lens. The disk, slides, arm, hook and buttons are carousel/parts.json, drawn by "
                     "the carousel's renderer. Edit the project and run it again.",
         "textures": textures,
-        "elements": [json_element(e, t) for e, t in static],
+        "elements": [json_element(e, resolution) for e in static],
     }
-    at_rest = static + [(e, "oak") for e in wedges] + [(e, "iron") for e in arm + hook] + [(e, "stone") for e in controls]
+    # Each slot's mark round the disk, as the renderer lays them: the mark under the main slide turned about the axle.
+    slot_marks = [turned_about_the_axle(s, step * 22.5, axle) for s in slots for step in range(16)]
+    at_rest = static + wedges + slot_marks + arm + hook + controls
     item = {
         "_comment": "Generated by scripts/imaging/slide_carousel_models.py: the whole carousel at rest, arm raised and empty.",
         "parent": "minecraft:block/block",
         "textures": textures,
-        "elements": [json_element(e, t) for e, t in at_rest],
+        "elements": [json_element(e, resolution) for e in at_rest],
     }
 
     lens_element = next(e for e in lens if e["name"] == "lens")
@@ -215,13 +253,14 @@ def main():
             "held_slide_high": rounded(held_high),
         },
         "parts": {
-            "disk": [q for e in wedges for q in quads_of(e, "oak")],
-            # Its picture faces glass until a picture is on them; its edges opaque, glass's own middle being clear.
-            "slide": quads_of(main_slide, "glass", edges="plate_edge"),
-            "arm": [q for e in arm for q in quads_of(e, "iron")],
-            "hook": [q for e in hook for q in quads_of(e, "iron")],
-            "button_clockwise": quads_of(buttons["clockwise"], "stone"),
-            "button_counter_clockwise": quads_of(buttons["counter clockwise"], "stone"),
+            "disk": [q for e in wedges for q in quads_of(e, resolution)],
+            "slide": quads_of(main_slide, resolution),
+            # Only its top: it is drawn as a decal, both ways round, and its underside lies on the disk, never seen.
+            "slot": [q for e in slots for q in quads_of(e, resolution) if q["normal"][1] > 0.5],
+            "arm": [q for e in arm for q in quads_of(e, resolution)],
+            "hook": [q for e in hook for q in quads_of(e, resolution)],
+            "button_clockwise": quads_of(buttons["clockwise"], resolution),
+            "button_counter_clockwise": quads_of(buttons["counter clockwise"], resolution),
         },
     }
     (ASSETS / "models/block/slide_carousel.json").write_text(json.dumps(block, indent=2) + "\n")

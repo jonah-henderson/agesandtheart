@@ -16,7 +16,7 @@ package co.voik.agesandtheart.imaging
 class CarouselMotion {
 
     /** One step of the machinery, and how many ticks it takes. */
-    enum class Phase(val ticks: Int) { PUTTING_BACK(28), RISING(24), TURNING(36), DESCENDING(24), LIFTING(28) }
+    enum class Phase(val ticks: Int) { PUTTING_BACK(28), RISING(24), TURNING(18), DESCENDING(24), LIFTING(28) }
 
     /** Where the machinery stands this frame: what the renderer draws. */
     data class Pose(

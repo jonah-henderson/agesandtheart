@@ -52,14 +52,17 @@ object CarouselParts : ResourceManagerReloadListener {
 
     /**
      * Draws [part] under [poseStack] in the model's pixels, lit by [light], with [picture] across its two faces that look
-     * along the projector's beam where it is a slide that has one.
+     * along the projector's beam where it is a slide that has one. A part that is a [decal] lying on another is drawn
+     * nudged toward the eye, so it neither fights the face under it nor has to hover visibly above it.
      */
-    fun draw(part: String, poseStack: PoseStack, collector: SubmitNodeCollector, light: Int, picture: Identifier? = null) {
+    fun draw(part: String, poseStack: PoseStack, collector: SubmitNodeCollector, light: Int, picture: Identifier? = null, decal: Boolean = false) {
         val quads = parts?.quads?.get(part) ?: return
         val (faces, rest) = if (picture == null) emptyList<Quad>() to quads else quads.partition { it.looksAlongTheBeam }
         if (picture != null && faces.isNotEmpty()) drawPicture(faces, picture, poseStack, collector, light)
         for ((texture, sameTexture) in rest.groupBy { it.texture }) {
-            collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(texture)) { pose, buffer ->
+            // Culled, so a flat plate's two faces in one plane are never both drawn; a decal has only the face that shows.
+            val drawnAs = if (decal) RenderTypes.entityCutoutZOffset(texture, true) else RenderTypes.entityCutoutCull(texture)
+            collector.submitCustomGeometry(poseStack, drawnAs) { pose, buffer ->
                 for (quad in sameTexture) {
                     for (corner in 0..<CORNERS) {
                         val at = corner * FLOATS_A_CORNER

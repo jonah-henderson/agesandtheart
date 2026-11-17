@@ -34,15 +34,17 @@ object ProjectorRays {
     private const val TINGED_ARC = 8
 
     /**
-     * Light passing from [from] to [to], [radiusFrom] across at one end and [radiusTo] at the other: from the light
-     * into the focusing lens, on to the raised slide, and out to the lens ahead. [brightness] scales both layers, the far
-     * end keeps [lightAtTheEnd] of it, and light that has passed the slide is [tinged].
+     * Light passing from [from] to [to], [radiusFrom] across at one end and [radiusTo] at the other: from the focusing
+     * lens to the raised slide, and on to the lens ahead. [brightness] scales both layers, the far end keeps
+     * [lightAtTheEnd] of it, and light that has passed the slide is [tinged]. Its two ends are square to the beam, or
+     * lie across [endsFacing] where it is given, so a beam skewed to meet a face meets it flat.
      */
     fun beam(
         pose: PoseStack.Pose, buffer: VertexConsumer, from: Vec3, to: Vec3, radiusFrom: Double, radiusTo: Double,
         brightness: Float, lightAtTheEnd: Float, tint: Int, millis: Long, seed: Long, tinged: Boolean = false,
+        endsFacing: Vec3? = null,
     ) {
-        val along = to.subtract(from).normalize()
+        val along = endsFacing?.normalize() ?: to.subtract(from).normalize()
         val across = if (kotlin.math.abs(along.y) < MOSTLY_UPRIGHT) Vec3(0.0, 1.0, 0.0) else Vec3(1.0, 0.0, 0.0)
         val right = along.cross(across).normalize()
         val up = right.cross(along).normalize()
