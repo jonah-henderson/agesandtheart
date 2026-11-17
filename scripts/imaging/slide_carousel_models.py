@@ -14,10 +14,8 @@ Writes, under the companion's assets:
 
 Run it again whenever the project changes. Three things are ours rather than the project's:
 
-- **The disk is rebuilt exactly**: eight boxes 14 long and 14 tan 11.25 wide, centred on the disk's axle and turned in
-  steps of 22.5 degrees, so their union is a regular sixteen-sided disk whatever the project's fillers say. Drawn, it is
-  their sixteen ends round the rim and one sixteen-sided face top and bottom, since the boxes' own tops lie in one
-  plane and would flicker; in the item model their tops and bottoms are a hair apart instead.
+- **The disk turns about its fillers' middle**, wherever their pivot was left. The fillers stand a hair apart in height
+  in the project, so their tops and bottoms do not fight in one plane.
 - **Textures stand in** by part until the project has its own: oak for the base and disk, glass for the slides' faces and
   the lens with grey for the slides' edges, iron for the arms, the hook and the lens arm, stone for the buttons.
 - **The main slide** is the one slide the project leaves unturned; every other slot draws it turned about the axle.
@@ -35,10 +33,6 @@ IRON = "minecraft:block/iron_block"
 STONE = "minecraft:block/stone"
 PLATE_EDGE = "minecraft:block/gray_concrete"
 TEXTURES = {"oak": OAK, "glass": GLASS, "iron": IRON, "stone": STONE, "plate_edge": PLATE_EDGE}
-
-DISK_ACROSS = 14.0
-DISK_WIDTH = DISK_ACROSS * math.tan(math.radians(11.25))
-
 
 def rotation_x(degrees):
     c, s = math.cos(math.radians(degrees)), math.sin(math.radians(degrees))
@@ -135,45 +129,6 @@ def json_element(element, texture):
     return out
 
 
-def disk_elements(axle):
-    """Eight boxes whose union is a regular sixteen-sided disk, centred on [axle], as tall as the project's fillers."""
-    low_y, high_y = axle["low_y"], axle["high_y"]
-    x, z = axle["x"], axle["z"]
-    box = {
-        "from": [x - DISK_WIDTH / 2, low_y, z - DISK_ACROSS / 2],
-        "to": [x + DISK_WIDTH / 2, high_y, z + DISK_ACROSS / 2],
-        "origin": [x, (low_y + high_y) / 2, z],
-    }
-    faces = {
-        "north": {"uv": [0, 0, DISK_WIDTH, high_y - low_y]}, "south": {"uv": [0, 0, DISK_WIDTH, high_y - low_y]},
-        "east": {"uv": [0, 0, DISK_ACROSS, high_y - low_y]}, "west": {"uv": [0, 0, DISK_ACROSS, high_y - low_y]},
-        "up": {"uv": [0, 0, DISK_WIDTH, DISK_ACROSS]}, "down": {"uv": [0, 0, DISK_WIDTH, DISK_ACROSS]},
-    }
-    return [dict(box, rotation=[0, step * 22.5, 0], faces=faces) for step in range(8)]
-
-
-def disk_quads(axle):
-    """The disk as drawn: its rim, the boxes' ends, and a sixteen-sided face top and bottom, its texture laid flat."""
-    rim = []
-    for element in disk_elements(axle):
-        rim += [q for q in quads_of(dict(element, faces={k: v for k, v in element["faces"].items() if k in ("north", "south")}), "oak")]
-    centre = [axle["x"], 0.0, axle["z"]]
-    corner_radius = DISK_ACROSS / 2 / math.cos(math.radians(11.25))
-    ring = [[centre[0] + corner_radius * math.sin(math.radians(11.25 + 22.5 * k)), centre[2] + corner_radius * math.cos(math.radians(11.25 + 22.5 * k))] for k in range(16)]
-    caps = []
-    for y, facing_up in ((axle["high_y"], True), (axle["low_y"], False)):
-        for k in range(16):
-            a, b = ring[k], ring[(k + 1) % 16]
-            points = [[centre[0], y, centre[2]], [a[0], y, a[1]], [b[0], y, b[1]]]
-            first, second = [points[1][i] - points[0][i] for i in range(3)], [points[2][i] - points[1][i] for i in range(3)]
-            normal_y = first[2] * second[0] - first[0] * second[2]
-            if (normal_y > 0) != facing_up:
-                points = [points[0], points[2], points[1]]
-            corners = [rounded(pt) + [round(pt[0] / 16, 5), round(pt[2] / 16, 5)] for pt in points + [points[2]]]
-            caps.append({"texture": OAK, "normal": [0, 1 if facing_up else -1, 0], "corners": corners})
-    return rim + caps
-
-
 def walk(project):
     """Every element under its top-level group's name and its own group's name, in the project's order."""
     elements = {e["uuid"]: e for e in project["elements"]}
@@ -210,16 +165,9 @@ def main():
     arm = [e for e in under("selector arm") if e not in hook]
 
     main_slide = next(e for e in slides if not any(e.get("rotation") or [0, 0, 0]) and e["from"][0] < 8)
-    # The axle is the middle of the fillers' boxes, where the disk is centred, whatever pivot they were given. Its
-    # thickness is the thinnest filler's, the others being a hair apart in the project to keep its view from flickering.
-    unturned = min(wedges, key=lambda w: w["to"][1] - w["from"][1])
-    axle = {
-        "x": (unturned["from"][0] + unturned["to"][0]) / 2,
-        "z": (unturned["from"][2] + unturned["to"][2]) / 2,
-        "low_y": unturned["from"][1],
-        "high_y": unturned["to"][1],
-    }
-    disk = disk_elements(axle)
+    # The axle is the middle of the fillers' boxes, where the disk is centred, whatever pivot they were given.
+    filler = wedges[0]
+    axle = [(filler["from"][0] + filler["to"][0]) / 2, (filler["from"][1] + filler["to"][1]) / 2, (filler["from"][2] + filler["to"][2]) / 2]
 
     def lens_texture(e):
         return "glass" if e["name"] == "lens" else "iron"
@@ -235,9 +183,7 @@ def main():
         "textures": textures,
         "elements": [json_element(e, t) for e, t in static],
     }
-    # A hair apart, so the boxes' tops and bottoms do not fight in the one plane.
-    staggered = [dict(e, **{"from": [e["from"][0], e["from"][1] - k * 0.002, e["from"][2]], "to": [e["to"][0], e["to"][1] + k * 0.002, e["to"][2]]}) for k, e in enumerate(disk)]
-    at_rest = static + [(e, "oak") for e in staggered] + [(e, "iron") for e in arm + hook] + [(e, "stone") for e in controls]
+    at_rest = static + [(e, "oak") for e in wedges] + [(e, "iron") for e in arm + hook] + [(e, "stone") for e in controls]
     item = {
         "_comment": "Generated by scripts/imaging/slide_carousel_models.py: the whole carousel at rest, arm raised and empty.",
         "parent": "minecraft:block/block",
@@ -258,7 +204,7 @@ def main():
         "_comment": "Generated by scripts/imaging/slide_carousel_models.py from Jonah's Blockbench project: the carousel's moving "
                     "parts as quads in the model's pixels (x, y, z, u, v per corner), and the pivots they turn about.",
         "pivots": {
-            "axle": rounded([axle["x"], (axle["low_y"] + axle["high_y"]) / 2, axle["z"]]),
+            "axle": rounded(axle),
             "hook": rounded(hook[0]["origin"]),
             "slide": rounded(slide_pivot),
         },
@@ -269,7 +215,7 @@ def main():
             "held_slide_high": rounded(held_high),
         },
         "parts": {
-            "disk": disk_quads(axle),
+            "disk": [q for e in wedges for q in quads_of(e, "oak")],
             # Its picture faces glass until a picture is on them; its edges opaque, glass's own middle being clear.
             "slide": quads_of(main_slide, "glass", edges="plate_edge"),
             "arm": [q for e in arm for q in quads_of(e, "iron")],
