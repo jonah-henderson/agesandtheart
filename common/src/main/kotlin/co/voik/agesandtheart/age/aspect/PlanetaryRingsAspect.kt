@@ -42,7 +42,7 @@ object PlanetaryRingsAspect {
         help = "How high the planetary rings arch across the sky.",
         landmarks = listOf(
             Parameter.Landmark(-1.0, "low along the horizon"),
-            Parameter.Landmark(0.0, "a third of the way up the sky"),
+            Parameter.Landmark(0.0, "well up the sky"),
             Parameter.Landmark(1.0, "across the zenith"),
         ),
     )
@@ -56,7 +56,7 @@ object PlanetaryRingsAspect {
         if (own.chosen.isEmpty()) return null
         // Drawn where nothing said, as an aurora's are, so two Ages with bare rings still differ.
         val size = own.steer(RINGSSIZE, seed) ?: Sky.drawn(seed, SIZE_SALT, DRAWN_SPREAD)
-        val altitude = own.steer(RINGSALTITUDE, seed) ?: Sky.drawn(seed, ALTITUDE_SALT, DRAWN_SPREAD)
+        val altitude = own.steer(RINGSALTITUDE, seed) ?: Sky.drawn(seed, ALTITUDE_SALT, DRAWN_ALTITUDE)
         val density = own.steer(RINGSDENSITY, seed) ?: Sky.drawn(seed, DENSITY_SALT, DRAWN_SPREAD)
         val glow = own.steer(RINGSGLOW, seed) ?: Sky.drawn(seed, GLOW_SALT, Sky.DRAWN_GLOW)
         val breadth = Sky.bandAt(size, THINNEST, BROADEST)
@@ -65,13 +65,25 @@ object PlanetaryRingsAspect {
             glow = Sky.bandAt(glow, FAINTEST, BRIGHTEST),
             innerRadius = INNER_EDGE,
             outerRadius = INNER_EDGE + breadth,
-            // High is near the ring plane, low far from it.
-            latitudeDegrees = Sky.bandAt(-altitude, NEAREST_THE_PLANE, FURTHEST_FROM_THE_PLANE),
+            latitudeDegrees = latitudeFor(altitude),
             density = Sky.bandAt(density, THINNEST_RINGS, DENSEST_RINGS),
             // Drawn rather than written, as an aurora's bearing is: which way the arch faces is a fact of this sky.
             bearingDegrees = XoroshiroRandomSource(seed xor BEARING_SALT).nextInt(WHOLE_COMPASS).toFloat(),
             seed = seed xor PROFILE_SALT,
         )
+    }
+
+    /**
+     * How far from the ring plane an Age stands for rings [altitude] high: near it the arch climbs toward the zenith,
+     * far from it the arch lies along the horizon. Two straight runs meeting at [ORDINARY_LATITUDE], so ordinary rings
+     * stand well up the sky and each end keeps its own span.
+     */
+    private fun latitudeFor(altitude: Double): Float {
+        val towardTheZenith = altitude.coerceIn(0.0, 1.0)
+        val towardTheHorizon = (-altitude).coerceIn(0.0, 1.0)
+        val nearer = (ORDINARY_LATITUDE - NEAREST_THE_PLANE) * towardTheZenith
+        val further = (FURTHEST_FROM_THE_PLANE - ORDINARY_LATITUDE) * towardTheHorizon
+        return (ORDINARY_LATITUDE - nearer + further).toFloat()
     }
 
     /** How far a named colour is pushed from its own grey, less than a sun's: rings are pale stuff lit by one. */
@@ -85,15 +97,22 @@ object PlanetaryRingsAspect {
     private const val FAINTEST = 0.45f
     private const val BRIGHTEST = 1.6f
 
-    /** The latitudes [RINGSALTITUDE] runs over: 6° stands the arch near the zenith, 58° lays it on the horizon. */
-    private const val NEAREST_THE_PLANE = 6.0f
-    private const val FURTHEST_FROM_THE_PLANE = 58.0f
+    /**
+     * The latitudes [RINGSALTITUDE] runs over: 4° stands the arch's crown near the zenith, about 83°, 18° well up the
+     * sky, about 58°, and 58° lays it along the horizon. Overhead itself would be edge-on, a line.
+     */
+    private const val NEAREST_THE_PLANE = 4.0
+    private const val ORDINARY_LATITUDE = 18.0
+    private const val FURTHEST_FROM_THE_PLANE = 58.0
 
     private const val THINNEST_RINGS = 0.1f
     private const val DENSEST_RINGS = 1.0f
 
     /** Narrower than a word can ask for, for the aurora's reason: the far ends are what a writer buys. */
     private val DRAWN_SPREAD = Span(-0.4, 0.4)
+
+    /** Where unsaid rings' crowns stand: about 50° to 64°, well up the sky and short of what `high` buys. */
+    private val DRAWN_ALTITUDE = Span(-0.15, 0.25)
 
     private const val WHOLE_COMPASS = 360
 
