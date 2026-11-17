@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "agesandtheart_imaging:block/image_recorder" },
+    "facing=east": { "model": "agesandtheart_imaging:block/image_recorder", "y": 90 },
+    "facing=south": { "model": "agesandtheart_imaging:block/image_recorder", "y": 180 },
+    "facing=west": { "model": "agesandtheart_imaging:block/image_recorder", "y": 270 }
+  }
+}

@@ -2,6 +2,9 @@ modLoader = "kotlinforforge"
 loaderVersion = "${kff_version_range}"
 license = "${license}"
 
+[[mixins]]
+config = "${mod_id}.mixins.json"
+
 [[mods]]
 modId = "${mod_id}"
 version = "${version}"

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart_imaging:image_recorder" }],
+      "condition": { "type": "minecraft:survives_explosion" }
+    }
+  ],
+  "random_sequence": "agesandtheart_imaging:blocks/image_recorder"
+}
