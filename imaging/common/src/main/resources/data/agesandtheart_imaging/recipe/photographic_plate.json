@@ -1,0 +1,12 @@
+{
+  "_comment": "Glass coated in temperstone's flashpowder, backed by a deretheni plate and wrapped in paper. One for one, so pictures send a photographer after temperstone (Jonah).",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:flashpowder",
+    "agesandtheart:pitchstone_plate",
+    "minecraft:glass_pane",
+    "minecraft:paper"
+  ],
+  "result": { "id": "agesandtheart_imaging:photographic_plate", "count": 1 }
+}

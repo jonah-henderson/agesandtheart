@@ -1,0 +1,9 @@
+{
+  "_comment": "Temperstone ground to a powder that flares when lit: a photographic plate's flash, and a flash bomb's. One for one, so pictures send a photographer after temperstone (Jonah).",
+  "type": "agesandtheart:grinding",
+  "ingredient": "agesandtheart:temperstone",
+  "result": {
+    "id": "agesandtheart:flashpowder",
+    "count": 1
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "_comment": "The image recorder's fittings: gold nuggets, or brass ones where a mod in the pack has them.",
+  "replace": false,
+  "values": [
+    "minecraft:gold_nugget",
+    { "id": "#c:nuggets/gold", "required": false },
+    { "id": "#c:nuggets/brass", "required": false }
+  ]
+}

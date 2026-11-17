@@ -1,0 +1,15 @@
+{
+  "_comment": "A spyglass behind a glass pane, wired with redstone and arc crystal, an astrite shard for the viewfinder, in gold or brass fittings.",
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": ["NAN", "GSC", "NRN"],
+  "key": {
+    "N": "#agesandtheart_imaging:image_recorder_fittings",
+    "A": "agesandtheart:astrite_shard",
+    "G": "minecraft:glass_pane",
+    "S": "minecraft:spyglass",
+    "C": "agesandtheart:arc_crystal",
+    "R": "minecraft:redstone"
+  },
+  "result": { "id": "agesandtheart_imaging:image_recorder" }
+}

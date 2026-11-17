@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding a photographic plate.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_plate": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart_imaging:photographic_plate" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart_imaging:image_recorder" } }
+  },
+  "requirements": [["has_plate", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart_imaging:image_recorder"] }
+}

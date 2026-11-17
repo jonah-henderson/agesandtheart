@@ -1147,6 +1147,7 @@ object AgeContent {
 
     private val PITCHSTONE_DUST_ID: Identifier = "pitchstone_dust".location()
     private val SOOT_ID: Identifier = "soot".location()
+    private val FLASHPOWDER_ID: Identifier = "flashpowder".location()
     private val PULP_ID: Identifier = "pulp".location()
 
     /** What the grinder makes of deretheni, and what fine ink is coloured with. */
@@ -1154,6 +1155,9 @@ object AgeContent {
 
     /** What the grinder makes of coal and charcoal, and black dye is crafted from. */
     val SOOT: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, SOOT_ID)))
+
+    /** What the grinder makes of temperstone: a photographic plate's flash, and a flash bomb's. */
+    val FLASHPOWDER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FLASHPOWDER_ID)))
 
     /** What the pulper makes of a stripped log, and what fine paper is pressed from. */
     val PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PULP_ID)))
@@ -2265,6 +2269,7 @@ object AgeContent {
         Bookbinder.ID to Bookbinder.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
+        FLASHPOWDER_ID to FLASHPOWDER,
         PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         SCARAB_CARAPACE_ID to SCARAB_CARAPACE,
