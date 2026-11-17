@@ -74,6 +74,10 @@ object ViewfinderView {
     @JvmStatic
     fun fieldOfViewModifier(): Float = zoom
 
+    /** How much of the mouse's turn reaches the view: the zoom's share of the widest view, one when not looking. */
+    @JvmStatic
+    fun turningShare(): Double = if (isLooking()) zoom.toDouble() else 1.0
+
     /** A positive [notches] is the wheel turned away, which narrows the view, as a spyglass's eye would come closer. */
     @JvmStatic
     fun scrolled(notches: Double) {
