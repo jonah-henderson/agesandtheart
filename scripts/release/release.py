@@ -1,6 +1,7 @@
 """
-Releases Ages and the Art for the beta: tests and builds a commit in throwaway worktrees, tags it, and puts
-the jars, the pack and the three bundles under dist/<version>/. notes/release-process.md is the design.
+Releases Ages and the Art and its companion, Ages and the Art: Imaging, for the beta: tests and builds a commit in
+throwaway worktrees, tags it, and puts the jars, the pack and the three bundles under dist/<version>/.
+notes/release-process.md is the design.
 
     scripts/release.sh [<version>] [<commit>]   release; the commit defaults to HEAD
     scripts/release.sh --resume [<version>]     carry on from the step that failed
@@ -61,8 +62,21 @@ NOTES = "common/src/main/resources/assets/agesandtheart/changelog/{version}.txt"
 PACK_RAW = "https://raw.githubusercontent.com/{slug}/{branch}/pack.toml"
 ASSET_URL = "https://github.com/{slug}/releases/download/{tag}/{name}"
 
-# The pack's entry for each of the two jars, by the prefix the jar's name starts with.
-JAR_ENTRIES = {"agesandtheart": "Ages and the Art", "ephemeris": "Ephemeris"}
+# The pack's entry for each jar, by the prefix the jar's name starts with.
+JAR_ENTRIES = {
+    "agesandtheart": "Ages and the Art",
+    "agesandtheart_imaging": "Ages and the Art: Imaging",
+    "ephemeris": "Ephemeris",
+}
+
+# The jars this repository builds and publishes on each release, by that prefix.
+OUR_JARS = ("agesandtheart", "agesandtheart_imaging")
+
+# What the installer offers to leave out, on by default; a server without it refuses a player whose game has it.
+OPTIONAL_ENTRIES = {
+    "agesandtheart_imaging": "The image recorder: take pictures, hang them and project them. "
+                             "A server and the players on it must all have it or all go without.",
+}
 
 STEPS = ["tag", "worktrees", "checks", "build", "pack", "bundles", "smoke", "publish"]
 
@@ -275,6 +289,10 @@ class Release:
     def ephemeris_jar_name(self) -> str:
         return f"ephemeris-fabric-{self.minecraft}-{self.ephemeris_version}+{self.minecraft}.jar"
 
+    def our_jar(self, prefix: str) -> Path:
+        """One of this release's own jars, by its prefix, as the build leaves it in dist/."""
+        return self.dist / "jars" / f"{prefix}-fabric-{self.minecraft}-{self.build}.jar"
+
     def jar_url(self, jar_name: str) -> str:
         """Where a jar of ours or Ephemeris's is, or will be, published."""
         is_ours = jar_name.startswith("agesandtheart")
@@ -415,14 +433,16 @@ class Release:
             shutil.copy2(ROOT / "fabric/runs/server" / name, server_run / name)
 
     def run_checks(self) -> None:
-        self.gradle(self.codebase, "checks-compile", ":fabric:compileKotlin")
+        self.gradle(self.codebase, "checks-compile", ":fabric:compileKotlin", ":imaging:fabric:compileKotlin")
         self.gradle(self.codebase, "checks", ":common:serverTest", ":common:longTest")
 
     def build_jars(self) -> None:
-        self.gradle(self.codebase, "build", ":fabric:build")
+        self.gradle(self.codebase, "build", ":fabric:build", ":imaging:fabric:build")
         ours = self.codebase / f"fabric/build/libs/agesandtheart-fabric-{self.minecraft}-{self.build}.jar"
+        imaging = self.codebase / f"imaging/fabric/build/libs/agesandtheart_imaging-fabric-{self.minecraft}-{self.build}.jar"
         ephemeris_build = f"{self.ephemeris_version}+{self.minecraft}"
         self.expect_jar(ours, self.build)
+        self.expect_jar(imaging, self.build)
         jars = self.dist / "jars"
         jars.mkdir(parents=True, exist_ok=True)
         if self.uses_published_ephemeris:
@@ -440,7 +460,7 @@ class Release:
             build_properties = jar.read("agesandtheart-build.properties").decode()
         if f"build={self.build}" not in build_properties.splitlines():
             fail(f"the jar's build properties do not say build={self.build}")
-        for jar in (ours, ephemeris):
+        for jar in (ours, imaging, ephemeris):
             if jar.parent != jars:
                 shutil.copy2(jar, jars / jar.name)
 
@@ -463,7 +483,7 @@ class Release:
             tar.extractall(pack, filter="data")
         for jar in sorted((self.dist / "jars").iterdir()):
             prefix = jar.name.split("-", 1)[0]
-            (pack / "mods" / f"{prefix}.pw.toml").write_text("\n".join([
+            lines = [
                 f'name = "{JAR_ENTRIES[prefix]}"',
                 f'filename = "{jar.name}"',
                 'side = "both"',
@@ -473,7 +493,10 @@ class Release:
                 'hash-format = "sha512"',
                 f'hash = "{sha512_of(jar)}"',
                 "",
-            ]))
+            ]
+            if prefix in OPTIONAL_ENTRIES:
+                lines += ["[option]", "optional = true", "default = true", f'description = "{OPTIONAL_ENTRIES[prefix]}"', ""]
+            (pack / "mods" / f"{prefix}.pw.toml").write_text("\n".join(lines))
         self.set_pack_version(pack)
 
     def set_pack_version(self, pack: Path) -> None:
@@ -597,29 +620,33 @@ class Release:
 
     def publish_release(self) -> None:
         """
-        The tag, then the release with our jar on it, checked by downloading it back. Only then does the pack
-        name the jar, so no client is ever pointed at a file that is not there.
+        The tag, then the release with our jars on it, each checked by downloading it back. Only then does the
+        pack name them, so no client is ever pointed at a file that is not there.
         """
         git("push", "origin", self.tag)
         self.state["tag_pushed"] = True
         self.save_state()
-        jar = next((self.dist / "jars").glob("agesandtheart-*.jar"))
-        staged = self.dist / "assets" / asset_name(jar.name)
-        staged.parent.mkdir(exist_ok=True)
-        shutil.copy2(jar, staged)
+        jars = [self.our_jar(prefix) for prefix in OUR_JARS]
+        staged = []
+        for jar in jars:
+            asset = self.dist / "assets" / asset_name(jar.name)
+            asset.parent.mkdir(exist_ok=True)
+            shutil.copy2(jar, asset)
+            staged.append(str(asset))
         already_released = subprocess.run(["gh", "release", "view", self.tag, "--repo", self.slug],
                                           capture_output=True).returncode == 0
         if already_released:
-            subprocess.run(["gh", "release", "upload", self.tag, str(staged), "--repo", self.slug, "--clobber"], check=True)
+            subprocess.run(["gh", "release", "upload", self.tag, *staged, "--repo", self.slug, "--clobber"], check=True)
         else:
-            subprocess.run(["gh", "release", "create", self.tag, str(staged), "--repo", self.slug, "--verify-tag",
+            subprocess.run(["gh", "release", "create", self.tag, *staged, "--repo", self.slug, "--verify-tag",
                             "--prerelease", "--title", f"Ages and the Art {self.build}",
                             "--notes-file", str(self.dist / "CHANGELOG.md")], check=True)
-        request = urllib.request.Request(self.jar_url(jar.name), headers={"User-Agent": "agesandtheart-release"})
-        with urllib.request.urlopen(request, timeout=120) as response:
-            published = hashlib.sha512(response.read()).hexdigest()
-        if published != sha512_of(jar):
-            fail(f"the jar published at {self.jar_url(jar.name)} is not the one that was built; the pack is not moved")
+        for jar in jars:
+            request = urllib.request.Request(self.jar_url(jar.name), headers={"User-Agent": "agesandtheart-release"})
+            with urllib.request.urlopen(request, timeout=120) as response:
+                published = hashlib.sha512(response.read()).hexdigest()
+            if published != sha512_of(jar):
+                fail(f"the jar published at {self.jar_url(jar.name)} is not the one that was built; the pack is not moved")
         say(f"published {self.tag}")
 
     def commit_pack(self) -> None:
