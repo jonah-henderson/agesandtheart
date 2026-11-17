@@ -1,0 +1,13 @@
+name = "Ages and the Art: Imaging"
+filename = "agesandtheart_imaging-fabric-26.3-0.26.0+26.3.jar"
+side = "both"
+
+[download]
+url = "https://github.com/jonah-henderson/agesandtheart/releases/download/v0.26.0-mc26.3/agesandtheart_imaging-fabric-26.3-0.26.0-26.3.jar"
+hash-format = "sha512"
+hash = "683cba8aced2e6e51e69f51e0e61bfb0b0502aaa256fa83772d352728513969ce0c210a38f0cfb52500bedb5368cf31ed619e95872b205f60b303072dc4ac66d"
+
+[option]
+optional = true
+default = true
+description = "The image recorder: take pictures, hang them and project them. A server and the players on it must all have it or all go without."
