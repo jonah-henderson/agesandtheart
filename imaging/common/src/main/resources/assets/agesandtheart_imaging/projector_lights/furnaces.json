@@ -1,0 +1,10 @@
+{
+  "_comment": "The fire inside, through the grate.",
+  "blocks": [
+    "minecraft:furnace",
+    "minecraft:smoker",
+    "minecraft:blast_furnace"
+  ],
+  "tint": "FFB868",
+  "flicker": 0.25
+}

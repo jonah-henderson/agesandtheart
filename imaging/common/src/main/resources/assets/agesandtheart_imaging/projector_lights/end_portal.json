@@ -1,0 +1,10 @@
+{
+  "_comment": "The End's deep teal, wavering.",
+  "blocks": [
+    "minecraft:end_portal",
+    "minecraft:end_gateway",
+    "minecraft:end_portal_frame"
+  ],
+  "tint": "3CC8B4",
+  "flicker": 0.1
+}

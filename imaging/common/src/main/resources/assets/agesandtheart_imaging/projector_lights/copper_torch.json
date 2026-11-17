@@ -1,0 +1,9 @@
+{
+  "_comment": "A slight green cast, unsteady as a torch is (Jonah).",
+  "blocks": [
+    "minecraft:copper_torch",
+    "minecraft:copper_wall_torch"
+  ],
+  "tint": "D2F0BE",
+  "flicker": 0.3
+}

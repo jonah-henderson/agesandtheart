@@ -24,6 +24,7 @@ fun init() {
     ImagingPayloads.ROUTES.forEach { registerPayload(it) }
     ServerTickEvents.END_SERVER_TICK.register(Imaging::serverTick)
     ConfigRegistry.INSTANCE.register(Imaging.MOD_ID, ModConfig.Type.SERVER, ImagingConfig.SPEC)
+    ConfigRegistry.INSTANCE.register(Imaging.MOD_ID, ModConfig.Type.CLIENT, ImagingClientLook.SPEC)
 }
 
 /** As Ages and the Art registers its own: a client's payload is handled on the server thread. */

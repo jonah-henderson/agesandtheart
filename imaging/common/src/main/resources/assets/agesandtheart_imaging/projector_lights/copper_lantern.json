@@ -1,0 +1,14 @@
+{
+  "_comment": "A slight green cast, from the copper's flame (Jonah).",
+  "blocks": [
+    "minecraft:copper_lantern",
+    "minecraft:exposed_copper_lantern",
+    "minecraft:weathered_copper_lantern",
+    "minecraft:oxidized_copper_lantern",
+    "minecraft:waxed_copper_lantern",
+    "minecraft:waxed_exposed_copper_lantern",
+    "minecraft:waxed_weathered_copper_lantern",
+    "minecraft:waxed_oxidized_copper_lantern"
+  ],
+  "tint": "D2F0BE"
+}

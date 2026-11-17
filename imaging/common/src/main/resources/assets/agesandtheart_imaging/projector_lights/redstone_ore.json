@@ -1,0 +1,8 @@
+{
+  "_comment": "A dim red glint while it is touched.",
+  "blocks": [
+    "minecraft:redstone_ore",
+    "minecraft:deepslate_redstone_ore"
+  ],
+  "tint": "FF6A5A"
+}

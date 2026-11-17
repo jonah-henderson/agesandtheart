@@ -1,0 +1,8 @@
+{
+  "_comment": "Fireflies' yellow-green, coming and going.",
+  "blocks": [
+    "minecraft:firefly_bush"
+  ],
+  "tint": "E8FF90",
+  "flicker": 0.5
+}

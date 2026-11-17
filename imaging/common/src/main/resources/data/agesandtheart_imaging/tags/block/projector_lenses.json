@@ -1,0 +1,10 @@
+{
+  "_comment": "What a projector's lens is made of: clear glass, blocks or panes, and a pack's own clear glass where it tags it.",
+  "replace": false,
+  "values": [
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    { "id": "#c:glass_blocks/colorless", "required": false },
+    { "id": "#c:glass_panes/colorless", "required": false }
+  ]
+}

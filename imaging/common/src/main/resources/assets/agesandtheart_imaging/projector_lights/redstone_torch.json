@@ -1,0 +1,9 @@
+{
+  "_comment": "Dim and red (Jonah).",
+  "blocks": [
+    "minecraft:redstone_torch",
+    "minecraft:redstone_wall_torch"
+  ],
+  "tint": "FF5A4A",
+  "brightness": 0.45
+}

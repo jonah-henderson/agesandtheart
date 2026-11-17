@@ -1,0 +1,9 @@
+{
+  "_comment": "Warm and unsteady, brighter with each candle, coloured a little by lime wax.",
+  "blocks": [
+    "minecraft:lime_candle",
+    "minecraft:lime_candle_cake"
+  ],
+  "tint": "BFCE5F",
+  "flicker": 0.35
+}

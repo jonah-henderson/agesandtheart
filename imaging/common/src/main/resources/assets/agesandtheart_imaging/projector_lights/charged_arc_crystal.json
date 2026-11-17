@@ -1,0 +1,8 @@
+{
+  "_comment": "Arc crystal's green at full charge, crackling.",
+  "blocks": [
+    "agesandtheart:charged_arc_crystal"
+  ],
+  "tint": "3CFF6A",
+  "flicker": 0.4
+}

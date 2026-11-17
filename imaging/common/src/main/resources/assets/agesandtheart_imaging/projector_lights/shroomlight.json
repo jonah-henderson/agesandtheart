@@ -1,0 +1,7 @@
+{
+  "_comment": "Orange, as the Nether's fungus glows.",
+  "blocks": [
+    "minecraft:shroomlight"
+  ],
+  "tint": "FFB070"
+}

@@ -23,6 +23,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener(::onRegisterPayloads)
         NeoForge.EVENT_BUS.addListener { event: ServerTickEvent.Post -> Imaging.serverTick(event.server) }
         modContainer.registerConfig(ModConfig.Type.SERVER, ImagingConfig.SPEC)
+        modContainer.registerConfig(ModConfig.Type.CLIENT, ImagingClientLook.SPEC)
     }
 
     private fun onRegister(event: RegisterEvent) {

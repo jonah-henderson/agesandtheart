@@ -1,0 +1,7 @@
+{
+  "_comment": "The runes' blue-violet.",
+  "blocks": [
+    "minecraft:enchanting_table"
+  ],
+  "tint": "B8A8FF"
+}

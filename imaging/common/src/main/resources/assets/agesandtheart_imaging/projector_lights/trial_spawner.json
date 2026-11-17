@@ -1,0 +1,9 @@
+{
+  "_comment": "The trial flame's orange.",
+  "blocks": [
+    "minecraft:trial_spawner",
+    "minecraft:vault"
+  ],
+  "tint": "FFB868",
+  "flicker": 0.3
+}

@@ -1,0 +1,8 @@
+{
+  "_comment": "Purple, wavering.",
+  "blocks": [
+    "minecraft:nether_portal"
+  ],
+  "tint": "B060FF",
+  "flicker": 0.2
+}

@@ -1,0 +1,8 @@
+{
+  "_comment": "Molten orange, as lava is.",
+  "blocks": [
+    "agesandtheart:lava_tube"
+  ],
+  "tint": "FF8A30",
+  "flicker": 0.2
+}

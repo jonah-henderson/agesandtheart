@@ -1,0 +1,9 @@
+{
+  "_comment": "Molten orange, slowly stirring.",
+  "blocks": [
+    "minecraft:lava",
+    "minecraft:lava_cauldron"
+  ],
+  "tint": "FF8A30",
+  "flicker": 0.2
+}

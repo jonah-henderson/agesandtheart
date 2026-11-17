@@ -1,0 +1,9 @@
+{
+  "_comment": "Warm and unsteady, brighter with each candle, coloured a little by purple wax.",
+  "blocks": [
+    "minecraft:purple_candle",
+    "minecraft:purple_candle_cake"
+  ],
+  "tint": "C484AC",
+  "flicker": 0.35
+}

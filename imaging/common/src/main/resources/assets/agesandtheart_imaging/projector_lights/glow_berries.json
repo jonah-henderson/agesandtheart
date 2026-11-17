@@ -1,0 +1,8 @@
+{
+  "_comment": "Glow berries' warm orange.",
+  "blocks": [
+    "minecraft:cave_vines",
+    "minecraft:cave_vines_plant"
+  ],
+  "tint": "FFC870"
+}

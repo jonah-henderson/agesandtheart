@@ -1,0 +1,9 @@
+{
+  "_comment": "Soul blue, and as restless as fire.",
+  "blocks": [
+    "minecraft:soul_fire",
+    "minecraft:soul_campfire"
+  ],
+  "tint": "6ECDE0",
+  "flicker": 0.45
+}

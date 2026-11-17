@@ -1,0 +1,10 @@
+{
+  "_comment": "Unsteady, with a yellow-orange cast (Jonah).",
+  "blocks": [
+    "minecraft:torch",
+    "minecraft:wall_torch"
+  ],
+  "tint": "FFC27A",
+  "brightness": 0.85,
+  "flicker": 0.35
+}

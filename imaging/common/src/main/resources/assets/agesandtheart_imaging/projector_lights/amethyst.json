@@ -1,0 +1,10 @@
+{
+  "_comment": "Amethyst's lilac.",
+  "blocks": [
+    "minecraft:amethyst_cluster",
+    "minecraft:large_amethyst_bud",
+    "minecraft:medium_amethyst_bud",
+    "minecraft:small_amethyst_bud"
+  ],
+  "tint": "C8A4FF"
+}

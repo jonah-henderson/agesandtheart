@@ -1,0 +1,9 @@
+{
+  "_comment": "Arc crystal's green, crackling.",
+  "blocks": [
+    "agesandtheart:arc_crystal",
+    "agesandtheart:arc_crystal_block"
+  ],
+  "tint": "3CFF6A",
+  "flicker": 0.3
+}

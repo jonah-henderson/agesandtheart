@@ -1,0 +1,7 @@
+{
+  "_comment": "Violet, brighter by the charge.",
+  "blocks": [
+    "minecraft:respawn_anchor"
+  ],
+  "tint": "C060FF"
+}

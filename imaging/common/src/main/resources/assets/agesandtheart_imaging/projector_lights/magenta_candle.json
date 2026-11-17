@@ -1,0 +1,9 @@
+{
+  "_comment": "Warm and unsteady, brighter with each candle, coloured a little by magenta wax.",
+  "blocks": [
+    "minecraft:magenta_candle",
+    "minecraft:magenta_candle_cake"
+  ],
+  "tint": "E392AE",
+  "flicker": 0.35
+}

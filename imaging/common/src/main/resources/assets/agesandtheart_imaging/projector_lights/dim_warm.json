@@ -1,0 +1,8 @@
+{
+  "_comment": "Too faint to do more than warm it a little.",
+  "blocks": [
+    "minecraft:brewing_stand",
+    "minecraft:brown_mushroom"
+  ],
+  "tint": "FFD6A0"
+}

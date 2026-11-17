@@ -1,0 +1,9 @@
+{
+  "_comment": "Orange and restless.",
+  "blocks": [
+    "minecraft:fire",
+    "minecraft:campfire"
+  ],
+  "tint": "FFB868",
+  "flicker": 0.45
+}

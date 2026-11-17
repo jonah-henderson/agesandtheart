@@ -1,0 +1,9 @@
+{
+  "_comment": "The starfield's deep blue-violet.",
+  "blocks": [
+    "agesandtheart:star_fissure",
+    "agesandtheart:collapsing_fissure"
+  ],
+  "tint": "6A5AFF",
+  "flicker": 0.1
+}

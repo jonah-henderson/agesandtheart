@@ -76,7 +76,7 @@ object ImagingContent {
             .sound(SoundType.WOOD),
     )
 
-    val SLIDE_CAROUSEL: Item = BlockItem(SLIDE_CAROUSEL_BLOCK, properties(SLIDE_CAROUSEL_ID).useBlockDescriptionPrefix())
+    val SLIDE_CAROUSEL: Item = SlideCarouselItem(SLIDE_CAROUSEL_BLOCK, properties(SLIDE_CAROUSEL_ID).useBlockDescriptionPrefix())
 
     val SLIDE_CAROUSEL_ENTITY: BlockEntityType<SlideCarouselBlockEntity> =
         BlockEntityType({ pos, state -> SlideCarouselBlockEntity(pos, state) }, setOf(SLIDE_CAROUSEL_BLOCK))

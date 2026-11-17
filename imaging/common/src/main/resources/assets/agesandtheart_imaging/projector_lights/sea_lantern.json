@@ -1,0 +1,8 @@
+{
+  "_comment": "Steady, and plainly blue (Jonah): a pale tint read as no tint at all.",
+  "blocks": [
+    "minecraft:sea_lantern"
+  ],
+  "tint": "7FC0FF",
+  "brightness": 0.95
+}

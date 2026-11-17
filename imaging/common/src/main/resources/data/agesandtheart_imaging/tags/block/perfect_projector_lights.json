@@ -1,0 +1,16 @@
+{
+  "_comment": "Lights built to be lights, which throw a picture as it is, clear and at full strength (Jonah): the lantern, the copper bulb and the redstone lamp.",
+  "replace": false,
+  "values": [
+    "minecraft:lantern",
+    "minecraft:redstone_lamp",
+    "minecraft:copper_bulb",
+    "minecraft:exposed_copper_bulb",
+    "minecraft:weathered_copper_bulb",
+    "minecraft:oxidized_copper_bulb",
+    "minecraft:waxed_copper_bulb",
+    "minecraft:waxed_exposed_copper_bulb",
+    "minecraft:waxed_weathered_copper_bulb",
+    "minecraft:waxed_oxidized_copper_bulb"
+  ]
+}

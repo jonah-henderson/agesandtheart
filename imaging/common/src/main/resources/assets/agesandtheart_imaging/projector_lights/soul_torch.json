@@ -1,0 +1,9 @@
+{
+  "_comment": "Soul blue, unsteady as a torch is.",
+  "blocks": [
+    "minecraft:soul_torch",
+    "minecraft:soul_wall_torch"
+  ],
+  "tint": "6ECDE0",
+  "flicker": 0.3
+}

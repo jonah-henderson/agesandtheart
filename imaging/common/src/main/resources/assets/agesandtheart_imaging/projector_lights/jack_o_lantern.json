@@ -1,0 +1,10 @@
+{
+  "_comment": "The pumpkin's face laid over the picture, as wearing a carved pumpkin lays it over the view (Jonah); only what shines through the carving is thrown.",
+  "blocks": [
+    "minecraft:jack_o_lantern"
+  ],
+  "tint": "FFD9A0",
+  "brightness": 0.9,
+  "flicker": 0.15,
+  "overlay": "minecraft:textures/misc/pumpkinblur.png"
+}

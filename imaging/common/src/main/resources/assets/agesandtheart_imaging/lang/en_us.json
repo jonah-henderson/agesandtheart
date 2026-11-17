@@ -2,11 +2,15 @@
   "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",
   "block.agesandtheart_imaging.slide_carousel": "Slide Carousel",
+  "block.agesandtheart_imaging.slide_carousel.how": "Place a light source directly behind and a glass block within 8 blocks in front to project a photographic plate",
+  "config.agesandtheart_imaging.perfect_throw": "Lantern, bulb and lamp projection",
   "config.agesandtheart_imaging.pictures": "Pictures",
+  "config.agesandtheart_imaging.projectors": "Projectors",
   "config.agesandtheart_imaging.shares_pictures": "Share pictures",
   "item.agesandtheart_imaging.image_recorder": "Image Recorder",
   "item.agesandtheart_imaging.photographic_plate": "Photographic Plate",
   "item.agesandtheart_imaging.recorded_image": "Recorded Image",
   "item.agesandtheart_imaging.recorded_image.of": "Recorded Image of %s",
-  "subtitles.agesandtheart_imaging.image_recorder.shutter": "Shutter clicks"
+  "subtitles.agesandtheart_imaging.image_recorder.shutter": "Shutter clicks",
+  "tag.item.agesandtheart_imaging.image_recorder_fittings": "Image Recorder Fittings"
 }

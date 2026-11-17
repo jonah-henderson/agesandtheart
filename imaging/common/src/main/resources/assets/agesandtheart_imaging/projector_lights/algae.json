@@ -1,0 +1,8 @@
+{
+  "_comment": "Orange (Jonah), or the colour an Age has given its algae, where it has given one.",
+  "blocks": [
+    "agesandtheart:algae"
+  ],
+  "tint": "FF9A40",
+  "tint_from_block": true
+}

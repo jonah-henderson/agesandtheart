@@ -1,0 +1,7 @@
+{
+  "_comment": "A dull red glow.",
+  "blocks": [
+    "minecraft:magma_block"
+  ],
+  "tint": "FF5A30"
+}
