@@ -1,5 +1,8 @@
 {
+  "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",
   "item.agesandtheart_imaging.image_recorder": "Image Recorder",
-  "item.agesandtheart_imaging.photographic_plate": "Photographic Plate"
+  "item.agesandtheart_imaging.photographic_plate": "Photographic Plate",
+  "item.agesandtheart_imaging.recorded_image": "Recorded Image",
+  "item.agesandtheart_imaging.recorded_image.of": "Recorded Image of %s"
 }

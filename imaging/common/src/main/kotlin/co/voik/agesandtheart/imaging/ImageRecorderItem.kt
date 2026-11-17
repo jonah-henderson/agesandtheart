@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.imaging
 
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -22,7 +23,7 @@ class ImageRecorderItem(block: Block, properties: Properties) : BlockItem(block,
 
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         if (Viewfinder.isLooking(player)) {
-            Viewfinder.shutter(player)
+            if (player is ServerPlayer) Viewfinder.shutter(player) else Viewfinder.shutterOnTheClient?.invoke()
             return InteractionResult.CONSUME
         }
         if (!Viewfinder.hasAPlate(player)) return InteractionResult.FAIL

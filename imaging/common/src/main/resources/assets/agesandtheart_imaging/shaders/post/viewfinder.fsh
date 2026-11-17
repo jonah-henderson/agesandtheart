@@ -11,10 +11,10 @@ layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 fragColor;
 
 // How far the middle swells toward the corners, which stay where they are.
-const float SWELL = 0.14;
+const float SWELL = 0.24;
 // How dark the corners go, and from how far out the darkening starts.
-const float VIGNETTE = 0.5;
-const float VIGNETTE_FROM = 0.35;
+const float VIGNETTE = 0.75;
+const float VIGNETTE_FROM = 0.2;
 // What is left of the light outside the crop.
 const float OUTSIDE_THE_CROP = 0.45;
 const float PICTURE_ASPECT = 16.0 / 9.0;

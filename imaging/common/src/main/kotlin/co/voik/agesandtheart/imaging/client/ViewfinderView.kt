@@ -5,6 +5,7 @@ import co.voik.agesandtheart.imaging.Viewfinder
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.CameraType
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import kotlin.math.pow
 
@@ -29,10 +30,22 @@ object ViewfinderView {
     /** The camera the player had before looking, put back after. */
     private var cameraBefore: CameraType? = null
 
+    /** Looking through a viewfinder, or about to take the picture it showed, which is taken as it was seen. */
     @JvmStatic
     fun isLooking(): Boolean {
         val player = Minecraft.getInstance().player ?: return false
-        return Viewfinder.isLooking(player)
+        return Viewfinder.isLooking(player) || Capture.isPending()
+    }
+
+    /** Hands [Viewfinder] what the shutter does here. Called once by each loader's client entrypoint. */
+    fun install() {
+        Viewfinder.shutterOnTheClient = { Capture.request(Minecraft.getInstance()) }
+    }
+
+    /** The vignette and fisheye off, for the frame a picture is taken from. */
+    fun dropTheEffect(minecraft: Minecraft) {
+        val player = minecraft.player ?: return
+        if (EFFECT in player.activePostEffects) player.setActivePostEffects(player.activePostEffects - EFFECT)
     }
 
     @JvmStatic
@@ -48,11 +61,20 @@ object ViewfinderView {
         val player = minecraft.player ?: return
         Viewfinder.tick(player)
         val looking = Viewfinder.isLooking(player)
+        if (Capture.isPending()) return
+        val justRaised = looking && cameraBefore == null
+        if (justRaised) sayHowToLowerIt(minecraft)
         holdInFirstPerson(minecraft, looking)
         if (!looking) zoom = WIDEST
         val hasEffect = EFFECT in player.activePostEffects
         if (looking && !hasEffect) player.setActivePostEffects(player.activePostEffects + EFFECT)
         if (!looking && hasEffect) player.setActivePostEffects(player.activePostEffects - EFFECT)
+    }
+
+    /** "Press [Sneak] to exit the viewfinder", in the action bar, as a boat says how to get out of it. */
+    private fun sayHowToLowerIt(minecraft: Minecraft) {
+        val sneak = minecraft.options.keyShift.translatedKeyMessage
+        minecraft.gui.hud.setOverlayMessage(Component.translatable("agesandtheart_imaging.viewfinder.lower", sneak), false)
     }
 
     private fun holdInFirstPerson(minecraft: Minecraft, looking: Boolean) {

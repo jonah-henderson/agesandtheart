@@ -4,5 +4,6 @@ import co.voik.agesandtheart.imaging.client.ViewfinderView
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 
 fun initClient() {
+    ViewfinderView.install()
     ClientTickEvents.END_CLIENT_TICK.register(ViewfinderView::tick)
 }

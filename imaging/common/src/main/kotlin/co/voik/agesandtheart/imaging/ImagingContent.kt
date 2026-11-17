@@ -16,6 +16,7 @@ object ImagingContent {
 
     private val PHOTOGRAPHIC_PLATE_ID: Identifier = Imaging.id("photographic_plate")
     private val IMAGE_RECORDER_ID: Identifier = Imaging.id("image_recorder")
+    private val RECORDED_IMAGE_ID: Identifier = Imaging.id("recorded_image")
 
     private const val PLATES_TO_A_STACK = 16
 
@@ -35,11 +36,18 @@ object ImagingContent {
     /** The camera. */
     val IMAGE_RECORDER: Item = ImageRecorderItem(IMAGE_RECORDER_BLOCK, properties(IMAGE_RECORDER_ID).stacksTo(1))
 
+    /** A picture taken, one to a stack. */
+    val RECORDED_IMAGE: Item = RecordedImageItem(properties(RECORDED_IMAGE_ID).stacksTo(1))
+
+    /** What the creative tab shows: a recorded image means nothing without a picture taken. */
+    val shownInTheTab: List<Item> = listOf(IMAGE_RECORDER, PHOTOGRAPHIC_PLATE)
+
     val blocks: List<Pair<Identifier, Block>> = listOf(IMAGE_RECORDER_ID to IMAGE_RECORDER_BLOCK)
 
     val items: List<Pair<Identifier, Item>> = listOf(
         IMAGE_RECORDER_ID to IMAGE_RECORDER,
         PHOTOGRAPHIC_PLATE_ID to PHOTOGRAPHIC_PLATE,
+        RECORDED_IMAGE_ID to RECORDED_IMAGE,
     )
 
     /** Ages and the Art's creative tab, where the companion's items are shown. */

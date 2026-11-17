@@ -11,6 +11,7 @@ import net.neoforged.neoforge.common.NeoForge
 @Mod(value = Imaging.MOD_ID, dist = [Dist.CLIENT])
 class ImagingNeoForgeClient {
     init {
+        ViewfinderView.install()
         NeoForge.EVENT_BUS.addListener { _: ClientTickEvent.Post -> ViewfinderView.tick(Minecraft.getInstance()) }
     }
 }

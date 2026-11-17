@@ -1,7 +1,14 @@
 package co.voik.agesandtheart.imaging
 
+import co.voik.agesandtheart.age.word.WordNames
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
+import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.ItemStack
+import java.util.UUID
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.player.Player
@@ -37,9 +44,37 @@ object Viewfinder {
         player.getAttribute(Attributes.MOVEMENT_SPEED)?.removeModifier(SLOWED_ID)
     }
 
-    /** The second use. Taking the picture is not built yet, so for now it only lowers the recorder. */
-    fun shutter(player: Player) {
+    /**
+     * What the photographer's client does as the shutter goes: set by its client entrypoint, since the frame to take is
+     * the client's, and left unset on a dedicated server.
+     */
+    @Volatile
+    var shutterOnTheClient: (() -> Unit)? = null
+
+    /**
+     * The second use, on the server: a plate spent, the recorded image handed over at once, the shot waiting for the
+     * client's picture of it ([Shots]), and the recorder lowered.
+     */
+    fun shutter(player: ServerPlayer) {
+        if (!spendAPlate(player)) {
+            stopLooking(player)
+            return
+        }
+        val picture = Picture(UUID.randomUUID(), WordNames.placeName(player.level().dimension()), player.blockPosition())
+        val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
+        player.inventory.placeItemBackInInventory(recordedImage, Prediction.SERVER_ONLY)
+        Shots.taken(player, picture.id)
+        player.level().playSound(null, player.x, player.eyeY, player.z, SoundEvents.SPYGLASS_STOP_USING, SoundSource.PLAYERS, 1.0f, 1.4f)
         stopLooking(player)
+    }
+
+    private fun spendAPlate(player: Player): Boolean {
+        if (player.hasInfiniteMaterials()) return true
+        val inventory = player.inventory
+        val slot = (0..<inventory.containerSize).firstOrNull { inventory.getItem(it).`is`(ImagingContent.PHOTOGRAPHIC_PLATE) }
+            ?: return false
+        inventory.getItem(slot).shrink(1)
+        return true
     }
 
     /** The hand holding an image recorder, the main hand first, or null where neither does. */
