@@ -1,0 +1,111 @@
+{
+  "_comment": [
+    "The Age's own rings, arching overhead from horizon to horizon and never moving, lit by the sun and crossed by the planet's shadow at night: bright, broad, high, dense, any colour.",
+    "Two words, since `rings` is the stone formation. Naming them brings them; a word said of the whole Age lands on them only now and then, one Age in ten.",
+    "They take no offer left dangling: a stray describing word should not hang rings over an Age.",
+    "Density said of the whole Age is how full the land is (`desolate`, `dense`), so it reaches the rings only when aimed at them."
+  ],
+  "terminal": true,
+  "part": "planetary_rings",
+  "means": [
+    {
+      "sets": {
+        "planetary_rings.present": "true"
+      }
+    }
+  ],
+  "accepts": [
+    {
+      "concept": "colour",
+      "becomes": [
+        {
+          "sets": "colour"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "brightness",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "strength",
+      "becomes": [
+        {
+          "sets": "glow"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "size",
+      "becomes": [
+        {
+          "sets": "size"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "height",
+      "becomes": [
+        {
+          "sets": "altitude"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "density",
+      "becomes": [
+        {
+          "sets": "density"
+        }
+      ],
+      "chance_from_whole_age": 0.0,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "colours_cycling",
+      "becomes": [
+        {
+          "sets": {
+            "colours_cycling": "true"
+          }
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    },
+    {
+      "concept": "colour_cycle_pace",
+      "becomes": [
+        {
+          "sets": "colour_cycle_pace"
+        }
+      ],
+      "chance_from_whole_age": 0.1,
+      "can_resolve_dangling_offers": false
+    }
+  ]
+}

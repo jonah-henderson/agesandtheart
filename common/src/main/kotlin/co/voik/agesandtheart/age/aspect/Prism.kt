@@ -80,6 +80,7 @@ object Prism {
             // turn as one in it, since a shader can tell them apart only by layer, the same as the ground's.
             ground = cycleOf(Aspect.GRASS, NO_TINGE) ?: cycleOf(Aspect.LEAVES, NO_TINGE),
             water = cycleOf(Aspect.WATERS, NO_TINGE),
+            rings = turningOf(Aspect.PLANETARY_RINGS, BODY_TINGE),
         )
     }
 

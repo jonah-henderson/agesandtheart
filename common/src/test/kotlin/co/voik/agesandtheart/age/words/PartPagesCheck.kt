@@ -47,8 +47,9 @@ class PartPagesCheck : FunSpec({
     }
 
     test("every setting a word may turn is reachable through its part's page") {
-        // Internal (`caps`), or said only by a thing or a reading: a lake's altitude, a sheep's wool, where a feature lies.
-        val unreached = setOf("inhabitants.caps", "features.altitude", "inhabitants.wool", "features.height")
+        // Internal (`caps`), or said only by a thing or a reading: a lake's altitude, a sheep's wool, where a feature lies;
+        // or by the page itself, as the bare `planetary_rings` page says the rings are there.
+        val unreached = setOf("inhabitants.caps", "features.altitude", "inhabitants.wool", "features.height", "planetary_rings.present")
         fun EffectTemplate.turns(parameter: String): Boolean = when (this) {
             is EffectTemplate.Taking -> ParameterKey.read(target).name == parameter
             is EffectTemplate.Fixed -> (effect as? Effect.Sets)?.parameter?.name == parameter

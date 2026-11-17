@@ -650,6 +650,8 @@
   "prose.agesandtheart.anything_but": "anything but %s",
   "prose.agesandtheart.aurora.has": "Its aurora holds %1$s%2$s.",
   "prose.agesandtheart.aurora.is": "Its aurora is %1$s%2$s.",
+  "prose.agesandtheart.planetary_rings.has": "Its planetary rings hold %1$s%2$s.",
+  "prose.agesandtheart.planetary_rings.is": "Its planetary rings are %1$s%2$s.",
   "prose.agesandtheart.biomes.has": "Its biomes include %1$s%2$s.",
   "prose.agesandtheart.biomes.has.only": "It is a world of %1$s%2$s.",
   "prose.agesandtheart.biomes.is": "Its biomes are %1$s%2$s.",

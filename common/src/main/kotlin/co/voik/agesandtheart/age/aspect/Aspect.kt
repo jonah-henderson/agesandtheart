@@ -269,6 +269,12 @@ enum class Aspect(
      * it. Appended, for [CLOUD]'s reason.
      */
     GRAVITY("gravity"),
+
+    /**
+     * The Age's own rings, arching overhead and never moving ([PlanetaryRingsAspect]). Its own aspect for the
+     * aurora's reason, and appended for [CLOUD]'s. Two words, since `rings` is the stone formation.
+     */
+    PLANETARY_RINGS("planetary_rings"),
     ;
 
     /** What a writer calls this part of the world — [key] where no other name was given. */
@@ -291,7 +297,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [parameters] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, SKY, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
+            SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY, PLANETARY_RINGS,
             -> emptyList()
         }
 
@@ -370,6 +376,15 @@ enum class Aspect(
                 Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE, CloudShape.POROSITY,
             )
             GRAVITY -> listOf(Gravity.PULL)
+            PLANETARY_RINGS -> listOf(
+                PlanetaryRingsAspect.PRESENT,
+                PlanetaryRingsAspect.RINGSCOLOUR,
+                PlanetaryRingsAspect.RINGSGLOW,
+                PlanetaryRingsAspect.RINGSSIZE,
+                PlanetaryRingsAspect.RINGSALTITUDE,
+                PlanetaryRingsAspect.RINGSDENSITY,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
+            )
             SEA -> listOf(Sea.DEPTH, Sea.CLIMBING, Sea.POROSITY)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(
@@ -463,7 +478,7 @@ enum class Aspect(
             SPAWNS -> Spawns.LIVES
             PHENOMENA -> Phenomena.HAPPENS
             TERRAIN, SEA, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE,
-            AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
+            AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY, PLANETARY_RINGS,
             -> null
         }
 
@@ -503,7 +518,7 @@ enum class Aspect(
         SPAWNS -> Spawn.named(key)
         TERRAIN -> Terrain.named(key)
         CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY, PLANETARY_RINGS,
         -> authored.firstOrNull { it.key == key }
     }
 

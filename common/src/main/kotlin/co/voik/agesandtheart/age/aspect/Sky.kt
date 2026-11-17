@@ -64,6 +64,7 @@ object Sky {
             rainbow = RainbowAspect.rainbowIn(parts, seed),
             cloudPace = Atmosphere.cloudPaceOf(parts.optionsFor(Aspect.CLOUD), seed),
             cloudPattern = CloudShape.patternIn(parts.optionsFor(Aspect.CLOUD), seed),
+            planetaryRings = PlanetaryRingsAspect.ringsIn(parts, seed),
         )
     }
 

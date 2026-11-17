@@ -218,7 +218,7 @@ data class AgeComposition(
         Aspect.SKY, Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
         Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER, Aspect.CLIMATE,
         Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD,
-        Aspect.AURORA, Aspect.RAINBOW, Aspect.GRAVITY,
+        Aspect.AURORA, Aspect.RAINBOW, Aspect.GRAVITY, Aspect.PLANETARY_RINGS,
         -> this
     }
 
