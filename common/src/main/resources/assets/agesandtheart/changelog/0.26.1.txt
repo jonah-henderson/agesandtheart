@@ -1,0 +1,2 @@
+[feature] add a word for planetary rings around your ages
+[art] new slide carousel model and texture
