@@ -1,12 +1,12 @@
 name = "Ages and the Art"
 author = "Jonah Henderson"
-version = "0.25.0+26.3"
+version = "0.25.1+26.3"
 pack-format = "packwiz:1.1.0"
 
 [index]
 file = "index.toml"
 hash-format = "sha256"
-hash = "ccb082f194425453624b800f4dab52a18aac8517434c4a61ded477f87e47d30f"
+hash = "bb07ae9d24d3d70070199939e40423d1015ecdeffb1e3465abcdea181dc5162b"
 
 [versions]
 fabric = "0.19.5"
