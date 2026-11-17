@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${description}",
+  "authors": [
+    "${mod_author}"
+  ],
+  "contact": {
+    "homepage": "https://github.com/jonah-henderson/agesandtheart",
+    "sources": "https://github.com/jonah-henderson/agesandtheart",
+    "issues": "https://github.com/jonah-henderson/agesandtheart/issues"
+  },
+  "license": "${license}",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "co.voik.agesandtheart.imaging.ImagingFabricKt::init"
+      }
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=${java_version}",
+    "fabric-language-kotlin": ">=${flk_version}",
+    "agesandtheart": "${version}"
+  }
+}

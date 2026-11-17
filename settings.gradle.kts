@@ -90,3 +90,8 @@ warnWhereEphemerisDrifts()
 include("common")
 include("fabric")
 include("neoforge")
+
+// Ages and the Art: Imaging, the camera, a companion mod of its own (`notes/image-recorder.md`).
+include("imaging:common")
+include("imaging:fabric")
+include("imaging:neoforge")

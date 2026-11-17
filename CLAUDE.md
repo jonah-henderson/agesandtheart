@@ -497,6 +497,15 @@ The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` no
 
 **Always prefer a loader event or vanilla API over a Mixin when one exists**, and say in the commit which alternatives were checked. Mixins are written in **Java** (Kotlin isn't viable). On **Loom 1.17** the mixin annotation processor / refmap is off by default and 26.1 is unobfuscated anyway — do **not** re-add a `loom { mixin { … } }` block.
 
+## Ages and the Art: Imaging
+
+**The camera is a companion mod of its own, `agesandtheart_imaging`, in `imaging/`** (`notes/image-recorder.md`): its
+own `common`, `fabric` and `neoforge` on the same convention plugins, its identity in `imaging/mod.properties`, and the
+same version as Ages and the Art, since both are built from the same release tags, and it requires exactly that
+version. It compiles against Ages and the Art and never the other way round: nothing in the main mod may name it.
+`./gradlew :imaging:fabric:runClient` runs both. Its Loom project leaves the main mod's access widener to the loader
+(`enableTransitiveAccessWideners = false`), since Loom would read it off the unprocessed template.
+
 ## Ages / runtime dimensions
 
 The core mechanic — creating dimensions ("Ages") at runtime and persisting them — is split in two, and the
