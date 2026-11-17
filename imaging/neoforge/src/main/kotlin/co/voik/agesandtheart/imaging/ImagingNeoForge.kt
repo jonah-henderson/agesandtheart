@@ -29,6 +29,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         }
         event.register(Registries.BLOCK) { helper -> ImagingContent.blocks.forEach { (id, block) -> helper.register(id, block) } }
         event.register(Registries.ITEM) { helper -> ImagingContent.items.forEach { (id, item) -> helper.register(id, item) } }
+        event.register(Registries.ENTITY_TYPE) { helper -> ImagingContent.entities.forEach { (id, type) -> helper.register(id, type) } }
     }
 
     private fun onBuildCreativeTab(event: BuildCreativeModeTabContentsEvent) {

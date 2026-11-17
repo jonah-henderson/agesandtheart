@@ -13,6 +13,7 @@ fun init() {
     ImagingComponents.components.forEach { (id, type) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, type) }
     ImagingContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     ImagingContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
+    ImagingContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     CreativeModeTabEvents.modifyOutputEvent(ImagingContent.TAB).register { output ->
         ImagingContent.shownInTheTab.forEach(output::accept)
     }
