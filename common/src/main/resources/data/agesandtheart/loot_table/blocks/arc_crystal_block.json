@@ -12,20 +12,18 @@
             {
               "type": "minecraft:item",
               "name": "agesandtheart:arc_crystal_block",
-              "conditions": [
-                {
-                  "condition": "minecraft:block_state_property",
-                  "block": "agesandtheart:arc_crystal_block",
-                  "properties": { "charge": "0" }
-                }
-              ]
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:arc_crystal_block",
+                "state": { "charge": "0" }
+              }
             },
             {
               "type": "minecraft:item",
               "name": "agesandtheart:charged_arc_crystal_block",
-              "functions": [
+              "modifier": [
                 {
-                  "function": "minecraft:copy_state",
+                  "type": "minecraft:copy_state",
                   "block": "agesandtheart:arc_crystal_block",
                   "properties": ["charge"]
                 }

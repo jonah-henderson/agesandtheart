@@ -20,12 +20,16 @@ import io.kotest.core.spec.style.FunSpec
 class BootLogCheck : FunSpec({
     val server = DrivenServer.shared
 
-    /** What the server says when it cannot read a file — the whole family, from one listener. */
+    /**
+     * What the server says when it cannot read a file — the whole family, from one listener — or when a loot table
+     * it read has an entry that can never be reached, which is always a condition in a shape the game ignores.
+     */
     val couldNotRead = listOf(
         "Couldn't parse data file",
         "Failed to load recipe",
-        "Failed to parse loot table",
+        "Failed to parse ",
         "Couldn't load loot table",
+        "element validation problem",
     )
 
     test("nothing we ship failed to parse") {
