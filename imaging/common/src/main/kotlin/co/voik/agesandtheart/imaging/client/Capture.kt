@@ -8,6 +8,7 @@ import co.voik.agesandtheart.imaging.PictureSizes
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
 import net.minecraft.client.Screenshot
+import net.minecraft.client.renderer.state.LightmapRenderState
 import net.minecraft.util.Util
 import org.lwjgl.stb.STBIWriteCallback
 import org.lwjgl.stb.STBImageWrite
@@ -15,13 +16,14 @@ import java.io.ByteArrayOutputStream
 import kotlin.math.roundToInt
 
 /**
- * Taking the picture on the photographer's client: the next frame, read back after the post effects and before the GUI
- * is drawn (`GameRendererMixin`), with the viewfinder's own effect taken off for it, cropped to 16:9, made no larger than
+ * Taking the picture on the photographer's client: the next frame, lit by the plate's flash and read back after the post
+ * effects and before the GUI is drawn (`GameRendererMixin`), with the viewfinder's own effect taken off for it, cropped to 16:9, made no larger than
  * 1920 by 1080, and sent up as a JPEG in [PicturePiece]s. Minecraft's own STB does the scaling and the encoding.
  */
 object Capture {
 
     private const val QUALITY = 90
+    private const val FLASHED = 1.0f
     private const val CHANNELS = 4
 
     private var isWanted = false
@@ -39,6 +41,25 @@ object Capture {
         minecraft.player?.playSound(ImagingContent.SHUTTER, 1.0f, 1.0f)
         fieldOfView = minecraft.options.fov().get() * ViewfinderView.fieldOfViewModifier()
         ViewfinderView.dropTheEffect(minecraft)
+    }
+
+    /** Whether the frame after the picture's still has to put the lightmap back as it was. */
+    private var isRelighting = false
+
+    /**
+     * The plate's flash, on the lightmap as each frame's is worked out: the picture's frame lit as night vision lights
+     * it, and the next one lit as before. Either way the lightmap is redrawn, which it is not every frame.
+     */
+    @JvmStatic
+    fun flashTheLightmap(state: LightmapRenderState) {
+        if (isWanted) {
+            state.nightVisionEffectIntensity = FLASHED
+            state.needsUpdate = true
+            isRelighting = true
+        } else if (isRelighting) {
+            state.needsUpdate = true
+            isRelighting = false
+        }
     }
 
     /** Called once a frame, after its post effects and before its GUI. */

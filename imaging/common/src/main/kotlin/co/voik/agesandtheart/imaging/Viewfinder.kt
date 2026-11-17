@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.imaging
 
 import co.voik.agesandtheart.age.word.WordNames
+import net.minecraft.core.particles.ColorParticleOption
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundSource
@@ -63,10 +65,25 @@ object Viewfinder {
         val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
         player.inventory.placeItemBackInInventory(recordedImage, Prediction.SERVER_ONLY)
         Shots.taken(player, picture.id)
-        // Heard by everyone near but the photographer, whose own client played it the moment the shutter went.
+        // Heard and seen by everyone near but the photographer, whose own client played it the moment the shutter went.
         player.level().playSound(player, player.x, player.eyeY, player.z, ImagingContent.SHUTTER, SoundSource.PLAYERS, 1.0f, 1.0f)
+        flashSeenByOthers(player)
         stopLooking(player)
     }
+
+    /** Vanilla's firework flash at the recorder's lens, for everyone near enough to see it but the photographer. */
+    private fun flashSeenByOthers(player: ServerPlayer) {
+        val level = player.level()
+        val lens = player.eyePosition.add(player.lookAngle.scale(LENS_REACH))
+        val flash = ColorParticleOption.create(ParticleTypes.FLASH, FLASH_COLOUR)
+        level.players().filter { it !== player && it.distanceToSqr(lens) < FLASH_SEEN_WITHIN * FLASH_SEEN_WITHIN }.forEach { onlooker ->
+            level.sendParticles(onlooker, flash, true, true, lens.x, lens.y, lens.z, 1, 0.0, 0.0, 0.0, 0.0)
+        }
+    }
+
+    private const val LENS_REACH = 0.6
+    private const val FLASH_SEEN_WITHIN = 64.0
+    private const val FLASH_COLOUR = 0xFFF4E0
 
     private fun spendAPlate(player: Player): Boolean {
         if (player.hasInfiniteMaterials()) return true

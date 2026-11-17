@@ -9,6 +9,7 @@
     "client.AvatarRendererMixin",
     "client.GameRendererMixin",
     "client.HudMixin",
+    "client.LightmapRenderStateExtractorMixin",
     "client.LivingEntityRendererAccessor",
     "client.MouseHandlerMixin",
     "client.PlayerItemInHandLayerMixin",
