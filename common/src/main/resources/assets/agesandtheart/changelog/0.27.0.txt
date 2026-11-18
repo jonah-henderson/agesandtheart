@@ -1,0 +1,4 @@
+[feature] added automatic cameras. place a camera on the ground, fill it with photographic plates, and give it a redstone pulse, and it will take a picture. insert and extract photos with hoppers
+[feature] added tripods: place a camera on it, shift right click to preview and change the camera angle freely, for use with automatic pictures
+[feature] hoppers can take and insert photos from/into slide carousels too
+[balance] photographic plates now stack to 64
