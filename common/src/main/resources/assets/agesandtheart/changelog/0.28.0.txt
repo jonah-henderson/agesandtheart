@@ -1,0 +1,5 @@
+[feature] you can now see when other players open books in their hands
+[feature] added an adjust button to placed cameras
+[bugfix] you can look through the camera even when you don't have any photographic plates
+[balance] added a glass pane to the slide carousel recipe
+[bugfix] players will no longer rotate while they are adjusting cameras on tripods
