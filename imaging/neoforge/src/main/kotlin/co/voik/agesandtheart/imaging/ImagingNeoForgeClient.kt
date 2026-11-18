@@ -10,6 +10,7 @@ import net.neoforged.neoforge.client.gui.ConfigurationScreen
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory
 import co.voik.agesandtheart.imaging.client.PictureTextures
 import co.voik.agesandtheart.imaging.client.ProjectorLights
+import co.voik.agesandtheart.imaging.client.RecorderPreview
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent
 import co.voik.agesandtheart.imaging.client.ProjectorThrows
 import co.voik.agesandtheart.imaging.client.RecordedImageRenderer
@@ -41,6 +42,7 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
             ProjectorThrows.forget()
             MaskedPictures.forget()
             BlurredPictures.forget()
+            RecorderPreview.forget()
         }
         eventBus.addListener { event: AddClientReloadListenersEvent ->
             event.addListener(ProjectorLights.ID, ProjectorLights)

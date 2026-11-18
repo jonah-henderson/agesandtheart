@@ -7,6 +7,7 @@ object ImagingPayloads {
     val ROUTES: List<Payloads.Route<*>> = listOf(
         Payloads.Serverbound(PicturePiece.TYPE, PicturePiece.STREAM_CODEC) { player, piece -> Shots.pieceArrived(player, piece) },
         Payloads.Serverbound(PictureWanted.TYPE, PictureWanted.STREAM_CODEC) { player, wanted -> PictureFetch.wanted(player, wanted) },
+        Payloads.Serverbound(TurnTheRecorder.TYPE, TurnTheRecorder.STREAM_CODEC) { player, turn -> ImagingTurns.asked(player, turn) },
         Payloads.Clientbound(PictureSent.TYPE, PictureSent.STREAM_CODEC),
     )
 }

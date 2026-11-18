@@ -1,4 +1,6 @@
 {
+  "agesandtheart_imaging.recorder.stop": "Press %1$s to stop looking through the image recorder",
+  "agesandtheart_imaging.recorder.turn": "Press %1$s or %2$s to turn it",
   "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
   "agesandtheart_imaging.viewfinder.zoom": "Scroll to zoom in and out",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",

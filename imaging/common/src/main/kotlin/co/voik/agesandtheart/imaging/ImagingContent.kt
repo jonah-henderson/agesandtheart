@@ -82,7 +82,11 @@ object ImagingContent {
     val SLIDE_CAROUSEL_ENTITY: BlockEntityType<SlideCarouselBlockEntity> =
         BlockEntityType({ pos, state -> SlideCarouselBlockEntity(pos, state) }, setOf(SLIDE_CAROUSEL_BLOCK))
 
-    val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL_ENTITY)
+    val IMAGE_RECORDER_ENTITY: BlockEntityType<ImageRecorderBlockEntity> =
+        BlockEntityType({ pos, state -> ImageRecorderBlockEntity(pos, state) }, setOf(IMAGE_RECORDER_BLOCK))
+
+    val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> =
+        listOf(IMAGE_RECORDER_ID to IMAGE_RECORDER_ENTITY, SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL_ENTITY)
 
     val blocks: List<Pair<Identifier, Block>> = listOf(IMAGE_RECORDER_ID to IMAGE_RECORDER_BLOCK, SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL_BLOCK)
 

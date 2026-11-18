@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.imaging.client
 
+import co.voik.agesandtheart.imaging.ImageRecorderBlock
 import co.voik.agesandtheart.imaging.Imaging
 import co.voik.agesandtheart.imaging.Viewfinder
 import co.voik.agesandtheart.platform.Services
@@ -40,12 +41,13 @@ object ViewfinderView {
     @JvmStatic
     fun isLooking(): Boolean {
         val player = Minecraft.getInstance().player ?: return false
-        return Viewfinder.isLooking(player) || Capture.isPending() || ShutterIris.isPlaying()
+        return Viewfinder.isLooking(player) || RecorderPreview.isLooking() || Capture.isPending() || ShutterIris.isPlaying()
     }
 
-    /** Hands [Viewfinder] what the shutter does here. Called once by each loader's client entrypoint. */
+    /** Hands [Viewfinder] and a set-down recorder what they do here. Called once by each loader's client entrypoint. */
     fun install() {
         Viewfinder.shutterOnTheClient = { Capture.request(Minecraft.getInstance()) }
+        ImageRecorderBlock.lookThroughOnTheClient = RecorderPreview::start
     }
 
     /** The vignette and fisheye off, for the frame a picture is taken from. */
@@ -81,18 +83,21 @@ object ViewfinderView {
     /** A positive [notches] is the wheel turned away, which narrows the view, as a spyglass's eye would come closer. */
     @JvmStatic
     fun scrolled(notches: Double) {
+        if (RecorderPreview.isLooking()) return
         zoom = (zoom * NARROWING_A_NOTCH.pow(notches.toFloat())).coerceIn(NARROWEST, WIDEST)
     }
 
     fun tick(minecraft: Minecraft) {
         val player = minecraft.player ?: return
         Viewfinder.tick(player)
-        val looking = Viewfinder.isLooking(player)
+        RecorderPreview.tick(minecraft)
+        val raised = Viewfinder.isLooking(player)
+        val looking = raised || RecorderPreview.isLooking()
         if (Capture.isPending() || ShutterIris.isPlaying()) return
-        val justRaised = looking && cameraBefore == null
+        val justRaised = raised && cameraBefore == null
         if (justRaised) sayHowToLowerIt(minecraft)
         holdInFirstPerson(minecraft, looking)
-        if (!looking) zoom = WIDEST
+        if (!raised) zoom = WIDEST
         val wanted = player.activePostEffects.filterNot { it in EFFECTS } + listOfNotNull(effectFor(minecraft).takeIf { looking })
         if (wanted != player.activePostEffects) player.setActivePostEffects(wanted)
     }

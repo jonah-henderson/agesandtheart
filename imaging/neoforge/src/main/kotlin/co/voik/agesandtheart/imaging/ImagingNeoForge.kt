@@ -8,12 +8,15 @@ import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.config.ModConfig
+import net.neoforged.neoforge.capabilities.Capabilities
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.network.registration.PayloadRegistrar
 import net.neoforged.neoforge.registries.RegisterEvent
+import net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper
 
 @Mod(Imaging.MOD_ID)
 class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
@@ -21,6 +24,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener(::onRegister)
         eventBus.addListener(::onBuildCreativeTab)
         eventBus.addListener(::onRegisterPayloads)
+        eventBus.addListener(::onRegisterCapabilities)
         NeoForge.EVENT_BUS.addListener { event: ServerTickEvent.Post -> Imaging.serverTick(event.server) }
         modContainer.registerConfig(ModConfig.Type.SERVER, ImagingConfig.SPEC)
         modContainer.registerConfig(ModConfig.Type.CLIENT, ImagingClientLook.SPEC)
@@ -40,6 +44,12 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onBuildCreativeTab(event: BuildCreativeModeTabContentsEvent) {
         if (event.tabKey != ImagingContent.TAB) return
         ImagingContent.shownInTheTab.forEach(event::accept)
+    }
+
+    /** The recorder's and the carousel's slots, to hoppers and other mods' pipes, by the same sided rules. */
+    private fun onRegisterCapabilities(event: RegisterCapabilitiesEvent) {
+        event.registerBlockEntity(Capabilities.Item.BLOCK, ImagingContent.IMAGE_RECORDER_ENTITY, ::WorldlyContainerWrapper)
+        event.registerBlockEntity(Capabilities.Item.BLOCK, ImagingContent.SLIDE_CAROUSEL_ENTITY, ::WorldlyContainerWrapper)
     }
 
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {

@@ -115,21 +115,39 @@ object Flash {
     private const val BANG_VOLUME = 4.0f
     private const val WHITE = -1
 
-
     /** How nearly toward the burst a player must be looking to be dazzled by it: within about forty-five degrees. */
     private const val PLAYER_LOOKING_AT_IT = 0.7
+
+    /** How nearly ahead of a thrown flash something must stand to see it: within about sixty degrees of its line. */
+    private const val IN_FRONT_OF_IT = 0.5
 
     fun burst(level: ServerLevel, at: Vec3) {
         level.sendParticles(ColorParticleOption.create(ParticleTypes.FLASH, WHITE), at.x, at.y, at.z, 1, 0.0, 0.0, 0.0, 0.0)
         level.sendParticles(ParticleTypes.FIREWORK, at.x, at.y, at.z, SPARKS, SPARK_SPREAD, SPARK_SPREAD, SPARK_SPREAD, SPARK_SPEED)
         level.playSound(null, at.x, at.y, at.z, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.NEUTRAL, BANG_VOLUME, 1.0f)
-        val near = level.getEntitiesOfClass(LivingEntity::class.java, AABB.ofSize(at, REACH * 2, REACH * 2, REACH * 2))
+        dazzleWhoSees(level, at, REACH)
+    }
+
+    /**
+     * Dazzles everything within [reach] of a flash at [at] that sees it, by the burst's rules; where it [toward] is given,
+     * the flash is thrown that way, as a lamp's is, and only what stands in front of it sees it.
+     */
+    fun dazzleWhoSees(level: ServerLevel, at: Vec3, reach: Double, toward: Vec3? = null) {
+        val near = level.getEntitiesOfClass(LivingEntity::class.java, AABB.ofSize(at, reach * 2, reach * 2, reach * 2))
         for (body in near) {
             if (body.isSpectator || !body.isAlive) continue
             val isDazzleable = (body is Player || body is Mob) && !body.`is`(Dazzled.CANNOT_BE_DAZZLED) && !Dazzled.isShielded(body)
             val isAPlayerLookingAway = body is Player && !isLookingToward(body, at)
-            if (isDazzleable && !isAPlayerLookingAway && seesTheBurst(level, body, at)) body.addEffect(MobEffectInstance(Dazzled.EFFECT, Dazzled.LASTS_FOR_TICKS))
+            val isBehindIt = toward != null && !isInFront(body, at, toward)
+            val isDazzled = isDazzleable && !isAPlayerLookingAway && !isBehindIt && seesTheBurst(level, body, at, reach)
+            if (isDazzled) body.addEffect(MobEffectInstance(Dazzled.EFFECT, Dazzled.LASTS_FOR_TICKS))
         }
+    }
+
+    private fun isInFront(body: LivingEntity, at: Vec3, toward: Vec3): Boolean {
+        val toTheEyes = body.eyePosition.subtract(at)
+        if (toTheEyes.lengthSqr() < 1.0e-6) return true
+        return toward.normalize().dot(toTheEyes.normalize()) >= IN_FRONT_OF_IT
     }
 
     private fun isLookingToward(body: LivingEntity, at: Vec3): Boolean {
@@ -139,9 +157,9 @@ object Flash {
     }
 
     /** Whether the burst at [at] is within reach of [body]'s eyes with nothing in the way. */
-    private fun seesTheBurst(level: ServerLevel, body: LivingEntity, at: Vec3): Boolean {
+    private fun seesTheBurst(level: ServerLevel, body: LivingEntity, at: Vec3, reach: Double): Boolean {
         val eye = body.eyePosition
-        if (eye.distanceTo(at) > REACH) return false
+        if (eye.distanceTo(at) > reach) return false
         val sightLine = level.clip(ClipContext(eye, at, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, body))
         return sightLine.type == HitResult.Type.MISS
     }

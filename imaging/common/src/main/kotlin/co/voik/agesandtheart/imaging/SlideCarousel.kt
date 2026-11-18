@@ -12,10 +12,12 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Prediction
+import net.minecraft.world.Container
 import net.minecraft.world.ContainerHelper
 import net.minecraft.world.Containers
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -108,8 +110,7 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
     ): InteractionResult {
         buttonUnder(state, pos, hitResult)?.let { return press(it, level, pos) }
         // A blank plate is a slide too, and throws plain light.
-        val isASlide = stack.`is`(ImagingContent.RECORDED_IMAGE) || stack.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
-        if (!isASlide) return InteractionResult.TRY_WITH_EMPTY_HAND
+        if (!isASlide(stack)) return InteractionResult.TRY_WITH_EMPTY_HAND
         val carousel = level.getBlockEntity(pos) as? SlideCarouselBlockEntity ?: return InteractionResult.PASS
         val slot = CarouselSlots.under(state, pos, player.eyePosition, hitResult.location, carousel) ?: return InteractionResult.PASS
         if (!carousel.slideIn(slot).isEmpty) return InteractionResult.FAIL
@@ -151,6 +152,9 @@ class SlideCarouselBlock(properties: Properties) : BaseEntityBlock(properties) {
         private val SHAPES: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(Block.box(0.5, 0.0, 0.5, 15.0, 10.0, 16.0))
         private const val BUTTON_VOLUME = 0.3f
         private const val BUTTON_PITCH = 1.2f
+
+        /** A plate, blank or with a picture on it. */
+        fun isASlide(stack: ItemStack): Boolean = stack.`is`(ImagingContent.RECORDED_IMAGE) || stack.`is`(ImagingContent.PHOTOGRAPHIC_PLATE)
     }
 }
 
@@ -194,7 +198,8 @@ enum class CarouselButton(private val fromZ: Double, private val toZ: Double, va
     }
 }
 
-class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(ImagingContent.SLIDE_CAROUSEL_ENTITY, pos, state) {
+class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) :
+    BlockEntity(ImagingContent.SLIDE_CAROUSEL_ENTITY, pos, state), WorldlyContainer {
 
     private val slides: NonNullList<ItemStack> = NonNullList.withSize(SLIDES, ItemStack.EMPTY)
 
@@ -245,6 +250,40 @@ class SlideCarouselBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(I
         slides[slot] = ItemStack.EMPTY
         changed()
         return taken
+    }
+
+    /** A hopper's way in: from any side, a slide to a slot, each into the first empty one from the front on round. */
+    override fun getSlotsForFace(side: Direction): IntArray = IntArray(SLIDES) { Math.floorMod(frontSlot + it, SLIDES) }
+
+    override fun canPlaceItemThroughFace(slot: Int, stack: ItemStack, side: Direction?): Boolean = canPlaceItem(slot, stack)
+
+    /** Slides come out only by hand. */
+    override fun canTakeItemThroughFace(slot: Int, stack: ItemStack, side: Direction): Boolean = false
+
+    override fun canPlaceItem(slot: Int, stack: ItemStack): Boolean = slides[slot].isEmpty && SlideCarouselBlock.isASlide(stack)
+
+    override fun getMaxStackSize(): Int = 1
+
+    override fun getContainerSize(): Int = SLIDES
+
+    override fun isEmpty(): Boolean = slides.all { it.isEmpty }
+
+    override fun getItem(slot: Int): ItemStack = slides[slot]
+
+    override fun removeItem(slot: Int, count: Int): ItemStack = takeOut(slot)
+
+    override fun removeItemNoUpdate(slot: Int): ItemStack = slides[slot].also { slides[slot] = ItemStack.EMPTY }
+
+    override fun setItem(slot: Int, stack: ItemStack) {
+        slides[slot] = stack
+        changed()
+    }
+
+    override fun stillValid(player: Player): Boolean = Container.stillValidBlockEntity(this, player)
+
+    override fun clearContent() {
+        slides.clear()
+        changed()
     }
 
     /** On by [by] slots, on (positive) or back (negative). */

@@ -9,6 +9,7 @@ import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
 import co.voik.agesandtheart.imaging.client.PictureTextures
 import co.voik.agesandtheart.imaging.client.ProjectorLights
+import co.voik.agesandtheart.imaging.client.RecorderPreview
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader
 import net.minecraft.server.packs.PackType
 import co.voik.agesandtheart.imaging.client.ProjectorThrows
@@ -38,6 +39,7 @@ fun initClient() {
         ProjectorThrows.forget()
         MaskedPictures.forget()
         BlurredPictures.forget()
+        RecorderPreview.forget()
     }
     SpecialModelRenderers.ID_MAPPER.put(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
     ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(ProjectorLights.ID, ProjectorLights)

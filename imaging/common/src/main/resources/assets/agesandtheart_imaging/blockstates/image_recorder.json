@@ -1,8 +1,64 @@
 {
   "variants": {
-    "facing=north": { "model": "agesandtheart_imaging:block/image_recorder" },
-    "facing=east": { "model": "agesandtheart_imaging:block/image_recorder", "y": 90 },
-    "facing=south": { "model": "agesandtheart_imaging:block/image_recorder", "y": 180 },
-    "facing=west": { "model": "agesandtheart_imaging:block/image_recorder", "y": 270 }
+    "facing=north,turn=0": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_0"
+    },
+    "facing=north,turn=1": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_1"
+    },
+    "facing=north,turn=2": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_2"
+    },
+    "facing=north,turn=3": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_3"
+    },
+    "facing=east,turn=0": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_0",
+      "y": 90
+    },
+    "facing=east,turn=1": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_1",
+      "y": 90
+    },
+    "facing=east,turn=2": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_2",
+      "y": 90
+    },
+    "facing=east,turn=3": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_3",
+      "y": 90
+    },
+    "facing=south,turn=0": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_0",
+      "y": 180
+    },
+    "facing=south,turn=1": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_1",
+      "y": 180
+    },
+    "facing=south,turn=2": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_2",
+      "y": 180
+    },
+    "facing=south,turn=3": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_3",
+      "y": 180
+    },
+    "facing=west,turn=0": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_0",
+      "y": 270
+    },
+    "facing=west,turn=1": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_1",
+      "y": 270
+    },
+    "facing=west,turn=2": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_2",
+      "y": 270
+    },
+    "facing=west,turn=3": {
+      "model": "agesandtheart_imaging:block/image_recorder_turn_3",
+      "y": 270
+    }
   }
 }
