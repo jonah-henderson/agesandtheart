@@ -1,11 +1,11 @@
 name = "Ages and the Art: Imaging"
-filename = "agesandtheart_imaging-fabric-26.3-0.26.1+26.3.jar"
+filename = "agesandtheart_imaging-fabric-26.3-0.26.2+26.3.jar"
 side = "both"
 
 [download]
-url = "https://github.com/jonah-henderson/agesandtheart/releases/download/v0.26.1-mc26.3/agesandtheart_imaging-fabric-26.3-0.26.1-26.3.jar"
+url = "https://github.com/jonah-henderson/agesandtheart/releases/download/v0.26.2-mc26.3/agesandtheart_imaging-fabric-26.3-0.26.2-26.3.jar"
 hash-format = "sha512"
-hash = "e873e9d64c5c8a842200bcc137d0af234615621751a4b16d2d036ca1bb372fce48808fa755e2a63b93882c11c354267c17fb386619b6bed317c27e1084fc20c2"
+hash = "f505d5fee966c481eb94eff29b521e9aeb1f3d4a320a07ca8a2f94e7f2481e09c48aa6386e9e1d0c80f3276efde3e7520169c7efc89706827d7bee340c65de4a"
 
 [option]
 optional = true
