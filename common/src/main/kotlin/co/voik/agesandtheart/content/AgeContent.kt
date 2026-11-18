@@ -27,7 +27,7 @@ import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
-import co.voik.agesandtheart.book.Paternosters
+import co.voik.agesandtheart.book.BookLifts
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
@@ -2081,10 +2081,10 @@ object AgeContent {
         DryingRack.ID to DryingRack.BLOCK,
         Bookbinder.ID to Bookbinder.BLOCK,
         *BookWheels.BLOCKS.map { it.form.id.location() to it }.toTypedArray(),
-        Paternosters.BASE_ID to Paternosters.BASE,
-        Paternosters.CAP_ID to Paternosters.CAP,
-        Paternosters.SHELF_ID to Paternosters.SHELF,
+        BookLifts.FRAME_ID to BookLifts.FRAME,
+        BookLifts.SHELF_ID to BookLifts.SHELF,
         BookFinders.ID to BookFinders.BLOCK,
+        BookFinders.FRAME_ID to BookFinders.FRAME,
         PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
@@ -2150,8 +2150,8 @@ object AgeContent {
         DryingRack.ID to DryingRack.ENTITY,
         Bookbinder.ID to Bookbinder.ENTITY,
         BookWheels.ENTITY_ID to BookWheels.ENTITY,
-        Paternosters.BASE_ID to Paternosters.ENTITY,
-        Paternosters.SHELF_ID to Paternosters.SHELF_ENTITY,
+        BookLifts.FRAME_ID to BookLifts.ENTITY,
+        BookLifts.SHELF_ID to BookLifts.SHELF_ENTITY,
         BookFinders.ID to BookFinders.ENTITY,
         Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
@@ -2299,9 +2299,9 @@ object AgeContent {
         DryingRack.ID to DryingRack.ITEM,
         Bookbinder.ID to Bookbinder.ITEM,
         *BookWheels.ITEMS.map { (block, item) -> block.form.id.location() to item }.toTypedArray(),
-        Paternosters.BASE_ID to Paternosters.BASE_ITEM,
-        Paternosters.CAP_ID to Paternosters.CAP_ITEM,
+        BookLifts.FRAME_ID to BookLifts.FRAME_ITEM,
         BookFinders.ID to BookFinders.ITEM,
+        BookFinders.FRAME_ID to BookFinders.FRAME_ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         FLASHPOWDER_ID to FLASHPOWDER,

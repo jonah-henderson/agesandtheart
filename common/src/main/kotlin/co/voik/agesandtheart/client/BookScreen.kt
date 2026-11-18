@@ -4,12 +4,14 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.book.BookBeingRead
-import co.voik.agesandtheart.book.BookFinderAskPayload
-import co.voik.agesandtheart.book.FinderAsked
+import co.voik.agesandtheart.book.BookFinderBlockEntity
+import co.voik.agesandtheart.book.BookStandAskPayload
+import co.voik.agesandtheart.book.StandAsked
 import co.voik.agesandtheart.book.BookHeldOpen
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBookPayload
 import co.voik.agesandtheart.book.LecternBooks
+import co.voik.agesandtheart.book.LinkFromAnOpenBook
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.OpenBookPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
@@ -65,8 +67,11 @@ class BookScreen(
     val held: BookBeingRead,
 ) : Screen(book.hoverName) {
 
-    /** Whether clicking the panel links: only in a hand, since a lectern's book links by a click on the lectern. */
-    private val linksFromThePanel = held is BookBeingRead.InHand
+    /**
+     * Whether clicking the panel links: in a hand, and lying open on a lectern or a stand of ours (Jonah, 2026-11-19),
+     * where it links as a click on the book in the world does, and leaves the book where it lies.
+     */
+    private val linksFromThePanel = held is BookBeingRead.InHand || held is BookBeingRead.OnALectern || held is BookBeingRead.OnAStand
 
     /** Which leaf the panel is on: a descriptive book's left, beside its writing, and a linking book's right. */
     private val panelPage = LecternBooks.panelPageOf(book) ?: BookPage.LEFT
@@ -91,7 +96,7 @@ class BookScreen(
         KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(held)
         if (held is BookBeingRead.OnALectern) addTheLecternsButtons(held.pos)
-        if (held is BookBeingRead.InAFinder) addTheFindersButtons(held.pos)
+        if (held is BookBeingRead.OnAStand) addTheStandsButtons(held)
         // Once, not on every `init`, which a resized window calls again and would open the book in hand again.
         if (held is BookBeingRead.InHand && !hasToldTheServerItIsOpen) {
             sendToServer(BookHeldOpen(held.hand))
@@ -119,22 +124,27 @@ class BookScreen(
         row.visitWidgets(::addRenderableWidget)
     }
 
-    /** Under a book a finder's frame holds open: **Done**, **Take Book**, and **Send Back**, which files it home. */
-    private fun addTheFindersButtons(pos: BlockPos) {
+    /**
+     * Under a book lying open on a stand of ours, as under a lectern's: **Done**, **Take Book**, and **Close Book** — or
+     * on a book finder, **Send Back**, which shuts it and files it home.
+     */
+    private fun addTheStandsButtons(onAStand: BookBeingRead.OnAStand) {
         val row = LinearLayout.horizontal().spacing(BUTTON_GAP)
         Button.builder(CommonComponents.GUI_DONE) { onClose() }.width(BUTTON_WIDTH).build().also(row::addChild)
-        Button.builder(Component.translatable(TAKE_BOOK)) { askedTheFinder(pos, FinderAsked.TAKE) }
+        Button.builder(Component.translatable(TAKE_BOOK)) { askedTheStand(onAStand, StandAsked.TAKE) }
             .width(BUTTON_WIDTH).build().also(row::addChild)
-        val shortcut = Component.translatable(SEND_BACK_SHORTCUT, Component.keybind(SNEAK_KEY), Component.keybind(USE_KEY))
-        Button.builder(Component.translatable(SEND_BACK)) { askedTheFinder(pos, FinderAsked.SEND_BACK) }
+        val isAFinder = Minecraft.getInstance().level?.getBlockEntity(onAStand.pos) is BookFinderBlockEntity
+        val (closes, shortcutKey) = if (isAFinder) SEND_BACK to SEND_BACK_SHORTCUT else CLOSE_BOOK to CLOSE_BOOK_SHORTCUT
+        val shortcut = Component.translatable(shortcutKey, Component.keybind(SNEAK_KEY), Component.keybind(USE_KEY))
+        Button.builder(Component.translatable(closes)) { askedTheStand(onAStand, StandAsked.CLOSE) }
             .width(BUTTON_WIDTH).tooltip(Tooltip.create(shortcut)).build().also(row::addChild)
         row.arrangeElements()
         row.setPosition((width - row.width) / 2, (height + HEIGHT) / 2 + UNDER_THE_BOOK)
         row.visitWidgets(::addRenderableWidget)
     }
 
-    private fun askedTheFinder(pos: BlockPos, asked: FinderAsked) {
-        sendToServer(BookFinderAskPayload(pos, asked))
+    private fun askedTheStand(onAStand: BookBeingRead.OnAStand, asked: StandAsked) {
+        sendToServer(BookStandAskPayload(onAStand.pos, onAStand.place, asked))
         onClose()
     }
 
@@ -488,8 +498,8 @@ class BookScreen(
             return true
         }
         val clickedThePanel = spread == 0 && overPanel(event.x, event.y)
-        if (clickedThePanel && held is BookBeingRead.InHand) {
-            sendToServer(LinkRequest(held.hand))
+        if (clickedThePanel && linksFromThePanel) {
+            sendToServer(if (held is BookBeingRead.InHand) LinkRequest(held.hand) else LinkFromAnOpenBook(held))
             handingTheLinkOver = true
             LinkTransitOpener.begin(held)
             return true

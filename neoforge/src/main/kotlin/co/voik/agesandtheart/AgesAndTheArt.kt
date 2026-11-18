@@ -89,6 +89,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onIncomingDamage)
         NeoForge.EVENT_BUS.addListener(::onStartTracking)
         NeoForge.EVENT_BUS.addListener(::onEntityInteract)
+        NeoForge.EVENT_BUS.addListener(::onRightClickBlock)
         NeoForge.EVENT_BUS.addListener(::onLivingDrops)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
@@ -338,6 +339,12 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         CommonSetup.playerChangedLevel(player, player.level())
     }
 
+    private fun onRightClickBlock(event: PlayerInteractEvent.RightClickBlock) {
+        val result = CommonSetup.blockUsed(event.entity, event.level, event.hand, event.hitVec) ?: return
+        event.cancellationResult = result
+        event.isCanceled = true
+    }
+
     private fun onEntityInteract(event: PlayerInteractEvent.EntityInteract) {
         val result = CommonSetup.entityUsed(event.entity, event.level, event.hand, event.target) ?: return
         event.cancellationResult = result
@@ -424,7 +431,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     }
 
     private companion object {
-        const val PAYLOAD_VERSION = "8"
+        const val PAYLOAD_VERSION = "9"
     }
 }
 

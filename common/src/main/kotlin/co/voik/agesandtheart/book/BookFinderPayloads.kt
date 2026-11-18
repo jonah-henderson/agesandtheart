@@ -3,19 +3,25 @@ package co.voik.agesandtheart.book
 import co.voik.agesandtheart.Constants
 import io.netty.buffer.ByteBuf
 import net.minecraft.core.BlockPos
+import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.item.ItemStack
 
-/** One book on a finder's wall, as its list shows it: where it is, and what it is called. */
-data class FinderBook(val shelf: BlockPos, val slot: Int, val name: String) {
+/**
+ * One book on a finder's wall, as its list shows it: where it is, what it is called and searched by, and the book itself
+ * as a client may see it, for the tooltip it would have in an inventory.
+ */
+data class FinderBook(val shelf: BlockPos, val slot: Int, val name: String, val book: ItemStack) {
     companion object {
-        val STREAM_CODEC: StreamCodec<ByteBuf, FinderBook> = StreamCodec.composite(
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, FinderBook> = StreamCodec.composite(
             BlockPos.STREAM_CODEC, FinderBook::shelf,
             ByteBufCodecs.VAR_INT, FinderBook::slot,
             ByteBufCodecs.STRING_UTF8, FinderBook::name,
+            ItemStack.STREAM_CODEC, FinderBook::book,
             ::FinderBook,
         )
     }
@@ -30,7 +36,7 @@ data class BookFinderListPayload(val finder: BlockPos, val books: List<FinderBoo
         val TYPE: CustomPacketPayload.Type<BookFinderListPayload> =
             CustomPacketPayload.Type(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "book_finder_list"))
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, BookFinderListPayload> = StreamCodec.composite(
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, BookFinderListPayload> = StreamCodec.composite(
             BlockPos.STREAM_CODEC, BookFinderListPayload::finder,
             FinderBook.STREAM_CODEC.apply(ByteBufCodecs.list()), BookFinderListPayload::books,
             ::BookFinderListPayload,
@@ -55,27 +61,5 @@ data class BookFinderFetchPayload(val finder: BlockPos, val shelf: BlockPos, val
         )
 
         fun handle(player: ServerPlayer, payload: BookFinderFetchPayload) = BookFinders.handleFetch(player, payload)
-    }
-}
-
-/** What a reader asks of the book a finder holds open, from its screen. */
-data class BookFinderAskPayload(val finder: BlockPos, val asked: FinderAsked) : CustomPacketPayload {
-
-    override fun type(): CustomPacketPayload.Type<BookFinderAskPayload> = TYPE
-
-    companion object {
-        val TYPE: CustomPacketPayload.Type<BookFinderAskPayload> =
-            CustomPacketPayload.Type(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "book_finder_ask"))
-
-        private val ASKED: StreamCodec<ByteBuf, FinderAsked> =
-            ByteBufCodecs.VAR_INT.map({ FinderAsked.entries[it] }, FinderAsked::ordinal)
-
-        val STREAM_CODEC: StreamCodec<ByteBuf, BookFinderAskPayload> = StreamCodec.composite(
-            BlockPos.STREAM_CODEC, BookFinderAskPayload::finder,
-            ASKED, BookFinderAskPayload::asked,
-            ::BookFinderAskPayload,
-        )
-
-        fun handle(player: ServerPlayer, payload: BookFinderAskPayload) = BookFinders.handleAsked(player, payload)
     }
 }

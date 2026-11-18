@@ -44,7 +44,7 @@ object LecternBooks {
     const val PANEL_HELD_WITHIN_BLOCKS = REACH_BLOCKS + 4.0
 
     /** How long an open book goes between looking round for a reader, so "a few minutes" is at most this. */
-    private const val TICKS_BETWEEN_LOOKS_ROUND = 3 * 60 * 20
+    const val TICKS_BETWEEN_LOOKS_ROUND = 3 * 60 * 20
 
     /** Vanilla's own key, so its `loadAdditional` reads what this writes with no seam of ours on the client. */
     private const val BOOK_KEY = "Book"

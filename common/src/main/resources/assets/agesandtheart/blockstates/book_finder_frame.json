@@ -1,0 +1,20 @@
+{
+  "_comment": "[AI] A stand-in rim of oxidized copper until the asset pass, modelled facing north with its back against the shelf to the south. Only the rim is solid, so the shelf's slots are clicked through it.",
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart:block/book_finder_frame"
+    },
+    "facing=east": {
+      "model": "agesandtheart:block/book_finder_frame",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart:block/book_finder_frame",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart:block/book_finder_frame",
+      "y": 270
+    }
+  }
+}

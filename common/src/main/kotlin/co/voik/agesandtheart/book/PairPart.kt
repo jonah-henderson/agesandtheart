@@ -4,7 +4,7 @@ import net.minecraft.util.StringRepresentable
 
 /**
  * One of the two blocks of something placed two at a time, as a bed or a door is: a large book wheel, a carousel, a
- * paternoster's base or cap. The first — the left, as its front is seen, or the lower — is the one that holds what it
+ * book lift's frame. The first — the left, as its front is seen, or the lower — is the one that holds what it
  * holds; the second is the rest of it.
  */
 enum class PairPart(private val key: String, val isFirst: Boolean) : StringRepresentable {

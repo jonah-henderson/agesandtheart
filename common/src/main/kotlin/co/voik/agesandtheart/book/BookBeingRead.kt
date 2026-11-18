@@ -29,8 +29,8 @@ sealed interface BookBeingRead {
     /** A book another player is reading in [hand], by the id the server and its clients share for them ([BookHeldOpen]). */
     data class InAnothersHand(val holderId: Int, val hand: InteractionHand) : BookBeingRead
 
-    /** A book held open by the frame of the book finder at [pos] ([BookFinderBlockEntity]). */
-    data class InAFinder(val pos: BlockPos) : BookBeingRead
+    /** A book lying open at [place] on a stand of ours at [pos] ([BookStand]): a wheel, a book lift or a finder. */
+    data class OnAStand(val pos: BlockPos, val place: Int) : BookBeingRead
 
     /** The sentence laid out at a desk, through the crystal viewer whose menu the writer has open. */
     data object AtACrystalViewer : BookBeingRead
@@ -41,7 +41,7 @@ sealed interface BookBeingRead {
         private const val AT_A_CRYSTAL_VIEWER = 2
         private const val ON_THE_GROUND = 3
         private const val IN_ANOTHERS_HAND = 4
-        private const val IN_A_FINDER = 5
+        private const val ON_A_STAND = 5
 
         val STREAM_CODEC: StreamCodec<ByteBuf, BookBeingRead> = StreamCodec.of(
             { buffer, book -> encode(buffer, book) },
@@ -67,9 +67,10 @@ sealed interface BookBeingRead {
                     ByteBufCodecs.VAR_INT.encode(buffer, book.holderId)
                     ByteBufCodecs.VAR_INT.encode(buffer, book.hand.ordinal)
                 }
-                is InAFinder -> {
-                    ByteBufCodecs.VAR_INT.encode(buffer, IN_A_FINDER)
+                is OnAStand -> {
+                    ByteBufCodecs.VAR_INT.encode(buffer, ON_A_STAND)
                     BlockPos.STREAM_CODEC.encode(buffer, book.pos)
+                    ByteBufCodecs.VAR_INT.encode(buffer, book.place)
                 }
                 AtACrystalViewer -> ByteBufCodecs.VAR_INT.encode(buffer, AT_A_CRYSTAL_VIEWER)
             }
@@ -83,7 +84,7 @@ sealed interface BookBeingRead {
                 }
                 ON_A_LECTERN -> OnALectern(BlockPos.STREAM_CODEC.decode(buffer))
                 ON_THE_GROUND -> OnTheGround(ByteBufCodecs.VAR_INT.decode(buffer))
-                IN_A_FINDER -> InAFinder(BlockPos.STREAM_CODEC.decode(buffer))
+                ON_A_STAND -> OnAStand(BlockPos.STREAM_CODEC.decode(buffer), ByteBufCodecs.VAR_INT.decode(buffer))
                 IN_ANOTHERS_HAND -> {
                     val holderId = ByteBufCodecs.VAR_INT.decode(buffer)
                     val ordinal = ByteBufCodecs.VAR_INT.decode(buffer)

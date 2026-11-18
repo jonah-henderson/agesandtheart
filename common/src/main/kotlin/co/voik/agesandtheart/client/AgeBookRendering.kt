@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.book.BookBinding
+import co.voik.agesandtheart.book.LecternBooks
+import net.minecraft.client.model.`object`.book.BookModel
+import net.minecraft.client.renderer.blockentity.EnchantTableRenderer
 import co.voik.agesandtheart.content.AgeComponents
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.SubmitNodeCollector
@@ -11,10 +14,12 @@ import net.minecraft.util.ARGB
 import net.minecraft.world.item.ItemStack
 
 /**
- * What a book of ours looks like from outside: how it is bound, the colour its binding is dyed, whether its right-hand
- * page is written on, the banner it wears, and the name on it in its colour, glowing or not.
+ * What a book looks like from outside. One of ours: how it is bound, the colour its binding is dyed, whether its
+ * right-hand page is written on, the banner it wears, and the name on it in its colour, glowing or not. Any other — an
+ * enchanted book, a book and quill — is [isOurs] false, and drawn as vanilla's enchanting table book.
  */
 data class BookLook(
+    val isOurs: Boolean,
     val binding: BookBinding,
     val bindingColour: Int,
     val writtenOnTheRight: Boolean,
@@ -25,6 +30,7 @@ data class BookLook(
 ) {
     companion object {
         fun of(book: ItemStack): BookLook = BookLook(
+            LecternBooks.isOurs(book),
             BookBinding.of(book),
             book.get(DataComponents.DYED_COLOR)?.let { ARGB.opaque(it.rgb) } ?: UNDYED,
             AgeBookModel.writtenOnTheRight(book),
@@ -49,10 +55,15 @@ data class BookLook(
     }
 }
 
-/** A book of ours drawn as it looks — the model, the banner over its binding, the name on it — wherever it lies. */
+/**
+ * A book drawn as it looks — the model, the banner over its binding, the name on it — wherever it lies; and a book not
+ * ours as vanilla's enchanting table book (Jonah, 2026-11-19), posed the same, since our model is laid out as vanilla's.
+ */
 class AgeBookRendering(private val sprites: SpriteGetter) {
 
     private val models = BookBinding.entries.associateWith { AgeBookModel(AgeBookModel.createLayer(it).bakeRoot(), it) }
+
+    private val vanillaBook = BookModel(BookModel.createBodyLayer().bakeRoot())
 
     fun modelFor(binding: BookBinding): AgeBookModel = models.getValue(binding)
 
@@ -65,6 +76,14 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
         overlayCoords: Int = OverlayTexture.NO_OVERLAY,
         outlineColor: Int = NO_OUTLINE,
     ) {
+        if (!look.isOurs) {
+            // Vanilla's book opens by its boards' angle, in radians; ours by a share of a quarter turn.
+            val vanillaState = BookModel.State(state.openness * QUARTER_TURN_RADIANS, VANILLA_FIRST_LEAF, VANILLA_SECOND_LEAF)
+            collector.submitModel(
+                vanillaBook, vanillaState, poseStack, lightCoords, overlayCoords, UNTINTED, EnchantTableRenderer.BOOK_TEXTURE, sprites, outlineColor,
+            )
+            return
+        }
         val model = modelFor(look.binding)
         val renderType = model.renderType(AgeBookModel.TEXTURE)
         val pages = state.copy(drawn = AgeBookModel.Drawn.PAGES, writtenOnTheRight = look.writtenOnTheRight)
@@ -79,5 +98,10 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
     private companion object {
         const val NO_OUTLINE = 0
         const val UNTINTED = -1
+        const val QUARTER_TURN_RADIANS = (Math.PI / 2).toFloat()
+
+        /** Where vanilla's lectern holds its book's two loose leaves. */
+        const val VANILLA_FIRST_LEAF = 0.1f
+        const val VANILLA_SECOND_LEAF = 0.9f
     }
 }

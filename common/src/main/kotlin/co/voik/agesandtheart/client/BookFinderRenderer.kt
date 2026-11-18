@@ -1,22 +1,16 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.book.BinderClamps
-import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookBinding
 import co.voik.agesandtheart.book.BookFinderBlockEntity
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.book.BookbinderBlock
 import co.voik.agesandtheart.book.FrameTask
-import co.voik.agesandtheart.book.LecternBookPlane
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.WallPoint
-import co.voik.agesandtheart.client.panel.BookMaps
-import co.voik.agesandtheart.client.panel.OpenBookPanels
-import co.voik.agesandtheart.client.panel.PanelComposite
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.math.Axis
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.block.BlockModelRenderState
 import net.minecraft.client.renderer.block.BlockModelResolver
@@ -25,7 +19,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer
-import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
@@ -53,8 +46,7 @@ class BookFinderRenderState : BlockEntityRenderState() {
     var look: BookLook? = null
     var binding: BookBinding = BookBinding.THICK
     var panelPage: BookPage? = null
-    var isTheShownOne: Boolean = false
-    var mapPicture: RenderType? = null
+    var panel: OpenOnAStand.Panel? = null
     var frameLight: Int = 0
     val press = BlockModelRenderState()
 }
@@ -112,19 +104,8 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
 
     /** As a lectern's: the panel the client shows, or the mist, or where panels are maps, the book's own map. */
     private fun extractThePanel(finder: BookFinderBlockEntity, state: BookFinderRenderState) {
-        state.isTheShownOne = false
-        state.mapPicture = null
-        if (state.panelPage == null || openness(state) <= 0.0f) return
-        val thisBook = BookBeingRead.InAFinder(finder.blockPos)
-        val inThePlayersWorld = finder.level === Minecraft.getInstance().level
-        if (BookMaps.isOn) {
-            state.mapPicture = if (inThePlayersWorld) BookMaps.pictureOnAPage(thisBook) else null
-            if (state.mapPicture == null) OpenBookPanels.sawAMistedBook()
-            return
-        }
-        state.isTheShownOne = inThePlayersWorld && state.task == FrameTask.PRESENTING && OpenBookPanels.shown == thisBook
-        if (state.isTheShownOne) OpenBookPanels.sawTheShownBook() else OpenBookPanels.sawAMistedBook()
-        if (state.isTheShownOne && PanelComposite.liveView() == null) OpenBookPanels.sawAMistedBook()
+        state.panel = if (state.panelPage == null || openness(state) <= 0.0f) null
+        else OpenOnAStand.panelOf(finder.level, finder.blockPos, BookFinderBlockEntity.PLACE)
     }
 
     override fun shouldRenderOffScreen(): Boolean = true
@@ -144,14 +125,10 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         val look = state.look ?: return
         val open = openness(state)
         val bookPose = bookPose(state, frame, open)
-        val bookState = BookOnTheSlope.bookAt(open)
         val light = if (state.task.travels || state.task == FrameTask.PULLING || state.task == FrameTask.PUSHING) state.frameLight else state.lightCoords
         poseStack.pushPose()
         poseStack.mulPose(bookPose)
-        rendering.submit(look, bookState, poseStack, collector, light)
-        state.panelPage?.takeIf { open > 0.0f }?.let { page ->
-            PanelOnThePage.submit(page, state.isTheShownOne, state.mapPicture, rendering.modelFor(look.binding), bookState, poseStack, collector)
-        }
+        OpenOnAStand.submit(rendering, look, state.panelPage, state.panel, open, poseStack, collector, light)
         poseStack.popPose()
     }
 
@@ -194,14 +171,10 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         return Matrix4f(pose.last().pose())
     }
 
-    /** As a lectern holds a book [open] of the way open, lowered to the middle of the finder's space. */
+    /** As a lectern holds a book [open] of the way open, in the middle of the finder's space. */
     private fun heldOpen(state: BookFinderRenderState, open: Float): Matrix4f {
         val pose = PoseStack()
-        pose.translate(MIDDLE.toDouble(), LecternBookPlane.CENTRE_HEIGHT + BOOK_LOWER_THAN_A_LECTERNS, MIDDLE.toDouble())
-        pose.rotate(Axis.YP.rotationDegrees(-state.facing.clockWise.toYRot()))
-        pose.rotate(Axis.ZP.rotationDegrees(LecternBookPlane.TILT_DEGREES.toFloat()))
-        pose.translate(-LecternBookPlane.ONTO_THE_SLOPE, -LecternBookPlane.DOWN_THE_SLOPE, 0.0)
-        BookOnTheSlope.layOnItsBack(open, state.binding, pose)
+        OpenOnAStand.poseOpen(pose, HELD_AT, OpenOnAStand.readerYRotOf(state.facing), state.binding, open)
         return Matrix4f(pose.last().pose())
     }
 
@@ -253,8 +226,8 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         /** How much of its turning the book spends coming from the clamps to the slope, before it opens. */
         const val TURNED_AT = 0.5f
 
-        /** As the finder holds it, from `BookFinderBlockEntity`. */
-        const val BOOK_LOWER_THAN_A_LECTERNS = 0.5 - LecternBookPlane.CENTRE_HEIGHT
+        /** The middle of the finder's own space, where its frame holds a book open (`BookFinderBlockEntity.openBookPose`). */
+        val HELD_AT = Vec3(0.5, 0.5, 0.5)
 
         /** A chiselled shelf's slots: three across, from the left, and two rows, the top first. */
         const val SLOT_COLUMNS = 3

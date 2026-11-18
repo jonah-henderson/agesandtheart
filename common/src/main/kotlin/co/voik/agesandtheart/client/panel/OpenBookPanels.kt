@@ -2,8 +2,7 @@ package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
-import co.voik.agesandtheart.book.BookFinderBlockEntity
-import co.voik.agesandtheart.book.FrameTask
+import co.voik.agesandtheart.book.BookStand
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LecternOpening
 import co.voik.agesandtheart.book.NearbyOpenBook
@@ -56,7 +55,7 @@ object OpenBookPanels {
     /** The book lying open that is being shown, or null while the panel is a hand's or nobody's. */
     val shown: BookBeingRead?
         get() = when (val book = LinkingPanel.showingFor) {
-            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand, is BookBeingRead.InAFinder -> book
+            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand, is BookBeingRead.OnAStand -> book
             is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer, null -> null
         }
 
@@ -177,28 +176,29 @@ object OpenBookPanels {
         for (chunkX in nearCorner.x..farCorner.x) {
             for (chunkZ in nearCorner.z..farCorner.z) {
                 val chunk = level.chunkSource.getChunk(chunkX, chunkZ, false) ?: continue
-                chunk.blockEntities.values.mapNotNullTo(found) { nearbyIfOpen(it, viewer, reach) }
+                chunk.blockEntities.values.flatMapTo(found) { nearbyIfOpen(it, viewer, reach) }
             }
         }
         return found
     }
 
-    private fun nearbyIfOpen(entity: BlockEntity, viewer: Vec3, reach: Double): NearbyOpenBook? {
-        if (entity is BookFinderBlockEntity) return nearbyIfHeldOpen(entity, viewer, reach)
-        val lectern = entity as? LecternBlockEntity ?: return null
+    private fun nearbyIfOpen(entity: BlockEntity, viewer: Vec3, reach: Double): List<NearbyOpenBook> {
+        if (entity is BookStand) return openOnAStand(entity, entity.blockPos, viewer, reach)
+        val lectern = entity as? LecternBlockEntity ?: return emptyList()
         val holdsAnOpenBookOfOurs = LecternBooks.isOurs(lectern.book) && LecternOpening.isOpen(lectern.blockState)
-        if (!holdsAnOpenBookOfOurs) return null
+        if (!holdsAnOpenBookOfOurs) return emptyList()
         val distance = viewer.distanceTo(Vec3.atCenterOf(lectern.blockPos))
-        return if (distance <= reach) NearbyOpenBook(BookBeingRead.OnALectern(lectern.blockPos), distance) else null
+        return if (distance <= reach) listOf(NearbyOpenBook(BookBeingRead.OnALectern(lectern.blockPos), distance)) else emptyList()
     }
 
-    /** A book of ours a finder's frame holds open, which shows its panel as one on a lectern does. */
-    private fun nearbyIfHeldOpen(finder: BookFinderBlockEntity, viewer: Vec3, reach: Double): NearbyOpenBook? {
-        val holdsAnOpenBookOfOurs = finder.task == FrameTask.PRESENTING && LecternBooks.isOurs(finder.carried)
-        if (!holdsAnOpenBookOfOurs) return null
-        val distance = viewer.distanceTo(Vec3.atCenterOf(finder.blockPos))
-        return if (distance <= reach) NearbyOpenBook(BookBeingRead.InAFinder(finder.blockPos), distance) else null
-    }
+    /** The books of ours lying open on a stand of ours, which show their panels as one on a lectern does. */
+    private fun openOnAStand(stand: BookStand, pos: BlockPos, viewer: Vec3, reach: Double): List<NearbyOpenBook> =
+        stand.panelCandidates().mapNotNull { place ->
+            val book = stand.openBookAt(place) ?: return@mapNotNull null
+            if (!LecternBooks.isOurs(book)) return@mapNotNull null
+            val distance = viewer.distanceTo(stand.openBookPose(place).middle)
+            if (distance <= reach) NearbyOpenBook(BookBeingRead.OnAStand(pos, place), distance) else null
+        }
 
     /** Books of ours other players near have open in a hand, which show their panels as books lying open do. */
     private fun booksHeldOpenNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> {

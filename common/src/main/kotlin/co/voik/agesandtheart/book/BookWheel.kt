@@ -1,6 +1,11 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.location
+import kotlin.math.sin
+import kotlin.math.cos
+import net.minecraft.world.phys.Vec3
+import net.minecraft.server.level.ServerPlayer
+import com.mojang.serialization.Codec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.HolderLookup
@@ -138,9 +143,11 @@ enum class WheelForm(
  * A book wheel (design §7.8.3): books on trays round a wheel turned by hand, and taken and shelved only at
  * the front, which is what makes it a wheel rather than a round chiselled shelf.
  *
- * Used on its front, it shelves a book on the front tray or takes the one there, as a chiselled shelf does; used on a
- * face that shows another tray, it turns that tray round to the front the short way; used on an end of its axle, it
- * turns a tray on, or back when sneaking. Breaking it drops its books, as a chest does.
+ * Used on its front with a book in hand, it shelves the book on the front tray's empty place; a book there is a
+ * lectern's ([BookStands]): opened, read and linked from where it lies, and taken with its screen's Take Book. A book
+ * left open stays open as the wheel turns, carried round level, as on Ramelli's. Used on a face that shows another tray,
+ * it turns that tray round to the front the short way; used on an end of its axle, it turns a tray on, or back when
+ * sneaking. Breaking it drops its books, as a chest does.
  *
  * Each block is a whole box, so the face a click lands on is the face of the wheel it means; the art may draw less.
  */
@@ -216,8 +223,13 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
     /** The wheel turns on the client, catching up with the tray the server has at the front ([WheelTurning]). */
+    /** On a client the wheel's drawing catches up with it; on the server its open books are shut when left unwatched. */
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
-        if (level.isClientSide) createTickerHelper(type, BookWheels.ENTITY) { _, _, _, wheel -> wheel.turnTheWheel() } else null
+        if (level.isClientSide) {
+            createTickerHelper(type, BookWheels.ENTITY) { _, _, _, wheel -> wheel.turnTheWheel() }
+        } else {
+            createTickerHelper(type, BookWheels.ENTITY) { _, _, _, wheel -> wheel.lookRound() }
+        }
 
     override fun useItemOn(
         stack: ItemStack,
@@ -253,14 +265,20 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
             return InteractionResult.SUCCESS
         }
         val along = form.part?.let { state.getValue(it).along } ?: 0
-        val atTheFront = wheel.atTheFront(along)
+        val slot = wheel.slotOf(wheel.frontTray, along)
+        val atTheFront = wheel.bookIn(slot)
         if (atTheFront.isEmpty) {
             if (held.isEmpty) return InteractionResult.PASS
             if (!level.isClientSide) wheel.shelve(along, held.consumeAndReturn(1, player))
             return InteractionResult.SUCCESS
         }
-        if (!level.isClientSide) player.inventory.placeItemBackInInventory(wheel.take(along), Prediction.SERVER_ONLY)
-        return InteractionResult.SUCCESS
+        // A high-capacity lectern (Jonah): the book at the front is opened, read, linked from and shut there.
+        return BookStands.use(
+            level, wheel, slot, atTheFront, player, hitResult,
+            open = { wheel.open(slot) },
+            close = { wheel.close(slot) },
+            take = { player.inventory.placeItemBackInInventory(wheel.take(slot), Prediction.SERVER_ONLY) },
+        )
     }
 
     override fun rotate(state: BlockState, rotation: Rotation): BlockState = state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
@@ -303,7 +321,7 @@ class BookCarouselBlock(properties: Properties) : BookWheelBlock(properties) {
  * A wheel's books, by slot, a tray's books side by side ([WheelForm.booksPerTray]) and the trays in order round; and
  * which tray is at the front. Only the server turns it; every client turns its own drawing after ([WheelTurning]).
  */
-class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookWheels.ENTITY, pos, state) {
+class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookWheels.ENTITY, pos, state), BookStand {
 
     val form: WheelForm = (state.block as BookWheelBlock).form
 
@@ -319,6 +337,59 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
 
     /** How the wheel stands on this client; never saved or sent. */
     val turning = WheelTurning()
+
+    /** The slots whose books lie open. */
+    private val opened = HashSet<Int>()
+
+    fun isOpen(slot: Int): Boolean = slot in opened
+
+    override fun openBookAt(place: Int): ItemStack? = books.getOrNull(place)?.takeIf { place in opened && !it.isEmpty }
+
+    override fun openPlaces(): Collection<Int> = opened.toList()
+
+    /**
+     * Only the books at the front, where they are read; and of a carousel's two tiers only the upper one, since its model
+     * will have one (Jonah, 2026-11-19).
+     */
+    override fun panelCandidates(): Collection<Int> {
+        val places = (0 until form.booksPerTray).map { slotOf(frontTray, it) }
+        val read = if (form.axle == WheelAxle.UPRIGHT) places.takeLast(1) else places
+        return read.filter { it in opened }
+    }
+
+    /** Lying on its tray where the tray rests, as a lectern would hold it, read from the front. */
+    override fun openBookPose(place: Int): OpenBookPose {
+        val round = (place / form.booksPerTray - frontTray) * WheelTrays.QUARTER_TURN
+        val middle = WheelTrays.openBookMiddle(form, facing, place % form.booksPerTray, round)
+        return OpenBookPose(WheelTrays.outwardFacing(form, facing, round), Vec3.atLowerCornerOf(blockPos).add(middle))
+    }
+
+    override fun answer(player: ServerPlayer, place: Int, asked: StandAsked) {
+        when (asked) {
+            StandAsked.TAKE -> if (!books[place].isEmpty) player.inventory.placeItemBackInInventory(take(place), Prediction.SERVER_ONLY)
+            StandAsked.CLOSE -> close(place)
+        }
+    }
+
+    val facing: Direction get() = blockState.getValue(BookWheelBlock.FACING)
+
+    fun open(slot: Int) {
+        if (opened.add(slot)) changed()
+    }
+
+    fun close(slot: Int) {
+        if (!opened.remove(slot)) return
+        play(SoundEvents.BOOK_PAGE_TURN)
+        changed()
+    }
+
+    /** Its open books shut where nobody is near to read them, as a lectern's are. */
+    fun lookRound() {
+        val level = level as? ServerLevel ?: return
+        if (opened.isEmpty() || !BookStands.isTimeToLookRound(level) || BookStands.anybodyNear(level, blockPos)) return
+        opened.clear()
+        changed()
+    }
 
     fun bookIn(slot: Int): ItemStack = books[slot]
 
@@ -338,11 +409,11 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
         changed()
     }
 
-    /** The book in the front tray's place [along], taken off it. */
-    fun take(along: Int): ItemStack {
-        val slot = slotOf(frontTray, along)
+    /** The book in [slot], taken off its tray, and shut. */
+    fun take(slot: Int): ItemStack {
         val taken = books[slot]
         books[slot] = ItemStack.EMPTY
+        opened.remove(slot)
         val enchanted = taken.`is`(Items.ENCHANTED_BOOK)
         play(if (enchanted) SoundEvents.CHISELED_BOOKSHELF_PICKUP_ENCHANTED else SoundEvents.CHISELED_BOOKSHELF_PICKUP)
         changed()
@@ -377,6 +448,8 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
         books.clear()
         ContainerHelper.loadAllItems(input, books)
         frontTray = Math.floorMod(input.getIntOr(FRONT_KEY, 0), WheelForm.TRAYS)
+        opened.clear()
+        input.read(OPEN_KEY, Codec.INT.listOf()).ifPresent { slots -> opened += slots.filter { it in 0 until form.books } }
         lastTurn = if (input.getIntOr(LAST_TURN_KEY, 1) < 0) -1 else 1
     }
 
@@ -385,6 +458,7 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
         ContainerHelper.saveAllItems(output, books, true)
         output.putInt(FRONT_KEY, frontTray)
         output.putInt(LAST_TURN_KEY, lastTurn)
+        output.store(OPEN_KEY, Codec.INT.listOf(), opened.sorted())
     }
 
     override fun getUpdatePacket(): Packet<ClientGamePacketListener> = ClientboundBlockEntityDataPacket.create(this)
@@ -394,6 +468,7 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
     private companion object {
         const val FRONT_KEY = "front"
         const val LAST_TURN_KEY = "last_turn"
+        const val OPEN_KEY = "open"
     }
 }
 
@@ -435,6 +510,51 @@ class WheelTurning {
         /** A quarter turn in half a second. */
         const val TRAYS_A_TICK = 0.1f
     }
+}
+
+/**
+ * Where a wheel's trays carry their books, in blocks from the corner of the block holding them and in the world's axes,
+ * for the renderer and for a book lying open there alike. The art sets these, with its model's trays.
+ */
+object WheelTrays {
+    /** From the axle to where a tray carries its book. */
+    const val RADIUS = 4.5 / 16.0
+
+    /** A carousel's tier floor, above the bottom of its block. */
+    const val TIER_FLOOR = 2.0 / 16.0
+
+    /** How far above its tray an open book's middle stands. */
+    const val OPEN_ABOVE_THE_TRAY = 3.0 / 16.0
+
+    const val QUARTER_TURN = Math.PI / 2
+
+    /** Where place [along] of the tray [round] radians round from the front is: over the top, or to the right. */
+    fun trayMiddle(form: WheelForm, facing: Direction, along: Int, round: Double): Vec3 {
+        val forward = Vec3(facing.stepX.toDouble(), 0.0, facing.stepZ.toDouble())
+        val right = facing.counterClockWise.let { Vec3(it.stepX.toDouble(), 0.0, it.stepZ.toDouble()) }
+        val middle = Vec3(HALF, HALF, HALF)
+        return when (form.axle) {
+            WheelAxle.ACROSS -> middle.add(right.scale(along.toDouble()))
+                .add(forward.scale(RADIUS * cos(round))).add(0.0, RADIUS * sin(round), 0.0)
+            WheelAxle.UPRIGHT -> Vec3(HALF, along + TIER_FLOOR, HALF)
+                .add(forward.scale(RADIUS * cos(round))).add(right.scale(RADIUS * sin(round)))
+        }
+    }
+
+    fun openBookMiddle(form: WheelForm, facing: Direction, along: Int, round: Double): Vec3 =
+        trayMiddle(form, facing, along, round).add(0.0, OPEN_ABOVE_THE_TRAY, 0.0)
+
+    /** Which way a book open on the tray [round] radians round is read from: the front, or out from a carousel's axle. */
+    fun outwardFacing(form: WheelForm, facing: Direction, round: Double): Direction = when (form.axle) {
+        WheelAxle.ACROSS -> facing
+        WheelAxle.UPRIGHT -> {
+            val quarters = Math.floorMod(Math.round(round / QUARTER_TURN).toInt(), WheelForm.TRAYS)
+            // A quarter on is the tray to the right, which faces right: anticlockwise of the front, seen from above.
+            (0 until quarters).fold(facing) { turned, _ -> turned.counterClockWise }
+        }
+    }
+
+    private const val HALF = 0.5
 }
 
 /** The book wheels' registrations, for [co.voik.agesandtheart.content.AgeContent]'s lists. */

@@ -46,6 +46,37 @@ data class LinkRequest(val hand: InteractionHand) : CustomPacketPayload {
 }
 
 /**
+ * "Take me there", from the panel of a book lying open — on a lectern, or on a stand of ours — clicked in the book's
+ * screen (Jonah, 2026-11-19), as a hand's is. The book stays where it lies. Checked on the server as a panel is: a book
+ * of ours, lying open, in reach of the player asking.
+ */
+data class LinkFromAnOpenBook(val book: BookBeingRead) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<LinkFromAnOpenBook> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<LinkFromAnOpenBook> = CustomPacketPayload.Type(
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, "link_from_an_open_book"),
+        )
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, LinkFromAnOpenBook> =
+            BookBeingRead.STREAM_CODEC.map(::LinkFromAnOpenBook, LinkFromAnOpenBook::book)
+
+        fun handle(player: ServerPlayer, request: LinkFromAnOpenBook) {
+            val level = player.level()
+            val (stack, keeper) = when (val book = request.book) {
+                is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos) to book.pos
+                is BookBeingRead.OnAStand -> BookStands.openBookSeenBy(player, book.pos, book.place) to book.pos
+                else -> null to null
+            }
+            // A descriptive book is stamped with its Age the first time it links, and whatever holds it keeps the stamp.
+            val went = stack != null && Linking.go(player, level, stack)
+            if (went) keeper?.let { level.getBlockEntity(it)?.setChanged() } else Linking.endedWithoutGoing(player)
+        }
+    }
+}
+
+/**
  * Linking: the act the whole mod is built around.
  *
  * **The book does not travel.** From a hand it is spent to the spot you were standing on, which is what

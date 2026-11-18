@@ -29,6 +29,7 @@ import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.page.PageLearning
+import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.panel.PanelMapViews
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
@@ -54,6 +55,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.DispenserBlock
 import net.minecraft.world.InteractionHand
+import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
@@ -202,6 +204,10 @@ object CommonSetup {
     /** A player using [entity] with [hand], on either side, before vanilla does — or null to leave it to vanilla. */
     fun entityUsed(player: Player, level: Level, hand: InteractionHand, entity: Entity): InteractionResult? =
         Taming.used(player, level, hand, entity)
+
+    /** A player using a block with [hand], on either side, before the block is asked — or null to leave it to vanilla. */
+    fun blockUsed(player: Player, level: Level, hand: InteractionHand, hitResult: BlockHitResult): InteractionResult? =
+        BookFinders.placedOnAShelf(player, level, hand, hitResult)
 
     /** Whether [victim] is to be hurt by [source] at all, asked by each loader before any damage is dealt. */
     fun livingWouldBeHurt(victim: LivingEntity, source: DamageSource): Boolean =

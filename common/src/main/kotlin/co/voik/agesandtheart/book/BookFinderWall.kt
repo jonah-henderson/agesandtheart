@@ -56,26 +56,72 @@ data class FramePath(val points: List<WallPoint>) {
         return points.last()
     }
 
+    /** The same way travelled the other way, as the frame comes home by the way it went. */
+    fun reversed(): FramePath = FramePath(points.reversed())
+
     companion object {
         /**
-         * The way from [from] to [to] over [room], or null where there is none.
+         * The way from [from] to [to] over [room], or null where there is none: always on the grid of shelves, a space at
+         * a time to a side or up or down, never across a corner of the wall where there is no shelf (Jonah, 2026-11-19).
          *
-         * Where it fits, a curve (Jonah, 2026-11-18): it sets off upright, bends, and comes in level, arriving on a
-         * move along the wall rather than up or down it — the height covered as the square root of the distance along.
-         * Where something stands in the curve's way, a walk from space to space, the last step into [to] along the
-         * wall where it can be.
+         * Where it fits, the grid's reading of a curve (Jonah, 2026-11-18): the height covered as the square root of the
+         * distance along, so it sets off up or down the wall, steps across it in a staircase as it bends, and comes in
+         * on long runs along it, arriving on a move along the wall. Where something stands in the curve's way, the walk
+         * from space to space through the wall, curved wherever there is room along it (Jonah, 2026-11-19): from each
+         * space, a curve to the farthest space of the walk it reaches without leaving the wall, so a frame that must
+         * thread a narrow place first still sweeps across the open wall beyond it.
          */
         fun between(from: WallCell, to: WallCell, room: Set<WallCell>): FramePath? {
             if (from == to) return FramePath(listOf(pointOf(from), pointOf(to)))
-            val curve = curve(from, to)
-            if (curve.points.all { cellUnder(it) in room }) return curve
+            stepsOfTheCurve(from, to, room)?.let { return pathThrough(it) }
             val walk = walk(from, to, room) ?: return null
-            return FramePath(corners(walk).map(::pointOf))
+            val cells = mutableListOf(from)
+            var at = 0
+            while (at < walk.lastIndex) {
+                // The next space of the walk is a single step within the wall, so there is always one to take.
+                val farthest = (walk.lastIndex downTo at + 1).first { stepsOfTheCurve(walk[at], walk[it], room) != null }
+                cells += stepsOfTheCurve(walk[at], walk[farthest], room)!!.drop(1)
+                at = farthest
+            }
+            return pathThrough(cells)
+        }
+
+        /**
+         * The spaces the [curve] from [from] to [to] passes, each a single step from the last — where the curve crosses
+         * a corner, the step taken first is whichever side of it is a shelf, up or down before along — or null where it
+         * leaves [room].
+         */
+        fun stepsOfTheCurve(from: WallCell, to: WallCell, room: Set<WallCell>): List<WallCell>? {
+            val steps = mutableListOf(from)
+            for (point in curve(from, to).points) {
+                val next = cellUnder(point)
+                val last = steps.last()
+                if (next == last) continue
+                if (next.across != last.across && next.up != last.up) {
+                    val upFirst = WallCell(last.across, next.up)
+                    val alongFirst = WallCell(next.across, last.up)
+                    steps += if (upFirst in room) upFirst else alongFirst
+                }
+                steps += next
+            }
+            return steps.takeIf { cells -> cells.all { it in room } }
+        }
+
+        /** Through the middles of [cells], keeping only the turns, at an even pace. */
+        private fun pathThrough(cells: List<WallCell>): FramePath {
+            val turns = cells.filterIndexed { index, cell ->
+                if (index == 0 || index == cells.lastIndex) return@filterIndexed true
+                val before = cells[index - 1]
+                val after = cells[index + 1]
+                (cell.across - before.across) != (after.across - cell.across) || (cell.up - before.up) != (after.up - cell.up)
+            }
+            return FramePath(turns.map(::pointOf))
         }
 
         /**
          * From [from] to [to] as `up = √along`: drawn by `s` from 0 to 1, along the wall `s²` of the way and up it
-         * `s`, so it leaves straight up or down and arrives at half the slope of a straight line.
+         * `s`, so it leaves straight up or down and arrives at half the slope of a straight line. The frame never flies
+         * it; it is what [stepsOfTheCurve] reads off the grid.
          */
         fun curve(from: WallCell, to: WallCell): FramePath {
             val across = (to.across - from.across).toDouble()
@@ -114,22 +160,6 @@ data class FramePath(val points: List<WallPoint>) {
             return way
         }
 
-        /** [walk] with the spaces between its turns left out. */
-        private fun corners(walk: List<WallCell>): List<WallCell> {
-            if (walk.size <= 2) return walk
-            val kept = mutableListOf(walk.first())
-            for (index in 1 until walk.size - 1) {
-                val before = walk[index - 1]
-                val here = walk[index]
-                val after = walk[index + 1]
-                val turns = (here.across - before.across) != (after.across - here.across) ||
-                    (here.up - before.up) != (after.up - here.up)
-                if (turns) kept += here
-            }
-            kept += walk.last()
-            return kept
-        }
-
         fun pointOf(cell: WallCell): WallPoint = WallPoint(cell.across.toDouble(), cell.up.toDouble())
 
         fun cellUnder(point: WallPoint): WallCell = WallCell(Math.round(point.across).toInt(), Math.round(point.up).toInt())
@@ -144,8 +174,9 @@ data class FramePath(val points: List<WallPoint>) {
 
 /**
  * The chiselled bookshelves a book finder can reach (design §7.8.3): every one joined to the shelf it is
- * mounted on, side to side or one over another, facing the way it does, with open air in front of it, which is also
- * where its frame travels. A wall reaching into an unloaded chunk stops there, and none is larger than [MOST_SHELVES].
+ * mounted on, side to side or one over another, facing the way it does, with a book finder frame over its front, which
+ * is the track its frame travels (Jonah, 2026-11-19). A wall reaching into an unloaded chunk stops there, and none is
+ * larger than [MOST_SHELVES].
  */
 class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: Set<BlockPos>) {
 
@@ -174,9 +205,10 @@ class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: S
                 val state = level.getBlockState(shelf)
                 val isAShelfOfTheWall = state.`is`(Blocks.CHISELED_BOOKSHELF) && state.getValue(ChiseledBookShelfBlock.FACING) == facing
                 if (!isAShelfOfTheWall) return
-                val front = shelf.relative(facing)
-                val hasRoom = front == finder || level.getBlockState(front).canBeReplaced()
-                if (!hasRoom) return
+                val front = level.getBlockState(shelf.relative(facing))
+                val hasATrack = shelf.relative(facing) == finder ||
+                    (front.`is`(BookFinders.FRAME) && front.getValue(BookFinderFrameBlock.FACING) == facing)
+                if (!hasATrack) return
                 found += shelf
                 waiting.addLast(shelf)
             }

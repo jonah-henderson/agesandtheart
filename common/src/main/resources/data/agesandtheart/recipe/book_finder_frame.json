@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "[AI] The track a book finder's frame runs on, one over each shelf it may reach (Jonah, 2026-11-19): temperstone at",
+    "the corners, astrite shards down the sides and across the bottom, and a rime crystal of any colour at the top."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "TRT",
+    "A A",
+    "TAT"
+  ],
+  "key": {
+    "T": "agesandtheart:temperstone",
+    "A": "agesandtheart:astrite_shard",
+    "R": "#agesandtheart:rime_crystals"
+  },
+  "result": {
+    "id": "agesandtheart:book_finder_frame",
+    "count": 1
+  }
+}

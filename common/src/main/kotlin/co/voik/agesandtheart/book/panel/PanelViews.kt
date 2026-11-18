@@ -8,7 +8,7 @@ import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.EndedAges
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
-import co.voik.agesandtheart.book.BookFinders
+import co.voik.agesandtheart.book.BookStands
 import co.voik.agesandtheart.book.BookHeldOpen
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.Linking
@@ -250,7 +250,7 @@ object PanelViews {
     }
 
     private fun isLyingOpen(book: BookBeingRead): Boolean = when (book) {
-        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand, is BookBeingRead.InAFinder -> true
+        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand, is BookBeingRead.OnAStand -> true
         is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer -> false
     }
 
@@ -259,7 +259,7 @@ object PanelViews {
         is BookBeingRead.InHand -> player.getItemInHand(book.hand)
         is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
         is BookBeingRead.OnTheGround -> BookEntity.openBookSeenBy(player, book.entityId)
-        is BookBeingRead.InAFinder -> BookFinders.openBookSeenBy(player, book.pos)
+        is BookBeingRead.OnAStand -> BookStands.openBookSeenBy(player, book.pos, book.place)
         is BookBeingRead.InAnothersHand -> BookHeldOpen.openBookSeenBy(player, book.holderId, book.hand)
         BookBeingRead.AtACrystalViewer -> null
     }
@@ -322,7 +322,7 @@ object PanelViews {
         }
         // Resolving a descriptive book stamps its Age onto it, and a lectern keeps the stamp.
         if (book is BookBeingRead.OnALectern) player.level().getBlockEntity(book.pos)?.setChanged()
-        if (book is BookBeingRead.InAFinder) player.level().getBlockEntity(book.pos)?.setChanged()
+        if (book is BookBeingRead.OnAStand) player.level().getBlockEntity(book.pos)?.setChanged()
         return destination
     }
 

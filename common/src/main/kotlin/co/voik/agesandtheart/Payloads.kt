@@ -10,10 +10,11 @@ import co.voik.agesandtheart.age.phenomena.FogPayload
 import co.voik.agesandtheart.age.phenomena.GalePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
-import co.voik.agesandtheart.book.BookFinderAskPayload
+import co.voik.agesandtheart.book.BookStandAskPayload
 import co.voik.agesandtheart.book.BookFinderFetchPayload
 import co.voik.agesandtheart.book.BookFinderListPayload
 import co.voik.agesandtheart.book.LinkEnded
+import co.voik.agesandtheart.book.LinkFromAnOpenBook
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
@@ -109,10 +110,10 @@ object Payloads {
         // The page a notebook is scrolled to, as vanilla's bundle tells its own.
         Serverbound(NotebookSelectPayload.TYPE, NotebookSelectPayload.STREAM_CODEC, NotebookSelectPayload::handle),
         Serverbound(LecternBookPayload.TYPE, LecternBookPayload.STREAM_CODEC, LecternBookPayload::handle),
-        // A book finder's wall of books, a choice from it, and what a reader asks of the book its frame holds open.
+        // A book finder's wall of books and a choice from it, and what a reader asks of a book open on a stand of ours.
         Clientbound(BookFinderListPayload.TYPE, BookFinderListPayload.STREAM_CODEC),
         Serverbound(BookFinderFetchPayload.TYPE, BookFinderFetchPayload.STREAM_CODEC, BookFinderFetchPayload::handle),
-        Serverbound(BookFinderAskPayload.TYPE, BookFinderAskPayload.STREAM_CODEC, BookFinderAskPayload::handle),
+        Serverbound(BookStandAskPayload.TYPE, BookStandAskPayload.STREAM_CODEC, BookStandAskPayload::handle),
         Serverbound(BookHeldOpen.TYPE, BookHeldOpen.STREAM_CODEC, BookHeldOpen::handle),
         Clientbound(ArchiveSyncPayload.TYPE, ArchiveSyncPayload.STREAM_CODEC),
         Clientbound(ArchivePricesPayload.TYPE, ArchivePricesPayload.STREAM_CODEC),
@@ -120,6 +121,7 @@ object Payloads {
         Serverbound(ArchiveWritePayload.TYPE, ArchiveWritePayload.STREAM_CODEC, ArchiveCommands::write),
         Serverbound(ArchiveWithdrawPayload.TYPE, ArchiveWithdrawPayload.STREAM_CODEC, ArchiveCommands::withdraw),
         Serverbound(LinkRequest.TYPE, LinkRequest.STREAM_CODEC, Linking::handle),
+        Serverbound(LinkFromAnOpenBook.TYPE, LinkFromAnOpenBook.STREAM_CODEC, LinkFromAnOpenBook::handle),
         Clientbound(LinkEnded.TYPE, LinkEnded.STREAM_CODEC),
         // A machine's recipe list, and a click on one of its lines.
         Clientbound(MachineRecipesPayload.TYPE, MachineRecipesPayload.STREAM_CODEC),

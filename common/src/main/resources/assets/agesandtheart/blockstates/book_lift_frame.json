@@ -1,0 +1,20 @@
+{
+  "_comment": "[AI] A stand-in on the blast furnace's sides until the asset pass, modelled facing north: toward whoever placed it, where its buttons will be and the way the lift's open books are read. The shelves and books are drawn by `BookLiftShelfRenderer`.",
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart:block/book_lift_frame"
+    },
+    "facing=east": {
+      "model": "agesandtheart:block/book_lift_frame",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart:block/book_lift_frame",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart:block/book_lift_frame",
+      "y": 270
+    }
+  }
+}

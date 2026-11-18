@@ -1,11 +1,13 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.BookWheelBlock
 import co.voik.agesandtheart.book.BookWheelBlockEntity
+import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.WheelAxle
 import co.voik.agesandtheart.book.WheelForm
+import co.voik.agesandtheart.book.WheelTrays
 import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.math.Axis
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
@@ -14,8 +16,6 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
-import kotlin.math.cos
-import kotlin.math.sin
 
 class BookWheelRenderState : BlockEntityRenderState() {
     var form: WheelForm = WheelForm.SMALL
@@ -26,18 +26,25 @@ class BookWheelRenderState : BlockEntityRenderState() {
 
     /** The tray at the front, fractional while the wheel turns. */
     var shownFront: Float = 0.0f
+
+    /** How far each slot's book has swung open, shut (0) to open (1). */
+    var openness: FloatArray = FloatArray(0)
+
+    /** Each slot's book's panel while it is open at all, where it is one of ours. */
+    var panels: List<OpenOnAStand.Panel?> = emptyList()
+
+    /** Which page each slot's book carries its panel on, where it is one of ours. */
+    var pages: List<BookPage?> = emptyList()
 }
 
 /**
- * A book wheel's books, each drawn as itself ([AgeBookRendering]), on trays going round the wheel's axle. The frame,
- * axle and trays are the block's own model; this draws only the books, where the trays would carry them.
+ * A book wheel's books, each drawn as itself ([AgeBookRendering]) and as a lectern holds one (Jonah, 2026-11-19): on
+ * the slope, its front board to the reader while it is shut, swinging open and shut as a lectern's does. The frame,
+ * axle and trays are the block's own model; this draws only the books, where the trays carry them.
  *
  * On a wheel whose axle runs across, every book is kept level as it goes round, as the cars of a Ferris wheel are and
- * as Ramelli's planetary gearing kept his: it lies on its back board, its spine toward the front. On a carousel each
- * stands on its tail, spine out, turning with its tray.
- *
- * Drawn in the frame the block's model is, facing north, from the corner of the block holding the books: a large
- * wheel's second block is to the west of it (the right, from the front), a carousel's above.
+ * as Ramelli's planetary gearing kept his, read from the front; on a carousel each turns with its tray, read from out
+ * beyond it.
  */
 class BookWheelRenderer(context: BlockEntityRendererProvider.Context) :
     BlockEntityRenderer<BookWheelBlockEntity, BookWheelRenderState> {
@@ -58,87 +65,43 @@ class BookWheelRenderer(context: BlockEntityRendererProvider.Context) :
         state.facing = wheel.blockState.getValue(BookWheelBlock.FACING)
         state.looks = List(wheel.form.books) { slot -> wheel.bookIn(slot).takeUnless { it.isEmpty }?.let(BookLook::of) }
         state.shownFront = wheel.turning.shownAt(partialTicks, wheel.frontTray)
+        state.pages = List(wheel.form.books) { slot -> LecternBooks.panelPageOf(wheel.bookIn(slot)) }
+        state.openness = FloatArray(wheel.form.books) { slot ->
+            if (wheel.bookIn(slot).isEmpty) 0.0f else StandSwings.opennessOf(wheel, slot, wheel.isOpen(slot), partialTicks)
+        }
+        state.panels = List(wheel.form.books) { slot ->
+            val isShowingAPage = state.pages[slot] != null && state.openness[slot] > 0.0f
+            if (isShowingAPage) OpenOnAStand.panelOf(wheel.level, wheel.blockPos, slot) else null
+        }
     }
 
     /** A two-block wheel reaches past its own block, and is drawn while that one is out of sight. */
     override fun shouldRenderOffScreen(): Boolean = true
 
     override fun submit(state: BookWheelRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
-        poseStack.pushPose()
-        poseStack.translate(MIDDLE, MIDDLE, MIDDLE)
-        poseStack.rotate(Axis.YP.rotationDegrees(-BookbinderRenderer.clockwiseTurnOf(state.facing)))
-        poseStack.translate(-MIDDLE, -MIDDLE, -MIDDLE)
         for ((slot, look) in state.looks.withIndex()) {
             look ?: continue
-            val tray = slot / state.form.booksPerTray
             val along = slot % state.form.booksPerTray
-            val roundFromTheFront = (tray - state.shownFront) * QUARTER_TURN_RADIANS
-            poseStack.pushPose()
-            when (state.form.axle) {
-                WheelAxle.ACROSS -> onATrayAcross(along, roundFromTheFront, poseStack)
-                WheelAxle.UPRIGHT -> onATrayUpright(along, roundFromTheFront, poseStack)
+            val round = ((slot / state.form.booksPerTray) - state.shownFront).toDouble() * WheelTrays.QUARTER_TURN
+            val middle = WheelTrays.openBookMiddle(state.form, state.facing, along, round)
+            val readerYRot = when (state.form.axle) {
+                WheelAxle.ACROSS -> OpenOnAStand.readerYRotOf(state.facing)
+                // Read from out beyond the tray, away from the axle.
+                WheelAxle.UPRIGHT -> {
+                    val tray = WheelTrays.trayMiddle(state.form, state.facing, along, round)
+                    OpenOnAStand.readerYRotOf(Vec3(tray.x - AXLE, 0.0, tray.z - AXLE))
+                }
             }
-            rendering.submit(look, SHUT, poseStack, collector, state.lightCoords)
+            val open = state.openness[slot]
+            poseStack.pushPose()
+            OpenOnAStand.poseOpen(poseStack, middle, readerYRot, look.binding, open)
+            OpenOnAStand.submit(rendering, look, state.pages[slot], state.panels[slot], open, poseStack, collector, state.lightCoords)
             poseStack.popPose()
         }
-        poseStack.popPose()
-    }
-
-    /**
-     * Onto the tray [roundFromTheFront] radians over the top from the front, at place [along] on it: lying level on its
-     * back board, its spine to the front and its head to the left.
-     */
-    private fun onATrayAcross(along: Int, roundFromTheFront: Float, poseStack: PoseStack) {
-        // A large wheel's second place on each tray is a block to the west, toward its second block.
-        val x = MIDDLE - along
-        val y = MIDDLE + RADIUS * sin(roundFromTheFront) + BOOK_THICKNESS / 2
-        val z = MIDDLE - RADIUS * cos(roundFromTheFront)
-        poseStack.translate(x, y, z)
-        // The shut model runs spine to fore-edge along +X, up the book along +Y and its thickness along +Z, the front
-        // board toward +Z. Laid down: the front board up, the fore-edge back (+Z) and the head to the left (+X).
-        poseStack.rotate(Axis.YP.rotationDegrees(-QUARTER_TURN))
-        poseStack.rotate(Axis.XP.rotationDegrees(-QUARTER_TURN))
-        poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE)
-        poseStack.translate(-HALF_A_BOARD, 0.0f, 0.0f)
-    }
-
-    /**
-     * Onto the tray [roundFromTheFront] radians round to the right from the front, in tier [along]: standing on its
-     * tail, spine out and the fore-edge toward the axle.
-     */
-    private fun onATrayUpright(along: Int, roundFromTheFront: Float, poseStack: PoseStack) {
-        poseStack.translate(MIDDLE, along + TIER_FLOOR + BOOK_HEIGHT / 2, MIDDLE)
-        poseStack.rotate(Axis.YP.rotation(roundFromTheFront))
-        poseStack.translate(0.0f, 0.0f, -RADIUS)
-        poseStack.rotate(Axis.YP.rotationDegrees(-QUARTER_TURN))
-        poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE)
-        poseStack.translate(-HALF_A_BOARD, 0.0f, 0.0f)
     }
 
     private companion object {
-        val SHUT = AgeBookModel.State(0.0f)
-        const val MIDDLE = 0.5f
-        const val QUARTER_TURN = 90.0f
-        const val QUARTER_TURN_RADIANS = (Math.PI / 2).toFloat()
-        const val PIXEL = 1.0f / 16.0f
-
-        /**
-         * The books are drawn smaller than a lectern's, to fit four round a wheel a block across. These and the radius
-         * are the art's to set: where the model's trays are, the books go.
-         */
-        const val BOOK_SCALE = 0.6f
-
-        /** From the axle to where a tray carries its book. */
-        const val RADIUS = 4.5f * PIXEL
-
-        /** The carousel's tier floor, above the bottom of its block. */
-        const val TIER_FLOOR = 2.0f * PIXEL
-
-        /** The shut model's measures, in the block's units at [BOOK_SCALE]: two pixels thick and eight tall. */
-        const val BOOK_THICKNESS = 2.0f * PIXEL * BOOK_SCALE
-        const val BOOK_HEIGHT = 8.0f * PIXEL * BOOK_SCALE
-
-        /** Half of the six-pixel boards, in the model's own units: from the spine to the middle of the book. */
-        const val HALF_A_BOARD = 3.0f * PIXEL
+        /** A carousel's axle, up the middle of its blocks. */
+        const val AXLE = 0.5
     }
 }

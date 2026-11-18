@@ -1,0 +1,46 @@
+{
+  "_comment": [
+    "[AI] Learned on first holding an astrite shard or a rime crystal, the rarer two of its three materials."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_astrite_shard": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:astrite_shard"
+          }
+        ]
+      }
+    },
+    "has_rime_crystal": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#agesandtheart:rime_crystals"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:book_finder_frame"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_astrite_shard",
+      "has_rime_crystal",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:book_finder_frame"
+    ]
+  }
+}

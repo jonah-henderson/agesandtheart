@@ -1,12 +1,12 @@
 {
-  "_comment": "[AI] A length of a standing paternoster's chain: the chain always, the platform at rest. `shows=platform` is never placed; `PaternosterShelfRenderer` draws it sliding while the loop turns. Stand-ins on vanilla's iron chain and spruce until the asset pass, modelled facing north.",
+  "_comment": "[AI] A length of a standing book lift's chain: the chain always, the platform at rest. `shows=platform` is never placed; `BookLiftShelfRenderer` draws it sliding while the lift runs. Stand-ins on vanilla's iron chain and spruce until the asset pass, modelled facing north.",
   "multipart": [
     {
       "when": {
         "shows": "chain_and_platform|chain"
       },
       "apply": {
-        "model": "agesandtheart:block/paternoster_shelf_chain"
+        "model": "agesandtheart:block/book_lift_shelf_chain"
       }
     },
     {
@@ -15,7 +15,7 @@
         "facing": "north"
       },
       "apply": {
-        "model": "agesandtheart:block/paternoster_shelf_platform"
+        "model": "agesandtheart:block/book_lift_shelf_platform"
       }
     },
     {
@@ -24,7 +24,7 @@
         "facing": "east"
       },
       "apply": {
-        "model": "agesandtheart:block/paternoster_shelf_platform",
+        "model": "agesandtheart:block/book_lift_shelf_platform",
         "y": 90
       }
     },
@@ -34,7 +34,7 @@
         "facing": "south"
       },
       "apply": {
-        "model": "agesandtheart:block/paternoster_shelf_platform",
+        "model": "agesandtheart:block/book_lift_shelf_platform",
         "y": 180
       }
     },
@@ -44,7 +44,7 @@
         "facing": "west"
       },
       "apply": {
-        "model": "agesandtheart:block/paternoster_shelf_platform",
+        "model": "agesandtheart:block/book_lift_shelf_platform",
         "y": 270
       }
     }
