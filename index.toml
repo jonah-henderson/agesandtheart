@@ -2,12 +2,12 @@ hash-format = "sha256"
 
 [[files]]
 file = "mods/agesandtheart.pw.toml"
-hash = "8b700e1a23de2b225c85571ede7c00d69e5add12a014758a8138183ff0db4ecf"
+hash = "10a356bb1787205b0e2657396f80cc9fa6e8108a4418ba8e021e4b737c3230d6"
 metafile = true
 
 [[files]]
 file = "mods/agesandtheart_imaging.pw.toml"
-hash = "c6750b335c183d9db2704ecab6acabb65357d5a71c9f26cb61a827c055374fa3"
+hash = "d10be0cd2a6baf136a6a8af7d8a2148ed9ace3b546460666fb35344e9abbfc9e"
 metafile = true
 
 [[files]]
