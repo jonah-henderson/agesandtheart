@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.cataclysm.Ejecta
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.book.Bookbinder
+import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.content.NotebookTooltip
 import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
@@ -122,6 +123,7 @@ object ClientRegistrations {
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
+        RendererForBlockEntity(BookWheels.ENTITY) { BookWheelRenderer(it) },
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
     )

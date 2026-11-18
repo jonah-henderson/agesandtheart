@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:large_book_wheel",
+          "condition": {
+            "type": "minecraft:match_block",
+            "blocks": "agesandtheart:large_book_wheel",
+            "state": {
+              "part": "left"
+            }
+          }
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/large_book_wheel"
+}

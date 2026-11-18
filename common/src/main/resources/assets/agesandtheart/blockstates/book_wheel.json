@@ -1,0 +1,20 @@
+{
+  "_comment": "[AI] Stand-in frames on vanilla's spruce until the asset pass, modelled facing north; the books are drawn by `BookWheelRenderer` in the same frame.",
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart:block/book_wheel"
+    },
+    "facing=east": {
+      "model": "agesandtheart:block/book_wheel",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart:block/book_wheel",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart:block/book_wheel",
+      "y": 270
+    }
+  }
+}

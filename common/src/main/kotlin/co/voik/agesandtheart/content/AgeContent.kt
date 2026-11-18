@@ -25,6 +25,7 @@ import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.DescriptiveBookItem
 import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.Bookbinder
+import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
@@ -2077,6 +2078,7 @@ object AgeContent {
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.BLOCK,
         DryingRack.ID to DryingRack.BLOCK,
         Bookbinder.ID to Bookbinder.BLOCK,
+        *BookWheels.BLOCKS.map { it.form.id.location() to it }.toTypedArray(),
         PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
@@ -2141,6 +2143,7 @@ object AgeContent {
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ENTITY,
         DryingRack.ID to DryingRack.ENTITY,
         Bookbinder.ID to Bookbinder.ENTITY,
+        BookWheels.ENTITY_ID to BookWheels.ENTITY,
         Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
@@ -2286,6 +2289,7 @@ object AgeContent {
         AdvancedAnalysisMachine.PROBES_ID to AdvancedAnalysisMachine.PROBES,
         DryingRack.ID to DryingRack.ITEM,
         Bookbinder.ID to Bookbinder.ITEM,
+        *BookWheels.ITEMS.map { (block, item) -> block.form.id.location() to item }.toTypedArray(),
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         FLASHPOWDER_ID to FLASHPOWDER,

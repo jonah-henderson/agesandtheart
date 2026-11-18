@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:book_carousel",
+          "condition": {
+            "type": "minecraft:match_block",
+            "blocks": "agesandtheart:book_carousel",
+            "state": {
+              "part": "lower"
+            }
+          }
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/book_carousel"
+}
