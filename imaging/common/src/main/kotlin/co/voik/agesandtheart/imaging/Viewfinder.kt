@@ -10,6 +10,7 @@ import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 import java.util.UUID
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.player.Player
@@ -32,9 +33,19 @@ object Viewfinder {
 
     fun isLooking(player: Player): Boolean = player.getAttribute(Attributes.MOVEMENT_SPEED)?.hasModifier(SLOWED_ID) == true
 
-    /** A recorder takes plates from the inventory as a bow takes arrows, and needs none where nothing is spent. */
-    fun hasAPlate(player: Player): Boolean =
-        player.hasInfiniteMaterials() || player.inventory.contains { it.`is`(ImagingContent.PHOTOGRAPHIC_PLATE) }
+    /**
+     * A recorder takes plates from its own slots, then from the inventory as a bow takes arrows, and needs none where
+     * nothing is spent.
+     */
+    fun hasAPlate(player: Player): Boolean {
+        val held = heldSlots(player)
+        val inTheInventory = player.inventory.contains(RecorderSlots::isAPlate)
+        return player.hasInfiniteMaterials() || held?.hasAPlate == true || inTheInventory
+    }
+
+    /** The slots of the recorder in [player]'s hand, or null where they hold none. */
+    private fun heldSlots(player: Player): RecorderSlots.Held? =
+        handHoldingTheRecorder(player)?.let { RecorderSlots.Held(player.getItemInHand(it)) }
 
     fun lookThrough(player: Player) {
         val speed = player.getAttribute(Attributes.MOVEMENT_SPEED) ?: return
@@ -63,7 +74,7 @@ object Viewfinder {
         }
         val picture = Picture(UUID.randomUUID(), WordNames.placeName(player.level().dimension()), player.blockPosition())
         val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
-        player.inventory.placeItemBackInInventory(recordedImage, Prediction.SERVER_ONLY)
+        handOver(player, recordedImage)
         Shots.taken(player, picture.id)
         // Heard and seen by everyone near but the photographer, whose own client played it the moment the shutter went.
         player.level().playSound(player, player.x, player.eyeY, player.z, ImagingContent.SHUTTER, SoundSource.PLAYERS, 1.0f, 1.0f)
@@ -71,22 +82,38 @@ object Viewfinder {
         stopLooking(player)
     }
 
-    /** Vanilla's firework flash at the recorder's lens, for everyone near enough to see it but the photographer. */
+    /**
+     * Vanilla's firework flash at the front of the recorder's viewfinder, which the photographer's eye is behind, for
+     * everyone near enough to see it but the photographer.
+     */
     private fun flashSeenByOthers(player: ServerPlayer) {
         val level = player.level()
-        val lens = player.eyePosition.add(player.lookAngle.scale(LENS_REACH))
+        val up = Vec3.directionFromRotation(player.xRot - QUARTER_TURN, player.yRot)
+        val lens = player.eyePosition.add(player.lookAngle.scale(FLASH_AHEAD)).add(up.scale(FLASH_ABOVE))
         val flash = ColorParticleOption.create(ParticleTypes.FLASH, FLASH_COLOUR)
         level.players().filter { it !== player && it.distanceToSqr(lens) < FLASH_SEEN_WITHIN * FLASH_SEEN_WITHIN }.forEach { onlooker ->
             level.sendParticles(onlooker, flash, true, true, lens.x, lens.y, lens.z, 1, 0.0, 0.0, 0.0, 0.0)
         }
     }
 
-    private const val LENS_REACH = 0.6
+    /** The viewfinder's front, ahead of and a little above the eye looking through it, as the recorder is held. */
+    private const val FLASH_AHEAD = 0.4
+    private const val FLASH_ABOVE = 0.1
+    private const val QUARTER_TURN = 90.0f
     private const val FLASH_SEEN_WITHIN = 64.0
     private const val FLASH_COLOUR = 0xFFF4E0
 
+    /** The recorded image into the inventory, or the recorder's own output where that is full, or else at their feet. */
+    private fun handOver(player: ServerPlayer, recordedImage: ItemStack) {
+        player.inventory.add(recordedImage)
+        if (recordedImage.isEmpty) return
+        if (heldSlots(player)?.keep(recordedImage) == true) return
+        player.drop(recordedImage, false, Prediction.SERVER_ONLY)
+    }
+
     private fun spendAPlate(player: Player): Boolean {
         if (player.hasInfiniteMaterials()) return true
+        if (heldSlots(player)?.spendAPlate() == true) return true
         val inventory = player.inventory
         val slot = (0..<inventory.containerSize).firstOrNull { inventory.getItem(it).`is`(ImagingContent.PHOTOGRAPHIC_PLATE) }
             ?: return false

@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "half=upper": {
+      "model": "agesandtheart_imaging:block/tripod_head"
+    },
+    "facing=south,half=lower": {
+      "model": "agesandtheart_imaging:block/tripod"
+    },
+    "facing=west,half=lower": {
+      "model": "agesandtheart_imaging:block/tripod",
+      "y": 90
+    },
+    "facing=north,half=lower": {
+      "model": "agesandtheart_imaging:block/tripod",
+      "y": 180
+    },
+    "facing=east,half=lower": {
+      "model": "agesandtheart_imaging:block/tripod",
+      "y": 270
+    }
+  }
+}

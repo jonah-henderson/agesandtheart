@@ -1,0 +1,18 @@
+{
+  "_comment": "Would be confusing to learn after picking up early sticks, so unlocks on holding an image recorder instead",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_image_recorder": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [{ "items": "agesandtheart_imaging:image_recorder" }]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": { "recipes": "agesandtheart_imaging:tripod" }
+    }
+  },
+  "requirements": [["has_image_recorder", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart_imaging:tripod"] }
+}

@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "condition": {
+            "type": "minecraft:match_block",
+            "blocks": "agesandtheart_imaging:tripod",
+            "state": {
+              "half": "lower"
+            }
+          },
+          "name": "agesandtheart_imaging:tripod"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "agesandtheart_imaging:blocks/tripod"
+}

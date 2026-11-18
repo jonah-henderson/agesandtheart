@@ -1,6 +1,7 @@
 {
-  "agesandtheart_imaging.recorder.stop": "[AI] Press %1$s to stop looking through the image recorder",
-  "agesandtheart_imaging.recorder.turn": "[AI] Press %1$s or %2$s to turn it",
+  "agesandtheart_imaging.recorder.aim": "Move the mouse to aim",
+  "agesandtheart_imaging.recorder.stop": "Press %1$s to exit the viewfinder",
+  "agesandtheart_imaging.recorder.turn": "Press %1$s or %2$s to rotate",
   "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
   "agesandtheart_imaging.viewfinder.zoom": "Scroll to zoom in and out",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",
@@ -8,6 +9,7 @@
   "block.agesandtheart_imaging.slide_carousel.how.1": "Place a light source directly behind",
   "block.agesandtheart_imaging.slide_carousel.how.2": "and a glass block within 8 blocks in front",
   "block.agesandtheart_imaging.slide_carousel.how.3": "to project a photographic plate",
+  "block.agesandtheart_imaging.tripod": "Tripod",
   "config.agesandtheart_imaging.cache_megabytes": "Space for pictures (MB)",
   "config.agesandtheart_imaging.megabytes_taken": "Pictures: %s MB of",
   "config.agesandtheart_imaging.perfect_throw": "Lantern, bulb and lamp projection",

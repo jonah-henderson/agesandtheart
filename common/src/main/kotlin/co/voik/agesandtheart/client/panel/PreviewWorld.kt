@@ -62,12 +62,19 @@ class PreviewWorld private constructor(
 
     /**
      * Takes one chunk, as `ClientPacketListener.handleLevelChunkWithLight` would, answering whether it fell inside the
-     * world.
+     * world. Its light is run at once, unless [runsTheLight] is false for a caller taking many chunks and running it once
+     * for them all ([runTheLight]); the sections it dirties then mesh dark until they are rebuilt.
      *
      * `applyLightData` and `enableChunkLight` are private on the packet listener, so their bodies are reproduced here;
      * both are short and use only public API. [runTheLight] is the part that is not in either of them.
      */
-    fun accept(x: Int, z: Int, data: ClientboundLevelChunkPacketData, light: ClientboundLightUpdatePacketData): Boolean {
+    fun accept(
+        x: Int,
+        z: Int,
+        data: ClientboundLevelChunkPacketData,
+        light: ClientboundLightUpdatePacketData,
+        runsTheLight: Boolean = true,
+    ): Boolean {
         val cache = level.chunkSource
         val chunk = cache.replaceWithPacketData(x, z, data)
         if (chunk == null) {
@@ -89,7 +96,7 @@ class PreviewWorld private constructor(
                 chunk.sections[index].hasOnlyAir(),
             )
         }
-        runTheLight()
+        if (runsTheLight) runTheLight()
 
         // After the light, so the mesh is built from light that exists.
         level.setSectionRangeDirty(x - 1, level.minSectionY, z - 1, x + 1, level.maxSectionY, z + 1)

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.imaging.client
 
 import co.voik.agesandtheart.imaging.ImageRecorderBlock
 import co.voik.agesandtheart.imaging.Imaging
+import co.voik.agesandtheart.imaging.Sketches
 import co.voik.agesandtheart.imaging.Viewfinder
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.CameraType
@@ -67,8 +68,10 @@ object ViewfinderView {
             val halfAngle = Math.toRadians(fieldOfViewDegrees / 2.0)
             return tan(halfAngle) / halfAngle - 1.0
         }
-        val widest = minecraft.options.fov().get().toDouble()
-        val share = (stretch(widest * zoom) / stretch(widest)).coerceIn(LEAST_SWELL_SHARE, 1.0)
+        // A set-down recorder's widest view is the one its pictures are taken at; a handheld one's is the player's own.
+        val isPreviewing = RecorderPreview.isLooking()
+        val widest = if (isPreviewing) Sketches.ORDINARY_FIELD_OF_VIEW.toDouble() else minecraft.options.fov().get().toDouble()
+        val share = (stretch(widest * currentZoom()) / stretch(widest)).coerceIn(LEAST_SWELL_SHARE, 1.0)
         val level = ((share - LEAST_SWELL_SHARE) / (1.0 - LEAST_SWELL_SHARE) * (SWELL_LEVELS - 1)).roundToInt()
         return EFFECTS[level]
     }
@@ -76,14 +79,23 @@ object ViewfinderView {
     @JvmStatic
     fun fieldOfViewModifier(): Float = zoom
 
+    /** The zoom of whichever recorder is being looked through: the one in hand, or the one set down. */
+    private fun currentZoom(): Float = if (RecorderPreview.isLooking()) RecorderPreview.zoom() else zoom
+
     /** How much of the mouse's turn reaches the view: the zoom's share of the widest view, one when not looking. */
     @JvmStatic
-    fun turningShare(): Double = if (isLooking()) zoom.toDouble() else 1.0
+    fun turningShare(): Double = if (isLooking()) currentZoom().toDouble() else 1.0
 
-    /** A positive [notches] is the wheel turned away, which narrows the view, as a spyglass's eye would come closer. */
+    /**
+     * A positive [notches] is the wheel turned away, which narrows the view, as a spyglass's eye would come closer: the
+     * set-down recorder's being looked through, or else the one in hand.
+     */
     @JvmStatic
     fun scrolled(notches: Double) {
-        if (RecorderPreview.isLooking()) return
+        if (RecorderPreview.isLooking()) {
+            RecorderPreview.scrolled(notches)
+            return
+        }
         zoom = (zoom * NARROWING_A_NOTCH.pow(notches.toFloat())).coerceIn(NARROWEST, WIDEST)
     }
 

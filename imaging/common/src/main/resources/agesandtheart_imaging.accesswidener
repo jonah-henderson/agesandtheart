@@ -9,3 +9,13 @@ accessible field net/minecraft/world/level/biome/Biome climateSettings Lnet/mine
 # Vanilla's table of special item models, which the recorded image's own picture is drawn through on Fabric
 # (`RecordedImageRenderer`). Fabric API's transitive wideners open it, and this project leaves those to the loader.
 accessible field net/minecraft/client/renderer/special/SpecialModelRenderers ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;
+
+# Vanilla's table of container screens, which the set-down recorder's screen joins on Fabric (`ImagingFabricClient`);
+# NeoForge registers through an event. Fabric API's transitive wideners open it, and this project leaves those to the
+# loader.
+accessible method net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
+accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor
+
+# So the set-down recorder's MenuType can be built in `common`, as Ages and the Art widens it for its own; its widener is
+# the loader's to apply, and this project compiles without it.
+accessible method net/minecraft/world/inventory/MenuType <init> (Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V

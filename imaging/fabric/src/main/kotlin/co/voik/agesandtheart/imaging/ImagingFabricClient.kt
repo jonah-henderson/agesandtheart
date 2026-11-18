@@ -5,6 +5,9 @@ import co.voik.agesandtheart.imaging.client.MaskedPictures
 import co.voik.agesandtheart.imaging.client.BlurredPictures
 import co.voik.agesandtheart.imaging.client.CarouselParts
 import co.voik.agesandtheart.imaging.client.Darkroom
+import co.voik.agesandtheart.imaging.client.ImageRecorderScreen
+import co.voik.agesandtheart.imaging.client.MountedRecorderRenderer
+import net.minecraft.client.gui.screens.MenuScreens
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -35,9 +38,13 @@ fun initClient() {
     EntityRendererRegistry.register(ImagingContent.HUNG_PICTURE) { HungPictureRenderer(it) }
     @Suppress("DEPRECATION")
     BlockEntityRendererRegistry.register(ImagingContent.SLIDE_CAROUSEL_ENTITY) { SlideCarouselRenderer(it) }
+    @Suppress("DEPRECATION")
+    BlockEntityRendererRegistry.register(ImagingContent.IMAGE_RECORDER_ENTITY) { MountedRecorderRenderer(it) }
+    MenuScreens.register(ImagingContent.IMAGE_RECORDER_MENU, ::ImageRecorderScreen)
     ClientPlayNetworking.registerGlobalReceiver(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
     ClientPlayNetworking.registerGlobalReceiver(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
     ClientPlayNetworking.registerGlobalReceiver(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
+    ClientPlayNetworking.registerGlobalReceiver(PhotographEntities.TYPE) { payload, _ -> Darkroom.entities(payload) }
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
         PictureTextures.forget()
         ProjectorThrows.forget()

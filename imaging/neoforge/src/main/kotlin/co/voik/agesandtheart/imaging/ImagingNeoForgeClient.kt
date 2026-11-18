@@ -5,6 +5,9 @@ import co.voik.agesandtheart.imaging.client.MaskedPictures
 import co.voik.agesandtheart.imaging.client.BlurredPictures
 import co.voik.agesandtheart.imaging.client.CarouselParts
 import co.voik.agesandtheart.imaging.client.Darkroom
+import co.voik.agesandtheart.imaging.client.ImageRecorderScreen
+import co.voik.agesandtheart.imaging.client.MountedRecorderRenderer
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import net.neoforged.fml.ModContainer
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -57,11 +60,16 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener { event: EntityRenderersEvent.RegisterRenderers ->
             event.registerEntityRenderer(ImagingContent.HUNG_PICTURE) { HungPictureRenderer(it) }
             event.registerBlockEntityRenderer(ImagingContent.SLIDE_CAROUSEL_ENTITY) { SlideCarouselRenderer(it) }
+            event.registerBlockEntityRenderer(ImagingContent.IMAGE_RECORDER_ENTITY) { MountedRecorderRenderer(it) }
+        }
+        eventBus.addListener { event: RegisterMenuScreensEvent ->
+            event.register(ImagingContent.IMAGE_RECORDER_MENU, ::ImageRecorderScreen)
         }
         eventBus.addListener { event: RegisterClientPayloadHandlersEvent ->
             event.register(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
             event.register(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
             event.register(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
+            event.register(PhotographEntities.TYPE) { payload, _ -> Darkroom.entities(payload) }
         }
     }
 }

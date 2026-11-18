@@ -104,6 +104,9 @@ def corner_uvs(uv, rotation, resolution):
 
 def quads_of(element, resolution):
     """An element's faces as quads in the model's pixels, turned as the element is turned."""
+    assert element.get("stretch", [1, 1, 1]) == [1, 1, 1], (
+        f"{element.get('name')} is stretched in Blockbench, which a Java model cannot say: set its size instead"
+    )
     low, high = element["from"], element["to"]
     m = turning(element.get("rotation"))
     origin = element.get("origin", [0, 0, 0])
@@ -122,6 +125,9 @@ def quads_of(element, resolution):
 
 def json_element(element, resolution):
     """An element as the block model format says it, its rotation in the three-axis form 26.3 reads."""
+    assert element.get("stretch", [1, 1, 1]) == [1, 1, 1], (
+        f"{element.get('name')} is stretched in Blockbench, which a Java model cannot say: set its size instead"
+    )
     out = {"from": rounded(element["from"]), "to": rounded(element["to"])}
     rotation = element.get("rotation")
     if rotation and any(rotation):

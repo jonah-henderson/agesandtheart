@@ -71,8 +71,11 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         placeAt(eye, yaw, pitch, width, height)
     }
 
-    /** Places the camera at [eye], looking along [yaw] and [pitch] as an entity does, for a [width] by [height] frame. */
-    fun placeAt(eye: Vec3, yaw: Float, pitch: Float, width: Int, height: Int) {
+    /**
+     * Places the camera at [eye], looking along [yaw] and [pitch] as an entity does, for a [width] by [height] frame, at
+     * [fieldOfView] degrees from top to bottom.
+     */
+    fun placeAt(eye: Vec3, yaw: Float, pitch: Float, width: Int, height: Int, fieldOfView: Float = FIELD_OF_VIEW) {
         setPosition(eye)
         placedYaw = yaw
         placedPitch = pitch
@@ -81,9 +84,9 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         @Suppress("DEPRECATION")
         setRotation(placedYaw, placedPitch)
 
-        setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
-        drawProjection.setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
-        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height), position())
+        setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
+        drawProjection.setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
+        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height, fieldOfView), position())
     }
 
     /**
@@ -167,8 +170,8 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
          * The draw's matrix is [Projection]'s, built in [placeAt] — see [describeTo] for why it cannot
          * be this one.
          */
-        fun cullingProjectionFor(width: Int, height: Int): Matrix4f = Matrix4f().setPerspective(
-            FIELD_OF_VIEW * Mth.DEG_TO_RAD,
+        fun cullingProjectionFor(width: Int, height: Int, fieldOfView: Float = FIELD_OF_VIEW): Matrix4f = Matrix4f().setPerspective(
+            fieldOfView * Mth.DEG_TO_RAD,
             width.toFloat() / height.toFloat(),
             NEAR_PLANE,
             FAR_PLANE,

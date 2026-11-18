@@ -34,19 +34,23 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 
 /**
- * An image recorder set down on something it can stand on: an automatic camera. It faces one of sixteen ways, a facing
- * and a [TURN] of 22.5 degrees clockwise within it; looking through it, the strafe keys turn it ([ImagingTurns]). Used,
- * it opens its five slots, plates in and pictures out ([ImageRecorderBlockEntity]); used sneaking, it is looked
- * through; a pulse of redstone takes a picture. It is gone at a touch, dropping what it holds.
+ * An image recorder set down on something it can stand on: an automatic camera. On the ground it faces one of sixteen
+ * ways, a facing and a [TURN] of 22.5 degrees clockwise within it, and looking through it the strafe keys turn it
+ * ([ImagingTurns]). [MOUNTED] on a tripod it is the tripod's lower half, the head above it ([TripodBlock]), and points
+ * any way at all, looked through and aimed by the mouse; its aim is its block entity's. Used, it opens its two slots,
+ * plates in and the picture out ([ImageRecorderBlockEntity]); used sneaking, it is looked through; a pulse of redstone
+ * takes a picture. It keeps what it holds when it is picked up.
  */
 class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TURN, 0).setValue(POWERED, false))
+        registerDefaultState(
+            stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TURN, 0).setValue(POWERED, false).setValue(MOUNTED, false),
+        )
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING, TURN, POWERED)
+        builder.add(FACING, TURN, POWERED, MOUNTED)
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
@@ -72,9 +76,9 @@ class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
         return InteractionResult.SUCCESS
     }
 
-    /** A pulse takes a picture, on its rising edge only, as a dispenser fires. */
+    /** A pulse takes a picture, on its rising edge only, as a dispenser fires; on a tripod, at either half. */
     override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, neighbour: Block, orientation: Orientation?, movedByPiston: Boolean) {
-        val isPowered = level.hasNeighborSignal(pos)
+        val isPowered = level.hasNeighborSignal(pos) || (state.getValue(MOUNTED) && level.hasNeighborSignal(pos.above()))
         val wasPowered = state.getValue(POWERED)
         if (isPowered == wasPowered) return
         level.setBlock(pos, state.setValue(POWERED, isPowered), UPDATE_CLIENTS)
@@ -84,7 +88,7 @@ class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
     override fun hasAnalogOutputSignal(state: BlockState): Boolean = true
 
     override fun getAnalogOutputSignal(state: BlockState, level: Level, pos: BlockPos, direction: Direction): Int =
-        (level.getBlockEntity(pos) as? ImageRecorderBlockEntity)?.picturesHeldSignal() ?: 0
+        (level.getBlockEntity(pos) as? ImageRecorderBlockEntity)?.pictureWaitingSignal() ?: 0
 
     override fun canSurvive(state: BlockState, level: LevelReader, pos: BlockPos): Boolean =
         canSupportCenter(level, pos.below(), Direction.UP)
@@ -104,7 +108,8 @@ class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
         return super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random)
     }
 
-    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape = SHAPE
+    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
+        if (state.getValue(MOUNTED)) TripodBlock.LEGS else SHAPE
 
     override fun rotate(state: BlockState, rotation: Rotation): BlockState =
         state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
@@ -119,18 +124,18 @@ class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
         val POWERED: BooleanProperty = BlockStateProperties.POWERED
 
+        /** On a tripod, which stands beneath and above it; its facing and turn are then left alone for its aim. */
+        val MOUNTED: BooleanProperty = BooleanProperty.create("mounted")
+
+        /** How high a mounted recorder's base stands, on the tripod's head: twenty-two pixels, off Jonah's model. */
+        const val MOUNTED_PIVOT_HEIGHT = 22.0 / 16.0
+
         /** Set by the client's entrypoint: what looking through a set-down recorder does there. */
         var lookThroughOnTheClient: ((BlockPos) -> Unit)? = null
 
         const val TURNS_A_QUARTER = 4
         const val WAYS = 16
         private const val DEGREES_A_TURN = 360.0f / WAYS
-
-        /** Its height off the ground to the middle of the lens, in blocks: two pixels. */
-        private const val LENS_HEIGHT = 2.0 / 16.0
-
-        /** How far forward of the block's middle a picture is taken from: just past the lens's glass, six pixels out. */
-        private const val LENS_FORWARD = 6.5 / 16.0
 
         /** Round enough to take in the recorder at any of its angles. */
         private val SHAPE: VoxelShape = box(3.0, 0.0, 3.0, 13.0, 10.0, 13.0)
@@ -148,8 +153,16 @@ class ImageRecorderBlock(properties: Properties) : BaseEntityBlock(properties) {
         /** The yaw it points along, as an entity's is counted. */
         fun yawOf(state: BlockState): Float = wayOf(state) * DEGREES_A_TURN
 
-        /** Where its lens is, and so where a picture is taken from. */
-        fun lensOf(state: BlockState, pos: BlockPos): Vec3 =
-            Vec3.atBottomCenterOf(pos).add(0.0, LENS_HEIGHT, 0.0).add(Vec3.directionFromRotation(0.0f, yawOf(state)).scale(LENS_FORWARD))
+        /** Where the recorder at [pos] points and its parts stand, or null where there is none. */
+        fun aimOf(level: BlockGetter, pos: BlockPos): RecorderAim? {
+            val state = level.getBlockState(pos)
+            if (!state.`is`(ImagingContent.IMAGE_RECORDER_BLOCK)) return null
+            val base = Vec3.atBottomCenterOf(pos)
+            if (!state.getValue(MOUNTED)) return RecorderAim(base, yawOf(state), LEVEL)
+            val recorder = level.getBlockEntity(pos) as? ImageRecorderBlockEntity ?: return null
+            return RecorderAim(base.add(0.0, MOUNTED_PIVOT_HEIGHT, 0.0), recorder.aimYaw, recorder.aimPitch)
+        }
+
+        private const val LEVEL = 0.0f
     }
 }

@@ -4,8 +4,43 @@
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
-      "entries": [{ "type": "minecraft:item", "name": "agesandtheart_imaging:image_recorder" }],
-      "condition": { "type": "minecraft:survives_explosion" }
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart_imaging:image_recorder",
+          "modifier": [
+            {
+              "type": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": [
+                "minecraft:container"
+              ]
+            }
+          ]
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    },
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "condition": {
+            "type": "minecraft:match_block",
+            "blocks": "agesandtheart_imaging:image_recorder",
+            "state": {
+              "mounted": "true"
+            }
+          },
+          "name": "agesandtheart_imaging:tripod"
+        }
+      ],
+      "rolls": 1
     }
   ],
   "random_sequence": "agesandtheart_imaging:blocks/image_recorder"

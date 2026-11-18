@@ -10,6 +10,7 @@
     "client.CameraMixin",
     "client.GameRendererMixin",
     "client.HudMixin",
+    "client.LevelExtractorMixin",
     "client.LightmapRenderStateExtractorMixin",
     "client.LivingEntityRendererAccessor",
     "client.MouseHandlerMixin",

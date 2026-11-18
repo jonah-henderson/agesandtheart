@@ -47,7 +47,8 @@ class PreviewPainter {
 
     /**
      * Draws one frame of [world] from [camera] onto [target], its fog ending [shownRadiusChunks] out; [advanceLight]
-     * runs the world's light first, which has to come before its sections are meshed.
+     * runs the world's light first, which has to come before its sections are meshed. Without [showsNames], no name is
+     * drawn over anybody's head.
      */
     fun paint(
         world: PreviewWorld,
@@ -56,6 +57,7 @@ class PreviewPainter {
         shownRadiusChunks: Int,
         delta: DeltaTracker,
         advanceLight: () -> Unit = world::runTheLight,
+        showsNames: Boolean = true,
     ) {
         val state = world.renderState.cameraRenderState
         camera.describeTo(state, target.width, target.height)
@@ -65,7 +67,7 @@ class PreviewPainter {
                 clear(target)
                 OffscreenLevelRender.drawing(world.level, target, camera) {
                     advanceLight()
-                    submit(world, camera, target, state, terrainFog, delta)
+                    submit(world, camera, target, state, terrainFog, delta, showsNames)
                 }
             }
         } finally {
@@ -151,6 +153,7 @@ class PreviewPainter {
         state: CameraRenderState,
         terrainFog: GpuBufferSlice,
         delta: DeltaTracker,
+        showsNames: Boolean,
     ) {
         // **The section grid is moved to the camera here rather than left to the render**, which is the ordering the
         // two steps below both depend on. `LevelRenderer.render` opens by repositioning the grid and closes by
@@ -177,6 +180,12 @@ class PreviewPainter {
         // player's, gathered into our render state. The list only, never `reset()`: a group's render state is a field
         // of the group itself, so clearing it would empty the player's own particles rather than ours.
         world.renderState.particlesRenderState.particles.clear()
+        if (!showsNames) {
+            world.renderState.entityRenderStates.forEach { entity ->
+                entity.nameTag = null
+                entity.scoreText = null
+            }
+        }
 
         PanelTarget.redirecting(target) {
             world.renderer.render(

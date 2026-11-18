@@ -16,6 +16,7 @@ fun init() {
     ImagingContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     ImagingContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     ImagingContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
+    ImagingContent.menus.forEach { (id, type) -> Registry.register(BuiltInRegistries.MENU, id, type) }
     ImagingContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     ImagingContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     CreativeModeTabEvents.modifyOutputEvent(ImagingContent.TAB).register { output ->

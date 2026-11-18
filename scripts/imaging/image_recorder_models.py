@@ -12,7 +12,8 @@ picks among them, under the companion's assets. Run it again whenever the projec
   is set here, not taken from the project.
 
 A recorder set down faces one of sixteen ways, four facings each turned 0, 22.5, 45 or 67.5 degrees clockwise: the four
-block models are the item's geometry turned about the block's centre, and the blockstate turns them for the facing.
+block models are the item's geometry turned about the block's centre, and the blockstate turns them for the facing. A recorder mounted on a tripod shows the tripod's model
+(`tripod_models.py`), the recorder itself drawn by its renderer.
 An element the project already turns about one axis takes both turns as one rotation about its own origin (26.3's three-axis element rotation applies x, then y, then z), with its
 box moved by whatever the two pivots differ by.
 """
@@ -29,6 +30,8 @@ HELD_BEFORE_THE_FACE = {"translation": [0, 6.5, -11.2], "scale": [1.6, 1.6, 1.6]
 TURN = 22.5
 TURNS = 4
 BLOCK_CENTRE = (8.0, 0.0, 8.0)
+# How a tripod's model is turned for its facing: kept in step with `tripod_models.py`.
+TRIPOD_FACING_TURNS = {"south": 0, "west": 90, "north": 180, "east": 270}
 
 
 def rotation_x(degrees):
@@ -70,6 +73,9 @@ def elements_of(project):
     width, height = project["resolution"]["width"], project["resolution"]["height"]
     elements = []
     for e in project["elements"]:
+        assert e.get("stretch", [1, 1, 1]) == [1, 1, 1], (
+            f"{e.get('name')} is stretched in Blockbench, which a Java model cannot say: set its size instead"
+        )
         out = {"from": e["from"], "to": e["to"]}
         rotation = e.get("rotation")
         if rotation and any(rotation):
@@ -152,7 +158,14 @@ def main():
             variant = {"model": f"agesandtheart_imaging:block/image_recorder_turn_{turn}"}
             if y:
                 variant["y"] = y
-            variants[f"facing={facing},turn={turn}"] = variant
+            variants[f"facing={facing},mounted=false,turn={turn}"] = variant
+    # On a tripod the tripod is the block's model, turned as `tripod_models.py` turns it for the facing it was placed
+    # with, and the recorder on it is drawn turned to its aim (`MountedRecorderRenderer`).
+    for facing, y in TRIPOD_FACING_TURNS.items():
+        variant = {"model": "agesandtheart_imaging:block/tripod"}
+        if y:
+            variant["y"] = y
+        variants[f"facing={facing},mounted=true"] = variant
     (ASSETS / "blockstates/image_recorder.json").write_text(json.dumps({"variants": variants}, indent=2) + "\n")
     old = ASSETS / "models/block/image_recorder.json"
     if old.exists():

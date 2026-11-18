@@ -37,6 +37,7 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.BLOCK) { helper -> ImagingContent.blocks.forEach { (id, block) -> helper.register(id, block) } }
         event.register(Registries.ITEM) { helper -> ImagingContent.items.forEach { (id, item) -> helper.register(id, item) } }
         event.register(Registries.BLOCK_ENTITY_TYPE) { helper -> ImagingContent.blockEntities.forEach { (id, type) -> helper.register(id, type) } }
+        event.register(Registries.MENU) { helper -> ImagingContent.menus.forEach { (id, type) -> helper.register(id, type) } }
         event.register(Registries.SOUND_EVENT) { helper -> ImagingContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) } }
         event.register(Registries.ENTITY_TYPE) { helper -> ImagingContent.entities.forEach { (id, type) -> helper.register(id, type) } }
     }
@@ -50,6 +51,12 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onRegisterCapabilities(event: RegisterCapabilitiesEvent) {
         event.registerBlockEntity(Capabilities.Item.BLOCK, ImagingContent.IMAGE_RECORDER_ENTITY, ::WorldlyContainerWrapper)
         event.registerBlockEntity(Capabilities.Item.BLOCK, ImagingContent.SLIDE_CAROUSEL_ENTITY, ::WorldlyContainerWrapper)
+        // A tripod's head, into the recorder mounted beneath it, as vanilla's hopper reaches it through the head's holder.
+        event.registerBlock(
+            Capabilities.Item.BLOCK,
+            { level, pos, state, _, side -> TripodBlock.recorderUnderTheHead(state, level, pos)?.let { WorldlyContainerWrapper(it, side) } },
+            ImagingContent.TRIPOD_BLOCK,
+        )
     }
 
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {

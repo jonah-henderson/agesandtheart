@@ -8,7 +8,10 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
+import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
@@ -19,19 +22,20 @@ import java.util.UUID
 
 /**
  * The chunks a set-down recorder's photograph is drawn from, which the server streams and the client counts: those
- * ahead of the lens out to where the fog closes in, and two rows behind it, one so the row beside the lens can mesh and
- * one so that one can. Both sides work it out from the same pose.
+ * ahead of the lens out to where the fog closes in, the photographing player's own render distance so a photograph
+ * sees as far as their view through the recorder did, and two rows behind it, one so the row beside the lens can mesh
+ * and one so that one can. Both sides work it out from the same pose and distance.
  */
 object PhotographRing {
 
-    /** How far a photograph sees before the fog closes in. */
-    const val SHOWN_RADIUS_CHUNKS = 6
+    /** The fewest chunks a photograph sees, as vanilla's own render distance allows no fewer. */
+    const val LEAST_SHOWN_RADIUS_CHUNKS = 2
 
-    /** One further, since a chunk is meshed only once its neighbours have come. */
-    const val RADIUS_CHUNKS = SHOWN_RADIUS_CHUNKS + 1
+    /** How far it is streamed: one further than [shownRadius], since a chunk is meshed only once its neighbours come. */
+    fun streamedRadius(shownRadius: Int): Int = shownRadius + 1
 
-    /** One further again, since the client's chunk cache refuses a chunk outside its radius. */
-    const val HELD_RADIUS_CHUNKS = RADIUS_CHUNKS + 1
+    /** How far chunks are held, one further again, since the client's chunk cache refuses a chunk outside its radius. */
+    fun heldRadius(shownRadius: Int): Int = shownRadius + 2
 
     private const val ROWS_BEHIND = 2
     private const val BLOCKS_A_CHUNK = 16
@@ -39,8 +43,8 @@ object PhotographRing {
 
     fun centreOf(eye: Vec3): ChunkPos = ChunkPos.containing(BlockPos.containing(eye))
 
-    /** The chunks for a photograph from [eye] along [yaw], nearest first. */
-    fun around(eye: Vec3, yaw: Float): List<ChunkPos> {
+    /** The chunks for a photograph from [eye] along [yaw] seeing [shownRadius] chunks, nearest first. */
+    fun around(eye: Vec3, yaw: Float, shownRadius: Int): List<ChunkPos> {
         val forward = Vec3.directionFromRotation(0.0f, yaw)
         fun isNotFarBehind(chunk: ChunkPos): Boolean {
             val acrossX = chunk.x * BLOCKS_A_CHUNK + HALF_A_CHUNK - eye.x
@@ -48,7 +52,9 @@ object PhotographRing {
             return acrossX * forward.x + acrossZ * forward.z >= -ROWS_BEHIND * BLOCKS_A_CHUNK
         }
         val centre = centreOf(eye)
-        return ChunkPos.rangeClosed(centre, RADIUS_CHUNKS).toList().filter(::isNotFarBehind).sortedBy { centre.getChessboardDistance(it) }
+        return ChunkPos.rangeClosed(centre, streamedRadius(shownRadius)).toList()
+            .filter(::isNotFarBehind)
+            .sortedBy { centre.getChessboardDistance(it) }
     }
 }
 
@@ -73,7 +79,11 @@ data class PhotographWanted(
     val rain: Float,
     val thunder: Float,
     val chunksComing: Int,
+    /** How many chunks out it sees before the fog: the photographing player's render distance. */
+    val shownRadiusChunks: Int,
     val isFlat: Boolean,
+    /** The vertical field of view, the recorder's zoom included. */
+    val fieldOfView: Float,
 ) : CustomPacketPayload {
 
     val eye: Vec3 get() = Vec3(eyeX, eyeY, eyeZ)
@@ -99,7 +109,9 @@ data class PhotographWanted(
                 buffer.writeFloat(value.rain)
                 buffer.writeFloat(value.thunder)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.chunksComing)
+                ByteBufCodecs.VAR_INT.encode(buffer, value.shownRadiusChunks)
                 buffer.writeBoolean(value.isFlat)
+                buffer.writeFloat(value.fieldOfView)
             },
             { buffer ->
                 PhotographWanted(
@@ -117,7 +129,9 @@ data class PhotographWanted(
                     rain = buffer.readFloat(),
                     thunder = buffer.readFloat(),
                     chunksComing = ByteBufCodecs.VAR_INT.decode(buffer),
+                    shownRadiusChunks = ByteBufCodecs.VAR_INT.decode(buffer),
                     isFlat = buffer.readBoolean(),
+                    fieldOfView = buffer.readFloat(),
                 )
             },
         )
@@ -155,6 +169,32 @@ class PhotographChunk(
                     light = ClientboundLightUpdatePacketData.STREAM_CODEC.decode(buffer),
                 )
             },
+        )
+    }
+}
+
+/**
+ * What stood in front of the lens when the photograph [id] was taken, as the packets that bring each into a client's
+ * view: what it is and where, its data, and what it wears and holds. A snapshot, sent once its chunks are on the way.
+ */
+class PhotographEntities(
+    val id: UUID,
+    val arrivals: List<ClientboundAddEntityPacket>,
+    val data: List<ClientboundSetEntityDataPacket>,
+    val equipment: List<ClientboundSetEquipmentPacket>,
+) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PhotographEntities> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<PhotographEntities> = CustomPacketPayload.Type(Imaging.id("photograph_entities"))
+
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, PhotographEntities> = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC, PhotographEntities::id,
+            ClientboundAddEntityPacket.STREAM_CODEC.apply(ByteBufCodecs.list()), PhotographEntities::arrivals,
+            ClientboundSetEntityDataPacket.STREAM_CODEC.apply(ByteBufCodecs.list()), PhotographEntities::data,
+            ClientboundSetEquipmentPacket.STREAM_CODEC.apply(ByteBufCodecs.list()), PhotographEntities::equipment,
+            ::PhotographEntities,
         )
     }
 }
