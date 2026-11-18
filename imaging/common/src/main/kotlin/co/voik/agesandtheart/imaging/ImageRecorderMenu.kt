@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.imaging
 
+import co.voik.agesandtheart.platform.Services
+import net.minecraft.core.BlockPos
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Container
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory
@@ -8,12 +11,21 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 
-/** A set-down recorder's two slots and the player's inventory: plates go in by hand, and the picture comes out. */
-class ImageRecorderMenu(containerId: Int, playerInventory: Inventory, private val recorder: Container) :
-    AbstractContainerMenu(ImagingContent.IMAGE_RECORDER_MENU, containerId) {
+/**
+ * A set-down recorder's two slots and the player's inventory: plates go in by hand, and the picture comes out. Its
+ * Adjust button closes it and looks through the recorder, as using it sneaking does; only the server's menu knows
+ * which recorder it is, at [recorderPos].
+ */
+class ImageRecorderMenu(
+    containerId: Int,
+    playerInventory: Inventory,
+    private val recorder: Container,
+    private val recorderPos: BlockPos?,
+) : AbstractContainerMenu(ImagingContent.IMAGE_RECORDER_MENU, containerId) {
 
     /** The client's, which vanilla's slot syncing fills in. */
-    constructor(containerId: Int, playerInventory: Inventory) : this(containerId, playerInventory, SimpleContainer(RecorderSlots.COUNT))
+    constructor(containerId: Int, playerInventory: Inventory) :
+        this(containerId, playerInventory, SimpleContainer(RecorderSlots.COUNT), recorderPos = null)
 
     init {
         checkContainerSize(recorder, RecorderSlots.COUNT)
@@ -48,4 +60,18 @@ class ImageRecorderMenu(containerId: Int, playerInventory: Inventory, private va
     }
 
     override fun stillValid(player: Player): Boolean = recorder.stillValid(player)
+
+    /** Adjust: the screen closed, and the player's game sent to look through the recorder. */
+    override fun clickMenuButton(player: Player, buttonId: Int): Boolean {
+        val pos = recorderPos
+        if (buttonId != ADJUST || player !is ServerPlayer || pos == null) return false
+        player.closeContainer()
+        Services.NETWORK.sendToPlayer(player, LookThroughTheRecorder(pos))
+        return true
+    }
+
+    companion object {
+        /** The Adjust button, as vanilla numbers a menu's buttons. */
+        const val ADJUST = 0
+    }
 }

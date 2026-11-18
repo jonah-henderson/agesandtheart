@@ -1,8 +1,11 @@
 {
+  "agesandtheart_imaging.recorder.adjust": "Adjust",
+  "agesandtheart_imaging.recorder.adjust.how": "%1$s + %2$s to adjust directly",
   "agesandtheart_imaging.recorder.aim": "Move the mouse to aim",
   "agesandtheart_imaging.recorder.stop": "Press %1$s to exit the viewfinder",
   "agesandtheart_imaging.recorder.turn": "Press %1$s or %2$s to rotate",
   "agesandtheart_imaging.viewfinder.lower": "Press %1$s to exit the viewfinder",
+  "agesandtheart_imaging.viewfinder.no_plates": "No photographic plates",
   "agesandtheart_imaging.viewfinder.zoom": "Scroll to zoom in and out",
   "block.agesandtheart_imaging.image_recorder": "Image Recorder",
   "block.agesandtheart_imaging.slide_carousel": "Slide Carousel",

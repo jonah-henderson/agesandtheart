@@ -9,7 +9,6 @@ import co.voik.agesandtheart.imaging.TurnTheRecorder
 import co.voik.agesandtheart.imaging.ZoomTheRecorder
 import co.voik.agesandtheart.client.sendToServer
 import net.minecraft.client.Minecraft
-import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.util.Mth
@@ -26,8 +25,8 @@ import kotlin.math.pow
  * Looking through a set-down image recorder: the view moved to its lens and pointed its way, at the field of view it
  * takes pictures at, through the viewfinder's look. The player stays where they stand, and since the view is no longer
  * theirs, vanilla moves them no further; sneaking stops. On the ground the strafe keys turn the recorder a sixteenth at
- * a time. On a tripod the mouse aims it as it would the player's own view, the player turned to the recorder's aim as
- * they start so the two move together, and the lens swings about the tripod's head as it turns.
+ * a time. On a tripod the mouse aims it as it would the player's own view while the player stays as they stand, and
+ * the lens swings about the tripod's head as it turns.
  */
 object RecorderPreview {
 
@@ -44,19 +43,15 @@ object RecorderPreview {
     private const val AIM_WORTH_TELLING = 0.05f
 
     /**
-     * What the view is, standing at the lens. Never added to the level. On a tripod it looks where [aimedBy] does, read
-     * every frame rather than every tick, so the mouse aims it as smoothly as it turns the player's own view.
+     * What the view is, standing at the lens. Never added to the level. On a tripod the mouse turns it as it would the
+     * player, every frame, and its turn is the recorder's aim.
      */
-    private class Lens(level: Level, private val eyeHeight: Float, private val aimedBy: LocalPlayer?) : Marker(EntityTypes.MARKER, level) {
+    private class Lens(level: Level, private val eyeHeight: Float) : Marker(EntityTypes.MARKER, level) {
         init {
             refreshDimensions()
         }
 
         override fun getDimensions(pose: Pose): EntityDimensions = EntityDimensions.fixed(0.0f, 0.0f).withEyeHeight(eyeHeight)
-
-        override fun getViewYRot(partialTicks: Float): Float = aimedBy?.getViewYRot(partialTicks) ?: super.getViewYRot(partialTicks)
-
-        override fun getViewXRot(partialTicks: Float): Float = aimedBy?.getViewXRot(partialTicks) ?: super.getViewXRot(partialTicks)
     }
 
     private var looking: BlockPos? = null
@@ -86,14 +81,13 @@ object RecorderPreview {
         if (!state.`is`(ImagingContent.IMAGE_RECORDER_BLOCK) || looking != null) return
         val aim = ImageRecorderBlock.aimOf(level, pos) ?: return
         isMounted = state.getValue(ImageRecorderBlock.MOUNTED)
-        if (isMounted) turnThePlayerTo(player, aim.yaw, aim.pitch)
         lastToldYaw = aim.yaw
         lastToldPitch = aim.pitch
         ticksSinceToldTheAim = 0
         zoom = (level.getBlockEntity(pos) as? ImageRecorderBlockEntity)?.zoom ?: ImageRecorderBlockEntity.WIDEST
         isZoomUntold = false
         // The eye where the camera already holds it, the player's own, so the view does not slide as it settles.
-        val view = Lens(level, player.eyeHeight, player.takeIf { isMounted })
+        val view = Lens(level, player.eyeHeight)
         looking = pos
         lens = view
         place(view, pos, snap = true)
@@ -114,17 +108,19 @@ object RecorderPreview {
         )
     }
 
-    /** The player facing where the recorder points, so the mouse moves both from there. */
-    private fun turnThePlayerTo(player: LocalPlayer, yaw: Float, pitch: Float) {
-        player.yRot = yaw
-        player.xRot = pitch
-        player.yRotO = yaw
-        player.xRotO = pitch
+    /** Whether the mouse aims the recorder being looked through, which it does on a tripod, rather than the player. */
+    @JvmStatic
+    fun aimsByTheMouse(): Boolean = looking != null && isMounted
+
+    /** The mouse's turn, given to the view on a tripod as vanilla gives it to the player. */
+    @JvmStatic
+    fun turn(across: Double, upAndDown: Double) {
+        lens?.turn(across, upAndDown)
     }
 
     fun stop() {
         val minecraft = Minecraft.getInstance()
-        looking?.let { pos -> minecraft.player?.let { if (isMounted) tellTheAim(pos, it, always = true) } }
+        looking?.let { pos -> lens?.let { if (isMounted) tellTheAim(pos, it, always = true) } }
         looking?.let(::tellTheZoom)
         looking = null
         lens = null
@@ -166,7 +162,7 @@ object RecorderPreview {
         }
         tellTheZoom(pos)
         if (isMounted) {
-            tellTheAim(pos, player, always = false)
+            tellTheAim(pos, view, always = false)
         } else {
             val turnedBy = (if (rightPressed) 1 else 0) - (if (leftPressed) 1 else 0)
             if (turnedBy != 0 && minecraft.gui.screen() == null) sendToServer(TurnTheRecorder(pos, turnedBy))
@@ -197,12 +193,12 @@ object RecorderPreview {
     }
 
     /**
-     * A tripod's aim, the player's own view's, kept on this client's recorder at once so it is drawn turning, and told
-     * to the server every few ticks while it moves and [always] as the player stops looking.
+     * A tripod's aim, its view's, kept on this client's recorder at once so it is drawn turning, and told to the server
+     * every few ticks while it moves and [always] as the player stops looking.
      */
-    private fun tellTheAim(pos: BlockPos, player: LocalPlayer, always: Boolean) {
-        val recorder = player.level().getBlockEntity(pos) as? ImageRecorderBlockEntity ?: return
-        recorder.aim(player.yRot, player.xRot)
+    private fun tellTheAim(pos: BlockPos, view: Lens, always: Boolean) {
+        val recorder = view.level().getBlockEntity(pos) as? ImageRecorderBlockEntity ?: return
+        recorder.aim(view.yRot, view.xRot)
         ticksSinceToldTheAim++
         val hasMoved = abs(Mth.wrapDegrees(recorder.aimYaw - lastToldYaw)) > AIM_WORTH_TELLING ||
             abs(recorder.aimPitch - lastToldPitch) > AIM_WORTH_TELLING
@@ -216,8 +212,8 @@ object RecorderPreview {
 
     /**
      * [view] at the lens, which on a tripod swings about its head with the aim. On the ground it turns toward the
-     * recorder's way, there at once where it [snap]s and a little nearer each tick otherwise; on a tripod it looks where
-     * the player does ([Lens]).
+     * recorder's way, there at once where it [snap]s and a little nearer each tick otherwise; on a tripod the mouse turns
+     * it ([turn]), and it is pointed only as it starts.
      */
     private fun place(view: Lens, pos: BlockPos, snap: Boolean) {
         val aim = ImageRecorderBlock.aimOf(view.level(), pos) ?: return
@@ -227,6 +223,7 @@ object RecorderPreview {
         view.yo = if (snap) y else view.y
         view.zo = if (snap) lensAt.z else view.z
         view.setPos(lensAt.x, y, lensAt.z)
+        if (isMounted && !snap) return
         view.xRotO = aim.pitch
         view.xRot = aim.pitch
         val turnedTo = if (snap) aim.yaw else view.yRot + Mth.clamp(Mth.wrapDegrees(aim.yaw - view.yRot), -TURNING_A_TICK, TURNING_A_TICK)

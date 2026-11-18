@@ -48,6 +48,7 @@ object ViewfinderView {
     /** Hands [Viewfinder] and a set-down recorder what they do here. Called once by each loader's client entrypoint. */
     fun install() {
         Viewfinder.shutterOnTheClient = { Capture.request(Minecraft.getInstance()) }
+        Viewfinder.noPlateOnTheClient = { ViewfinderHint.show(Component.translatable("agesandtheart_imaging.viewfinder.no_plates")) }
         ImageRecorderBlock.lookThroughOnTheClient = RecorderPreview::start
     }
 

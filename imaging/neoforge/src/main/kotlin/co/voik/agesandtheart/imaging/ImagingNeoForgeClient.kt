@@ -68,6 +68,7 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener { event: RegisterClientPayloadHandlersEvent ->
             event.register(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
             event.register(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
+            event.register(LookThroughTheRecorder.TYPE) { payload, _ -> RecorderPreview.start(payload.pos) }
             event.register(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
             event.register(PhotographEntities.TYPE) { payload, _ -> Darkroom.entities(payload) }
         }

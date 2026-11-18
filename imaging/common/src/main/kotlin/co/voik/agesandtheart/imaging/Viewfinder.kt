@@ -6,6 +6,8 @@ import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundSource
+import net.minecraft.world.level.Level
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
@@ -63,13 +65,24 @@ object Viewfinder {
     @Volatile
     var shutterOnTheClient: (() -> Unit)? = null
 
+    /** What the photographer's client does as the shutter goes with no plate to take the picture on. */
+    @Volatile
+    var noPlateOnTheClient: (() -> Unit)? = null
+
+    /** The click a recorder gives with no plate to take a picture on, held or set down: a dispenser's with nothing in it. */
+    fun clickWithNoPlate(level: Level, x: Double, y: Double, z: Double, source: SoundSource) {
+        level.playSound(null, x, y, z, SoundEvents.DISPENSER_FAIL, source, 1.0f, EMPTY_CLICK_PITCH)
+    }
+
+    private const val EMPTY_CLICK_PITCH = 1.2f
+
     /**
      * The second use, on the server: a plate spent, the recorded image handed over at once, the shot waiting for the
      * client's picture of it ([Shots]), and the recorder lowered.
      */
     fun shutter(player: ServerPlayer) {
         if (!spendAPlate(player)) {
-            stopLooking(player)
+            clickWithNoPlate(player.level(), player.x, player.eyeY, player.z, SoundSource.PLAYERS)
             return
         }
         val picture = Picture(UUID.randomUUID(), WordNames.placeName(player.level().dimension()), player.blockPosition())
@@ -132,7 +145,7 @@ object Viewfinder {
     fun tick(player: Player) {
         if (!isLooking(player)) return
         val isHoldingTheRecorder = handHoldingTheRecorder(player) != null
-        val mustLower = player.isShiftKeyDown || !isHoldingTheRecorder || !hasAPlate(player) || !player.isAlive
+        val mustLower = player.isShiftKeyDown || !isHoldingTheRecorder || !player.isAlive
         if (mustLower) stopLooking(player)
     }
 

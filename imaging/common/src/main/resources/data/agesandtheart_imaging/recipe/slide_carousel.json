@@ -1,10 +1,11 @@
 {
-  "_comment": "Jonah's, for now: a wheel of iron nuggets on a wooden base with redstone to turn it and arc crystal to drive it, and a nugget up at the top right for the arm that holds the plates up.",
+  "_comment": "Midgame item, hence the arc crystal block.",
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
-  "pattern": ["  N", "NNN", "PRA"],
+  "pattern": [" NG", "NNN", "PRA"],
   "key": {
     "N": "minecraft:iron_nugget",
+    "G": "minecraft:glass_pane",
     "P": "#minecraft:planks",
     "R": "minecraft:redstone",
     "A": "agesandtheart:arc_crystal_block"

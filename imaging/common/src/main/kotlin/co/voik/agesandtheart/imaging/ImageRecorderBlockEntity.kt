@@ -14,7 +14,6 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.ContainerHelper
@@ -86,7 +85,8 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun getDefaultName(): Component = Component.translatable("block.agesandtheart_imaging.image_recorder")
 
-    override fun createMenu(containerId: Int, inventory: Inventory): AbstractContainerMenu = ImageRecorderMenu(containerId, inventory, this)
+    override fun createMenu(containerId: Int, inventory: Inventory): AbstractContainerMenu =
+        ImageRecorderMenu(containerId, inventory, this, blockPos)
 
     override fun canPlaceItem(slot: Int, stack: ItemStack): Boolean = RecorderSlots.belongsIn(slot, stack)
 
@@ -112,7 +112,7 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
     fun shoot(level: ServerLevel) {
         val plates = items[RecorderSlots.PLATES]
         if (!RecorderSlots.isAPlate(plates)) {
-            level.playSound(null, blockPos, SoundEvents.DISPENSER_FAIL, SoundSource.BLOCKS, 1.0f, CLICK_PITCH)
+            Viewfinder.clickWithNoPlate(level, blockPos.x + HALF, blockPos.y + HALF, blockPos.z + HALF, SoundSource.BLOCKS)
             return
         }
         plates.shrink(1)
@@ -194,7 +194,7 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
         private const val MOST_PITCH = 90.0f
         private const val LEVEL = 0.0f
         private const val FULL_SIGNAL = 15
-        private const val CLICK_PITCH = 1.2f
+        private const val HALF = 0.5
         private const val FLASH_COLOUR = 0xFFF4E0
 
         /** Where behind the block's middle a picture with nowhere to go is let out, and how hard. */

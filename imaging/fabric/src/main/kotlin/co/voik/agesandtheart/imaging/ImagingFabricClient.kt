@@ -43,6 +43,7 @@ fun initClient() {
     MenuScreens.register(ImagingContent.IMAGE_RECORDER_MENU, ::ImageRecorderScreen)
     ClientPlayNetworking.registerGlobalReceiver(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
     ClientPlayNetworking.registerGlobalReceiver(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
+    ClientPlayNetworking.registerGlobalReceiver(LookThroughTheRecorder.TYPE) { payload, _ -> RecorderPreview.start(payload.pos) }
     ClientPlayNetworking.registerGlobalReceiver(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
     ClientPlayNetworking.registerGlobalReceiver(PhotographEntities.TYPE) { payload, _ -> Darkroom.entities(payload) }
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->

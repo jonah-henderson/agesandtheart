@@ -9,6 +9,8 @@ import co.voik.agesandtheart.imaging.ImageRecorderMenu
 import co.voik.agesandtheart.imaging.ImagingContent
 import co.voik.agesandtheart.imaging.RecorderSlots
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
@@ -16,8 +18,8 @@ import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 
 /**
- * A set-down recorder's screen: its plates, an arrow to the picture it took, and the picture. Each empty slot shows what
- * belongs there as a ghost, as the transcriber's does.
+ * A set-down recorder's screen: its plates, an arrow to the picture it took, and the picture, and under them a button to
+ * look through it. Each empty slot shows what belongs there as a ghost, as the transcriber's does.
  */
 class ImageRecorderScreen(menu: ImageRecorderMenu, inventory: Inventory, title: Component) :
     AbstractContainerScreen<ImageRecorderMenu>(menu, inventory, title, RecorderSlots.PANEL_WIDTH, RecorderSlots.PANEL_HEIGHT) {
@@ -37,6 +39,20 @@ class ImageRecorderScreen(menu: ImageRecorderMenu, inventory: Inventory, title: 
         addRenderableWidget(SlotView(leftPos + RecorderSlots.PLATES_X, topPos + RecorderSlots.SLOT_Y))
         addRenderableWidget(ProgressArrow(leftPos + RecorderSlots.ARROW_X, topPos + RecorderSlots.ARROW_Y) { NO_PROGRESS })
         addRenderableWidget(SlotView(leftPos + RecorderSlots.PICTURE_X, topPos + RecorderSlots.SLOT_Y))
+        val options = minecraft.options
+        val howToAdjustDirectly = Component.translatable(
+            "agesandtheart_imaging.recorder.adjust.how",
+            options.keyShift.translatedKeyMessage,
+            options.keyUse.translatedKeyMessage,
+        )
+        addRenderableWidget(
+            Button.builder(Component.translatable("agesandtheart_imaging.recorder.adjust")) {
+                minecraft.gameMode?.handleInventoryButtonClick(menu.containerId, ImageRecorderMenu.ADJUST)
+            }
+                .bounds(leftPos + RecorderSlots.ADJUST_X, topPos + RecorderSlots.ADJUST_Y, RecorderSlots.ADJUST_WIDTH, RecorderSlots.ADJUST_HEIGHT)
+                .tooltip(Tooltip.create(howToAdjustDirectly))
+                .build(),
+        )
         addRenderableWidget(PlayerInventoryView(leftPos + RecorderSlots.INVENTORY_X, topPos + RecorderSlots.INVENTORY_Y, RecorderSlots.HOTBAR_DROP))
     }
 

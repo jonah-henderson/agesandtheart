@@ -19,9 +19,15 @@ object RecorderSlots {
     const val PANEL_HEIGHT = 166
     const val PLATES_X = 56
     const val PICTURE_X = 116
-    const val SLOT_Y = 35
+    const val SLOT_Y = 20
     const val ARROW_X = 80
-    const val ARROW_Y = 35
+    const val ARROW_Y = 20
+
+    /** The Adjust button, centred under the slots and clear of the inventory's label. */
+    const val ADJUST_WIDTH = 60
+    const val ADJUST_HEIGHT = 20
+    const val ADJUST_X = (PANEL_WIDTH - ADJUST_WIDTH) / 2
+    const val ADJUST_Y = 46
     const val INVENTORY_X = 8
     const val INVENTORY_Y = 84
     const val HOTBAR_DROP = 58

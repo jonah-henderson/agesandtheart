@@ -60,6 +60,19 @@ data class ZoomTheRecorder(val pos: BlockPos, val zoom: Float) : CustomPacketPay
     }
 }
 
+/** The server's word to look through the recorder at [pos], as using it sneaking does: its screen's Adjust button. */
+data class LookThroughTheRecorder(val pos: BlockPos) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<LookThroughTheRecorder> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<LookThroughTheRecorder> = CustomPacketPayload.Type(Imaging.id("look_through_the_recorder"))
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, LookThroughTheRecorder> =
+            BlockPos.STREAM_CODEC.map(::LookThroughTheRecorder, LookThroughTheRecorder::pos)
+    }
+}
+
 /** What a turn, an aim or a zoom asks of the server: the recorder within reach, turned a step either way or aimed. */
 object ImagingTurns {
 
