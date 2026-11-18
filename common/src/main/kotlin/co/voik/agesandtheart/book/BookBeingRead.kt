@@ -8,12 +8,14 @@ import net.minecraft.network.codec.StreamCodec
 import net.minecraft.world.InteractionHand
 
 /**
- * Where a book being read is: in a hand, lying open on a lectern, or fallen open where someone linked from it —
+ * Where a book being read is: in a hand, lying open on a lectern, fallen open where someone linked from it, or open in
+ * another player's hand —
  * which decides whose panel it is. Or a book not yet bound, whose sentence is laid out at a desk and looked at
  * through a crystal viewer.
  *
  * A hand's panel belongs to its screen and closes with it, and so does a viewer's. A lectern's belongs to
- * the lectern, and everybody standing at it sees the same one (design §7.8.2); a fallen book's likewise.
+ * the lectern, and everybody standing at it sees the same one (design §7.8.2); a fallen book's likewise, and a book
+ * open in another's hand, which everybody near but its reader sees as one lying open.
  */
 sealed interface BookBeingRead {
 
@@ -24,6 +26,9 @@ sealed interface BookBeingRead {
     /** A [BookEntity], by the id the server and its clients share for it. */
     data class OnTheGround(val entityId: Int) : BookBeingRead
 
+    /** A book another player is reading in [hand], by the id the server and its clients share for them ([BookHeldOpen]). */
+    data class InAnothersHand(val holderId: Int, val hand: InteractionHand) : BookBeingRead
+
     /** The sentence laid out at a desk, through the crystal viewer whose menu the writer has open. */
     data object AtACrystalViewer : BookBeingRead
 
@@ -32,6 +37,7 @@ sealed interface BookBeingRead {
         private const val ON_A_LECTERN = 1
         private const val AT_A_CRYSTAL_VIEWER = 2
         private const val ON_THE_GROUND = 3
+        private const val IN_ANOTHERS_HAND = 4
 
         val STREAM_CODEC: StreamCodec<ByteBuf, BookBeingRead> = StreamCodec.of(
             { buffer, book -> encode(buffer, book) },
@@ -52,6 +58,11 @@ sealed interface BookBeingRead {
                     ByteBufCodecs.VAR_INT.encode(buffer, ON_THE_GROUND)
                     ByteBufCodecs.VAR_INT.encode(buffer, book.entityId)
                 }
+                is InAnothersHand -> {
+                    ByteBufCodecs.VAR_INT.encode(buffer, IN_ANOTHERS_HAND)
+                    ByteBufCodecs.VAR_INT.encode(buffer, book.holderId)
+                    ByteBufCodecs.VAR_INT.encode(buffer, book.hand.ordinal)
+                }
                 AtACrystalViewer -> ByteBufCodecs.VAR_INT.encode(buffer, AT_A_CRYSTAL_VIEWER)
             }
         }
@@ -64,6 +75,11 @@ sealed interface BookBeingRead {
                 }
                 ON_A_LECTERN -> OnALectern(BlockPos.STREAM_CODEC.decode(buffer))
                 ON_THE_GROUND -> OnTheGround(ByteBufCodecs.VAR_INT.decode(buffer))
+                IN_ANOTHERS_HAND -> {
+                    val holderId = ByteBufCodecs.VAR_INT.decode(buffer)
+                    val ordinal = ByteBufCodecs.VAR_INT.decode(buffer)
+                    InAnothersHand(holderId, InteractionHand.entries.getOrNull(ordinal) ?: throw DecoderException("No hand $ordinal"))
+                }
                 AT_A_CRYSTAL_VIEWER -> AtACrystalViewer
                 else -> throw DecoderException("No such place for a book as $kind")
             }

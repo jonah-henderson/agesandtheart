@@ -12,6 +12,8 @@ import co.voik.agesandtheart.client.LecternBookRenderer
 import co.voik.agesandtheart.client.LinkTransit
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
+import net.minecraft.world.InteractionHand
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
@@ -21,7 +23,8 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 
 /**
- * The book lying open — on a lectern, or fallen where someone linked from it — whose panel this client shows,
+ * The book lying open — on a lectern, fallen where someone linked from it, or open in another player's hand — whose
+ * panel this client shows,
  * and the laying down of their pictures with no screen up (design §7.8.2).
  *
  * A client draws one panel ([LinkingPanel]), so of every open book of ours within reach the nearest resolves
@@ -51,7 +54,7 @@ object OpenBookPanels {
     /** The book lying open that is being shown, or null while the panel is a hand's or nobody's. */
     val shown: BookBeingRead?
         get() = when (val book = LinkingPanel.showingFor) {
-            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround -> book
+            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand -> book
             is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer, null -> null
         }
 
@@ -162,7 +165,7 @@ object OpenBookPanels {
 
     /** Every open book of ours near enough to [viewer] to be chosen. */
     fun openBooksNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> =
-        openLecternsNear(level, viewer) + fallenBooksNear(level, viewer)
+        openLecternsNear(level, viewer) + fallenBooksNear(level, viewer) + booksHeldOpenNear(level, viewer)
 
     private fun openLecternsNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> {
         val reach = OpenBookPanelChoice.LET_GO_BEYOND_BLOCKS
@@ -184,6 +187,20 @@ object OpenBookPanels {
         if (!holdsAnOpenBookOfOurs) return null
         val distance = viewer.distanceTo(Vec3.atCenterOf(lectern.blockPos))
         return if (distance <= reach) NearbyOpenBook(BookBeingRead.OnALectern(lectern.blockPos), distance) else null
+    }
+
+    /** Books of ours other players near have open in a hand, which show their panels as books lying open do. */
+    private fun booksHeldOpenNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> {
+        val reach = OpenBookPanelChoice.LET_GO_BEYOND_BLOCKS
+        val reader = Minecraft.getInstance().player
+        return level.players().filter { it !== reader }.flatMap { holder ->
+            InteractionHand.entries.mapNotNull { hand ->
+                val book = holder.getItemInHand(hand)
+                val isHeldOpen = book.has(AgeComponents.BOOK_OPENED_AT) && LecternBooks.isOurs(book)
+                val distance = viewer.distanceTo(holder.position())
+                if (isHeldOpen && distance <= reach) NearbyOpenBook(BookBeingRead.InAnothersHand(holder.id, hand), distance) else null
+            }
+        }
     }
 
     private fun fallenBooksNear(level: ClientLevel, viewer: Vec3): List<NearbyOpenBook> {

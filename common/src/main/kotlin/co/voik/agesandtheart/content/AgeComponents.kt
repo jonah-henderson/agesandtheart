@@ -191,6 +191,15 @@ object AgeComponents {
         .networkSynchronized(ByteBufCodecs.BOOL)
         .build()
 
+    /**
+     * When a book held in a hand was opened, in its level's game time, while its reader has it open: what draws it opening
+     * in their hand (`AgeBookItemRenderer`). Sent to clients and never saved, so a book cannot be left open by a reader
+     * who crashed.
+     */
+    val BOOK_OPENED_AT: DataComponentType<Long> = DataComponentType.builder<Long>()
+        .networkSynchronized(ByteBufCodecs.VAR_LONG)
+        .build()
+
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
@@ -203,6 +212,7 @@ object AgeComponents {
         "book_authored".location() to BOOK_AUTHORED,
         "book_written_at".location() to BOOK_WRITTEN_AT,
         "link_target".location() to LINK_TARGET,
+        "book_opened_at".location() to BOOK_OPENED_AT,
         "notebook_pages".location() to NOTEBOOK_PAGES,
         "notebook_selected".location() to NOTEBOOK_SELECTED,
         "archive_pages".location() to ARCHIVE_PAGES,

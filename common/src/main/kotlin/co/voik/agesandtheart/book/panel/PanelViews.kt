@@ -8,6 +8,7 @@ import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.EndedAges
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
+import co.voik.agesandtheart.book.BookHeldOpen
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.content.AgeComponents
@@ -248,7 +249,7 @@ object PanelViews {
     }
 
     private fun isLyingOpen(book: BookBeingRead): Boolean = when (book) {
-        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround -> true
+        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand -> true
         is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer -> false
     }
 
@@ -257,6 +258,7 @@ object PanelViews {
         is BookBeingRead.InHand -> player.getItemInHand(book.hand)
         is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
         is BookBeingRead.OnTheGround -> BookEntity.openBookSeenBy(player, book.entityId)
+        is BookBeingRead.InAnothersHand -> BookHeldOpen.openBookSeenBy(player, book.holderId, book.hand)
         BookBeingRead.AtACrystalViewer -> null
     }
 

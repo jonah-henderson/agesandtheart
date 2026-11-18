@@ -1,8 +1,44 @@
 {
-  "_comment": "The shut book itself, so its banner and name show wherever the item does (`AgeBookItemRenderer`).",
+  "_comment": "[AI] The shut book itself, so its banner and name show wherever the item does (`AgeBookItemRenderer`); in a hand, held as a lectern holds it, each view turned so it lies cover up, and opening while its reader has it open.",
   "model": {
-    "type": "minecraft:special",
-    "base": "agesandtheart:item/age_book",
-    "model": { "type": "agesandtheart:age_book" }
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": [
+          "firstperson_righthand",
+          "firstperson_lefthand"
+        ],
+        "model": {
+          "type": "minecraft:special",
+          "base": "agesandtheart:item/age_book",
+          "model": {
+            "type": "agesandtheart:age_book",
+            "held": "first_person"
+          }
+        }
+      },
+      {
+        "when": [
+          "thirdperson_righthand",
+          "thirdperson_lefthand"
+        ],
+        "model": {
+          "type": "minecraft:special",
+          "base": "agesandtheart:item/age_book",
+          "model": {
+            "type": "agesandtheart:age_book",
+            "held": "third_person"
+          }
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:special",
+      "base": "agesandtheart:item/age_book",
+      "model": {
+        "type": "agesandtheart:age_book"
+      }
+    }
   }
 }

@@ -2,7 +2,8 @@
   "_comment": [
     "The display a descriptive or linking book is held and shown with, drawn by `AgeBookItemRenderer`. The shut book",
     "faces +Z as a flat item's sprite does, so these are `item/generated`'s, with a slight turn in a slot to show",
-    "the spine. The particle is the old flat sprite."
+    "the spine. The particle is the old flat sprite.",
+    "[AI] First person is Jonah's, set on converted_linking_book.bbmodel and copied by scripts/books/age_book_held.py."
   ],
   "gui_light": "front",
   "textures": {
@@ -10,33 +11,96 @@
   },
   "display": {
     "gui": {
-      "rotation": [ 10, 20, 0 ],
-      "translation": [ 0, 0, 0 ],
-      "scale": [ 1, 1, 1 ]
+      "rotation": [
+        10,
+        20,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
     },
     "ground": {
-      "rotation": [ 0, 0, 0 ],
-      "translation": [ 0, 2, 0 ],
-      "scale": [ 0.5, 0.5, 0.5 ]
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        2,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
     },
     "head": {
-      "rotation": [ 0, 180, 0 ],
-      "translation": [ 0, 13, 7 ],
-      "scale": [ 1, 1, 1 ]
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "translation": [
+        0,
+        13,
+        7
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
     },
     "thirdperson_righthand": {
-      "rotation": [ 0, 0, 0 ],
-      "translation": [ 0, 3, 1 ],
-      "scale": [ 0.55, 0.55, 0.55 ]
-    },
-    "firstperson_righthand": {
-      "rotation": [ 0, -90, 25 ],
-      "translation": [ 1.13, 3.2, 1.13 ],
-      "scale": [ 0.68, 0.68, 0.68 ]
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        1
+      ],
+      "scale": [
+        0.55,
+        0.55,
+        0.55
+      ]
     },
     "fixed": {
-      "rotation": [ 0, 180, 0 ],
-      "scale": [ 1, 1, 1 ]
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        7,
+        -113,
+        40
+      ],
+      "translation": [
+        -3,
+        7.75,
+        -2
+      ]
     }
   }
 }

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.book.BookBeingRead
+import co.voik.agesandtheart.book.BookHeldOpen
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBookPayload
 import co.voik.agesandtheart.book.LecternBooks
@@ -88,7 +89,15 @@ class BookScreen(
         KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(held)
         if (held is BookBeingRead.OnALectern) addTheLecternsButtons(held.pos)
+        // Once, not on every `init`, which a resized window calls again and would open the book in hand again.
+        if (held is BookBeingRead.InHand && !hasToldTheServerItIsOpen) {
+            sendToServer(BookHeldOpen(held.hand))
+            hasToldTheServerItIsOpen = true
+        }
     }
+
+    /** Whether the server has been told this book is open in its reader's hand, which draws it open there. */
+    private var hasToldTheServerItIsOpen = false
 
     /**
      * Under a lectern's book, as under vanilla's: **Done**, **Take Book** and **Close Book**, the last telling the
@@ -130,6 +139,7 @@ class BookScreen(
     override fun removed() {
         super.removed()
         if (held is BookBeingRead.InHand && !handingTheLinkOver) LinkingPanel.release()
+        if (hasToldTheServerItIsOpen) sendToServer(BookHeldOpen(null))
     }
 
     /** Set as the panel is clicked: the link's transit takes the panel over, and gives it back on arriving. */

@@ -29,6 +29,13 @@ class BookBeingReadCheck : FunSpec({
         check(roundTrip(book) == book)
     }
 
+    test("a book in another's hand comes back held by the same player in the same hand") {
+        for (hand in InteractionHand.entries) {
+            val book = BookBeingRead.InAnothersHand(holderId = 4_210, hand = hand)
+            check(roundTrip(book) == book)
+        }
+    }
+
     test("a place the codec does not know is refused rather than guessed at") {
         val buffer = Unpooled.buffer().writeByte(99)
         val refused = runCatching { BookBeingRead.STREAM_CODEC.decode(buffer) }.exceptionOrNull()
