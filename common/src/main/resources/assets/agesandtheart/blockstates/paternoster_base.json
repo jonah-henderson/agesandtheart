@@ -1,0 +1,35 @@
+{
+  "_comment": "[AI] A stand-in on the blast furnace's sides until the asset pass, the same for both blocks. Modelled facing north; the right part is a block to the west of the left (the right, seen from the front). The shelves and books are drawn from the base's left block by `PaternosterRenderer`.",
+  "variants": {
+    "facing=north,part=left": {
+      "model": "agesandtheart:block/paternoster_base"
+    },
+    "facing=north,part=right": {
+      "model": "agesandtheart:block/paternoster_base"
+    },
+    "facing=east,part=left": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 90
+    },
+    "facing=east,part=right": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 90
+    },
+    "facing=south,part=left": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 180
+    },
+    "facing=south,part=right": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 180
+    },
+    "facing=west,part=left": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 270
+    },
+    "facing=west,part=right": {
+      "model": "agesandtheart:block/paternoster_base",
+      "y": 270
+    }
+  }
+}

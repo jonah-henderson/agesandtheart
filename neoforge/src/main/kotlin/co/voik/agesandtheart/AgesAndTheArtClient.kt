@@ -11,7 +11,12 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.MenuAccess
+import co.voik.agesandtheart.client.RendersBeyondItsBlock
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.inventory.AbstractContainerMenu
@@ -148,7 +153,32 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         event: EntityRenderersEvent.RegisterRenderers,
         entry: ClientRegistrations.RendererForBlockEntity<T, S>,
     ) {
-        event.registerBlockEntityRenderer(entry.type, entry.provider)
+        event.registerBlockEntityRenderer(entry.type) { context ->
+            val renderer = entry.provider.create(context)
+            if (renderer is RendersBeyondItsBlock) ReachingRenderer(renderer, renderer) else renderer
+        }
+    }
+
+    /** [inner], culled by the box it says it draws within rather than by its block ([RendersBeyondItsBlock]). */
+    private class ReachingRenderer<T : BlockEntity, S : BlockEntityRenderState>(
+        private val inner: BlockEntityRenderer<T, S>,
+        private val reach: RendersBeyondItsBlock,
+    ) : BlockEntityRenderer<T, S> by inner {
+        override fun extractRenderState(
+            blockEntity: T,
+            state: S,
+            partialTicks: Float,
+            cameraPosition: Vec3,
+            breakProgress: ModelFeatureRenderer.CrumblingOverlay?,
+        ) = inner.extractRenderState(blockEntity, state, partialTicks, cameraPosition, breakProgress)
+
+        override fun shouldRenderOffScreen(): Boolean = inner.shouldRenderOffScreen()
+
+        override fun getViewDistance(): Int = inner.viewDistance
+
+        override fun shouldRender(blockEntity: T, cameraPosition: Vec3): Boolean = inner.shouldRender(blockEntity, cameraPosition)
+
+        override fun getRenderBoundingBox(blockEntity: T): AABB = reach.renderBounds(blockEntity)
     }
 
     private fun <M : AbstractContainerMenu, U> registerScreen(

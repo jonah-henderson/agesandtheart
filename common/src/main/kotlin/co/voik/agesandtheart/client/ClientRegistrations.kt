@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.book.BookWheels
+import co.voik.agesandtheart.book.Paternosters
 import co.voik.agesandtheart.content.NotebookTooltip
 import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
@@ -124,6 +125,7 @@ object ClientRegistrations {
         RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
         RendererForBlockEntity(BookWheels.ENTITY) { BookWheelRenderer(it) },
+        RendererForBlockEntity(Paternosters.SHELF_ENTITY) { PaternosterShelfRenderer(it) },
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
     )

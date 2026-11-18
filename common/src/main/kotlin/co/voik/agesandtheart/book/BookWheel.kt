@@ -19,7 +19,6 @@ import net.minecraft.sounds.SoundSource
 import net.minecraft.tags.ItemTags
 import net.minecraft.util.Prediction
 import net.minecraft.util.RandomSource
-import net.minecraft.util.StringRepresentable
 import net.minecraft.world.ContainerHelper
 import net.minecraft.world.Containers
 import net.minecraft.world.InteractionHand
@@ -103,23 +102,6 @@ enum class WheelFace {
 }
 
 /**
- * One of a two-block wheel's two blocks. The first — the left, as its front is seen, or the lower — holds the books;
- * the second is the rest of it.
- */
-enum class WheelPart(private val key: String, val isFirst: Boolean) : StringRepresentable {
-    LEFT("left", true),
-    RIGHT("right", false),
-    LOWER("lower", true),
-    UPPER("upper", false),
-    ;
-
-    override fun getSerializedName(): String = key
-
-    /** Which of the books side by side on a tray this part holds: the first part's is the first. */
-    val along: Int get() = if (isFirst) 0 else 1
-}
-
-/**
  * The three book wheels, each a wheel one block across with four trays (design `book-storage.md` §1).
  *
  * - **Small:** one block, a book to a tray.
@@ -131,11 +113,11 @@ enum class WheelForm(
     val axle: WheelAxle,
     val booksPerTray: Int,
     /** The two parts of a two-block wheel, the first first, or null for a wheel of one block. */
-    val part: EnumProperty<WheelPart>?,
+    val part: EnumProperty<PairPart>?,
 ) {
     SMALL("book_wheel", WheelAxle.ACROSS, 1, null),
-    LARGE("large_book_wheel", WheelAxle.ACROSS, 2, EnumProperty.create("part", WheelPart::class.java, WheelPart.LEFT, WheelPart.RIGHT)),
-    CAROUSEL("book_carousel", WheelAxle.UPRIGHT, 2, EnumProperty.create("part", WheelPart::class.java, WheelPart.LOWER, WheelPart.UPPER)),
+    LARGE("large_book_wheel", WheelAxle.ACROSS, 2, EnumProperty.create("part", PairPart::class.java, PairPart.LEFT, PairPart.RIGHT)),
+    CAROUSEL("book_carousel", WheelAxle.UPRIGHT, 2, EnumProperty.create("part", PairPart::class.java, PairPart.LOWER, PairPart.UPPER)),
     ;
 
     val books: Int get() = TRAYS * booksPerTray
