@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.26
+line=0.28
 generator=30
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -209,6 +209,7 @@ creative_mode_tab agesandtheart:agesandtheart
 data_component_type agesandtheart:age_id
 data_component_type agesandtheart:archive_pages
 data_component_type agesandtheart:book_authored
+data_component_type agesandtheart:book_opened_at
 data_component_type agesandtheart:book_reading
 data_component_type agesandtheart:book_seed
 data_component_type agesandtheart:book_title
@@ -409,6 +410,7 @@ payload agesandtheart:archive_sync
 payload agesandtheart:archive_withdraw
 payload agesandtheart:archive_write
 payload agesandtheart:blizzard
+payload agesandtheart:book_held_open
 payload agesandtheart:bookbinder_rename
 payload agesandtheart:cataclysm
 payload agesandtheart:charged_creature
