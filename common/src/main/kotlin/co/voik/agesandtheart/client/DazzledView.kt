@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.client.renderer.fog.FogData
 import net.minecraft.client.renderer.fog.FogRenderer
 import net.minecraft.client.renderer.fog.environment.AtmosphericFogEnvironment
-import net.minecraft.client.renderer.fog.environment.FogEnvironment
 import net.minecraft.client.renderer.texture.DynamicTexture
 import net.minecraft.resources.Identifier
 import net.minecraft.util.ARGB
@@ -170,14 +169,14 @@ object DazzledView {
      * The pale fog, some blocks off at first and back at the render distance when the dazzle ends, leaning only partly
      * toward white so it does not white the view out by itself.
      */
-    private object DazzledFog : FogEnvironment() {
+    private object DazzledFog : EntityOptionalFog() {
         private const val NEAREST = 8.0f
         private const val FOG_START_SHARE = 0.25f
         private const val PALENESS = 0.4f
         private val PALE: Vector3fc = Vector3f(1.0f, 1.0f, 1.0f)
         private val openAir = AtmosphericFogEnvironment()
 
-        override fun isApplicable(fogType: FogType?, entity: Entity): Boolean {
+        override fun appliesTo(fogType: FogType?, entity: Entity?): Boolean {
             val isInTheOpenAir = fogType == FogType.ATMOSPHERIC || fogType == FogType.NONE
             return isInTheOpenAir && entity is LivingEntity && entity.hasEffect(Dazzled.EFFECT)
         }
