@@ -1,0 +1,1 @@
+[bugfix] [AI] Opening a book, lectern or crystal viewer that shows a live linking panel no longer crashes the game. The crash came in with 0.26.0, when the dazzled effect was added.
