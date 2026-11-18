@@ -96,7 +96,8 @@ object Capture {
         return picture
     }
 
-    private fun encoded(picture: NativeImage): ByteArray {
+    /** [picture] as a JPEG, as every picture goes up. */
+    internal fun encoded(picture: NativeImage): ByteArray {
         val bytes = ByteArrayOutputStream()
         val callback = STBIWriteCallback.create { _, data, size -> bytes.write(STBIWriteCallback.getData(data, size).let { buffer -> ByteArray(size).also(buffer::get) }) }
         try {

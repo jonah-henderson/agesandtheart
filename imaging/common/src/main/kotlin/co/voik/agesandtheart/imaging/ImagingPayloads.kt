@@ -8,6 +8,9 @@ object ImagingPayloads {
         Payloads.Serverbound(PicturePiece.TYPE, PicturePiece.STREAM_CODEC) { player, piece -> Shots.pieceArrived(player, piece) },
         Payloads.Serverbound(PictureWanted.TYPE, PictureWanted.STREAM_CODEC) { player, wanted -> PictureFetch.wanted(player, wanted) },
         Payloads.Serverbound(TurnTheRecorder.TYPE, TurnTheRecorder.STREAM_CODEC) { player, turn -> ImagingTurns.asked(player, turn) },
+        Payloads.Serverbound(PhotographPiece.TYPE, PhotographPiece.STREAM_CODEC) { player, piece -> AutomaticShots.pieceArrived(player, piece) },
         Payloads.Clientbound(PictureSent.TYPE, PictureSent.STREAM_CODEC),
+        Payloads.Clientbound(PhotographWanted.TYPE, PhotographWanted.STREAM_CODEC),
+        Payloads.Clientbound(PhotographChunk.TYPE, PhotographChunk.STREAM_CODEC),
     )
 }

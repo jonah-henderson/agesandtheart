@@ -12,7 +12,8 @@ import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 
 /**
- * A camera on a fixed orbit about an Age's arrival point (design §7.8.1).
+ * A camera on a fixed orbit about an Age's arrival point (design §7.8.1), or set at any one pose for a level drawn
+ * off-screen from there.
  *
  * Fixed distance, fixed angle, constant rotation — a rough look at where you are going. The chunks such an
  * orbit can see are a known constant set, which is what lets them be force-loaded exactly; a framing camera
@@ -59,15 +60,22 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         // terrain did. A steady circle that sometimes goes inside a hill reads better than a clear view on
         // a path nobody could have drawn.
         val eye = Vec3(eyeX, centre.y + lift, eyeZ)
-        setPosition(eye)
 
         // Aimed at the arrival rather than held at a fixed pitch, so closeness and loft can move the eye
         // without the subject sliding out of the middle.
         val toCentreX = centre.x + 0.5 - eyeX
         val toCentreZ = centre.z + 0.5 - eyeZ
         val overGround = kotlin.math.sqrt(toCentreX * toCentreX + toCentreZ * toCentreZ)
-        placedYaw = Mth.wrapDegrees(Math.toDegrees(kotlin.math.atan2(toCentreZ, toCentreX)).toFloat() - QUARTER_TURN)
-        placedPitch = Math.toDegrees(kotlin.math.atan2(lift, overGround)).toFloat()
+        val yaw = Mth.wrapDegrees(Math.toDegrees(kotlin.math.atan2(toCentreZ, toCentreX)).toFloat() - QUARTER_TURN)
+        val pitch = Math.toDegrees(kotlin.math.atan2(lift, overGround)).toFloat()
+        placeAt(eye, yaw, pitch, width, height)
+    }
+
+    /** Places the camera at [eye], looking along [yaw] and [pitch] as an entity does, for a [width] by [height] frame. */
+    fun placeAt(eye: Vec3, yaw: Float, pitch: Float, width: Int, height: Int) {
+        setPosition(eye)
+        placedYaw = yaw
+        placedPitch = pitch
         // NeoForge wants the three-argument form, which adds roll; its two-argument one passes roll
         // zero and nothing else, which is what a panel wants and what vanilla offers.
         @Suppress("DEPRECATION")

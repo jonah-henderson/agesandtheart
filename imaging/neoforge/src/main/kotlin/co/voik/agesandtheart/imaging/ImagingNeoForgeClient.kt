@@ -4,6 +4,7 @@ import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
 import co.voik.agesandtheart.imaging.client.BlurredPictures
 import co.voik.agesandtheart.imaging.client.CarouselParts
+import co.voik.agesandtheart.imaging.client.Darkroom
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import net.neoforged.fml.ModContainer
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -37,12 +38,14 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
             IConfigScreenFactory { container, parent -> ConfigurationScreen(container, parent, PictureSpace.SHOWN) },
         )
         NeoForge.EVENT_BUS.addListener { _: ClientTickEvent.Post -> ViewfinderView.tick(Minecraft.getInstance()) }
+        NeoForge.EVENT_BUS.addListener { _: ClientTickEvent.Post -> Darkroom.tick() }
         NeoForge.EVENT_BUS.addListener { _: ClientPlayerNetworkEvent.LoggingOut ->
             PictureTextures.forget()
             ProjectorThrows.forget()
             MaskedPictures.forget()
             BlurredPictures.forget()
             RecorderPreview.forget()
+            Darkroom.forget()
         }
         eventBus.addListener { event: AddClientReloadListenersEvent ->
             event.addListener(ProjectorLights.ID, ProjectorLights)
@@ -57,6 +60,8 @@ class ImagingNeoForgeClient(eventBus: IEventBus, modContainer: ModContainer) {
         }
         eventBus.addListener { event: RegisterClientPayloadHandlersEvent ->
             event.register(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
+            event.register(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
+            event.register(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
         }
     }
 }

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.imaging.mixin.client;
 
 import co.voik.agesandtheart.imaging.client.Capture;
+import co.voik.agesandtheart.imaging.client.Darkroom;
 import co.voik.agesandtheart.imaging.client.ViewfinderView;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,5 +34,6 @@ public class GameRendererMixin {
     )
     private void agesandtheart_imaging$takeThePicture(CallbackInfo callback) {
         Capture.afterThePostEffects();
+        Darkroom.afterThePostEffects();
     }
 }

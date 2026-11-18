@@ -51,7 +51,7 @@ object PanelComposite {
 
     /** Nothing at all behind the composite — 26.2's clear takes a vector rather than a packed int. */
     private val TRANSPARENT = Vector4f(0.0f, 0.0f, 0.0f, 0.0f)
-    /** Zero, not one: 26.2's depth is reversed-Z — see `PanelRenderer.FURTHEST_DEPTH`. */
+    /** Zero, not one: 26.2's depth is reversed-Z — see `PreviewPainter.FURTHEST_DEPTH`. */
     private const val FURTHEST_DEPTH = 0.0
     private const val WHOLLY_MISTED = 1.0f
     private const val UNTINTED = -1

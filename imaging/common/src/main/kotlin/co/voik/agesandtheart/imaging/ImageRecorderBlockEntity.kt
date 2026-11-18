@@ -69,7 +69,10 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
         items.forEach { stack -> stack.get(ImagingComponents.PICTURE)?.let { PicturesSeen.of(server).saw(it.id) } }
     }
 
-    /** A picture of what it faces, on a plate of its own, with its flash; or a click where it cannot take one. */
+    /**
+     * A picture of what it faces, on a plate of its own, with its flash, drawn by a client ([AutomaticShots]); or a
+     * click where it cannot take one.
+     */
     fun shoot(level: ServerLevel) {
         val plate = items.indexOfFirst(::isAPlate)
         val roomForIt = items.indices.firstOrNull { items[it].isEmpty || (it == plate && items[it].count == 1) }
@@ -86,8 +89,7 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
 
         val lens = ImageRecorderBlock.lensOf(blockState, blockPos)
         val pose = Shots.Pose(level.dimension(), lens.x, lens.y, lens.z, ImageRecorderBlock.yawOf(blockState), LEVEL)
-        val about = PictureStore.About(owner ?: NOBODY, pose, Sketches.ORDINARY_FIELD_OF_VIEW, System.currentTimeMillis())
-        Sketches.draw(level.server, picture.id, about)
+        AutomaticShots.commission(level, picture.id, owner, pose)
 
         level.playSound(null, blockPos, ImagingContent.SHUTTER, SoundSource.BLOCKS, 1.0f, 1.0f)
         level.sendParticles(ColorParticleOption.create(ParticleTypes.FLASH, FLASH_COLOUR), lens.x, lens.y, lens.z, 1, 0.0, 0.0, 0.0, 0.0)
@@ -124,7 +126,6 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
         const val SLOTS = 5
         private val ALL_SLOTS = IntArray(SLOTS) { it }
         private const val OWNER_KEY = "owner"
-        private val NOBODY = UUID(0L, 0L)
         private const val LEVEL = 0.0f
         private const val SIGNAL_A_PICTURE = 3
         private const val CLICK_PITCH = 1.2f

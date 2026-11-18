@@ -15,6 +15,7 @@ object Imaging {
     fun serverTick(server: MinecraftServer) {
         Viewfinder.serverTick(server)
         Shots.tick(server)
+        AutomaticShots.tick(server)
         Sketches.tick(server)
         PictureSweep.tick(server)
     }

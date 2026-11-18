@@ -68,7 +68,7 @@ object PanelTarget {
     private var coarseness = A_BOOKS_WINDOW
     private var newest = 0
     private var everTurned = false
-    private var redirecting = false
+    private var redirectedTo: RenderTarget? = null
 
     /**
      * How coarsely the book about to be shown is rendered. Decided once as it opens, never inside a frame.
@@ -89,9 +89,9 @@ object PanelTarget {
     /** What the world is being drawn onto now. Made on first use and kept for the life of the client. */
     fun get(): RenderTarget = field(newest)
 
-    /** What the Mixin asks. Null in every frame that is not drawing a panel. */
+    /** What the Mixin asks. Null in every frame that is not drawing a world off-screen. */
     @JvmStatic
-    fun beingDrawnOnto(): RenderTarget? = if (redirecting) field(newest) else null
+    fun beingDrawnOnto(): RenderTarget? = redirectedTo
 
     /**
      * Moves on to the other field, so what was just drawn is kept as the older half of the interlace.
@@ -117,19 +117,19 @@ object PanelTarget {
         if (everTurned) fieldsAt[coarseness][(newest + 1) % FIELDS]?.colorTextureView else null
 
     /**
-     * Runs [block] with the world renderer pointed at the panel.
+     * Runs [block] with the world renderer pointed at [target]: the panel's newest field, or any other surface a
+     * world is drawn onto off-screen.
      *
-     * Restores on failure: a flag left set would send every later frame of the game into a small off-screen
+     * Restores on failure: a redirect left set would send every later frame of the game into a small off-screen
      * texture.
      */
-    fun <T> redirecting(block: () -> T): T {
-        get()
-        val outer = redirecting
-        redirecting = true
+    fun <T> redirecting(target: RenderTarget, block: () -> T): T {
+        val outer = redirectedTo
+        redirectedTo = target
         try {
             return block()
         } finally {
-            redirecting = outer
+            redirectedTo = outer
         }
     }
 

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.book.panel
 
-import co.voik.ephemeris.LevelClocks
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.PanelView
@@ -132,7 +131,7 @@ object PanelViews {
             player,
             PanelLevelPayload(
                 dimension = level.dimension(),
-                dimensionType = dimensionTypeIdOf(level),
+                dimensionType = LevelPreviews.dimensionTypeOf(level),
                 around = around,
                 biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
                 seaLevel = level.seaLevel,
@@ -143,8 +142,7 @@ object PanelViews {
                 thunder = level.getThunderLevel(WHOLE_TICK),
             ),
         )
-        // The Age's hour at once, rather than the overworld's until Ephemeris' next beat tells everyone.
-        LevelClocks.tell(player, level)
+        LevelPreviews.tellTheClock(player, level)
         // **Asked from anywhere but the server thread, and that is the whole of why.**
         // `ServerChunkCache.getChunkFuture` only returns a future when it is called from another thread;
         // on the server thread it runs `managedBlock` and does not come back until the chunk is generated.
@@ -345,12 +343,6 @@ object PanelViews {
         val stack = bookSeenBy(player, book) ?: return false
         return EndedAges.leadsToAnEndedAge(server, stack)
     }
-
-    private fun dimensionTypeIdOf(level: ServerLevel) =
-        level.registryAccess()
-            .lookupOrThrow(net.minecraft.core.registries.Registries.DIMENSION_TYPE)
-            .getKey(level.dimensionType())
-            ?: net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD.identifier()
 
     /** The Age's index, and nought for a level that is not one of ours — the Spire has no book. */
     private fun instabilityOf(level: ServerLevel): Int = Ages.recipeOf(level)?.instability?.index ?: 0

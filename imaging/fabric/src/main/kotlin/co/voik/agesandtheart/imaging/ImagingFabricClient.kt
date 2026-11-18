@@ -4,6 +4,7 @@ import co.voik.agesandtheart.imaging.client.HungPictureRenderer
 import co.voik.agesandtheart.imaging.client.MaskedPictures
 import co.voik.agesandtheart.imaging.client.BlurredPictures
 import co.voik.agesandtheart.imaging.client.CarouselParts
+import co.voik.agesandtheart.imaging.client.Darkroom
 import co.voik.agesandtheart.imaging.client.PictureSpace
 import fuzs.forgeconfigapiport.fabric.api.v5.client.ConfigScreenFactoryRegistry
 import net.neoforged.neoforge.client.gui.ConfigurationScreen
@@ -27,6 +28,7 @@ fun initClient() {
     ViewfinderView.install()
     ConfigScreenFactoryRegistry.INSTANCE.register(Imaging.MOD_ID) { modId, parent -> ConfigurationScreen(modId, parent, PictureSpace.SHOWN) }
     ClientTickEvents.END_CLIENT_TICK.register(ViewfinderView::tick)
+    ClientTickEvents.END_CLIENT_TICK.register { Darkroom.tick() }
     // Fabric's own registry rather than vanilla's, which is private and widened only by a widener this project leaves
     // to the loader.
     @Suppress("DEPRECATION")
@@ -34,12 +36,15 @@ fun initClient() {
     @Suppress("DEPRECATION")
     BlockEntityRendererRegistry.register(ImagingContent.SLIDE_CAROUSEL_ENTITY) { SlideCarouselRenderer(it) }
     ClientPlayNetworking.registerGlobalReceiver(PictureSent.TYPE) { payload, _ -> PictureTextures.received(payload) }
+    ClientPlayNetworking.registerGlobalReceiver(PhotographWanted.TYPE) { payload, _ -> Darkroom.wanted(payload) }
+    ClientPlayNetworking.registerGlobalReceiver(PhotographChunk.TYPE) { payload, _ -> Darkroom.chunk(payload) }
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
         PictureTextures.forget()
         ProjectorThrows.forget()
         MaskedPictures.forget()
         BlurredPictures.forget()
         RecorderPreview.forget()
+        Darkroom.forget()
     }
     SpecialModelRenderers.ID_MAPPER.put(Imaging.id("recorded_image"), RecordedImageRenderer.Unbaked.MAP_CODEC)
     ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(ProjectorLights.ID, ProjectorLights)
