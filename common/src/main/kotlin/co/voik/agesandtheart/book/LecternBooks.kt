@@ -227,7 +227,7 @@ object LecternBooks {
     }
 
     /** The book as a client sees it: the Age behind a linking book stays on the server, as it does in a hand. */
-    private fun shownToClients(book: ItemStack): ItemStack {
+    internal fun shownToClients(book: ItemStack): ItemStack {
         val target = book.get(AgeComponents.LINK_TARGET) ?: return book
         return book.copy().also { it.set(AgeComponents.LINK_TARGET, target.copy(recipe = null)) }
     }

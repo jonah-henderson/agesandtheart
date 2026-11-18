@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.cataclysm.Ejecta
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.book.Bookbinder
+import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.book.Paternosters
 import co.voik.agesandtheart.content.NotebookTooltip
@@ -126,6 +127,7 @@ object ClientRegistrations {
         RendererForBlockEntity(Bookbinder.ENTITY) { BookbinderRenderer(it) },
         RendererForBlockEntity(BookWheels.ENTITY) { BookWheelRenderer(it) },
         RendererForBlockEntity(Paternosters.SHELF_ENTITY) { PaternosterShelfRenderer(it) },
+        RendererForBlockEntity(BookFinders.ENTITY) { BookFinderRenderer(it) },
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
     )

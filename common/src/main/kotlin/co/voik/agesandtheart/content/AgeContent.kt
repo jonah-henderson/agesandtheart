@@ -25,6 +25,7 @@ import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.DescriptiveBookItem
 import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.Bookbinder
+import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.book.Paternosters
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
@@ -2083,6 +2084,7 @@ object AgeContent {
         Paternosters.BASE_ID to Paternosters.BASE,
         Paternosters.CAP_ID to Paternosters.CAP,
         Paternosters.SHELF_ID to Paternosters.SHELF,
+        BookFinders.ID to BookFinders.BLOCK,
         PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
@@ -2150,6 +2152,7 @@ object AgeContent {
         BookWheels.ENTITY_ID to BookWheels.ENTITY,
         Paternosters.BASE_ID to Paternosters.ENTITY,
         Paternosters.SHELF_ID to Paternosters.SHELF_ENTITY,
+        BookFinders.ID to BookFinders.ENTITY,
         Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
@@ -2298,6 +2301,7 @@ object AgeContent {
         *BookWheels.ITEMS.map { (block, item) -> block.form.id.location() to item }.toTypedArray(),
         Paternosters.BASE_ID to Paternosters.BASE_ITEM,
         Paternosters.CAP_ID to Paternosters.CAP_ITEM,
+        BookFinders.ID to BookFinders.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         FLASHPOWDER_ID to FLASHPOWDER,

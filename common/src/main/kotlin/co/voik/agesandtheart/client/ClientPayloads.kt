@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.phenomena.FogPayload
 import co.voik.agesandtheart.age.phenomena.GalePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
+import co.voik.agesandtheart.book.BookFinderListPayload
 import co.voik.agesandtheart.book.LinkEnded
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelWeatherPayload
@@ -60,6 +61,7 @@ object ClientPayloads {
         Receiver(DeskNoticePayload.TYPE) { DeskModel.remember(it) },
         Receiver(TunerProposalPayload.TYPE) { FrequencyTunerScreen.remember(it) },
         Receiver(ArchiveSyncPayload.TYPE) { ArchiveScreen.remember(it) },
+        Receiver(BookFinderListPayload.TYPE) { BookFinderOpener.list(it) },
         Receiver(ArchivePricesPayload.TYPE) { ArchiveScreen.remember(it) },
         Receiver(ArchiveStockPayload.TYPE) { ArchiveScreen.remember(it) },
         // The drop carries on from where it left off: where they are and how fast they were going came

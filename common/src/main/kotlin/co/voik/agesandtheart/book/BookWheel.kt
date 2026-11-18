@@ -102,7 +102,7 @@ enum class WheelFace {
 }
 
 /**
- * The three book wheels, each a wheel one block across with four trays (design `book-storage.md` §1).
+ * The three book wheels, each a wheel one block across with four trays (design §7.8.3).
  *
  * - **Small:** one block, a book to a tray.
  * - **Large:** Ramelli's wheel (1588), its axle across: two blocks side by side along the axle, two books to a tray.
@@ -135,7 +135,7 @@ enum class WheelForm(
 }
 
 /**
- * A book wheel (design `book-storage.md` §1): books on trays round a wheel turned by hand, and taken and shelved only at
+ * A book wheel (design §7.8.3): books on trays round a wheel turned by hand, and taken and shelved only at
  * the front, which is what makes it a wheel rather than a round chiselled shelf.
  *
  * Used on its front, it shelves a book on the front tray or takes the one there, as a chiselled shelf does; used on a

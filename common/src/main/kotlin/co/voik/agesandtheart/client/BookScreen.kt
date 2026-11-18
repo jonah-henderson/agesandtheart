@@ -4,6 +4,8 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.readout.ReadoutWriting
 import co.voik.agesandtheart.book.BookBeingRead
+import co.voik.agesandtheart.book.BookFinderAskPayload
+import co.voik.agesandtheart.book.FinderAsked
 import co.voik.agesandtheart.book.BookHeldOpen
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBookPayload
@@ -89,6 +91,7 @@ class BookScreen(
         KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(held)
         if (held is BookBeingRead.OnALectern) addTheLecternsButtons(held.pos)
+        if (held is BookBeingRead.InAFinder) addTheFindersButtons(held.pos)
         // Once, not on every `init`, which a resized window calls again and would open the book in hand again.
         if (held is BookBeingRead.InHand && !hasToldTheServerItIsOpen) {
             sendToServer(BookHeldOpen(held.hand))
@@ -114,6 +117,25 @@ class BookScreen(
         row.arrangeElements()
         row.setPosition((width - row.width) / 2, (height + HEIGHT) / 2 + UNDER_THE_BOOK)
         row.visitWidgets(::addRenderableWidget)
+    }
+
+    /** Under a book a finder's frame holds open: **Done**, **Take Book**, and **Send Back**, which files it home. */
+    private fun addTheFindersButtons(pos: BlockPos) {
+        val row = LinearLayout.horizontal().spacing(BUTTON_GAP)
+        Button.builder(CommonComponents.GUI_DONE) { onClose() }.width(BUTTON_WIDTH).build().also(row::addChild)
+        Button.builder(Component.translatable(TAKE_BOOK)) { askedTheFinder(pos, FinderAsked.TAKE) }
+            .width(BUTTON_WIDTH).build().also(row::addChild)
+        val shortcut = Component.translatable(SEND_BACK_SHORTCUT, Component.keybind(SNEAK_KEY), Component.keybind(USE_KEY))
+        Button.builder(Component.translatable(SEND_BACK)) { askedTheFinder(pos, FinderAsked.SEND_BACK) }
+            .width(BUTTON_WIDTH).tooltip(Tooltip.create(shortcut)).build().also(row::addChild)
+        row.arrangeElements()
+        row.setPosition((width - row.width) / 2, (height + HEIGHT) / 2 + UNDER_THE_BOOK)
+        row.visitWidgets(::addRenderableWidget)
+    }
+
+    private fun askedTheFinder(pos: BlockPos, asked: FinderAsked) {
+        sendToServer(BookFinderAskPayload(pos, asked))
+        onClose()
     }
 
     private fun asked(pos: BlockPos, asked: LecternBooks.Asked) {
@@ -501,6 +523,8 @@ class BookScreen(
 
         /** Vanilla's own "Take Book", which its lectern screen says. */
         const val TAKE_BOOK = "lectern.take_book"
+        const val SEND_BACK = "book.agesandtheart.send_back"
+        const val SEND_BACK_SHORTCUT = "book.agesandtheart.send_back.shortcut"
         const val CLOSE_BOOK = "book.agesandtheart.close_book"
         const val CLOSE_BOOK_SHORTCUT = "book.agesandtheart.close_book.shortcut"
         const val SNEAK_KEY = "key.sneak"

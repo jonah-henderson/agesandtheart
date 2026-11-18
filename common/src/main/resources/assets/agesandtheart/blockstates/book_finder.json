@@ -1,0 +1,35 @@
+{
+  "_comment": "[AI] A stand-in plate of oxidized copper until the asset pass, modelled facing north with its back against the shelf to the south. The frame and the book are drawn by `BookFinderRenderer`.",
+  "variants": {
+    "facing=north,holding=false": {
+      "model": "agesandtheart:block/book_finder"
+    },
+    "facing=north,holding=true": {
+      "model": "agesandtheart:block/book_finder"
+    },
+    "facing=east,holding=false": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 90
+    },
+    "facing=east,holding=true": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 90
+    },
+    "facing=south,holding=false": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 180
+    },
+    "facing=south,holding=true": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 180
+    },
+    "facing=west,holding=false": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 270
+    },
+    "facing=west,holding=true": {
+      "model": "agesandtheart:block/book_finder",
+      "y": 270
+    }
+  }
+}

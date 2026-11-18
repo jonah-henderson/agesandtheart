@@ -63,7 +63,7 @@ import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 
 /**
- * A paternoster's loop of shelves, laid out on its two columns (design `book-storage.md` §2): [chainLength] blocks of
+ * A paternoster's loop of shelves, laid out on its two columns (design §7.8.3): [chainLength] blocks of
  * chain up each column between the base and the cap, and a shelf for every block of both columns from the base's row
  * to the cap's.
  *

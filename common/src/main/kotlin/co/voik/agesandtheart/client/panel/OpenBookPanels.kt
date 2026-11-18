@@ -2,6 +2,8 @@ package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookEntity
+import co.voik.agesandtheart.book.BookFinderBlockEntity
+import co.voik.agesandtheart.book.FrameTask
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LecternOpening
 import co.voik.agesandtheart.book.NearbyOpenBook
@@ -54,7 +56,7 @@ object OpenBookPanels {
     /** The book lying open that is being shown, or null while the panel is a hand's or nobody's. */
     val shown: BookBeingRead?
         get() = when (val book = LinkingPanel.showingFor) {
-            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand -> book
+            is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround, is BookBeingRead.InAnothersHand, is BookBeingRead.InAFinder -> book
             is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer, null -> null
         }
 
@@ -182,11 +184,20 @@ object OpenBookPanels {
     }
 
     private fun nearbyIfOpen(entity: BlockEntity, viewer: Vec3, reach: Double): NearbyOpenBook? {
+        if (entity is BookFinderBlockEntity) return nearbyIfHeldOpen(entity, viewer, reach)
         val lectern = entity as? LecternBlockEntity ?: return null
         val holdsAnOpenBookOfOurs = LecternBooks.isOurs(lectern.book) && LecternOpening.isOpen(lectern.blockState)
         if (!holdsAnOpenBookOfOurs) return null
         val distance = viewer.distanceTo(Vec3.atCenterOf(lectern.blockPos))
         return if (distance <= reach) NearbyOpenBook(BookBeingRead.OnALectern(lectern.blockPos), distance) else null
+    }
+
+    /** A book of ours a finder's frame holds open, which shows its panel as one on a lectern does. */
+    private fun nearbyIfHeldOpen(finder: BookFinderBlockEntity, viewer: Vec3, reach: Double): NearbyOpenBook? {
+        val holdsAnOpenBookOfOurs = finder.task == FrameTask.PRESENTING && LecternBooks.isOurs(finder.carried)
+        if (!holdsAnOpenBookOfOurs) return null
+        val distance = viewer.distanceTo(Vec3.atCenterOf(finder.blockPos))
+        return if (distance <= reach) NearbyOpenBook(BookBeingRead.InAFinder(finder.blockPos), distance) else null
     }
 
     /** Books of ours other players near have open in a hand, which show their panels as books lying open do. */

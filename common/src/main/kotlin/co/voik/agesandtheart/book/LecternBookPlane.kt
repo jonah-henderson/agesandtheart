@@ -90,8 +90,15 @@ object LecternBookPlane {
     }
 
     /** Where on the open book a look from [eye] through [through] lands, or null where it misses the book. */
-    fun spotLookedAt(facing: Direction, pos: BlockPos, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? {
-        val frame = frameOf(facing, pos, binding)
+    fun spotLookedAt(facing: Direction, pos: BlockPos, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? =
+        spotLookedAt(facing, Vec3.atLowerCornerOf(pos), binding, eye, through)
+
+    /**
+     * The same, for a book held as a lectern holds it with the lectern's block corner at [corner] — as a book finder's
+     * frame holds one, lower than a lectern would.
+     */
+    fun spotLookedAt(facing: Direction, corner: Vec3, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? {
+        val frame = frameOf(facing, corner, binding)
         val direction = through.subtract(eye)
         val intoTheFace = direction.dot(frame.normal)
         // Edge-on or from behind: a book is read from its reader's side and no other.
@@ -111,19 +118,19 @@ object LecternBookPlane {
 
     /** Where in the world a point on the book lies, [across] and [up] measured as [BookRectangle] measures them. */
     fun pointOnTheBook(facing: Direction, pos: BlockPos, binding: BookBinding, across: Double, up: Double): Vec3 {
-        val frame = frameOf(facing, pos, binding)
+        val frame = frameOf(facing, Vec3.atLowerCornerOf(pos), binding)
         return frame.surface.add(frame.towardTheLeft.scale(across)).add(frame.upThePage.scale(up))
     }
 
     /** The book's page surface, and the three directions it is measured in. */
     private class Frame(val surface: Vec3, val normal: Vec3, val upThePage: Vec3, val towardTheLeft: Vec3)
 
-    private fun frameOf(facing: Direction, pos: BlockPos, binding: BookBinding): Frame {
+    private fun frameOf(facing: Direction, corner: Vec3, binding: BookBinding): Frame {
         val tilt = Math.toRadians(TILT_DEGREES)
         val towardTheReader = horizontal(facing)
         val normal = towardTheReader.scale(cos(tilt)).add(UP.scale(sin(tilt)))
         val upThePage = towardTheReader.scale(-sin(tilt)).add(UP.scale(cos(tilt)))
-        val centre = Vec3(pos.x + 0.5, pos.y + CENTRE_HEIGHT, pos.z + 0.5).add(upThePage.scale(-DOWN_THE_SLOPE))
+        val centre = corner.add(0.5, CENTRE_HEIGHT, 0.5).add(upThePage.scale(-DOWN_THE_SLOPE))
         return Frame(
             surface = centre.add(normal.scale(pageSurfaceOf(binding) - ONTO_THE_SLOPE)),
             normal = normal,
