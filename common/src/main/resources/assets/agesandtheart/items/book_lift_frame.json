@@ -1,6 +1,21 @@
 {
+  "_comment": "[AI] A base, its buttons locked, as a frame is placed.",
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/book_lift_frame"
+    "model": "agesandtheart:item/book_lift_frame",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 16768366
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 5921370
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 5921370
+      }
+    ]
   }
 }

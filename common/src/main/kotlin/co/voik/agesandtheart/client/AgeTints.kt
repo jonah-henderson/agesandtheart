@@ -4,6 +4,9 @@ import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.book.BookFinderBlock
 import co.voik.agesandtheart.book.BookFinderFrameBlock
 import co.voik.agesandtheart.book.BookFinders
+import co.voik.agesandtheart.book.BookLiftShelfBlock
+import co.voik.agesandtheart.book.BookLifts
+import co.voik.agesandtheart.book.ShelfChain
 import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.client.light.TintedLights
@@ -77,6 +80,13 @@ object AgeTints {
         palm(registrar)
         registrar(listOf(ByIndicator), BookFinders.FRAME)
         registrar(listOf(ByFindersIndicator), BookFinders.BLOCK)
+        // A book lift frame's buttons: tint 0 on the one pressed, 1 on the rest, 2 on all of them locked, as
+        // `scripts/books/book_lift_models.py` writes them.
+        registrar(
+            listOf(LIFT_BUTTON_LIT, LIFT_BUTTON_DULL, LIFT_BUTTON_LOCKED).map { BlockTintSources.constant(opaque(it)) },
+            BookLifts.FRAME,
+        )
+        registrar(listOf(ByChain), BookLifts.SHELF)
         for (leaves in TreeKinds.TINTED_LEAVES) registrar(listOf(WrittenLeaves(leaves, vanillaTintOf(leaves))), leaves)
     }
 
@@ -185,6 +195,21 @@ object AgeTints {
         override fun relevantProperties(): Set<Property<*>> = setOf(BookFinderBlock.INDICATOR)
     }
 
+    /** A book lift shelf's platform, in the colour of the chain it was. */
+    private object ByChain : BlockTintSource {
+        override fun color(state: BlockState): Int = opaque(
+            when (state.getValue(BookLiftShelfBlock.CHAIN)) {
+                ShelfChain.IRON -> UNTINTED
+                ShelfChain.COPPER -> COPPER_PLATFORM
+                ShelfChain.EXPOSED_COPPER -> EXPOSED_COPPER_PLATFORM
+                ShelfChain.WEATHERED_COPPER -> WEATHERED_COPPER_PLATFORM
+                ShelfChain.OXIDIZED_COPPER -> OXIDIZED_COPPER_PLATFORM
+            },
+        )
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(BookLiftShelfBlock.CHAIN)
+    }
+
     /** A dead yema sapling, by [DeadPaperTreeSaplingBlock.DROWNED]; its item takes the same two colours. */
     private object ByHowItDied : BlockTintSource {
         override fun color(state: BlockState): Int =
@@ -250,4 +275,15 @@ object AgeTints {
 
     /** A full alpha byte, which is what an `AARRGGBB` tint needs and an `RRGGBB` constant lacks. */
     private const val ALPHA = 0xFF shl 24
+
+    /** A book lift's pressed button, lit yellow, and the rest, and all of them while locked, dark grey (Jonah); the item's are the script's. */
+    private const val LIFT_BUTTON_LIT = 0xFFDD6E
+    private const val LIFT_BUTTON_DULL = 0x5A5A5A
+    private const val LIFT_BUTTON_LOCKED = LIFT_BUTTON_DULL
+
+    /** A copper chain's platform, as weathered as the chain; an iron chain's is as drawn. */
+    private const val COPPER_PLATFORM = 0xE3946E
+    private const val EXPOSED_COPPER_PLATFORM = 0xC49A84
+    private const val WEATHERED_COPPER_PLATFORM = 0x8DB596
+    private const val OXIDIZED_COPPER_PLATFORM = 0x6FC2A5
 }

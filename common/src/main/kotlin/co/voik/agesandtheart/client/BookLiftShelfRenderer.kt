@@ -5,7 +5,7 @@ import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.BookLiftShelfBlock
 import co.voik.agesandtheart.book.BookLiftShelfBlockEntity
-import co.voik.agesandtheart.book.BookLifts
+import co.voik.agesandtheart.book.LiftPlatform
 import co.voik.agesandtheart.book.ShelfShows
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.SubmitNodeCollector
@@ -19,9 +19,12 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
+import net.minecraft.world.level.block.ChainBlock
 import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import kotlin.math.floor
 
 /**
  * One shelf to draw: how far above or below its block it is, its book if it holds one, whether to draw its platform, how
@@ -40,15 +43,25 @@ class BookLiftShelfRenderState : BlockEntityRenderState() {
     var facing: Direction = Direction.NORTH
     var pieces: List<ShelfPiece> = emptyList()
     val platform = BlockModelRenderState()
+
+    /** The chain the shelf was, and how far up its column it has moved this step, a block's length at most. */
+    val chain = BlockModelRenderState()
+    var chainMoved: Float = 0.0f
+
+    /** Whether the chain is drawn a block lower too, from the base, which the lowest shelf's does. */
+    var isLowest: Boolean = false
 }
 
 /**
  * What a book lift shelf's block model cannot show: the book on it at rest, and while the loop turns, the platform
  * and its book sliding in from the block before, as a piston's head slides. A shelf whose next block along is inside
  * a frame also draws the one leaving into it, so that none is seen to vanish there or appear from nowhere. Every book lies
- * on its shelf as on a lectern, swinging open and shut as a lectern's does, and rides the lift so.
+ * on its platform's slope as on a lectern ([LiftPlatform]), swinging open and shut as a lectern's does, and rides the
+ * lift so.
  *
- * The platform is the shelf block's own model of the platform alone ([ShelfShows.PLATFORM]), so the art draws it once.
+ * The platform is the shelf block's own model ([ShelfShows.PLATFORM]), so the art draws it once. The chains are the
+ * chain the shelf was, one in each corner a pixel in from the block's edges, and run with the platforms: each shelf
+ * draws a block of chain moved as far as its column has, and the lowest one the block below it too, into the base.
  */
 class BookLiftShelfRenderer(context: BlockEntityRendererProvider.Context) :
     BlockEntityRenderer<BookLiftShelfBlockEntity, BookLiftShelfRenderState>, RendersBeyondItsBlock {
@@ -68,14 +81,30 @@ class BookLiftShelfRenderer(context: BlockEntityRendererProvider.Context) :
         super.extractRenderState(shelf, state, partialTicks, cameraPosition, breakProgress)
         state.facing = shelf.blockState.getValue(BookLiftShelfBlock.FACING)
         state.pieces = piecesOf(shelf, partialTicks)
+        blockModels.update(state.chain, upright(shelf.chain), CHAIN)
+        state.chainMoved = chainMovedOf(shelf, partialTicks)
+        state.isLowest = shelf.row == 1
         if (state.pieces.any { it.withThePlatform }) {
-            val platform = BookLifts.SHELF.defaultBlockState()
-                .setValue(BookLiftShelfBlock.FACING, state.facing)
-                .setValue(BookLiftShelfBlock.SHOWS, ShelfShows.PLATFORM)
+            // The shelf's own state, so the platform keeps its chain's tint as it slides.
+            val platform = shelf.blockState.setValue(BookLiftShelfBlock.SHOWS, ShelfShows.PLATFORM)
             blockModels.update(state.platform, platform, PLATFORM)
         } else {
             state.platform.clear()
         }
+    }
+
+    private fun upright(chain: BlockState): BlockState =
+        if (chain.hasProperty(ChainBlock.AXIS)) chain.setValue(ChainBlock.AXIS, Direction.Axis.Y) else chain
+
+    /** How far up its column [shelf]'s chain has moved into this step, as a part of a block from 0 to 1. */
+    private fun chainMovedOf(shelf: BookLiftShelfBlockEntity, partialTicks: Float): Float {
+        val lift = shelf.base() ?: return 0.0f
+        if (lift.direction == 0) return 0.0f
+        val step = ((lift.ticksIntoStep + partialTicks) / BookLiftBlockEntity.STEP_TICKS).coerceIn(0.0f, 1.0f)
+        // On is up the first column and down the second.
+        val upThisColumn = if (shelf.column == 0) lift.direction else -lift.direction
+        val moved = upThisColumn * step
+        return moved - floor(moved)
     }
 
     private fun piecesOf(shelf: BookLiftShelfBlockEntity, partialTicks: Float): List<ShelfPiece> {
@@ -107,6 +136,7 @@ class BookLiftShelfRenderer(context: BlockEntityRendererProvider.Context) :
     override fun renderBounds(blockEntity: BlockEntity): AABB = AABB(blockEntity.blockPos).inflate(0.0, 1.0, 0.0)
 
     override fun submit(state: BookLiftShelfRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
+        submitChains(state, poseStack, collector)
         for (piece in state.pieces) {
             poseStack.pushPose()
             poseStack.translate(0.0f, piece.up, 0.0f)
@@ -115,18 +145,38 @@ class BookLiftShelfRenderer(context: BlockEntityRendererProvider.Context) :
             }
             // As a lectern holds a book, shut or open (Jonah, 2026-11-19): on the slope, read from the lift's front.
             piece.look?.let { look ->
-                OpenOnAStand.poseOpen(poseStack, OPEN_AT, OpenOnAStand.readerYRotOf(state.facing), look.binding, piece.openness)
+                val middle = LiftPlatform.bookMiddle(state.facing)
+                OpenOnAStand.poseOpen(poseStack, middle, OpenOnAStand.readerYRotOf(state.facing), look.binding, piece.openness)
                 OpenOnAStand.submit(rendering, look, piece.page, piece.panel, piece.openness, poseStack, collector, state.lightCoords)
             }
             poseStack.popPose()
         }
     }
 
+    private fun submitChains(state: BookLiftShelfRenderState, poseStack: PoseStack, collector: SubmitNodeCollector) {
+        if (state.chain.isEmpty) return
+        val blocksDrawn = if (state.isLowest) listOf(0.0f, -1.0f) else listOf(0.0f)
+        for (corner in CORNERS) for (block in blocksDrawn) {
+            poseStack.pushPose()
+            poseStack.translate(corner.x, (state.chainMoved + block).toDouble(), corner.z)
+            state.chain.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, NO_OUTLINE)
+            poseStack.popPose()
+        }
+    }
+
     private companion object {
         val PLATFORM: BlockDisplayContext = BlockDisplayContext.create()
+        val CHAIN: BlockDisplayContext = BlockDisplayContext.create()
         const val NO_OUTLINE = 0
 
-        /** Where a book on the shelf has its middle, as `BookLiftBlockEntity.openBookPose` says. */
-        val OPEN_AT = Vec3(0.5, BookLiftBlockEntity.OPEN_BOOK_UP, 0.5)
+        /** From the middle of the block, where a chain's model stands, to each corner's chain. */
+        private const val TO_A_CORNER =
+            (BookLiftShelfBlock.CHAIN_INSET + BookLiftShelfBlock.CHAIN_WIDTH / 2.0 - 8.0) / 16.0
+        val CORNERS: List<Vec3> = listOf(
+            Vec3(TO_A_CORNER, 0.0, TO_A_CORNER),
+            Vec3(-TO_A_CORNER, 0.0, TO_A_CORNER),
+            Vec3(TO_A_CORNER, 0.0, -TO_A_CORNER),
+            Vec3(-TO_A_CORNER, 0.0, -TO_A_CORNER),
+        )
     }
 }
