@@ -6,58 +6,59 @@ import co.voik.agesandtheart.book.FinderMotions
 import co.voik.agesandtheart.book.FinderMotions.Deliver
 import co.voik.agesandtheart.book.FinderMotions.Fold
 import co.voik.agesandtheart.book.FinderMotions.Pull
-import co.voik.agesandtheart.book.FramePath
 import co.voik.agesandtheart.book.FrameTask
 import co.voik.agesandtheart.book.Motion
-import co.voik.agesandtheart.book.WallCell
-import co.voik.agesandtheart.book.WallPoint
 import net.minecraft.client.Minecraft
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.RandomSource
-import net.minecraft.world.level.Level
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 
 /**
  * What a book finder sounds like at work, worked out on each client from the task it was told and how far through it
- * is, as the renderer draws it: a loop while the carriage travels ([TravelLoop]), a click-clack each time it crosses from
- * one frame onto the next, and an actuator as each motion of the extractor or of the lectern begins, played backward as
- * forward.
+ * is, as the renderer draws it: the working loop and the click-clack of its frames under it while the carriage travels
+ * ([TravelLoop]), and the extractor's or the lectern's actuator for as long as its motions run ([ActuatorSound]), played
+ * backward as forward.
  */
 object FinderSounds {
 
     /**
-     * What each finder was last heard doing: the frame its carriage was over, the step of the motion it was in, and its
-     * travelling loop. Kept per finder for as long as the client holds it, and forgotten with it, so the loop, which
-     * holds the finder, is held weakly.
+     * What each finder was last heard doing: the actuator that was running, and its travelling loops. Kept per finder for
+     * as long as the client holds it, and forgotten with it, so the loops, which hold the finder, are held weakly.
      */
-    private class Heard(var cell: WallCell?, var step: Enum<*>?, var loop: WeakReference<TravelLoop>?)
+    private class Heard(var actuator: SoundEvent?, var loops: List<WeakReference<TravelLoop>>)
 
     private val heard = WeakHashMap<BookFinderBlockEntity, Heard>()
 
     /** Called each client tick for each finder the client holds. */
-    fun tick(level: Level, finder: BookFinderBlockEntity) {
-        val was = heard.getOrPut(finder) { Heard(cell = null, step = null, loop = null) }
-        val elapsed = (level.gameTime - finder.startedAt).toDouble()
-        val isUnderway = elapsed >= 0 && elapsed < finder.ticksOf(finder.task)
-        val isTravelling = finder.task.travels && isUnderway
-        val at = finder.carriageAt(elapsed)
+    fun tick(finder: BookFinderBlockEntity) {
+        val was = heard.getOrPut(finder) { Heard(actuator = null, loops = emptyList()) }
+        val isTravelling = finder.task.travels && isUnderway(finder, elapsedOf(finder))
 
-        val cell = FramePath.cellUnder(at)
-        if (isTravelling && was.cell != null && cell != was.cell) play(level, finder, BookFinders.JUNCTION_SOUND, at)
-        was.cell = cell
-
-        val loop = was.loop?.get()
-        if (isTravelling && (loop == null || loop.isStopped)) {
-            val started = TravelLoop(finder).also { Minecraft.getInstance().soundManager.play(it) }
-            was.loop = WeakReference(started)
+        val areLoopsGone = was.loops.all { it.get()?.isStopped ?: true }
+        if (isTravelling && areLoopsGone) {
+            val started = TRAVEL_LOOPS.map { TravelLoop(finder, it).also(Minecraft.getInstance().soundManager::play) }
+            was.loops = started.map(::WeakReference)
         }
 
-        val step = if (isUnderway) stepOf(finder.task, elapsed) else null
-        if (step != null && step != was.step) soundOf(step)?.let { play(level, finder, it, at) }
-        was.step = step
+        val actuator = actuatorOf(finder)
+        if (actuator != null && actuator != was.actuator) Minecraft.getInstance().soundManager.play(ActuatorSound(finder, actuator))
+        was.actuator = actuator
+    }
+
+    private fun elapsedOf(finder: BookFinderBlockEntity): Double =
+        finder.level?.let { (it.gameTime - finder.startedAt).toDouble() } ?: -1.0
+
+    private fun isUnderway(finder: BookFinderBlockEntity, elapsed: Double): Boolean =
+        elapsed >= 0 && elapsed < finder.ticksOf(finder.task)
+
+    /** The actuator the finder is running now, if any. */
+    private fun actuatorOf(finder: BookFinderBlockEntity): SoundEvent? {
+        val elapsed = elapsedOf(finder)
+        if (!isUnderway(finder, elapsed)) return null
+        return stepOf(finder.task, elapsed)?.let(::soundOf)
     }
 
     /** The step of the motion [task] plays, forward or backward, [elapsed] ticks in. */
@@ -99,34 +100,53 @@ object FinderSounds {
         else -> null
     }
 
-    private fun play(level: Level, finder: BookFinderBlockEntity, sound: SoundEvent, at: WallPoint) {
-        val where = finder.carriageInTheWorld(at)
-        level.playLocalSound(where.x, where.y, where.z, sound, SoundSource.BLOCKS, 1.0f, 1.0f, false)
-    }
+    private val TRAVEL_LOOPS = listOf(BookFinders.TRAVEL_SOUND, BookFinders.JUNCTION_SOUND)
 
     /** The carriage rolling over its frames, following it, for as long as its task travels. */
-    class TravelLoop(private val finder: BookFinderBlockEntity) :
-        AbstractTickableSoundInstance(BookFinders.TRAVEL_SOUND, SoundSource.BLOCKS, RandomSource.create()) {
+    class TravelLoop(finder: BookFinderBlockEntity, sound: SoundEvent) : CarriageSound(finder, sound) {
 
         init {
             looping = true
+        }
+
+        override fun tick() {
+            val isStillTravelling = !finder.isRemoved && finder.task.travels && isUnderway(finder, elapsedOf(finder))
+            if (isStillTravelling) follow() else stop()
+        }
+    }
+
+    /**
+     * One actuator, the extractor's or the lectern's, from the step its run of motions begins until the finder goes on to
+     * a pause or to the other's, when it fades out over [FADE_TICKS].
+     */
+    class ActuatorSound(finder: BookFinderBlockEntity, private val actuator: SoundEvent) : CarriageSound(finder, actuator) {
+
+        private var isFading = false
+
+        override fun tick() {
+            if (finder.isRemoved) return stop()
+            isFading = isFading || actuatorOf(finder) != actuator
+            if (isFading) volume -= 1.0f / FADE_TICKS
+            if (volume <= 0.0f) stop() else follow()
+        }
+    }
+
+    /** A sound that rides on [finder]'s carriage. */
+    abstract class CarriageSound(protected val finder: BookFinderBlockEntity, sound: SoundEvent) :
+        AbstractTickableSoundInstance(sound, SoundSource.BLOCKS, RandomSource.create()) {
+
+        init {
             delay = 0
             follow()
         }
 
-        override fun tick() {
-            val level = finder.level
-            val elapsed = level?.let { (it.gameTime - finder.startedAt).toDouble() } ?: -1.0
-            val isStillTravelling = !finder.isRemoved && finder.task.travels && elapsed >= 0 && elapsed < finder.ticksOf(finder.task)
-            if (isStillTravelling) follow() else stop()
-        }
-
-        private fun follow() {
-            val elapsed = finder.level?.let { (it.gameTime - finder.startedAt).toDouble() } ?: 0.0
-            val where = finder.carriageInTheWorld(finder.carriageAt(elapsed))
+        protected fun follow() {
+            val where = finder.carriageInTheWorld(finder.carriageAt(elapsedOf(finder).coerceAtLeast(0.0)))
             x = where.x
             y = where.y
             z = where.z
         }
     }
+
+    private const val FADE_TICKS = 2
 }

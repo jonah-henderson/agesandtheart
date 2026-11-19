@@ -146,7 +146,7 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         if (level.isClientSide) {
-            createTickerHelper(type, BookFinders.ENTITY) { clientLevel, _, _, finder -> FinderSounds.tick(clientLevel, finder) }
+            createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> FinderSounds.tick(finder) }
         } else {
             createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> finder.tick() }
         }

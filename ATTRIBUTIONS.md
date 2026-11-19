@@ -18,3 +18,6 @@ Some sound effects have been sourced from Freesound.org. The sounds used are in 
 - `blizzard_exposed.ogg`: derived from blizzard looped.aif by m0ments -- https://freesound.org/s/679941/ -- License: Creative Commons 0
 - `blizzard_sheltered.ogg`: derived from Burlingame howling wind.wav by Andron827 -- https://freesound.org/s/646874/ -- License: Creative Commons 0
 - `tornado.ogg`: derived from Inside a Tornado.wav by RogerBoyX69 -- https://freesound.org/s/338721/ -- License: Attribution 4.0
+- `finder_clicks.ogg`: derived from Running Gear by Vurca -- https://freesound.org/s/315753/ -- License: Creative Commons 0
+- `finder_extractor.ogg` and `finder_lectern.ogg`: derived from Robot arm, drill machine .wav by misjoc -- https://freesound.org/s/401968/ -- License: Creative Commons 0
+- `finder_working.ogg`: derived from Standing Drill Press by SoundDesigner0101 -- https://freesound.org/s/765985/ -- License: Creative Commons 0
