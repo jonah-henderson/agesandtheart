@@ -27,6 +27,7 @@ import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
+import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.book.BookLifts
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
@@ -2085,6 +2086,7 @@ object AgeContent {
         BookLifts.SHELF_ID to BookLifts.SHELF,
         BookFinders.ID to BookFinders.BLOCK,
         BookFinders.FRAME_ID to BookFinders.FRAME,
+        Bookstands.ID to Bookstands.BLOCK,
         PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
@@ -2153,6 +2155,7 @@ object AgeContent {
         BookLifts.FRAME_ID to BookLifts.ENTITY,
         BookLifts.SHELF_ID to BookLifts.SHELF_ENTITY,
         BookFinders.ID to BookFinders.ENTITY,
+        Bookstands.ID to Bookstands.ENTITY,
         Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
@@ -2302,6 +2305,7 @@ object AgeContent {
         BookLifts.FRAME_ID to BookLifts.FRAME_ITEM,
         BookFinders.ID to BookFinders.ITEM,
         BookFinders.FRAME_ID to BookFinders.FRAME_ITEM,
+        Bookstands.ID to Bookstands.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         SOOT_ID to SOOT,
         FLASHPOWDER_ID to FLASHPOWDER,

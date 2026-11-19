@@ -1,0 +1,21 @@
+{
+  "_comment": "[AI] A boat's shape in the wood's slabs: a base and its two guards (Jonah, 2026-11-19).",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "bookstand",
+  "key": {
+    "S": "minecraft:bamboo_slab"
+  },
+  "pattern": [
+    "S S",
+    "SSS"
+  ],
+  "result": {
+    "id": "agesandtheart:bookstand",
+    "components": {
+      "minecraft:block_state": {
+        "wood": "bamboo"
+      }
+    }
+  }
+}

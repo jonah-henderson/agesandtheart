@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.jei
 
+import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.client.CrystalViewerScreen
 import co.voik.agesandtheart.client.FrequencyTunerScreen
 import co.voik.agesandtheart.client.KnownMachineRecipes
@@ -52,9 +53,10 @@ class AgesJeiPlugin : IModPlugin {
 
     override fun getPluginUid(): Identifier = "jei".location()
 
-    /** A toolbox of each wood is its own entry, as the creative tab lists them. */
+    /** A toolbox or bookstand of each wood is its own entry, as the creative tab lists them. */
     override fun registerItemSubtypes(registration: ISubtypeRegistration) {
         registration.registerFromDataComponentTypes(AgeContent.TOOLBOX, DataComponents.BLOCK_STATE)
+        registration.registerFromDataComponentTypes(Bookstands.ITEM, DataComponents.BLOCK_STATE)
     }
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {

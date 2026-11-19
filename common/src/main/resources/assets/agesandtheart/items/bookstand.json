@@ -1,0 +1,118 @@
+{
+  "_comment": "[AI] The bookstand in its wood.",
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:block_state",
+    "block_state_property": "wood",
+    "cases": [
+      {
+        "when": "oak",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_oak"
+        }
+      },
+      {
+        "when": "spruce",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_spruce"
+        }
+      },
+      {
+        "when": "birch",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_birch"
+        }
+      },
+      {
+        "when": "jungle",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_jungle"
+        }
+      },
+      {
+        "when": "acacia",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_acacia"
+        }
+      },
+      {
+        "when": "dark_oak",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_dark_oak"
+        }
+      },
+      {
+        "when": "mangrove",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_mangrove"
+        }
+      },
+      {
+        "when": "cherry",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_cherry"
+        }
+      },
+      {
+        "when": "pale_oak",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_pale_oak"
+        }
+      },
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_bamboo"
+        }
+      },
+      {
+        "when": "crimson",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_crimson"
+        }
+      },
+      {
+        "when": "warped",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_warped"
+        }
+      },
+      {
+        "when": "poplar",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_poplar"
+        }
+      },
+      {
+        "when": "palm",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/bookstand_palm",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 16763036
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "agesandtheart:block/bookstand_oak"
+    }
+  }
+}

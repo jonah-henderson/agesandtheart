@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.book.BookFinderBlock
 import co.voik.agesandtheart.book.BookFinderFrameBlock
 import co.voik.agesandtheart.book.BookFinders
+import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.ephemeris.sky.LevelLooks
@@ -144,8 +145,9 @@ object AgeTints {
             PalmWood.SIGN, PalmWood.WALL_SIGN, PalmWood.HANGING_SIGN, PalmWood.WALL_HANGING_SIGN,
         )
         for (block in sawnThroughout) registrar(listOf(sawn, sawn), block)
-        // Only a palm toolbox's model asks for a tint, so the other woods draw untinted.
+        // Only a palm toolbox's or bookstand's model asks for a tint, so the other woods draw untinted.
         registrar(listOf(sawn), AgeContent.TOOLBOX_BLOCK)
+        registrar(listOf(sawn), Bookstands.BLOCK)
         for (block in listOf(PalmWood.FRONDS, PalmWood.POTTED_SAPLING)) registrar(listOf(green), block)
         for (block in listOf(PalmWood.COCONUT, PalmWood.HANGING_COCONUT)) {
             registrar(listOf(BlockTintSources.constant(opaque(PalmWood.COCONUT_TINT))), block)

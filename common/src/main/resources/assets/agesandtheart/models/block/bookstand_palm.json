@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/bookstand_tinted",
+  "textures": {
+    "planks": "minecraft:block/birch_planks"
+  }
+}

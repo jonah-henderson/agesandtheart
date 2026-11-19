@@ -100,7 +100,7 @@ class ToolboxBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     companion object {
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
-        val WOOD: EnumProperty<WoodKind> = EnumProperty.create("wood", WoodKind::class.java)
+        val WOOD: EnumProperty<WoodKind> = WoodKind.PROPERTY
 
         /** The name of a toolbox of [wood]: "Dark Oak Toolbox". */
         fun nameOf(wood: WoodKind): Component = Component.translatable("block.agesandtheart.toolbox.${wood.serializedName}")
