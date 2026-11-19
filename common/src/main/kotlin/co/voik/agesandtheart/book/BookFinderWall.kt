@@ -174,9 +174,9 @@ data class FramePath(val points: List<WallPoint>) {
 
 /**
  * The chiselled bookshelves a book finder can reach (design §7.8.3): every one joined to the shelf it is
- * mounted on, side to side or one over another, facing the way it does, with a book finder frame over its front, which
- * is the track its frame travels (Jonah, 2026-11-19). A wall reaching into an unloaded chunk stops there, and none is
- * larger than [MOST_SHELVES].
+ * mounted on, side to side or one over another, facing the way it does, with a book finder frame or another finder over
+ * its front, which is the track its frame travels (Jonah, 2026-11-19). A wall reaching into an unloaded chunk stops
+ * there, and none is larger than [MOST_SHELVES].
  */
 class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: Set<BlockPos>) {
 
@@ -206,8 +206,8 @@ class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: S
                 val isAShelfOfTheWall = state.`is`(Blocks.CHISELED_BOOKSHELF) && state.getValue(ChiseledBookShelfBlock.FACING) == facing
                 if (!isAShelfOfTheWall) return
                 val front = level.getBlockState(shelf.relative(facing))
-                val hasATrack = shelf.relative(facing) == finder ||
-                    (front.`is`(BookFinders.FRAME) && front.getValue(BookFinderFrameBlock.FACING) == facing)
+                val isAFrameOrAFinder = front.`is`(BookFinders.FRAME) || front.`is`(BookFinders.BLOCK)
+                val hasATrack = shelf.relative(facing) == finder || (isAFrameOrAFinder && front.getValue(BookFinderFrameBlock.FACING) == facing)
                 if (!hasATrack) return
                 found += shelf
                 waiting.addLast(shelf)

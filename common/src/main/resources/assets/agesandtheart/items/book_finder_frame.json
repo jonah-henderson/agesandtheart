@@ -1,6 +1,7 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/book_finder_frame"
+    "model": "agesandtheart:block/book_finder_frame",
+    "tints": [{ "type": "minecraft:constant", "value": 2941006 }]
   }
 }

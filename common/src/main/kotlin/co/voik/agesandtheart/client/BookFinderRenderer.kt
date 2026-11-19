@@ -1,11 +1,15 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.book.BinderClamps
 import co.voik.agesandtheart.book.BookBinding
+import co.voik.agesandtheart.book.BookFinderBlock
 import co.voik.agesandtheart.book.BookFinderBlockEntity
+import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookPage
-import co.voik.agesandtheart.book.Bookbinder
-import co.voik.agesandtheart.book.BookbinderBlock
+import co.voik.agesandtheart.book.FinderMotions
+import co.voik.agesandtheart.book.FinderMotions.Deliver
+import co.voik.agesandtheart.book.FinderMotions.Fold
+import co.voik.agesandtheart.book.FinderMotions.Pull
+import co.voik.agesandtheart.book.FinderPart
 import co.voik.agesandtheart.book.FrameTask
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.WallPoint
@@ -27,37 +31,49 @@ import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
-import org.joml.Quaternionf
 import org.joml.Vector3f
 
 class BookFinderRenderState : BlockEntityRenderState() {
     var facing: Direction = Direction.NORTH
     var task: FrameTask = FrameTask.RESTING
 
-    /** How far through its task the frame is, 0 to 1; a task without an end stays at 0. */
-    var progress: Float = 0.0f
+    /** Ticks into [task]. */
+    var elapsed: Float = 0.0f
 
-    /** Where the frame is across the face of the wall, from the finder's own space. */
+    /** Where the finder is across the face of the wall, from its own space. */
     var at: WallPoint = WallPoint(0.0, 0.0)
 
-    /** The slot it draws a book from or pushes one into, while it does. */
+    /** The slot it draws a book from or pushes one into. */
     var slot: Int = 0
 
     var look: BookLook? = null
     var binding: BookBinding = BookBinding.THICK
+
+    /** How thick the book is drawn: a book not ours is vanilla's, as thin as a linking book. */
+    var drawnAs: BookBinding = BookBinding.THICK
+
+    /** How far the book on the lectern has swung open. */
+    var openness: Float = 0.0f
     var panelPage: BookPage? = null
     var panel: OpenOnAStand.Panel? = null
-    var frameLight: Int = 0
-    val press = BlockModelRenderState()
+    var finderLight: Int = 0
+    val parts: Map<FinderPart, BlockModelRenderState> = MOVING_PARTS.associateWith { BlockModelRenderState() }
+
+    companion object {
+        val MOVING_PARTS: List<FinderPart> = FinderPart.entries - FinderPart.STATIC
+    }
 }
 
 /**
- * A book finder's frame, working (design §7.8.3): across the face of the wall along the path its finder
- * sent, drawing a book out of its slot into its clamps, bringing it back shut and upright, and turning it open and up
- * as a lectern holds a book, where it is read as a lectern's is — its panel too. The frame stands in on a small
- * bookbinder's press until the art.
+ * A book finder at work (design §7.8.3), as Jonah's model moves (Jonah, 2026-11-18): its frame stays with the block,
+ * and everything else travels across the wall along the path its finder sent. The [FinderMotions] are played out on its
+ * parts here: the lectern's surface folding flat to travel, the extractor sliding to a slot's column as its rotator rides
+ * to the slot's row, the paddles reaching in and drawing the book out at a shelf's size, and at home the rotator turning
+ * the book onto its cover, the lectern meeting it and taking it down, the book growing to its own size as it turns once
+ * let go, and the book surface raising it to be read as a lectern's book is.
  *
- * Drawn from the finder in the frame its model is, facing north: the wall's right is west, and the shelves to the south.
+ * Everything is posed in the model's frame, facing north with the shelf to the south, in pixels, and turned by facing at
+ * the end.
  */
 class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
     BlockEntityRenderer<BookFinderBlockEntity, BookFinderRenderState>, RendersBeyondItsBlock {
@@ -78,33 +94,23 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         val level = finder.level ?: return
         state.facing = finder.facing
         state.task = finder.task
-        val elapsed = (level.gameTime - finder.startedAt) + partialTicks
-        val lasts = finder.ticksOf(finder.task)
-        state.progress = if (lasts == Int.MAX_VALUE) 0.0f else (elapsed / lasts).coerceIn(0.0f, 1.0f)
-        state.at = when {
-            finder.task.travels -> finder.path?.at(elapsed * BookFinderBlockEntity.BLOCKS_A_TICK) ?: WallPoint(0.0, 0.0)
-            finder.task == FrameTask.PULLING || finder.task == FrameTask.PUSHING ->
-                finder.errand?.let { WallPoint.of(finder.blockPos, finder.facing, it.shelf) } ?: WallPoint(0.0, 0.0)
-            else -> WallPoint(0.0, 0.0)
-        }
+        state.elapsed = ((level.gameTime - finder.startedAt) + partialTicks).coerceAtMost(finder.ticksOf(finder.task).toFloat())
+        state.at = finder.carriageAt(state.elapsed.toDouble())
         state.slot = finder.errand?.slot ?: 0
         val right = finder.facing.counterClockWise
-        val frameSpace = finder.blockPos.relative(right, Math.round(state.at.across).toInt()).above(Math.round(state.at.up).toInt())
-        state.frameLight = LightCoordsUtil.getLightCoords(level, frameSpace)
+        val finderSpace = finder.blockPos.relative(right, Math.round(state.at.across).toInt()).above(Math.round(state.at.up).toInt())
+        state.finderLight = LightCoordsUtil.getLightCoords(level, finderSpace)
         val book = finder.carried
         state.look = book.takeUnless { it.isEmpty }?.let(BookLook::of)
         state.binding = BookBinding.of(book)
+        state.drawnAs = if (state.look?.isOurs == true) state.binding else BookBinding.THIN
         state.panelPage = LecternBooks.panelPageOf(book)
-        val clamps = Bookbinder.BLOCK.defaultBlockState()
-            .setValue(BookbinderBlock.FACING, Direction.NORTH)
-            .setValue(BookbinderBlock.CLAMPS, if (state.look != null && state.binding == BookBinding.THIN) BinderClamps.NARROW else BinderClamps.WIDE)
-        blockModels.update(state.press, clamps, PRESS)
-        extractThePanel(finder, state)
-    }
-
-    /** As a lectern's: the panel the client shows, or the mist, or where panels are maps, the book's own map. */
-    private fun extractThePanel(finder: BookFinderBlockEntity, state: BookFinderRenderState) {
-        state.panel = if (state.panelPage == null || openness(state) <= 0.0f) null
+        val isOnTheLectern = finder.task == FrameTask.PRESENTING || finder.task == FrameTask.CLOSING
+        state.openness = if (isOnTheLectern) StandSwings.opennessOf(finder, BookFinderBlockEntity.PLACE, finder.isOpen, partialTicks) else 0.0f
+        for ((part, model) in state.parts) {
+            blockModels.update(model, BookFinders.BLOCK.defaultBlockState().setValue(BookFinderBlock.PART, part), PARTS)
+        }
+        state.panel = if (state.panelPage == null || state.openness <= 0.0f) null
         else OpenOnAStand.panelOf(finder.level, finder.blockPos, BookFinderBlockEntity.PLACE)
     }
 
@@ -114,90 +120,229 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
     override fun renderBounds(blockEntity: BlockEntity): AABB = AABB(blockEntity.blockPos).inflate(WALL_REACH)
 
     override fun submit(state: BookFinderRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
-        val frame = frameMiddle(state)
-        poseStack.pushPose()
-        poseStack.mulPose(facingTurn(state.facing))
-        poseStack.translate(frame.x - PRESS_SIZE / 2, frame.y - PRESS_BELOW, frame.z - PRESS_SIZE / 2)
-        poseStack.scale(PRESS_SIZE, PRESS_SIZE, PRESS_SIZE)
-        state.press.submit(poseStack, collector, state.frameLight, OverlayTexture.NO_OVERLAY, NO_OUTLINE)
-        poseStack.popPose()
+        val posture = postureOf(state)
+        val finder = facingTurn(state.facing).translate((-state.at.across).toFloat(), state.at.up.toFloat(), 0.0f)
+        fun submitPart(part: FinderPart, pose: Matrix4f) {
+            val model = state.parts.getValue(part)
+            if (model.isEmpty) return
+            poseStack.pushPose()
+            poseStack.mulPose(Matrix4f(finder).mul(pose))
+            model.submit(poseStack, collector, state.finderLight, OverlayTexture.NO_OVERLAY, NO_OUTLINE)
+            poseStack.popPose()
+        }
+        submitPart(FinderPart.CHASSIS, Matrix4f())
+        submitPart(FinderPart.EXTRACTOR, railsFrame(posture.arm))
+        submitPart(FinderPart.ROTATOR, rotatorFrame(posture.arm))
+        submitPart(FinderPart.LEFT_PADDLE, paddleFrame(posture.arm, Side.LEFT))
+        submitPart(FinderPart.RIGHT_PADDLE, paddleFrame(posture.arm, Side.RIGHT))
+        submitPart(FinderPart.LECTERN, lecternFrame(posture.lift))
+        submitPart(FinderPart.BOOK_SURFACE, surfaceFrame(posture.lift, posture.fold))
 
         val look = state.look ?: return
-        val open = openness(state)
-        val bookPose = bookPose(state, frame, open)
-        val light = if (state.task.travels || state.task == FrameTask.PULLING || state.task == FrameTask.PUSHING) state.frameLight else state.lightCoords
+        val book = posture.book ?: return
         poseStack.pushPose()
-        poseStack.mulPose(bookPose)
-        OpenOnAStand.submit(rendering, look, state.panelPage, state.panel, open, poseStack, collector, light)
+        poseStack.mulPose(Matrix4f(finder).mul(book))
+        OpenOnAStand.submit(rendering, look, state.panelPage, state.panel, posture.open, poseStack, collector, state.finderLight)
         poseStack.popPose()
     }
 
-    /** The middle of the frame, in the model's frame facing north, from the finder's corner. */
-    private fun frameMiddle(state: BookFinderRenderState): Vector3f =
-        Vector3f((MIDDLE - state.at.across).toFloat(), (MIDDLE + state.at.up).toFloat(), MIDDLE)
+    /**
+     * The extractor slid [across] from the middle, its rotator ridden [rise] up the rails from the middle and turned [tip]
+     * of the way onto its side, and the rotator's paddles [reach] pixels in from rest. Only the paddles go in and out.
+     */
+    private data class Arm(
+        val across: Float = 0.0f,
+        val rise: Float = 0.0f,
+        val tip: Float = 0.0f,
+        val reach: Float = 0.0f,
+    )
 
-    /** How far open the book is: shut until the second half of its turning, and open while it is held. */
-    private fun openness(state: BookFinderRenderState): Float = when (state.task) {
-        FrameTask.OPENING -> ((state.progress - TURNED_AT) / (1.0f - TURNED_AT)).coerceIn(0.0f, 1.0f)
-        FrameTask.CLOSING -> ((1.0f - state.progress - TURNED_AT) / (1.0f - TURNED_AT)).coerceIn(0.0f, 1.0f)
-        FrameTask.PRESENTING -> 1.0f
-        else -> 0.0f
-    }
+    /** The rotator's two paddles, as the wall is faced: the left is east in the model's frame. */
+    private enum class Side(val eastward: Float) { LEFT(1.0f), RIGHT(-1.0f) }
 
-    /** Where the book is drawn, from the finder's corner, in the world's own frame. */
-    private fun bookPose(state: BookFinderRenderState, frame: Vector3f, open: Float): Matrix4f {
-        val inTheClamps = clamped(state.facing, frame, Vector3f())
+    /**
+     * Everything that moves: the extractor, how far the lectern has risen ([lift], in pixels) and its surface folded
+     * ([fold], up to flat), and the book's pose and how far open it is, where there is a book to draw.
+     */
+    private data class Posture(
+        val arm: Arm = Arm(),
+        val lift: Float = 0.0f,
+        val fold: Float = 0.0f,
+        val book: Matrix4f? = null,
+        val open: Float = 0.0f,
+    )
+
+    private fun postureOf(state: BookFinderRenderState): Posture {
+        val lasts = when (state.task) {
+            FrameTask.FOLDING, FrameTask.UNFOLDING -> FinderMotions.FOLD.ticks
+            FrameTask.PULLING, FrameTask.PUSHING -> FinderMotions.PULL.ticks
+            FrameTask.DELIVERING, FrameTask.STOWING -> FinderMotions.DELIVER.ticks
+            else -> 0
+        }
+        val backward = lasts - state.elapsed
         return when (state.task) {
-            FrameTask.PULLING -> clamped(state.facing, frame, slotOffset(state.slot).mul(1.0f - eased(state.progress)))
-            FrameTask.PUSHING -> clamped(state.facing, frame, slotOffset(state.slot).mul(eased(state.progress)))
-            FrameTask.OPENING, FrameTask.CLOSING -> {
-                val turned = if (state.task == FrameTask.OPENING) state.progress else 1.0f - state.progress
-                if (turned >= TURNED_AT) heldOpen(state, open) else between(inTheClamps, heldOpen(state, 0.0f), eased(turned / TURNED_AT))
-            }
-            FrameTask.PRESENTING -> heldOpen(state, 1.0f)
-            else -> inTheClamps
+            FrameTask.RESTING -> AT_REST
+            FrameTask.FOLDING -> folding(state.elapsed)
+            FrameTask.UNFOLDING -> folding(backward)
+            FrameTask.GOING_FOR, FrameTask.COMING_BACK -> travelling(state, carrying = false)
+            // Out of another finder's way, with the book from the lectern where there was one.
+            FrameTask.STEPPING_ASIDE, FrameTask.STANDING_ASIDE, FrameTask.STEPPING_BACK -> travelling(state, carrying = state.look != null)
+            FrameTask.BRINGING, FrameTask.TAKING_BACK -> travelling(state, carrying = true)
+            FrameTask.PULLING -> pulling(state, state.elapsed)
+            FrameTask.PUSHING -> pulling(state, backward)
+            FrameTask.DELIVERING -> delivering(state, state.elapsed)
+            FrameTask.STOWING -> delivering(state, backward)
+            FrameTask.PRESENTING, FrameTask.CLOSING ->
+                AT_REST.copy(book = bookOnTheLectern(state, 0.0f, 0.0f, state.openness), open = state.openness)
         }
     }
 
-    /** Standing upright in the clamps, spine out from the wall, [offset] from the middle of them. */
-    private fun clamped(facing: Direction, frame: Vector3f, offset: Vector3f): Matrix4f {
-        val pose = PoseStack()
-        pose.mulPose(facingTurn(facing))
-        pose.translate(frame.x + offset.x, frame.y + offset.y, frame.z + offset.z)
-        // The shut model's spine is its origin and its fore-edge along +X: turned so the fore-edge points into the wall.
-        pose.rotate(Axis.YP.rotationDegrees(-QUARTER_TURN))
-        pose.scale(CLAMPED_SCALE, CLAMPED_SCALE, CLAMPED_SCALE)
-        pose.translate(-HALF_A_BOARD, 0.0f, 0.0f)
-        return Matrix4f(pose.last().pose())
+    private fun folding(ticks: Float): Posture {
+        fun share(step: Fold) = eased(FinderMotions.FOLD.through(step, ticks))
+        val arm = Arm(rise = HOME_RISE, reach = STOWED * (1.0f - share(Fold.PADDLES_OUT)))
+        return Posture(arm = arm, fold = share(Fold.SURFACE_DOWN))
     }
 
-    /** As a lectern holds a book [open] of the way open, in the middle of the finder's space. */
-    private fun heldOpen(state: BookFinderRenderState, open: Float): Matrix4f {
-        val pose = PoseStack()
-        OpenOnAStand.poseOpen(pose, HELD_AT, OpenOnAStand.readerYRotOf(state.facing), state.binding, open)
-        return Matrix4f(pose.last().pose())
+    /** Empty, the rotator at the top; carrying, in the middle with the book drawn out as far as the paddles come. */
+    private fun travelling(state: BookFinderRenderState, carrying: Boolean): Posture {
+        if (!carrying) return Posture(arm = Arm(rise = HOME_RISE), fold = 1.0f)
+        val arm = Arm()
+        return Posture(arm = arm, fold = 1.0f, book = carriedBook(state, arm))
     }
 
-    /** [from] turned and moved toward [to], [share] of the way. */
-    private fun between(from: Matrix4f, to: Matrix4f, share: Float): Matrix4f {
-        val fromTranslation = from.getTranslation(Vector3f())
-        val toTranslation = to.getTranslation(Vector3f())
-        val fromScale = from.getScale(Vector3f())
-        val toScale = to.getScale(Vector3f())
-        val fromTurn = from.getNormalizedRotation(Quaternionf())
-        val toTurn = to.getNormalizedRotation(Quaternionf())
+    private fun pulling(state: BookFinderRenderState, ticks: Float): Posture {
+        fun share(step: Pull) = eased(FinderMotions.PULL.through(step, ticks))
+        val column = SLOT_ACROSS[state.slot % SLOT_COLUMNS]
+        val row = riseToTheRowOf(state.slot)
+        val toTheSlot = share(Pull.TO_THE_SLOT)
+        val toTheMiddle = share(Pull.TO_THE_MIDDLE)
+        // From the top to the slot, and from there to the middle.
+        val arm = Arm(
+            across = column * (toTheSlot - toTheMiddle),
+            rise = HOME_RISE + (row - HOME_RISE) * toTheSlot - row * toTheMiddle,
+            reach = STOWED * (share(Pull.REACH_IN) - share(Pull.DRAW_OUT)),
+        )
+        val inTheSlot = Arm(across = column, rise = row, reach = STOWED)
+        val book = carriedBook(state, if (FinderMotions.PULL.hasBegun(Pull.DRAW_OUT, ticks)) arm else inTheSlot)
+        return Posture(arm = arm, fold = 1.0f, book = book)
+    }
+
+    private fun delivering(state: BookFinderRenderState, ticks: Float): Posture {
+        fun share(step: Deliver) = eased(FinderMotions.DELIVER.through(step, ticks))
+        fun hasBegun(step: Deliver) = FinderMotions.DELIVER.hasBegun(step, ticks)
+        val lift = LEVEL * (share(Deliver.LEVEL) - share(Deliver.LOWER_THE_BOOK))
+        val fold = 1.0f - share(Deliver.SURFACE_UP)
+        // Tucked into the gap between books while the lectern takes the book down, then out to right itself in front of
+        // the shelf, clear of the book now below it, up to the top, and back in.
+        val righted = share(Deliver.RIGHT_ITSELF)
+        val outToRightItself = (STOWED - CLEAR_OF_THE_SHELF) * (share(Deliver.COME_OUT) - share(Deliver.GO_BACK_IN))
+        val arm = Arm(
+            across = SHIFT_ASIDE * (share(Deliver.SHIFT_ASIDE) - righted),
+            rise = HOME_RISE * share(Deliver.RIDE_UP),
+            tip = share(Deliver.TIP) - righted,
+            reach = STOWED * share(Deliver.TUCK_IN) - outToRightItself,
+        )
+        val tippedAtTheLevel = carriedBook(state, Arm(tip = 1.0f))
+        val book = when {
+            hasBegun(Deliver.TURN_THE_BOOK) -> {
+                val tippedAtRest = Matrix4f().translation(0.0f, pixels(-LEVEL), 0.0f).mul(tippedAtTheLevel)
+                val onTheLectern = bookOnTheLectern(state, 0.0f, fold, open = 0.0f)
+                turnedOnto(tippedAtRest, onTheLectern, shelvedSizeOf(state), state.drawnAs, share(Deliver.TURN_THE_BOOK))
+            }
+            hasBegun(Deliver.LOWER_THE_BOOK) -> Matrix4f().translation(0.0f, pixels(lift - LEVEL), 0.0f).mul(tippedAtTheLevel)
+            else -> carriedBook(state, Arm(tip = arm.tip))
+        }
+        return Posture(arm = arm, lift = lift, fold = fold, book = book)
+    }
+
+    /** How far the rotator rides up from the middle to the row of [slot]: the shelf's upper row is its first three slots. */
+    private fun riseToTheRowOf(slot: Int): Float {
+        val isInTheUpperRow = slot < BookFinderBlockEntity.SLOTS / 2
+        return (if (isInTheUpperRow) UPPER_ROW_MIDDLE else LOWER_ROW_MIDDLE) - ROTATOR_MIDDLE_UP
+    }
+
+    /**
+     * How a book is drawn on a chiselled shelf and in the paddles, as a share of its own size along its length, height and
+     * thickness: as the shelf's books are, six tall and four thick, squashed or stretched to it, and as long for its
+     * height as it is.
+     */
+    private fun shelvedSizeOf(state: BookFinderRenderState): Vector3f {
+        val height = if (state.look?.isOurs == false) VANILLA_BOOK_HEIGHT else OUR_BOOK_HEIGHT
+        val shortened = SHELVED_BOOK_HEIGHT / height
+        return Vector3f(shortened, shortened, SHELVED_BOOK_THICKNESS / AgeBookModel.shutThickness(state.drawnAs))
+    }
+
+    /**
+     * Where a shelved book's spine stands: far enough out that the faces beside it, which a descriptive book's boards set
+     * back from it, are just proud of the shelf.
+     */
+    private fun spineOnTheShelf(state: BookFinderRenderState): Float {
+        val sidesBehindTheSpine = if (state.look?.isOurs == true) state.drawnAs.boardThickness * shelvedSizeOf(state).x else 0.0f
+        return SHELF_FACE - PROUD_OF_THE_SHELF - sidesBehindTheSpine
+    }
+
+    /**
+     * A book at a shelf's size upright in the middle of the rotator, spine out and fore-edge toward the shelf as a shelf
+     * holds it, where the paddles [Arm.reach]ing in as far as they go take hold of it in its slot.
+     */
+    private fun carriedBook(state: BookFinderRenderState, arm: Arm): Matrix4f =
+        rotatorFrame(arm)
+            .translate(pixels(RING_MIDDLE_ACROSS), pixels(ROTATOR_MIDDLE_UP), pixels(spineOnTheShelf(state) - STOWED + arm.reach))
+            // The shut model's spine is its origin and its fore-edge along +X: turned so the fore-edge points into the wall.
+            .rotate(Axis.YP.rotationDegrees(-QUARTER_TURN))
+            .scale(shelvedSizeOf(state))
+
+    /** The book lying on the surface [open] of the way open, as a lectern holds a book, the lectern [lift]ed and its surface [fold]ed. */
+    private fun bookOnTheLectern(state: BookFinderRenderState, lift: Float, fold: Float, open: Float): Matrix4f {
+        val pose = PoseStack()
+        OpenOnAStand.poseOpen(pose, HELD_AT, OpenOnAStand.readerYRotOf(Direction.NORTH), state.binding, open)
+        return surfaceFrame(lift, fold).mul(pose.last().pose())
+    }
+
+    /** The extractor's rails, slid across. */
+    private fun railsFrame(arm: Arm): Matrix4f = Matrix4f().translation(pixels(arm.across), 0.0f, 0.0f)
+
+    /** The rotator, slid across with the rails, ridden up them, and turned about its middle on the axis into the shelf. */
+    private fun rotatorFrame(arm: Arm): Matrix4f = railsFrame(arm)
+        .translate(0.0f, pixels(arm.rise), 0.0f)
+        .translate(pixels(RING_MIDDLE_ACROSS), pixels(ROTATOR_MIDDLE_UP), 0.0f)
+        .rotate(Axis.ZP.rotationDegrees(TIP_DEGREES * arm.tip))
+        .translate(-pixels(RING_MIDDLE_ACROSS), -pixels(ROTATOR_MIDDLE_UP), 0.0f)
+
+    /** A paddle, a clearance out from the book it holds, [Arm.reach] in. */
+    private fun paddleFrame(arm: Arm, side: Side): Matrix4f =
+        rotatorFrame(arm).translate(pixels(side.eastward * PADDLE_CLEARANCE), 0.0f, pixels(arm.reach))
+
+    private fun lecternFrame(lift: Float): Matrix4f = Matrix4f().translation(0.0f, pixels(lift), 0.0f)
+
+    /**
+     * The surface [fold] of the way flat: turned down about its front edge, and raised and drawn back as it turns so
+     * that, flat, it lies in the arms' bracket.
+     */
+    private fun surfaceFrame(lift: Float, fold: Float): Matrix4f = lecternFrame(lift)
+        .translate(0.0f, pixels(ONTO_THE_ARMS * fold), pixels(INTO_THE_BRACKET * fold))
+        .translate(0.0f, pixels(SURFACE_HINGE.y), pixels(SURFACE_HINGE.z))
+        .rotate(Axis.XP.rotationDegrees(SURFACE_TILT_DEGREES * fold))
+        .translate(0.0f, -pixels(SURFACE_HINGE.y), -pixels(SURFACE_HINGE.z))
+
+    /**
+     * A book lying on its cover at [from], [grownFrom] its own size, [share] of the way to lying as a lectern holds it at
+     * its own size at [to]: one quarter turn about the upright through its middle, which is all that is between them
+     * ([TIP_DEGREES]), growing about its middle as its middle moves across. Both lie on the surface, so its underside
+     * stays there.
+     */
+    private fun turnedOnto(from: Matrix4f, to: Matrix4f, grownFrom: Vector3f, binding: BookBinding, share: Float): Matrix4f {
+        val middleOfTheBook = Vector3f(pixels(AgeBookModel.shutLength(binding) / 2), 0.0f, 0.0f)
+        val fromMiddle = from.transformPosition(Vector3f(middleOfTheBook))
+        val toMiddle = to.transformPosition(Vector3f(middleOfTheBook))
         return Matrix4f()
-            .translation(fromTranslation.lerp(toTranslation, share))
-            .rotate(fromTurn.slerp(toTurn, share))
-            .scale(fromScale.lerp(toScale, share))
-    }
-
-    /** From the middle of the clamps to the middle of the book's [slot] in the shelf behind, in the model's frame. */
-    private fun slotOffset(slot: Int): Vector3f {
-        val column = slot % SLOT_COLUMNS
-        val row = slot / SLOT_COLUMNS
-        // The first column is the left as the wall is faced, which in the model's frame is east.
-        return Vector3f(SLOT_ACROSS[column], if (row == 0) SLOT_UP else -SLOT_UP, SLOT_DEPTH)
+            .translation(fromMiddle.lerp(toMiddle, share))
+            .rotate(Axis.YP.rotationDegrees(BOOK_TURN_DEGREES * (1.0f - share)))
+            .translate(toMiddle.negate())
+            .mul(to)
+            .translate(middleOfTheBook)
+            .scale(Vector3f(grownFrom).lerp(Vector3f(FULL_SIZE), share))
+            .translate(Vector3f(middleOfTheBook).negate())
     }
 
     private fun facingTurn(facing: Direction): Matrix4f = Matrix4f()
@@ -207,34 +352,118 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
 
     private fun eased(progress: Float): Float = progress * progress * (3 - 2 * progress)
 
+    private fun pixels(count: Float): Float = count / PIXELS_A_BLOCK
+
     private companion object {
-        val PRESS: BlockDisplayContext = BlockDisplayContext.create()
+        val PARTS: BlockDisplayContext = BlockDisplayContext.create()
         const val MIDDLE = 0.5f
         const val QUARTER_TURN = 90.0f
-        const val PIXEL = 1.0f / 16.0f
+        const val PIXELS_A_BLOCK = 16.0f
         const val NO_OUTLINE = 0
         const val WALL_REACH = 32.0
 
-        /** The stand-in press, scaled down under the book. */
-        const val PRESS_SIZE = 0.4f
-        const val PRESS_BELOW = 0.3f
+        // The model's measures, in pixels.
 
-        /** A book in the clamps is drawn the size of one on a chiselled shelf. */
-        const val CLAMPED_SCALE = 0.6f
-        const val HALF_A_BOARD = 3.0f * PIXEL
+        /** The middle of each of the shelf's rows. */
+        const val UPPER_ROW_MIDDLE = 12.0f
+        const val LOWER_ROW_MIDDLE = 4.0f
 
-        /** How much of its turning the book spends coming from the clamps to the slope, before it opens. */
-        const val TURNED_AT = 0.5f
+        /** The rotator's middle as the model has it, between the rows, where it carries a book and lays it down. */
+        const val ROTATOR_MIDDLE_UP = 8.0f
 
-        /** The middle of the finder's own space, where its frame holds a book open (`BookFinderBlockEntity.openBookPose`). */
-        val HELD_AT = Vec3(0.5, 0.5, 0.5)
+        /** How far the rotator rides up from the middle to stand at the top, beside the upper row, while it has no book. */
+        const val HOME_RISE = UPPER_ROW_MIDDLE - ROTATOR_MIDDLE_UP
+        const val RING_MIDDLE_ACROSS = 8.0f
 
-        /** A chiselled shelf's slots: three across, from the left, and two rows, the top first. */
+        /**
+         * The extractor's rails stand this far toward the shelf; the rotator turns a quarter about its middle to lay a
+         * book down, which way being the one that leaves it face up, spine to the reader, a quarter turn about the
+         * upright ([BOOK_TURN_DEGREES]) from lying as a lectern holds it.
+         */
+        const val RING_DEPTH = 14.0f
+        const val TIP_DEGREES = -90.0f
+        const val BOOK_TURN_DEGREES = 90.0f
+
+        /**
+         * How far the extractor, its rotator turned on its side, shifts before the paddles go into the shelf or after they
+         * come out of it: then lying flat, above and below the plank between the rows, they pass through the gap between
+         * the middle column's books and the left ones'.
+         */
+        const val SHIFT_ASIDE = 2.5f
+
+        /** The shelf's face. */
+        const val SHELF_FACE = 16.0f
+
+        /** How far a book in its slot stands out of the shelf's face, so the two are not drawn in one plane. */
+        const val PROUD_OF_THE_SHELF = 0.1f
+
+        /** The paddles reach this far from the ring toward the reader. */
+        const val PADDLE_LENGTH = 8.0f
+
+        /** How far each paddle stands off a book's cover, and the lectern's surface off a paddle under the book, so none is drawn in one plane with another. */
+        const val PADDLE_CLEARANCE = 0.01f
+
+        /**
+         * How far the paddles go into the shelf, to take hold of a book or be out of the way: as far as they reach while
+         * still held in the ring. Drawn back out of it as far as they come, a book is clear of the shelf by more than a
+         * pixel and over the folded surface.
+         */
+        const val STOWED = PADDLE_LENGTH
+
+        /** The paddles as far in as they come while wholly out of the shelf, where they can turn without meeting its books. */
+        const val CLEAR_OF_THE_SHELF = SHELF_FACE - RING_DEPTH
+
+        /** At home with the surface up: the rotator at the top, its paddles in the shelf. */
+        val AT_REST = Posture(arm = Arm(rise = HOME_RISE, reach = STOWED))
+
+        /**
+         * The middles of the books the shelf's texture draws in its slots, three across, from the left as the wall is
+         * faced, which in the model's frame is east.
+         */
         const val SLOT_COLUMNS = 3
-        val SLOT_ACROSS = floatArrayOf(0.3125f, -0.03125f, -0.34375f)
-        const val SLOT_UP = 0.25f
+        val SLOT_ACROSS = floatArrayOf(5.0f, 0.0f, -5.0f)
 
-        /** Into the shelf behind, where a book stands in its slot. */
-        const val SLOT_DEPTH = 0.6f
+
+        /**
+         * A book in a chiselled shelf is drawn as the shelf's are, six tall and four thick, the gap between an extractor's
+         * paddles, and grows to its own size only once on the lectern.
+         */
+        const val SHELVED_BOOK_HEIGHT = 6.0f
+        const val SHELVED_BOOK_THICKNESS = 4.0f
+        const val OUR_BOOK_HEIGHT = 8.0f
+        const val VANILLA_BOOK_HEIGHT = 10.0f
+        const val FULL_SIZE = 1.0f
+
+        /**
+         * The book surface, a pixel thick, folded flat between arms a pixel high, flush with their tops, and behind the
+         * bar across their front ends.
+         */
+        const val FLAT_SURFACE_BOTTOM = 0.0f
+        const val FLAT_SURFACE_TOP = FLAT_SURFACE_BOTTOM + 1.0f
+        const val FLAT_SURFACE_FRONT = 1.0f
+        const val SURFACE_TILT_DEGREES = 22.5f
+
+        /**
+         * How far the lectern rises for its surface to meet a book the rotator has turned onto its cover in the middle:
+         * half a shelved book's thickness below the rotator's middle, under the paddle beneath the book.
+         */
+        const val LEVEL = ROTATOR_MIDDLE_UP - SHELVED_BOOK_THICKNESS / 2 - 2 * PADDLE_CLEARANCE - FLAT_SURFACE_TOP
+
+        /**
+         * The surface's front lower edge as the model tilts it, which it folds about: the element's corner `(y 3, z 3)`
+         * turned -22.5° about `(y -4, z 8)`, the same slope a lectern's top has.
+         */
+        val SURFACE_HINGE: Vector3f = Matrix4f()
+            .translate(0.0f, -4.0f, 8.0f)
+            .rotate(Axis.XP.rotationDegrees(-SURFACE_TILT_DEGREES))
+            .translate(0.0f, 4.0f, -8.0f)
+            .transformPosition(Vector3f(0.0f, 3.0f, 3.0f))
+
+        /** How far the folded surface is raised to lie flush with the arms, and drawn back to lie behind their front bar. */
+        val ONTO_THE_ARMS: Float = FLAT_SURFACE_BOTTOM - SURFACE_HINGE.y
+        val INTO_THE_BRACKET: Float = FLAT_SURFACE_FRONT - SURFACE_HINGE.z
+
+        /** Where the book on the lectern has its middle, as `BookFinderBlockEntity.openBookPose` says. */
+        val HELD_AT = Vec3(0.5, BookFinderBlockEntity.OPEN_BOOK_UP, 0.5)
     }
 }

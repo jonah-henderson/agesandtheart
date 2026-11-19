@@ -306,5 +306,49 @@
         "pitch": 0.7
       }
     ]
+  },
+  "block.book_finder.travel": {
+    "subtitle": "subtitles.agesandtheart.book_finder.travel",
+    "sounds": [
+      {
+        "name": "minecraft:entity.minecart.riding",
+        "type": "event",
+        "volume": 0.35,
+        "pitch": 1.5
+      }
+    ]
+  },
+  "block.book_finder.junction": {
+    "subtitle": "subtitles.agesandtheart.book_finder.junction",
+    "sounds": [
+      {
+        "name": "minecraft:block.copper_trapdoor.close",
+        "type": "event",
+        "volume": 0.2,
+        "pitch": 1.8
+      }
+    ]
+  },
+  "block.book_finder.extractor": {
+    "subtitle": "subtitles.agesandtheart.book_finder.extractor",
+    "sounds": [
+      {
+        "name": "minecraft:block.crafter.craft",
+        "type": "event",
+        "volume": 0.3,
+        "pitch": 1.4
+      }
+    ]
+  },
+  "block.book_finder.surface": {
+    "subtitle": "subtitles.agesandtheart.book_finder.surface",
+    "sounds": [
+      {
+        "name": "minecraft:block.piston.contract",
+        "type": "event",
+        "volume": 0.2,
+        "pitch": 1.3
+      }
+    ]
   }
 }

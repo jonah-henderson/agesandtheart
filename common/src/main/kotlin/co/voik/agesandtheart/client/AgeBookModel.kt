@@ -161,6 +161,9 @@ class AgeBookModel(root: ModelPart, val binding: BookBinding) :
         /** The shut book's length, spine to fore-edge, in model units. */
         fun shutLength(binding: BookBinding): Float = binding.boardThickness + BOARD_WIDTH
 
+        /** The shut book's thickness, board to board across the spine, in model units. */
+        fun shutThickness(binding: BookBinding): Float = SPINE_WIDTH + 2 * binding.boardThickness
+
         /**
          * The binding's pieces, by their outside faces, which lie [BookBinding.boardThickness] out. Up the book is
          * -Y in every part, the front board is the left lid, which reaches -X from its hinge, and the back is the

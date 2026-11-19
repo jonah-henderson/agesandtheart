@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.book.BookFinderFrameBlock
+import co.voik.agesandtheart.book.BookFinders
+import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.client.GroundTints
@@ -70,6 +73,9 @@ object AgeTints {
         registrar(listOf(BlockTintSources.constant(opaque(PalmBeach.WHITE_SAND_TINT))), PalmBeach.WHITE_SANDSTONE_BLOCK)
         registrar(listOf(BlockTintSources.constant(opaque(CompoundedStone.TINT))), CompoundedStone.BLOCK)
         palm(registrar)
+        registrar(listOf(ByIndicator), BookFinders.FRAME)
+        // A finder's own frame is always on its wall.
+        registrar(listOf(BlockTintSources.constant(opaque(RimeColour.GREEN.tint))), BookFinders.BLOCK)
         for (leaves in TreeKinds.TINTED_LEAVES) registrar(listOf(WrittenLeaves(leaves, vanillaTintOf(leaves))), leaves)
     }
 
@@ -150,6 +156,19 @@ object AgeTints {
         registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_ROOT_BLOCK)
         registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_SAPLING_BLOCK)
         registrar(listOf(ByHowItDied), AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK)
+    }
+
+    /** A book finder frame's indicator, in a rime crystal's colours, by [BookFinderFrameBlock.INDICATOR]. */
+    private object ByIndicator : BlockTintSource {
+        override fun color(state: BlockState): Int = opaque(
+            when (state.getValue(BookFinderFrameBlock.INDICATOR)) {
+                BookFinderFrameBlock.Indicator.READY -> RimeColour.GREEN.tint
+                BookFinderFrameBlock.Indicator.INVALID -> RimeColour.RED.tint
+                BookFinderFrameBlock.Indicator.ACTIVE -> RimeColour.BLUE.tint
+            },
+        )
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(BookFinderFrameBlock.INDICATOR)
     }
 
     /** A dead yema sapling, by [DeadPaperTreeSaplingBlock.DROWNED]; its item takes the same two colours. */

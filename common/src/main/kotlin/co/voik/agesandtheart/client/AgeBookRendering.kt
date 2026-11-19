@@ -3,6 +3,10 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.book.BookBinding
 import co.voik.agesandtheart.book.LecternBooks
 import net.minecraft.client.model.`object`.book.BookModel
+import net.minecraft.client.model.geom.PartPose
+import net.minecraft.client.model.geom.builders.CubeListBuilder
+import net.minecraft.client.model.geom.builders.LayerDefinition
+import net.minecraft.client.model.geom.builders.MeshDefinition
 import net.minecraft.client.renderer.blockentity.EnchantTableRenderer
 import co.voik.agesandtheart.content.AgeComponents
 import com.mojang.blaze3d.vertex.PoseStack
@@ -63,7 +67,7 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
 
     private val models = BookBinding.entries.associateWith { AgeBookModel(AgeBookModel.createLayer(it).bakeRoot(), it) }
 
-    private val vanillaBook = BookModel(BookModel.createBodyLayer().bakeRoot())
+    private val vanillaBook = BookModel(vanillaBookLayer().bakeRoot())
 
     fun modelFor(binding: BookBinding): AgeBookModel = models.getValue(binding)
 
@@ -96,6 +100,39 @@ class AgeBookRendering(private val sprites: SpriteGetter) {
     }
 
     private companion object {
+        /**
+         * Vanilla's `BookModel.createBodyLayer`, its pages [PAGES_OFF_THE_SPINE] off the spine: vanilla's start in the
+         * spine's own plane, and shut, the two flicker.
+         */
+        fun vanillaBookLayer(): LayerDefinition {
+            val mesh = MeshDefinition()
+            val root = mesh.root
+            root.addOrReplaceChild(
+                "left_lid", CubeListBuilder.create().texOffs(0, 0).addBox(-6.0f, -5.0f, -0.005f, 6.0f, 10.0f, 0.005f), PartPose.offset(0.0f, 0.0f, -1.0f),
+            )
+            root.addOrReplaceChild(
+                "right_lid", CubeListBuilder.create().texOffs(16, 0).addBox(0.0f, -5.0f, -0.005f, 6.0f, 10.0f, 0.005f), PartPose.offset(0.0f, 0.0f, 1.0f),
+            )
+            root.addOrReplaceChild(
+                "seam",
+                CubeListBuilder.create().texOffs(12, 0).addBox(-1.0f, -5.0f, 0.0f, 2.0f, 10.0f, 0.005f),
+                PartPose.rotation(0.0f, (Math.PI / 2).toFloat(), 0.0f),
+            )
+            root.addOrReplaceChild(
+                "left_pages", CubeListBuilder.create().texOffs(0, 10).addBox(PAGES_OFF_THE_SPINE, -4.0f, -0.99f, 5.0f, 8.0f, 1.0f), PartPose.ZERO,
+            )
+            root.addOrReplaceChild(
+                "right_pages", CubeListBuilder.create().texOffs(12, 10).addBox(PAGES_OFF_THE_SPINE, -4.0f, -0.01f, 5.0f, 8.0f, 1.0f), PartPose.ZERO,
+            )
+            val leaf = CubeListBuilder.create().texOffs(24, 10).addBox(PAGES_OFF_THE_SPINE, -4.0f, 0.0f, 5.0f, 8.0f, 0.005f)
+            root.addOrReplaceChild("flip_page1", leaf, PartPose.ZERO)
+            root.addOrReplaceChild("flip_page2", leaf, PartPose.ZERO)
+            return LayerDefinition.create(mesh, 64, 32)
+        }
+
+        /** Past the spine's 0.005 of thickness, in model pixels. */
+        const val PAGES_OFF_THE_SPINE = 0.05f
+
         const val NO_OUTLINE = 0
         const val UNTINTED = -1
         const val QUARTER_TURN_RADIANS = (Math.PI / 2).toFloat()

@@ -2430,7 +2430,7 @@ object AgeContent {
         GUST_ID to GUST,
         WIND_SHELTERED_ID to WIND_SHELTERED,
         WIND_EXPOSED_ID to WIND_EXPOSED,
-    ) + PalmBeach.soundEvents + ImpactSounds.soundEvents
+    ) + PalmBeach.soundEvents + ImpactSounds.soundEvents + BookFinders.soundEvents
 
     private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()
 

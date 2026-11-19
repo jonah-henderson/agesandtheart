@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.book
 
+import co.voik.agesandtheart.client.FinderSounds
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import com.mojang.serialization.Codec
@@ -24,6 +25,7 @@ import net.minecraft.tags.ItemTags
 import net.minecraft.util.Prediction
 import net.minecraft.util.ProblemReporter
 import net.minecraft.util.RandomSource
+import net.minecraft.util.StringRepresentable
 import net.minecraft.world.Containers
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
@@ -67,30 +69,31 @@ import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.Shapes
 import net.minecraft.world.phys.shapes.VoxelShape
 import java.util.UUID
-import kotlin.math.ceil
 
 /** One slot of one chiselled bookshelf. */
 data class ShelfSlot(val shelf: BlockPos, val slot: Int)
 
 /**
- * The book finder (design §7.8.3): mounted on the face of a wall of chiselled bookshelves, its frame running across
- * the wall's [BookFinderFrameBlock]s, it searches
- * every book on the wall, and on a choice its frame goes across the face of the wall to the shelf, draws the book out,
- * brings it back shut in its clamps and holds it open as a lectern does, for the player to read where it stands.
+ * The book finder (design §7.8.3): mounted on the face of a wall of chiselled bookshelves, its carriage running across
+ * the wall's [BookFinderFrameBlock]s, it searches every book on the wall, and on a choice its carriage goes across the
+ * face of the wall to the shelf, draws the book out, brings it back and lays it on its lectern, for the player to read
+ * where it stands. The block is the frame the carriage leaves from; the carriage is drawn ([FinderPart]).
  *
  * Used with an empty hand while the frame is free, it lists the wall's books. The book it holds open is a stand's
  * ([BookStands]): read and linked from as on a lectern, taken with its screen's Take Book, and shut — which here sends it
- * home. A book handed to it is filed: home, where it
- * was the last one taken from the frame, and otherwise on the nearest empty slot.
+ * home. A book handed to it is laid on its lectern shut, as a fetched one is, and sent home the same way: to where it
+ * was taken from, where it was the last one taken from the frame, and otherwise to the nearest empty slot.
  */
 class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HOLDING, false))
+        registerDefaultState(
+            stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HOME, true).setValue(PART, FinderPart.STATIC),
+        )
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING, HOLDING)
+        builder.add(FACING, HOME, PART)
     }
 
     /** Only on the face of a chiselled bookshelf, facing out of it. */
@@ -117,9 +120,22 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
         return if (lostItsShelf) Blocks.AIR.defaultBlockState() else state
     }
 
-    /** The plate on the shelf, and while it holds a book open, the whole space, so the book can be clicked. */
+    override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
+        super.onPlace(state, level, pos, oldState, movedByPiston)
+        if (level is ServerLevel && !oldState.`is`(this)) FrameIndicators.trackAdded(level, pos, state.getValue(FACING))
+    }
+
+    override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)
+        if (!level.getBlockState(pos).`is`(this)) FrameIndicators.trackRemoved(level, pos, state.getValue(FACING))
+    }
+
+    /**
+     * The whole space while the carriage is home, so it and the book on its lectern can be clicked wherever they are
+     * drawn, and the plate on the shelf while it is out on the wall.
+     */
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
-        if (state.getValue(HOLDING)) Shapes.block() else PLATES.getValue(state.getValue(FACING))
+        if (state.getValue(HOME)) Shapes.block() else PLATES.getValue(state.getValue(FACING))
 
     override fun getCollisionShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
         PLATES.getValue(state.getValue(FACING))
@@ -129,7 +145,11 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
-        if (level.isClientSide) null else createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> finder.tick() }
+        if (level.isClientSide) {
+            createTickerHelper(type, BookFinders.ENTITY) { clientLevel, _, _, finder -> FinderSounds.tick(clientLevel, finder) }
+        } else {
+            createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> finder.tick() }
+        }
 
     override fun useItemOn(
         stack: ItemStack,
@@ -142,7 +162,7 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
     ): InteractionResult {
         val finder = level.getBlockEntity(pos) as? BookFinderBlockEntity ?: return InteractionResult.PASS
         if (!stack.`is`(ItemTags.BOOKSHELF_BOOKS) || finder.task != FrameTask.RESTING) return InteractionResult.TRY_WITH_EMPTY_HAND
-        if (!level.isClientSide) finder.file(player, stack.consumeAndReturn(1, player))
+        if (!level.isClientSide) finder.file(stack.consumeAndReturn(1, player))
         return InteractionResult.SUCCESS
     }
 
@@ -152,10 +172,15 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
             if (player is ServerPlayer) finder.listFor(player)
             return InteractionResult.SUCCESS
         }
-        // Held open by the frame from the moment it is brought, so there is no opening it; shutting it sends it home.
+        // Presented shut, and opened and shut as on a lectern; sneaking at it once it is shut sends it home.
+        val sendsItHome = player.isSecondaryUseActive && player.mainHandItem.isEmpty && !finder.isOpen
+        if (sendsItHome) {
+            if (!level.isClientSide) finder.sendBack()
+            return InteractionResult.SUCCESS
+        }
         return BookStands.use(
             level, finder, BookFinderBlockEntity.PLACE, finder.carried, player, hitResult,
-            open = {}, close = finder::sendBack, take = { finder.handOver(player) },
+            open = { finder.open() }, close = finder::close, take = { finder.handOver(player) },
         )
     }
 
@@ -166,8 +191,11 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
     companion object {
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
 
-        /** Whether its frame holds a book open, which is when the book is there to be clicked. */
-        val HOLDING: BooleanProperty = BooleanProperty.create("holding")
+        /** Whether the carriage is at the finder rather than out on the wall. */
+        val HOME: BooleanProperty = BooleanProperty.create("home")
+
+        /** Which of the finder's models a state is: only [FinderPart.STATIC] is placed, and the renderer draws the rest. */
+        val PART: EnumProperty<FinderPart> = EnumProperty.create("part", FinderPart::class.java)
 
         /** A plate three pixels deep against the shelf, facing north as the model does. */
         private val PLATES: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(box(2.0, 2.0, 13.0, 14.0, 14.0, 16.0))
@@ -177,17 +205,35 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 /**
  * A book finder frame (Jonah, 2026-11-19): a narrow open frame over the front of a chiselled bookshelf, which is the
  * track a finder's frame runs on. A finder reaches only the shelves that carry one, so a wall of them is built a frame
- * at a time and paid for in the late game's materials. Only its rim is solid, so the shelf's slots are still clicked
- * through it.
+ * at a time and paid for in the late game's materials. Only its corners are solid, so the shelf's slots are still
+ * clicked through it.
+ *
+ * Its [INDICATOR] says whether a finder reaches it, and lights while the finder is on an errand to its shelf
+ * ([FrameIndicators]).
  */
 class BookFinderFrameBlock(properties: Properties) : Block(properties) {
 
+    /** What a frame's indicator shows, which the client tints in a rime crystal's colours. */
+    enum class Indicator(private val key: String) : StringRepresentable {
+        /** A finder reaches it: green. */
+        READY("ready"),
+
+        /** No finder reaches it, or the wall is already as large as a finder can search: red. */
+        INVALID("invalid"),
+
+        /** Its shelf is the one a book is being fetched from or taken back to: blue. */
+        ACTIVE("active"),
+        ;
+
+        override fun getSerializedName(): String = key
+    }
+
     init {
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH))
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(INDICATOR, Indicator.INVALID))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING)
+        builder.add(FACING, INDICATOR)
     }
 
     /** Only on the face of a chiselled bookshelf, facing out of it. */
@@ -214,8 +260,18 @@ class BookFinderFrameBlock(properties: Properties) : Block(properties) {
         return if (lostItsShelf) Blocks.AIR.defaultBlockState() else state
     }
 
+    override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
+        super.onPlace(state, level, pos, oldState, movedByPiston)
+        if (level is ServerLevel && !oldState.`is`(this)) FrameIndicators.trackAdded(level, pos, state.getValue(FACING))
+    }
+
+    override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)
+        if (!level.getBlockState(pos).`is`(this)) FrameIndicators.trackRemoved(level, pos, state.getValue(FACING))
+    }
+
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
-        RIMS.getValue(state.getValue(FACING))
+        CORNERS.getValue(state.getValue(FACING))
 
     override fun rotate(state: BlockState, rotation: Rotation): BlockState = state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
 
@@ -224,30 +280,61 @@ class BookFinderFrameBlock(properties: Properties) : Block(properties) {
     companion object {
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
 
-        /** A rim a pixel wide and two deep against the shelf, facing north as the model does. */
-        private val RIMS: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(
+        val INDICATOR: EnumProperty<Indicator> = EnumProperty.create("indicator", Indicator::class.java)
+
+        /** The four corners and the indicator's housing, a pixel deep against the shelf, facing north as the model does. */
+        private val CORNERS: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(
             Shapes.or(
-                box(0.0, 0.0, 14.0, 16.0, 1.0, 16.0),
-                box(0.0, 15.0, 14.0, 16.0, 16.0, 16.0),
-                box(0.0, 1.0, 14.0, 1.0, 15.0, 16.0),
-                box(15.0, 1.0, 14.0, 16.0, 15.0, 16.0),
+                box(0.0, 0.0, 15.0, 2.0, 2.0, 16.0),
+                box(14.0, 0.0, 15.0, 16.0, 2.0, 16.0),
+                box(0.0, 14.0, 15.0, 2.0, 16.0, 16.0),
+                box(14.0, 14.0, 15.0, 16.0, 16.0, 16.0),
+                box(6.0, 14.0, 15.0, 10.0, 16.0, 16.0),
             ),
         )
     }
 }
 
-/** What a book finder's frame is doing. Each that travels has a path; the rest stand at a shelf or at the finder. */
-enum class FrameTask(val travels: Boolean) {
-    RESTING(false),
-    GOING_FOR(true),
-    PULLING(false),
-    BRINGING(true),
-    OPENING(false),
-    PRESENTING(false),
-    CLOSING(false),
-    TAKING_BACK(true),
-    PUSHING(false),
-    COMING_BACK(true),
+/**
+ * One of a book finder's models: the [STATIC] frame its block is placed as, and the parts [co.voik.agesandtheart.client.BookFinderRenderer]
+ * moves, each modelled where it stands at rest (`scripts/books/book_finder_models.py`).
+ */
+enum class FinderPart(private val key: String) : StringRepresentable {
+    STATIC("static"),
+    CHASSIS("chassis"),
+    EXTRACTOR("extractor"),
+    ROTATOR("rotator"),
+    LEFT_PADDLE("left_paddle"),
+    RIGHT_PADDLE("right_paddle"),
+    LECTERN("lectern"),
+    BOOK_SURFACE("book_surface"),
+    ;
+
+    override fun getSerializedName(): String = key
+}
+
+/**
+ * What a book finder's frame is doing. Each that travels has a path; the rest stand at a shelf or at the finder, playing
+ * one of [FinderMotions]'s motions forward or backward, or stand aside out of another finder's way. The carriage [isAway]
+ * from the finder from setting out until it is back.
+ */
+enum class FrameTask(val travels: Boolean, val isAway: Boolean) {
+    RESTING(false, false),
+    FOLDING(false, false),
+    GOING_FOR(true, true),
+    PULLING(false, true),
+    BRINGING(true, true),
+    DELIVERING(false, false),
+    PRESENTING(false, false),
+    CLOSING(false, false),
+    STOWING(false, false),
+    TAKING_BACK(true, true),
+    PUSHING(false, true),
+    COMING_BACK(true, true),
+    UNFOLDING(false, false),
+    STEPPING_ASIDE(true, true),
+    STANDING_ASIDE(false, true),
+    STEPPING_BACK(true, true),
 }
 
 /**
@@ -256,6 +343,12 @@ enum class FrameTask(val travels: Boolean) {
  * itself ([co.voik.agesandtheart.client.BookFinderRenderer]).
  *
  * A second player's request waits its turn; a book held open while one waits goes home after [PATIENCE_TICKS].
+ *
+ * Finders may share a wall (Jonah, 2026-11-19). Each plans a trip around the others' [Reservation]s, set out when it
+ * plans, so carriages never meet though their ways may cross: the way it would take, else one around where they would
+ * meet, setting out later if it must. A carriage at rest holds its space for good, so a finder whose way runs through
+ * another's waits for it, and that one steps aside to a free space the next time it is idle or holds its book shut,
+ * carrying the book, and comes back once nobody needs its space.
  */
 class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookFinders.ENTITY, pos, state), BookStand {
 
@@ -274,8 +367,16 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     var carried: ItemStack = ItemStack.EMPTY
         private set
 
-    /** The shelf slot the frame is fetching from or taking a book back to. */
+    /** The shelf slot the frame is fetching from or taking a book back to, whose frame's indicator is lit for it. */
     var errand: ShelfSlot? = null
+        private set(slot) {
+            val was = field
+            field = slot
+            if (was?.shelf != slot?.shelf) FrameIndicators.errandMoved(level, facing, from = was?.shelf, to = slot?.shelf)
+        }
+
+    /** Whether the book on the lectern has been opened, which a player does; it is brought shut. */
+    var isOpen: Boolean = false
         private set
 
     /** The way the frame last set out by, which it comes home along. */
@@ -284,25 +385,86 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     /** Where the book held open came from, which is where it goes back to. */
     private var home: ShelfSlot? = null
 
+    /** Where the carriage will be, as last planned, which the other finders on the wall plan around. */
+    private var timetable: List<Reservation> = emptyList()
+
+    /** The spaces of the way this finder waits to have cleared, which a carriage resting on one of them makes way from. */
+    private var awaited: Set<BlockPos> = emptySet()
+
+    /** Whether the carriage is out of another finder's way, or on its way there or back. */
+    private var isMakingWay: Boolean = false
+
+    /** Whether the book on the lectern is waiting for its way home to clear, and since when. */
+    private var isSendingHome: Boolean = false
+    private var sendingHomeSince: Long = 0L
+
     /** The last book taken from the frame and where it came from, so that handing it back sends it home. */
     private var lastTaken: Pair<ItemStack, ShelfSlot>? = null
 
     private val waiting = ArrayDeque<FetchRequest>()
     private var fetching: FetchRequest? = null
 
-    /** A request: which slot, what was in it when asked, and who asked. */
-    private class FetchRequest(val from: ShelfSlot, val expected: ItemStack, val asker: UUID)
+    /** A request: which slot, what was in it when asked, and who asked, and whether they have been told it waits for its way. */
+    private class FetchRequest(val from: ShelfSlot, val expected: ItemStack, val asker: UUID) {
+        var isToldItWaits: Boolean = false
+    }
+
+    /** A trip the carriage can take: its way, how long it waits before setting out, and the wall it holds meanwhile. */
+    private class Trip(val way: FramePath, val delay: Int, val reservations: List<Reservation>)
+
+    /**
+     * A trip planned: ready to take; waiting for others to clear the [Waiting.way]; not to be had while a carriage at rest
+     * stands in the way with nowhere off it to step aside to; or not to be had on this wall at all.
+     */
+    private sealed interface Planned {
+        class Ready(val trip: Trip) : Planned
+        class Waiting(val way: FramePath) : Planned
+        data object BoxedIn : Planned
+        data object Unreachable : Planned
+    }
+
+    /**
+     * The other finders' holds on the wall, by space, and the spaces they are waiting to have cleared; the spaces held for
+     * good, and of those, the ones a carriage rests in at its own finder, which it steps aside from.
+     */
+    private class Traffic(val held: Map<BlockPos, List<Reservation>>, val awaited: Set<BlockPos>, val resting: Set<BlockPos>) {
+        val heldForGood: Set<BlockPos> = held.filterValues { holds -> holds.any { it.until == Reservation.FOR_GOOD } }.keys
+
+        fun allows(plan: List<Reservation>): Boolean = plan.none { mine -> held[mine.space].orEmpty().any(mine::clashesWith) }
+
+        fun clashesIn(plan: List<Reservation>): List<BlockPos> =
+            plan.filter { mine -> held[mine.space].orEmpty().any(mine::clashesWith) }.map { it.space }
+    }
+
+    /** How sending the book on the lectern home went: off, waiting for its way to clear, or no slot on the wall with room. */
+    private enum class SentHome { GOING, WAITING, NO_ROOM }
 
     val facing: Direction get() = blockState.getValue(BookFinderBlock.FACING)
 
     fun wall(): BookFinderWall = BookFinderWall.of(level!!, blockPos, facing)
 
+    /** Where the carriage is across the face of the wall, [elapsed] ticks into its task, from the finder's own space. */
+    fun carriageAt(elapsed: Double): WallPoint = when (task) {
+        FrameTask.PULLING, FrameTask.PUSHING -> errand?.let { WallPoint.of(blockPos, facing, it.shelf) }
+        FrameTask.STANDING_ASIDE -> path?.points?.last()
+        else -> if (task.travels) path?.at(elapsed * BLOCKS_A_TICK) else null
+    } ?: AT_THE_FINDER
+
+    /** The middle of the carriage in the world, at [at] on the wall. */
+    fun carriageInTheWorld(at: WallPoint): Vec3 {
+        val right = facing.counterClockWise
+        return Vec3.atCenterOf(blockPos).add(right.stepX * at.across, at.up, right.stepZ * at.across)
+    }
+
     /** How long [task] lasts, in ticks; one held open lasts until it is taken or sent. */
-    fun ticksOf(task: FrameTask): Int = when {
-        task.travels -> ceil((path?.length ?: 0.0) / BLOCKS_A_TICK).toInt().coerceAtLeast(1)
-        task == FrameTask.PULLING || task == FrameTask.PUSHING -> SLIDE_TICKS
-        task == FrameTask.OPENING || task == FrameTask.CLOSING -> TURN_TICKS
-        else -> Int.MAX_VALUE
+    fun ticksOf(task: FrameTask): Int = when (task) {
+        FrameTask.GOING_FOR, FrameTask.BRINGING, FrameTask.TAKING_BACK, FrameTask.COMING_BACK,
+        FrameTask.STEPPING_ASIDE, FrameTask.STEPPING_BACK -> path?.let(Timetable::ticksAlong) ?: 1
+        FrameTask.FOLDING, FrameTask.UNFOLDING -> FinderMotions.FOLD.ticks
+        FrameTask.PULLING, FrameTask.PUSHING -> FinderMotions.PULL.ticks
+        FrameTask.DELIVERING, FrameTask.STOWING -> FinderMotions.DELIVER.ticks
+        FrameTask.CLOSING -> SHUT_TICKS
+        FrameTask.RESTING, FrameTask.PRESENTING, FrameTask.STANDING_ASIDE -> Int.MAX_VALUE
     }
 
     /** The wall's books, sent to [player] for their screen. */
@@ -329,7 +491,23 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         if (isBusy) player.sendOverlayMessage(Component.translatable(QUEUED))
     }
 
-    /** The book held open, taken by [player]. */
+    /** The book on the lectern opened, as a lectern's is. */
+    fun open() {
+        if (task != FrameTask.PRESENTING || isOpen) return
+        isOpen = true
+        stopSendingHome()
+        changed()
+    }
+
+    /** The book on the lectern shut, and left on it. */
+    fun close() {
+        if (!isOpen) return
+        isOpen = false
+        play(SoundEvents.BOOK_PAGE_TURN)
+        changed()
+    }
+
+    /** The book on the lectern, taken by [player]. */
     fun handOver(player: Player) {
         if (task != FrameTask.PRESENTING) return
         val book = carried
@@ -337,34 +515,66 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         home?.let { lastTaken = book.copy() to it }
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         play(SoundEvents.BOOK_PUT)
+        stopSendingHome()
         begin(FrameTask.RESTING)
     }
 
-    /** The book held open, shut and taken home. */
+    /** The book on the lectern taken home, shut first where it is open. */
     fun sendBack() {
-        if (task != FrameTask.PRESENTING) return
-        play(SoundEvents.BOOK_PAGE_TURN)
-        begin(FrameTask.CLOSING)
-    }
-
-    /** [book] handed to the frame by [player], and taken to its home or the nearest empty slot. */
-    fun file(player: Player, book: ItemStack) {
-        val remembered = lastTaken?.takeIf { (taken, _) -> ItemStack.isSameItemSameComponents(taken, book) }?.second
-        carried = book
-        home = remembered
-        if (!takeBack()) {
-            player.inventory.placeItemBackInInventory(carried, Prediction.SERVER_ONLY)
-            carried = ItemStack.EMPTY
-            player.sendOverlayMessage(Component.translatable(NO_ROOM))
+        if (task != FrameTask.PRESENTING || isSendingHome) return
+        if (isOpen) {
+            play(SoundEvents.BOOK_PAGE_TURN)
+            begin(FrameTask.CLOSING)
+        } else {
+            stow()
         }
     }
 
-    override fun openBookAt(place: Int): ItemStack? = carried.takeIf { task == FrameTask.PRESENTING && place == PLACE && !it.isEmpty }
+    /**
+     * The book on the lectern taken off it and home; left on it, shut, while the way is not yet clear; and where the wall
+     * has no room, dropped.
+     */
+    private fun stow() {
+        val level = level ?: return
+        when (takeBack()) {
+            SentHome.GOING -> isSendingHome = false
+            SentHome.WAITING -> {
+                if (!isSendingHome) sendingHomeSince = level.gameTime
+                isSendingHome = true
+                if (task != FrameTask.PRESENTING) begin(FrameTask.PRESENTING)
+            }
+            SentHome.NO_ROOM -> {
+                stopSendingHome()
+                Containers.dropItemStack(level, blockPos.x + HALF, blockPos.y + HALF, blockPos.z + HALF, carried)
+                carried = ItemStack.EMPTY
+                begin(FrameTask.RESTING)
+            }
+        }
+    }
+
+    private fun stopSendingHome() {
+        isSendingHome = false
+        awaited = emptySet()
+    }
+
+    /**
+     * [book] handed to the frame, and laid shut on its lectern to be read or sent home (Jonah, 2026-11-19): home is
+     * where it was taken from, where it is the last book taken from the frame.
+     */
+    fun file(book: ItemStack) {
+        home = lastTaken?.takeIf { (taken, _) -> ItemStack.isSameItemSameComponents(taken, book) }?.second
+        carried = book
+        play(SoundEvents.BOOK_PUT)
+        begin(FrameTask.PRESENTING)
+    }
+
+    override fun openBookAt(place: Int): ItemStack? =
+        carried.takeIf { task == FrameTask.PRESENTING && isOpen && place == PLACE && !it.isEmpty }
 
     override fun openPlaces(): Collection<Int> = if (openBookAt(PLACE) != null) listOf(PLACE) else emptyList()
 
-    /** In the middle of the finder's own space, as a lectern would hold it. */
-    override fun openBookPose(place: Int): OpenBookPose = OpenBookPose(facing, Vec3.atCenterOf(blockPos))
+    /** On the finder's lectern, as a lectern would hold it. */
+    override fun openBookPose(place: Int): OpenBookPose = OpenBookPose(facing, Vec3.atBottomCenterOf(blockPos).add(0.0, OPEN_BOOK_UP, 0.0))
 
     override fun answer(player: ServerPlayer, place: Int, asked: StandAsked) {
         when (asked) {
@@ -377,27 +587,235 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         val level = level as? ServerLevel ?: return
         val elapsed = level.gameTime - startedAt
         when (task) {
-            FrameTask.RESTING -> waiting.removeFirstOrNull()?.let(::goFor)
-            FrameTask.PRESENTING -> if (waiting.isNotEmpty() && elapsed >= PATIENCE_TICKS) sendBack()
+            FrameTask.RESTING -> rest(level)
+            FrameTask.STANDING_ASIDE -> if (isTimeToPlan(level) && !isAwaitedByAnother()) stepBack()
+            FrameTask.PRESENTING -> {
+                val isTimeToPlan = isTimeToPlan(level)
+                if (isTimeToPlan && isAwaitedByAnother()) {
+                    // Out of the way with the book, once nobody is reading it, or once they have had their time.
+                    if (!isOpen && stepAside()) return
+                    if (isOpen && elapsed >= PATIENCE_TICKS) close()
+                }
+                if (isSendingHome && isTimeToPlan) stow()
+                val isWantedElsewhere = isTimeToPlan && elapsed >= PATIENCE_TICKS && waiting.isNotEmpty()
+                if (isWantedElsewhere) sendBack()
+                // Shut where nobody is near to read it, as a lectern's book is.
+                val nobodyReading = isOpen && BookStands.isTimeToLookRound(level) && !BookStands.anybodyNear(level, blockPos)
+                if (nobodyReading) {
+                    isOpen = false
+                    changed()
+                }
+            }
             else -> if (elapsed >= ticksOf(task)) finish(level, task)
         }
     }
 
-    private fun goFor(request: FetchRequest) {
-        val wall = wall()
-        val way = request.from.shelf.takeIf { it in wall.shelves }?.let { FramePath.between(DOCK, wall.cellOf(it), wall.room) }
-        if (way == null) {
-            tell(request.asker, UNREACHABLE)
-            return
-        }
-        fetching = request
-        errand = request.from
-        outward = way
-        begin(FrameTask.GOING_FOR, way)
+    /**
+     * At rest: out of another finder's way where one waits on this space, else off on the first request, which waits
+     * at the head of the queue while its way is not clear.
+     */
+    private fun rest(level: ServerLevel) {
+        val isTimeToPlan = isTimeToPlan(level)
+        if (isTimeToPlan && isAwaitedByAnother() && stepAside()) return
+        val request = waiting.firstOrNull() ?: return
+        val isWaitingForItsWay = awaited.isNotEmpty()
+        if (isWaitingForItsWay && !isTimeToPlan) return
+        if (goFor(request)) waiting.removeFirst()
     }
+
+    /** Whether [request] is settled: set out on, or not to be had. False while its way is not yet clear. */
+    private fun goFor(request: FetchRequest): Boolean {
+        val wall = wall()
+        val target = request.from.shelf.takeIf { it in wall.shelves }?.let(wall::cellOf)
+        val planned = target?.let { planTrip(DOCK, it, wall, traffic(wall), outAndBack(it, FinderMotions.FOLD.ticks)) }
+        when (planned) {
+            null, Planned.Unreachable -> {
+                awaited = emptySet()
+                tell(request.asker, UNREACHABLE)
+            }
+            Planned.BoxedIn -> {
+                awaited = emptySet()
+                tell(request.asker, BOXED_IN)
+            }
+            is Planned.Waiting -> {
+                awaited = spacesOf(planned.way)
+                if (!request.isToldItWaits) tell(request.asker, WAY_BLOCKED)
+                request.isToldItWaits = true
+                return false
+            }
+            is Planned.Ready -> {
+                awaited = emptySet()
+                fetching = request
+                errand = request.from
+                outward = planned.trip.way
+                isMakingWay = false
+                setOff(FrameTask.FOLDING, planned.trip)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Out of the way of the finder waiting on this space: to the nearest free space it can reach, if any, the lectern
+     * folded first, or the book on it taken off it to be carried there and back.
+     */
+    private fun stepAside(): Boolean {
+        val wall = wall()
+        val traffic = traffic(wall)
+        val isCarrying = !carried.isEmpty
+        val first = if (isCarrying) FrameTask.STOWING else FrameTask.FOLDING
+        for (aside in freeSpaces(wall, traffic).take(MOST_SPACES_TRIED)) {
+            val planned = planTrip(DOCK, aside, wall, traffic) { way, delay ->
+                timetableFrom().stand(DOCK, delay + ticksOf(first)).travel(way).standForGood(aside).reservations
+            }
+            if (planned is Planned.Ready) {
+                outward = planned.trip.way
+                isMakingWay = true
+                awaited = emptySet()
+                setOff(first, planned.trip)
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Back home from standing aside, once the way is clear. */
+    private fun stepBack() {
+        val wall = wall()
+        val aside = outward?.let { FramePath.cellUnder(it.points.last()) } ?: DOCK
+        val planned = planTrip(aside, DOCK, wall, traffic(wall)) { way, delay ->
+            timetableFrom().stand(aside, delay).travel(way).standForGood(DOCK).reservations
+        }
+        if (planned is Planned.Ready) setOff(FrameTask.STEPPING_BACK, planned.trip, way = planned.trip.way)
+    }
+
+    /**
+     * The spaces of the wall nobody holds or waits on, nearest first along the wall's own ways, where the carriage can
+     * stand aside.
+     */
+    private fun freeSpaces(wall: BookFinderWall, traffic: Traffic): List<WallCell> {
+        fun isFree(cell: WallCell): Boolean {
+            val space = spaceOf(cell)
+            return space !in traffic.held && space !in traffic.awaited
+        }
+        val seen = linkedSetOf(DOCK)
+        val waiting = ArrayDeque(listOf(DOCK))
+        while (waiting.isNotEmpty()) {
+            val cell = waiting.removeFirst()
+            for ((across, up) in ALONG_AND_UP) {
+                val next = WallCell(cell.across + across, cell.up + up)
+                if (next in wall.room && seen.add(next)) waiting.addLast(next)
+            }
+        }
+        return seen.filter { it != DOCK && isFree(it) }
+    }
+
+    /**
+     * The first trip from [from] to [to] that meets no other carriage, as [timetableOf] holds the wall for a way and a
+     * wait before setting out: the way the frame would take, else one around the spaces where it would meet another,
+     * setting out a little later each time until [MOST_DELAY]. With none, it waits on a way only moving carriages hold,
+     * else on one through carriages at rest, so long as each of them can step off it.
+     */
+    private fun planTrip(
+        from: WallCell,
+        to: WallCell,
+        wall: BookFinderWall,
+        traffic: Traffic,
+        timetableOf: (FramePath, Int) -> List<Reservation>,
+    ): Planned {
+        val direct = FramePath.between(from, to, wall.room) ?: return Planned.Unreachable
+        val meetings = traffic.clashesIn(timetableOf(direct, 0)).mapTo(HashSet(), ::cellOf) - from - to
+        val detour = if (meetings.isEmpty()) null else FramePath.between(from, to, wall.room - meetings)
+        for (delay in 0..MOST_DELAY step DELAY_STEP) {
+            for (way in listOfNotNull(direct, detour)) {
+                val plan = timetableOf(way, delay)
+                if (traffic.allows(plan)) return Planned.Ready(Trip(way, delay, plan))
+            }
+        }
+        val heldForGood = traffic.heldForGood.mapTo(HashSet(), ::cellOf) - from - to
+        val awaitedWay = FramePath.between(from, to, wall.room - heldForGood) ?: direct
+        val awaitedSpaces = spacesOf(awaitedWay)
+        val restingInTheWay = traffic.resting.filter { it in awaitedSpaces }
+        val eachCanStepOff = restingInTheWay.all { canStepOff(it, awaitedSpaces, wall, traffic) }
+        return if (eachCanStepOff) Planned.Waiting(awaitedWay) else Planned.BoxedIn
+    }
+
+    /**
+     * Whether the carriage resting at [space] has somewhere off [way] to step aside to: a space nobody holds for good,
+     * reached without passing another carriage at rest, this one's included.
+     */
+    private fun canStepOff(space: BlockPos, way: Set<BlockPos>, wall: BookFinderWall, traffic: Traffic): Boolean {
+        val now = level?.gameTime ?: 0L
+        val myOwn = reservationsFrom(now).filter { it.until == Reservation.FOR_GOOD }.map { it.space }
+        val passable = { cell: WallCell -> cell in wall.room && spaceOf(cell) !in traffic.heldForGood - space && spaceOf(cell) !in myOwn }
+        val start = cellOf(space)
+        val seen = hashSetOf(start)
+        val waiting = ArrayDeque(listOf(start))
+        while (waiting.isNotEmpty()) {
+            val cell = waiting.removeFirst()
+            if (spaceOf(cell) !in way) return true
+            for ((across, up) in ALONG_AND_UP) {
+                val next = WallCell(cell.across + across, cell.up + up)
+                if (passable(next) && seen.add(next)) waiting.addLast(next)
+            }
+        }
+        return false
+    }
+
+    /** Out to [shelf] and back, [beforeLeaving] ticks at the finder first and a pull's at the shelf. */
+    private fun outAndBack(shelf: WallCell, beforeLeaving: Int): (FramePath, Int) -> List<Reservation> = { way, delay ->
+        timetableFrom()
+            .stand(DOCK, delay + beforeLeaving)
+            .travel(way)
+            .stand(shelf, FinderMotions.PULL.ticks)
+            .travel(way.reversed())
+            .standForGood(DOCK)
+            .reservations
+    }
+
+    private fun timetableFrom(): Timetable = Timetable(level?.gameTime ?: 0L, ::spaceOf)
+
+    /** [trip] begun with [first], once it has waited as long as it must, and held to. */
+    private fun setOff(first: FrameTask, trip: Trip, way: FramePath? = null) {
+        timetable = trip.reservations
+        begin(first, way, startsAt = (level?.gameTime ?: 0L) + trip.delay)
+    }
+
+    /** Where the other finders on the wall hold it from now on, and what they wait on. */
+    private fun traffic(wall: BookFinderWall): Traffic {
+        val now = level?.gameTime ?: 0L
+        val others = othersOn(wall)
+        val holds = others.associateWith { it.reservationsFrom(now) }
+        val held = holds.values.flatten().groupBy { it.space }
+        val resting = holds.filter { (other, its) -> its.any { it.space == other.blockPos && it.until == Reservation.FOR_GOOD } }.keys
+        return Traffic(held, others.flatMapTo(HashSet()) { it.awaited }, resting.mapTo(HashSet()) { it.blockPos })
+    }
+
+    private fun othersOn(wall: BookFinderWall): List<BookFinderBlockEntity> = wall.shelves.mapNotNull { shelf ->
+        val front = shelf.relative(facing)
+        if (front == blockPos) null else level?.getBlockEntity(front) as? BookFinderBlockEntity
+    }
+
+    /** This carriage's holds from [now] on: as it planned, or where nothing is planned, its own space for good. */
+    private fun reservationsFrom(now: Long): List<Reservation> =
+        timetable.filter { it.until >= now }.ifEmpty { listOf(Reservation(blockPos, now, Reservation.FOR_GOOD)) }
+
+    private fun isAwaitedByAnother(): Boolean = othersOn(wall()).any { blockPos in it.awaited }
+
+    private fun isTimeToPlan(level: Level): Boolean = level.gameTime % TICKS_BETWEEN_PLANS == 0L
+
+    /** The block in front of the shelf of [cell], where the carriage stands there. */
+    private fun spaceOf(cell: WallCell): BlockPos = blockPos.relative(facing.counterClockWise, cell.across).above(cell.up)
+
+    private fun cellOf(space: BlockPos): WallCell = WallCell.of(blockPos, facing, space.relative(facing.opposite))
+
+    /** Every space [way] passes through. */
+    private fun spacesOf(way: FramePath): Set<BlockPos> =
+        (0..Timetable.ticksAlong(way)).flatMapTo(HashSet()) { tick -> Timetable.cellsUnder(way.at(tick * BLOCKS_A_TICK)).map(::spaceOf) }
 
     private fun finish(level: ServerLevel, done: FrameTask) {
         when (done) {
+            FrameTask.FOLDING -> then(if (isMakingWay) FrameTask.STEPPING_ASIDE else FrameTask.GOING_FOR, outward)
             FrameTask.GOING_FOR -> {
                 val request = fetching
                 val shelved = errand?.let { level.getBlockEntity(it.shelf) as? ChiseledBookShelfBlockEntity }
@@ -405,46 +823,35 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
                 val isStillThere = request != null && book != null && ItemStack.isSameItemSameComponents(book, request.expected)
                 if (!isStillThere) {
                     request?.let { tell(it.asker, GONE) }
-                    comeBack()
+                    // Back when its timetable says, as if it had drawn the book out.
+                    then(FrameTask.COMING_BACK, wayHome(), after = FinderMotions.PULL.ticks)
                     return
                 }
                 carried = shelved!!.removeItem(errand!!.slot, 1)
                 play(SoundEvents.CHISELED_BOOKSHELF_PICKUP, at = errand!!.shelf)
-                begin(FrameTask.PULLING)
+                then(FrameTask.PULLING)
             }
-            FrameTask.PULLING -> begin(FrameTask.BRINGING, wayHome())
+            FrameTask.PULLING -> then(FrameTask.BRINGING, wayHome())
             FrameTask.BRINGING -> {
                 home = errand
                 fetching = null
                 errand = null
                 outward = null
-                // A blank descriptive book is written where it is first opened, as on a lectern.
-                DescriptiveBookItem.writeIfBlank(carried, level)
-                LinkingBookItem.clearStrayWriting(carried)
-                holding(true)
-                play(SoundEvents.BOOK_PAGE_TURN)
-                begin(FrameTask.OPENING)
+                then(FrameTask.DELIVERING)
             }
-            FrameTask.OPENING -> begin(FrameTask.PRESENTING)
-            FrameTask.CLOSING -> {
-                holding(false)
-                if (!takeBack()) {
-                    Containers.dropItemStack(level, blockPos.x + HALF, blockPos.y + HALF, blockPos.z + HALF, carried)
-                    carried = ItemStack.EMPTY
-                    begin(FrameTask.RESTING)
-                }
-            }
+            FrameTask.DELIVERING -> then(FrameTask.PRESENTING)
+            FrameTask.CLOSING -> stow()
             FrameTask.TAKING_BACK -> {
                 val there = errand
                 val shelved = there?.let { level.getBlockEntity(it.shelf) as? ChiseledBookShelfBlockEntity }
                 val slot = there?.let { open -> shelved?.let { emptySlotOn(it, prefer = open.slot) } }
                 if (shelved == null || slot == null) {
-                    // Filled while it travelled: back to the finder, to be held open again.
-                    begin(FrameTask.BRINGING, wayHome())
+                    // Filled while it travelled: back to the finder when its timetable says, to be held open again.
+                    then(FrameTask.BRINGING, wayHome(), after = FinderMotions.PULL.ticks)
                     return
                 }
                 errand = ShelfSlot(there.shelf, slot)
-                begin(FrameTask.PUSHING)
+                then(FrameTask.PUSHING)
             }
             FrameTask.PUSHING -> {
                 val there = errand
@@ -453,49 +860,85 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
                     shelved.setItem(there.slot, carried)
                     carried = ItemStack.EMPTY
                     play(SoundEvents.CHISELED_BOOKSHELF_INSERT, at = there.shelf)
-                    comeBack()
+                    then(FrameTask.COMING_BACK, wayHome())
                 } else {
-                    begin(FrameTask.BRINGING, wayHome())
+                    then(FrameTask.BRINGING, wayHome())
                 }
             }
             FrameTask.COMING_BACK -> {
                 errand = null
                 outward = null
-                begin(FrameTask.RESTING)
+                then(FrameTask.UNFOLDING)
             }
-            FrameTask.RESTING, FrameTask.PRESENTING -> Unit
+            FrameTask.STOWING -> then(if (isMakingWay) FrameTask.STEPPING_ASIDE else FrameTask.TAKING_BACK, outward)
+            FrameTask.UNFOLDING -> then(FrameTask.RESTING)
+            FrameTask.STEPPING_ASIDE -> then(FrameTask.STANDING_ASIDE, outward)
+            FrameTask.STEPPING_BACK -> {
+                isMakingWay = false
+                outward = null
+                then(if (carried.isEmpty) FrameTask.UNFOLDING else FrameTask.DELIVERING)
+            }
+            FrameTask.RESTING, FrameTask.PRESENTING, FrameTask.STANDING_ASIDE -> Unit
         }
     }
 
     /**
-     * Off with the book in the clamps to its home, where that slot is empty, or the nearest shelf with room; false where
-     * the wall has none.
+     * The book on the lectern taken off it and off to its own slot while that is empty, waiting up to [PATIENCE_TICKS]
+     * for the way there to clear (Jonah, 2026-11-19). Where another book has taken its slot, its slot cannot be reached,
+     * or the wait is up, it goes to the nearest slot with room whose way is clear, and while every such way waits on other
+     * finders, it waits too.
      */
-    private fun takeBack(): Boolean {
+    private fun takeBack(): SentHome {
         val wall = wall()
-        val level = level ?: return false
-        val homeShelf = home?.takeIf { it.shelf in wall.shelves }?.shelf
-        val ordered = listOfNotNull(homeShelf) + wall.shelves.sortedBy { wall.cellOf(it).let { cell -> cell.across * cell.across + cell.up * cell.up } }
-        for (shelf in ordered) {
-            val shelved = level.getBlockEntity(shelf) as? ChiseledBookShelfBlockEntity ?: continue
-            val slot = emptySlotOn(shelved, prefer = home?.takeIf { it.shelf == shelf }?.slot) ?: continue
-            val way = FramePath.between(DOCK, wall.cellOf(shelf), wall.room) ?: continue
-            errand = ShelfSlot(shelf, slot)
-            home = null
-            outward = way
-            begin(FrameTask.TAKING_BACK, way)
-            return true
+        val level = level ?: return SentHome.NO_ROOM
+        val traffic = traffic(wall)
+        fun isEmpty(slot: ShelfSlot) = (level.getBlockEntity(slot.shelf) as? ChiseledBookShelfBlockEntity)?.getItem(slot.slot)?.isEmpty == true
+        val ownSlot = home?.takeIf { it.shelf in wall.shelves && isEmpty(it) }
+        var firstWaiting: FramePath? = null
+        fun tryFor(there: ShelfSlot): Planned {
+            val target = wall.cellOf(there.shelf)
+            val planned = planTrip(DOCK, target, wall, traffic, outAndBack(target, FinderMotions.DELIVER.ticks))
+            when (planned) {
+                Planned.Unreachable, Planned.BoxedIn -> Unit
+                is Planned.Waiting -> if (firstWaiting == null) firstWaiting = planned.way
+                is Planned.Ready -> {
+                    errand = there
+                    home = null
+                    outward = planned.trip.way
+                    awaited = emptySet()
+                    setOff(FrameTask.STOWING, planned.trip)
+                }
+            }
+            return planned
         }
-        return false
+        if (ownSlot != null) {
+            val planned = tryFor(ownSlot)
+            if (planned is Planned.Ready) return SentHome.GOING
+            val hasWaitedLongEnough = isSendingHome && level.gameTime - sendingHomeSince >= PATIENCE_TICKS
+            if (planned is Planned.Waiting && !hasWaitedLongEnough) {
+                awaited = spacesOf(planned.way)
+                return SentHome.WAITING
+            }
+        }
+        val nearestFirst = wall.shelves.sortedBy { wall.cellOf(it).let { cell -> cell.across * cell.across + cell.up * cell.up } }
+        val homeShelf = home?.shelf?.takeIf { it in wall.shelves }
+        val withRoom = (listOfNotNull(homeShelf) + nearestFirst).distinct().mapNotNull { shelf ->
+            val shelved = level.getBlockEntity(shelf) as? ChiseledBookShelfBlockEntity ?: return@mapNotNull null
+            emptySlotOn(shelved, excluding = ownSlot?.takeIf { it.shelf == shelf }?.slot)?.let { ShelfSlot(shelf, it) }
+        }
+        for (there in withRoom.take(MOST_SPACES_TRIED)) {
+            if (tryFor(there) is Planned.Ready) return SentHome.GOING
+        }
+        val waitingFor = firstWaiting ?: return SentHome.NO_ROOM
+        awaited = spacesOf(waitingFor)
+        return SentHome.WAITING
     }
 
-    private fun emptySlotOn(shelved: ChiseledBookShelfBlockEntity, prefer: Int?): Int? {
-        if (prefer != null && shelved.getItem(prefer).isEmpty) return prefer
-        return (0 until SLOTS).firstOrNull { shelved.getItem(it).isEmpty }
-    }
-
-    private fun comeBack() {
-        begin(FrameTask.COMING_BACK, wayHome())
+    /** An empty slot on [shelved], [prefer] if it is, and never [excluding]. */
+    private fun emptySlotOn(shelved: ChiseledBookShelfBlockEntity, prefer: Int? = null, excluding: Int? = null): Int? {
+        fun isOpen(slot: Int) = slot != excluding && shelved.getItem(slot).isEmpty
+        if (prefer != null && isOpen(prefer)) return prefer
+        return (0 until SLOTS).firstOrNull(::isOpen)
     }
 
     /**
@@ -510,17 +953,28 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     private fun wayBetween(from: WallCell, to: WallCell): FramePath =
         FramePath.between(from, to, wall().room) ?: FramePath(listOf(FramePath.pointOf(from), FramePath.pointOf(to)))
 
-    private fun begin(next: FrameTask, way: FramePath? = null) {
+    /**
+     * [next] begun as the task before it ends, [after] that, so the carriage keeps to the timetable the others plan
+     * around however late its tick.
+     */
+    private fun then(next: FrameTask, way: FramePath? = null, after: Int = 0) {
+        val ended = startedAt + ticksOf(task)
+        begin(next, way, startsAt = ended + after)
+    }
+
+    private fun begin(next: FrameTask, way: FramePath? = null, startsAt: Long = level?.gameTime ?: 0L) {
         task = next
         path = way
-        startedAt = level?.gameTime ?: 0L
+        startedAt = startsAt
+        if (next != FrameTask.PRESENTING) isOpen = false
+        home(!next.isAway)
         changed()
     }
 
-    private fun holding(isHolding: Boolean) {
+    private fun home(isHome: Boolean) {
         val level = level ?: return
-        if (blockState.getValue(BookFinderBlock.HOLDING) != isHolding) {
-            level.setBlock(blockPos, blockState.setValue(BookFinderBlock.HOLDING, isHolding), Block.UPDATE_ALL)
+        if (blockState.getValue(BookFinderBlock.HOME) != isHome) {
+            level.setBlock(blockPos, blockState.setValue(BookFinderBlock.HOME, isHome), Block.UPDATE_ALL)
         }
     }
 
@@ -539,9 +993,10 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         if (!level.isClientSide) level.sendBlockUpdated(blockPos, blockState, blockState, Block.UPDATE_CLIENTS)
     }
 
-    /** Broken, the book in its frame drops where the frame is. */
+    /** Broken, the book in its frame drops where the frame is, and the shelf it was on an errand to goes dark. */
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
         val level = level ?: return
+        errand?.let { FrameIndicators.errandMoved(level, facing, from = it.shelf, to = null) }
         if (level.isClientSide || carried.isEmpty) return
         Containers.dropItemStack(level, pos.x + HALF, pos.y + HALF, pos.z + HALF, carried)
         carried = ItemStack.EMPTY
@@ -554,8 +1009,17 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         path = readPath(input, PATH_KEY)
         carried = input.read(CARRIED_KEY, ItemStack.CODEC).orElse(ItemStack.EMPTY)
         errand = readSlot(input, ERRAND_KEY)
+        isOpen = input.getBooleanOr(OPEN_KEY, false)
         home = readSlot(input, HOME_KEY)
         outward = readPath(input, OUTWARD_KEY)
+        timetable = input.read(TIMETABLE_KEY, Codec.LONG.listOf()).map { flat ->
+            flat.chunked(RESERVATION_LONGS).filter { it.size == RESERVATION_LONGS }.map { (x, y, z, from, until) ->
+                Reservation(BlockPos(x.toInt(), y.toInt(), z.toInt()), from, until)
+            }
+        }.orElse(emptyList())
+        isMakingWay = input.getBooleanOr(MAKING_WAY_KEY, false)
+        isSendingHome = input.getBooleanOr(SENDING_HOME_KEY, false)
+        sendingHomeSince = input.getLongOr(SENDING_HOME_SINCE_KEY, 0L)
     }
 
     override fun saveAdditional(output: ValueOutput) {
@@ -563,6 +1027,11 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         writeTheFrame(output, carried)
         home?.let { writeSlot(output, HOME_KEY, it) }
         outward?.let { writePath(output, OUTWARD_KEY, it) }
+        val flatTimetable = timetable.flatMap { listOf(it.space.x.toLong(), it.space.y.toLong(), it.space.z.toLong(), it.from, it.until) }
+        output.store(TIMETABLE_KEY, Codec.LONG.listOf(), flatTimetable)
+        output.putBoolean(MAKING_WAY_KEY, isMakingWay)
+        output.putBoolean(SENDING_HOME_KEY, isSendingHome)
+        output.putLong(SENDING_HOME_SINCE_KEY, sendingHomeSince)
     }
 
     private fun readPath(input: ValueInput, key: String): FramePath? =
@@ -580,6 +1049,7 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         path?.let { writePath(output, PATH_KEY, it) }
         if (!book.isEmpty) output.store(CARRIED_KEY, ItemStack.CODEC, book)
         errand?.let { writeSlot(output, ERRAND_KEY, it) }
+        output.putBoolean(OPEN_KEY, isOpen)
     }
 
     private fun readSlot(input: ValueInput, key: String): ShelfSlot? =
@@ -605,6 +1075,7 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     companion object {
         /** The finder's own space. */
         val DOCK = WallCell(0, 0)
+        private val AT_THE_FINDER = WallPoint(0.0, 0.0)
 
         /** A chiselled bookshelf's six slots. */
         const val SLOTS = 6
@@ -612,14 +1083,27 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         /** Four blocks a second across the wall. */
         const val BLOCKS_A_TICK = 0.2
 
-        /** A book drawn out of its slot or pushed back in. */
-        const val SLIDE_TICKS = 12
+        /** An open book swinging shut before it is taken off the lectern: as long as a lectern's book takes. */
+        private const val SHUT_TICKS = 10
 
-        /** A book turned from the clamps and opened, or shut and turned back. */
-        const val TURN_TICKS = 16
+        /** The book on the lectern lies as a lectern's, twelve pixels lower: the lectern is vanilla's, sunk that far. */
+        const val OPEN_BOOK_UP = 5.0 / 16.0
 
-        /** How long a book held open waits for another's request before going home: half a minute. */
+        /** How long a book held open waits for another's request, or another finder's way, before going home: half a minute. */
         private const val PATIENCE_TICKS = 600L
+
+        /** How often a finder waiting on the wall's traffic looks again: twice a second. */
+        private const val TICKS_BETWEEN_PLANS = 10L
+
+        /** The longest a carriage waits at the finder for its way to clear, and the steps it tries waiting by. */
+        private const val MOST_DELAY = 600
+        private const val DELAY_STEP = 10
+
+        /** The most free spaces tried for standing aside, and slots with room tried for a book sent home. */
+        private const val MOST_SPACES_TRIED = 8
+
+        private val ALONG_AND_UP = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
+        private const val RESERVATION_LONGS = 5
         private const val MOST_WAITING = 8
         private const val HALF = 0.5
         private const val SLOT_INTS = 4
@@ -629,8 +1113,13 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         private const val PATH_KEY = "path"
         private const val CARRIED_KEY = "carried"
         private const val ERRAND_KEY = "errand"
+        private const val OPEN_KEY = "open"
         private const val HOME_KEY = "home"
         private const val OUTWARD_KEY = "outward"
+        private const val TIMETABLE_KEY = "timetable"
+        private const val MAKING_WAY_KEY = "making_way"
+        private const val SENDING_HOME_KEY = "sending_home"
+        private const val SENDING_HOME_SINCE_KEY = "sending_home_since"
 
         /** The finder holds one book, in its frame. */
         const val PLACE = 0
@@ -638,7 +1127,8 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         private const val QUEUED = "block.agesandtheart.book_finder.queued"
         private const val GONE = "block.agesandtheart.book_finder.gone"
         private const val UNREACHABLE = "block.agesandtheart.book_finder.unreachable"
-        private const val NO_ROOM = "block.agesandtheart.book_finder.no_room"
+        private const val WAY_BLOCKED = "block.agesandtheart.book_finder.way_blocked"
+        private const val BOXED_IN = "block.agesandtheart.book_finder.boxed_in"
     }
 }
 
@@ -694,6 +1184,27 @@ object BookFinders {
     }
 
     val ENTITY: BlockEntityType<BookFinderBlockEntity> = BlockEntityType({ pos, state -> BookFinderBlockEntity(pos, state) }, setOf(BLOCK))
+
+    private val TRAVEL_SOUND_ID: Identifier = "block.book_finder.travel".location()
+    private val JUNCTION_SOUND_ID: Identifier = "block.book_finder.junction".location()
+    private val EXTRACTOR_SOUND_ID: Identifier = "block.book_finder.extractor".location()
+    private val SURFACE_SOUND_ID: Identifier = "block.book_finder.surface".location()
+
+    /**
+     * The carriage at work (Jonah, 2026-11-19): rolling along the wall, over each junction of frames, and the actuators
+     * of its extractor and of its lectern's surface. Vanilla's stand in, named in `sounds.json`, until the asset pass.
+     */
+    val TRAVEL_SOUND: SoundEvent = SoundEvent.createVariableRangeEvent(TRAVEL_SOUND_ID)
+    val JUNCTION_SOUND: SoundEvent = SoundEvent.createVariableRangeEvent(JUNCTION_SOUND_ID)
+    val EXTRACTOR_SOUND: SoundEvent = SoundEvent.createVariableRangeEvent(EXTRACTOR_SOUND_ID)
+    val SURFACE_SOUND: SoundEvent = SoundEvent.createVariableRangeEvent(SURFACE_SOUND_ID)
+
+    val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
+        TRAVEL_SOUND_ID to TRAVEL_SOUND,
+        JUNCTION_SOUND_ID to JUNCTION_SOUND,
+        EXTRACTOR_SOUND_ID to EXTRACTOR_SOUND,
+        SURFACE_SOUND_ID to SURFACE_SOUND,
+    )
 
     /** A book as the finder's list names it: its name, and an enchanted book's enchantments after it. */
     fun nameOf(book: ItemStack, level: Level): String {
