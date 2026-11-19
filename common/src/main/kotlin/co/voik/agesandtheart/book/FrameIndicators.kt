@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.ChiseledBookShelfBlock
  * so a finder or frame placed or broken settles every frame joined to it: [Indicator.READY] where a finder's
  * [BookFinderWall] takes its shelf in, and [Indicator.INVALID] where none does — no finder on its part of the wall, or
  * a wall already [BookFinderWall.MOST_SHELVES] large before it. A finder lights the frame on the shelf of its errand
- * [Indicator.ACTIVE] for as long as it lasts.
+ * [Indicator.ACTIVE] for as long as it lasts, a finder's own frame among them.
  */
 object FrameIndicators {
 
@@ -25,7 +25,7 @@ object FrameIndicators {
 
     /**
      * A finder or frame at [front], facing [facing], just broken: each shelf beside its own may now be on a part of the
-     * wall of its own.
+     * wall of its own, and each finder whose wall it was told, since its carriage may have been going that way.
      */
     fun trackRemoved(level: ServerLevel, front: BlockPos, facing: Direction) {
         val shelf = front.relative(facing.opposite)
@@ -34,6 +34,7 @@ object FrameIndicators {
             val beside = shelf.relative(way)
             if (beside !in settled) settled += settle(level, beside, facing)
         }
+        for (each in settled) (level.getBlockEntity(each.relative(facing)) as? BookFinderBlockEntity)?.wallChanged()
     }
 
     /** A finder facing [facing] whose errand moved from the shelf [from] to the shelf [to]. */
@@ -94,10 +95,11 @@ object FrameIndicators {
         return isAShelfFacingOut && isFinderOrFrame && inFront.getValue(BookFinderFrameBlock.FACING) == facing
     }
 
-    /** The frame at [front] facing [facing], if there is one, shown as [change] has it. */
+    /** The frame or finder at [front] facing [facing], if there is one, shown as [change] has it. */
     private fun show(level: ServerLevel, front: BlockPos, facing: Direction, change: (Indicator) -> Indicator) {
         val state = level.getBlockState(front)
-        val isAFrameFacingOut = state.`is`(BookFinders.FRAME) && state.getValue(BookFinderFrameBlock.FACING) == facing
+        val isAFrameOrFinder = state.`is`(BookFinders.FRAME) || state.`is`(BookFinders.BLOCK)
+        val isAFrameFacingOut = isAFrameOrFinder && state.getValue(BookFinderFrameBlock.FACING) == facing
         if (!isAFrameFacingOut) return
         val shown = state.getValue(BookFinderFrameBlock.INDICATOR)
         val next = change(shown)

@@ -38,6 +38,12 @@ class Timetable(startsAt: Long, private val spaceOf: (WallCell) -> BlockPos) {
         clock += ticks
     }
 
+    /** Stood at [point], which may be between spaces, holding each it is partly in. */
+    fun standAt(point: WallPoint, ticks: Int): Timetable = apply {
+        for (cell in cellsUnder(point)) held += Reservation(spaceOf(cell), clock - SPARE, clock + ticks + SPARE)
+        clock += ticks
+    }
+
     fun standForGood(cell: WallCell): Timetable = apply {
         held += Reservation(spaceOf(cell), clock - SPARE, Reservation.FOR_GOOD)
     }
@@ -63,6 +69,10 @@ class Timetable(startsAt: Long, private val spaceOf: (WallCell) -> BlockPos) {
 
         /** How many ticks the carriage takes along [way], at the pace it always travels. */
         fun ticksAlong(way: FramePath): Int = ceil(way.length / BookFinderBlockEntity.BLOCKS_A_TICK).toInt().coerceAtLeast(1)
+
+        /** Every space a carriage travelling [way] is partly in on the way. */
+        fun cellsAlong(way: FramePath): Set<WallCell> =
+            (0..ticksAlong(way)).flatMapTo(HashSet()) { tick -> cellsUnder(way.at(tick * BookFinderBlockEntity.BLOCKS_A_TICK)) }
 
         /**
          * The spaces a carriage a block across, its middle at [point], is partly in: one where it stands in the middle of

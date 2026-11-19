@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 """
-The book finder's models, and its frame's, from Jonah's Blockbench project.
+The book finder's models, and its frame's, from Jonah's Blockbench projects.
 
-    scripts/books/book_finder_models.py <path to book_finder.bbmodel>
+    scripts/books/book_finder_models.py <path to book_finder.bbmodel> <path to book_finder_frame.bbmodel>
 
 Writes, under the mod's assets:
 
-- `models/block/book_finder_frame.json`, the `static` group: the frame a finder and every frame on its wall share, its
-  indicator tinted and drawn full-bright.
+- `models/block/book_finder_frame.json`, the frame project's `frame` group: the frame a finder and every frame on its
+  wall share, its indicator tinted and drawn full-bright. The finder project's own `static` group is not read.
 - `models/block/book_finder_<part>.json` for each part `BookFinderRenderer` moves: the chassis, the extractor's rails,
   its rotator, the rotator's two paddles, the lectern's arms and its book surface. The left paddle is the one on the left
   as the wall is faced, which in the model's frame is east. Each is where the project has it, at rest, so the renderer's
   pivots are the project's pixels.
-- `models/item/book_finder.json`, the whole finder as the project has it, with the project's display.
+- `models/item/book_finder.json`, the frame and the finder project's `finder` group, with that project's display.
 - `blockstates/book_finder.json`: the frame model, turned by facing, for the placed finder, and each part unturned
   for the `part` the renderer asks for (`BookFinderBlock.PART`).
+- `textures/block/book_finder_<name>.png`, each of the project's own textures (`OWN_TEXTURES`), copied from where the
+  project keeps it.
 
 The project's `reference` group, a vanilla shelf and lectern to measure against, is not written. A face Blockbench has
 no texture on is given a dark pixel of the frame's texture until it has one, and a face of no area is left out.
-Run it again whenever the project changes.
+Run it again whenever either project changes.
 """
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -29,6 +32,19 @@ FRAME_TEXTURE = "agesandtheart:block/book_finder_frame"
 
 # A face with no texture yet: one dark pixel of the frame's.
 UNTEXTURED = {"uv": [5, 0, 6, 1], "texture": "#frame"}
+
+# The project's own textures, by their name in the project, as the model's key and the mod's texture. Any other is
+# vanilla's, by its own name.
+OWN_TEXTURES = {
+    "book_finder_frame_texture": ("frame", "book_finder_frame"),
+    "finder_chassis_texture": ("chassis", "book_finder_chassis"),
+    "finder_decoration_texture": ("decoration", "book_finder_decoration"),
+    "finder_frame_texture": ("lectern_frame", "book_finder_lectern_frame"),
+    "finder_lectern_texture": ("lectern", "book_finder_lectern"),
+}
+
+# A Java model's faces are mapped in sixteenths of their texture, however many pixels it has.
+MODEL_UV_SPAN = 16
 
 # The project's group holding the extractor: its rails, its paddles, and the rotator group they turn with.
 EXTRACTOR = "upper extractor"
@@ -115,7 +131,7 @@ def number(value):
     return int(value) if float(value).is_integer() else value
 
 
-def element_of(e, texture_keys):
+def element_of(e, texture_keys, uv_scale):
     assert e.get("stretch", [1, 1, 1]) == [1, 1, 1], f"{e.get('name')} is stretched, which a Java model cannot say"
     size = [b - a for a, b in zip(e["from"], e["to"])]
     out = {}
@@ -139,7 +155,7 @@ def element_of(e, texture_keys):
         if face.get("texture") is None:
             faces[name] = dict(UNTEXTURED)
             continue
-        f = {"uv": [number(v) for v in face["uv"]], "texture": "#" + texture_keys[face["texture"]]}
+        f = {"uv": [number(v * uv_scale) for v in face["uv"]], "texture": "#" + texture_keys[face["texture"]]}
         if face.get("rotation"):
             f["rotation"] = face["rotation"]
         if e["name"] == "indicator":
@@ -154,13 +170,23 @@ def texture_keys_of(project):
     keys, textures = {}, {}
     for index, texture in enumerate(project["textures"]):
         name = texture["name"].removesuffix(".png")
-        if name == "book_finder_frame_texture":
-            key, location = "frame", FRAME_TEXTURE
+        if name in OWN_TEXTURES:
+            key, ours = OWN_TEXTURES[name]
+            location = f"agesandtheart:block/{ours}"
         else:
             key, location = name, f"minecraft:block/{name}"
         keys[index] = key
         textures[key] = location
     return keys, textures
+
+
+def copy_own_textures(project, project_path):
+    """Copies each of the project's own textures from where the project keeps it into the mod's."""
+    for texture in project["textures"]:
+        name = texture["name"].removesuffix(".png")
+        if name in OWN_TEXTURES:
+            source = (project_path.parent / texture["relative_path"]).resolve()
+            shutil.copyfile(source, ASSETS / f"textures/block/{OWN_TEXTURES[name][1]}.png")
 
 
 def model_of(elements, texture_keys, textures, comment):
@@ -177,32 +203,48 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n")
 
 
-def main():
-    project = json.loads(Path(sys.argv[1]).read_text())
-    assert project["meta"]["model_format"] == "java_block" and not project["meta"]["box_uv"]
-    assert project["resolution"] == {"width": 16, "height": 16}, "every texture is 16 pixels square"
-    by_uuid = {e["uuid"]: e for e in project["elements"]}
-    keys, textures = texture_keys_of(project)
-    outliner = project["outliner"]
+class Project:
+    """One Blockbench project: its elements by uuid, its textures as a model's keys, and its UVs' scale to a model's."""
 
-    static = [element_of(by_uuid[u], keys) for u in elements_under(outliner, group_named(project, "static"))]
+    def __init__(self, path):
+        self.path = path
+        self.json = json.loads(path.read_text())
+        assert self.json["meta"]["model_format"] == "java_block" and not self.json["meta"]["box_uv"]
+        resolution = self.json["resolution"]
+        assert resolution["width"] == resolution["height"], f"{path.name}'s UV grid is square"
+        self.uv_scale = MODEL_UV_SPAN / resolution["width"]
+        self.by_uuid = {e["uuid"]: e for e in self.json["elements"]}
+        self.keys, self.textures = texture_keys_of(self.json)
+
+    def elements_of(self, group_uuid, which=lambda element: True):
+        under = elements_under(self.json["outliner"], group_uuid)
+        return [element_of(self.by_uuid[u], self.keys, self.uv_scale) for u in under if which(self.by_uuid[u])]
+
+
+def main():
+    finder, frame = Project(Path(sys.argv[1])), Project(Path(sys.argv[2]))
+    project, outliner = finder.json, finder.json["outliner"]
+    for each in (finder, frame):
+        copy_own_textures(each.json, each.path)
+    textures = {**frame.textures, **finder.textures}
+
+    static = frame.elements_of(group_named(frame.json, "frame"))
     write(ASSETS / "models/block/book_finder_frame.json", {
-        **model_of(static, keys, textures, GENERATED),
+        **model_of(static, frame.keys, textures, GENERATED),
         "parent": "minecraft:block/block",
     })
 
     rotator = set(elements_under(outliner, group_named(project, ROTATOR, within="book finder")))
     for part, (group, which) in PARTS.items():
-        uuids = elements_under(outliner, group_named(project, group, within="book finder"))
-        chosen = [by_uuid[u] for u in uuids if is_one_of(by_uuid[u], which, rotator)]
+        chosen = finder.elements_of(group_named(project, group, within="book finder"),
+                                    lambda element: is_one_of(element, which, rotator))
         assert chosen, f"nothing in {part}"
         if part.endswith("paddle"):
             assert len(chosen) == 1, f"{group} has {len(chosen)} {which}s"
-        write(ASSETS / f"models/block/book_finder_{part}.json",
-              model_of([element_of(e, keys) for e in chosen], keys, textures, GENERATED))
+        write(ASSETS / f"models/block/book_finder_{part}.json", model_of(chosen, finder.keys, textures, GENERATED))
 
-    whole = [element_of(by_uuid[u], keys) for u in elements_under(outliner, group_named(project, "book finder"))]
-    item = model_of(whole, keys, textures, GENERATED)
+    whole = static + finder.elements_of(group_named(project, "finder", within="book finder"))
+    item = model_of(whole, finder.keys, textures, GENERATED)
     item["parent"] = "minecraft:block/block"
     if project.get("display"):
         item["display"] = project["display"]

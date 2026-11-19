@@ -88,12 +88,13 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
         registerDefaultState(
-            stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HOME, true).setValue(PART, FinderPart.STATIC),
+            stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HOME, true).setValue(PART, FinderPart.STATIC)
+                .setValue(INDICATOR, BookFinderFrameBlock.Indicator.READY),
         )
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING, HOME, PART)
+        builder.add(FACING, HOME, PART, INDICATOR)
     }
 
     /** Only on the face of a chiselled bookshelf, facing out of it. */
@@ -196,6 +197,9 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
         /** Which of the finder's models a state is: only [FinderPart.STATIC] is placed, and the renderer draws the rest. */
         val PART: EnumProperty<FinderPart> = EnumProperty.create("part", FinderPart::class.java)
+
+        /** Its own frame's indicator, as a frame's ([FrameIndicators]), which the client tints cyan unless it is lit. */
+        val INDICATOR: EnumProperty<BookFinderFrameBlock.Indicator> = BookFinderFrameBlock.INDICATOR
 
         /** A plate three pixels deep against the shelf, facing north as the model does. */
         private val PLATES: Map<Direction, VoxelShape> = Shapes.rotateHorizontal(box(2.0, 2.0, 13.0, 14.0, 14.0, 16.0))
@@ -349,6 +353,10 @@ enum class FrameTask(val travels: Boolean, val isAway: Boolean) {
  * meet, setting out later if it must. A carriage at rest holds its space for good, so a finder whose way runs through
  * another's waits for it, and that one steps aside to a free space the next time it is idle or holds its book shut,
  * carrying the book, and comes back once nobody needs its space.
+ *
+ * A way the wall no longer has under it, broken while the carriage is out or before it sets out on a leg, is taken again
+ * from where the carriage is ([reroute]): round the gap where it can, home where its errand is cut off, and where home is
+ * too, it stands aside on the nearest frame until a way home is mended.
  */
 class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookFinders.ENTITY, pos, state), BookStand {
 
@@ -393,6 +401,9 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
 
     /** Whether the carriage is out of another finder's way, or on its way there or back. */
     private var isMakingWay: Boolean = false
+
+    /** Whether the wall has lost a frame, a shelf or a finder since the carriage last looked to its way. */
+    private var isWallChanged: Boolean = false
 
     /** Whether the book on the lectern is waiting for its way home to clear, and since when. */
     private var isSendingHome: Boolean = false
@@ -583,8 +594,17 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
         }
     }
 
+    /** Told by [FrameIndicators] that a frame, a shelf or a finder of its wall is gone; looked into at the next tick. */
+    fun wallChanged() {
+        isWallChanged = true
+    }
+
     fun tick() {
         val level = level as? ServerLevel ?: return
+        if (isWallChanged) {
+            isWallChanged = false
+            keepToTheWall(level)
+        }
         val elapsed = level.gameTime - startedAt
         when (task) {
             FrameTask.RESTING -> rest(level)
@@ -810,8 +830,7 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     private fun cellOf(space: BlockPos): WallCell = WallCell.of(blockPos, facing, space.relative(facing.opposite))
 
     /** Every space [way] passes through. */
-    private fun spacesOf(way: FramePath): Set<BlockPos> =
-        (0..Timetable.ticksAlong(way)).flatMapTo(HashSet()) { tick -> Timetable.cellsUnder(way.at(tick * BLOCKS_A_TICK)).map(::spaceOf) }
+    private fun spacesOf(way: FramePath): Set<BlockPos> = Timetable.cellsAlong(way).mapTo(HashSet(), ::spaceOf)
 
     private fun finish(level: ServerLevel, done: FrameTask) {
         when (done) {
@@ -955,12 +974,117 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
 
     /**
      * [next] begun as the task before it ends, [after] that, so the carriage keeps to the timetable the others plan
-     * around however late its tick.
+     * around however late its tick; taken again where the wall no longer has its way.
      */
     private fun then(next: FrameTask, way: FramePath? = null, after: Int = 0) {
-        val ended = startedAt + ticksOf(task)
-        begin(next, way, startsAt = ended + after)
+        val startsAt = startedAt + ticksOf(task) + after
+        val isOffTheWall = next.travels && way != null && !fits(way, wall().room)
+        if (isOffTheWall) {
+            reroute(way.points.first(), next, FramePath.cellUnder(way.points.last()), startsAt)
+            return
+        }
+        begin(next, way, startsAt)
     }
+
+    /**
+     * The carriage kept to the wall as it now is: the rest of a way that leaves it taken again from where the carriage
+     * is, and a carriage standing where there is no frame any more moved off onto the nearest.
+     */
+    private fun keepToTheWall(level: ServerLevel) {
+        val room = wall().room
+        val now = level.gameTime
+        val elapsed = (now - startedAt).toDouble()
+        val here = carriageAt(elapsed)
+        val way = path
+        if (task.travels && way != null) {
+            val rest = way.after(elapsed * BLOCKS_A_TICK)
+            if (!fits(rest, room)) reroute(here, task, FramePath.cellUnder(way.points.last()), startsAt = now)
+            return
+        }
+        val isStandingOffTheWall = task.isAway && Timetable.cellsUnder(here).none { it in room }
+        if (isStandingOffTheWall) strand(here, startsAt = now)
+    }
+
+    /**
+     * The carriage at [from] set on its way to [to] for [next] again, over the wall as it is now, from [startsAt]: from
+     * the nearest space of the wall, round whatever is gone and the other carriages. Where [to] is cut off it heads home
+     * instead, and where home is too, or no way clears, it stands aside where it is ([strand]).
+     */
+    private fun reroute(from: WallPoint, next: FrameTask, to: WallCell, startsAt: Long) {
+        val wall = wall()
+        val start = nearestOnTheWall(from, wall.room) ?: return strand(from, startsAt)
+        fun hasAWayBetween(one: WallCell, other: WallCell) = FramePath.between(one, other, wall.room) != null
+        val canStillGo = hasAWayBetween(start, to) && hasAWayBetween(to, DOCK)
+        val task = when {
+            canStillGo -> next
+            hasAWayBetween(start, DOCK) -> giveUp(next)
+            else -> return strand(from, startsAt)
+        }
+        val destination = if (task == next) to else DOCK
+        val isOutward = task == FrameTask.GOING_FOR || task == FrameTask.TAKING_BACK
+        val wayOut = if (isOutward) FramePath.between(DOCK, destination, wall.room) else null
+        val planned = planTrip(start, destination, wall, traffic(wall)) { way, delay ->
+            val there = Timetable(startsAt, ::spaceOf).standAt(from, delay).travel(joined(from, way))
+            val thereAndBack = wayOut?.let {
+                there.stand(destination, FinderMotions.PULL.ticks).travel(it.reversed()).standForGood(DOCK)
+            }
+            (thereAndBack ?: there.standForGood(destination)).reservations
+        }
+        if (planned !is Planned.Ready) return strand(from, startsAt)
+        val way = joined(from, planned.trip.way)
+        timetable = holdsBefore(startsAt) + planned.trip.reservations
+        when {
+            wayOut != null -> outward = wayOut
+            task == FrameTask.STEPPING_ASIDE -> outward = way
+        }
+        begin(task, way, startsAt + planned.trip.delay)
+    }
+
+    /** The task that heads home from [next], whose errand is cut off, the request it was for given up. */
+    private fun giveUp(next: FrameTask): FrameTask = when (next) {
+        FrameTask.GOING_FOR -> {
+            fetching?.let { tell(it.asker, UNREACHABLE) }
+            fetching = null
+            errand = null
+            FrameTask.COMING_BACK
+        }
+        FrameTask.TAKING_BACK -> FrameTask.BRINGING
+        FrameTask.STEPPING_ASIDE -> FrameTask.STEPPING_BACK
+        else -> next
+    }
+
+    /**
+     * The carriage at [from], with no way it can take, stepped onto the nearest space of the wall from [startsAt] to stand
+     * aside there until a way home clears; the request it was for given up, and a book it holds kept to be brought home.
+     */
+    private fun strand(from: WallPoint, startsAt: Long) {
+        if (carried.isEmpty) fetching?.let { tell(it.asker, UNREACHABLE) } else home = errand ?: home
+        fetching = null
+        errand = null
+        val there = nearestOnTheWall(from, wall().room) ?: FramePath.cellUnder(from)
+        val hop = FramePath(listOf(from, FramePath.pointOf(there)))
+        outward = hop
+        isMakingWay = true
+        timetable = holdsBefore(startsAt) + Timetable(startsAt, ::spaceOf).travel(hop).standForGood(there).reservations
+        begin(FrameTask.STEPPING_ASIDE, hop, startsAt)
+    }
+
+    /** The space of [room] nearest [point]: of those the carriage is partly in, or failing them, their neighbours. */
+    private fun nearestOnTheWall(point: WallPoint, room: Set<WallCell>): WallCell? {
+        val under = Timetable.cellsUnder(point)
+        val beside = under.flatMap { cell -> ALONG_AND_UP.map { (across, up) -> WallCell(cell.across + across, cell.up + up) } }
+        val near = under.filter { it in room }.ifEmpty { beside.filter { it in room } }
+        return near.minByOrNull { FramePath.pointOf(it).distanceTo(point) }
+    }
+
+    /** [way], which sets out from a space of the wall, set out on from [from] instead. */
+    private fun joined(from: WallPoint, way: FramePath): FramePath = FramePath(listOf(from) + way.points)
+
+    /** Whether every space [way] passes is in [room]. */
+    private fun fits(way: FramePath, room: Set<WallCell>): Boolean = Timetable.cellsAlong(way).all { it in room }
+
+    /** The holds of the timetable for what the carriage does before [startsAt]. */
+    private fun holdsBefore(startsAt: Long): List<Reservation> = timetable.filter { it.from < startsAt }
 
     private fun begin(next: FrameTask, way: FramePath? = null, startsAt: Long = level?.gameTime ?: 0L) {
         task = next

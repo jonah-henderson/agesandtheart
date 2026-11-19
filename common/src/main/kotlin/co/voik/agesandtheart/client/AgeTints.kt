@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.book.BookFinderBlock
 import co.voik.agesandtheart.book.BookFinderFrameBlock
 import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.content.RimeColour
@@ -74,8 +75,7 @@ object AgeTints {
         registrar(listOf(BlockTintSources.constant(opaque(CompoundedStone.TINT))), CompoundedStone.BLOCK)
         palm(registrar)
         registrar(listOf(ByIndicator), BookFinders.FRAME)
-        // A finder's own frame is always on its wall.
-        registrar(listOf(BlockTintSources.constant(opaque(RimeColour.GREEN.tint))), BookFinders.BLOCK)
+        registrar(listOf(ByFindersIndicator), BookFinders.BLOCK)
         for (leaves in TreeKinds.TINTED_LEAVES) registrar(listOf(WrittenLeaves(leaves, vanillaTintOf(leaves))), leaves)
     }
 
@@ -169,6 +169,18 @@ object AgeTints {
         )
 
         override fun relevantProperties(): Set<Property<*>> = setOf(BookFinderFrameBlock.INDICATOR)
+    }
+
+    /** A finder's own frame's indicator: cyan, for a finder living there, unless its shelf is lit for an errand. */
+    private object ByFindersIndicator : BlockTintSource {
+        override fun color(state: BlockState): Int = opaque(
+            when (state.getValue(BookFinderBlock.INDICATOR)) {
+                BookFinderFrameBlock.Indicator.ACTIVE -> RimeColour.BLUE.tint
+                BookFinderFrameBlock.Indicator.READY, BookFinderFrameBlock.Indicator.INVALID -> RimeColour.CYAN.tint
+            },
+        )
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(BookFinderBlock.INDICATOR)
     }
 
     /** A dead yema sapling, by [DeadPaperTreeSaplingBlock.DROWNED]; its item takes the same two colours. */

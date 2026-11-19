@@ -2,6 +2,6 @@
   "model": {
     "type": "minecraft:model",
     "model": "agesandtheart:item/book_finder",
-    "tints": [{ "type": "minecraft:constant", "value": 2941006 }]
+    "tints": [{ "type": "minecraft:constant", "value": 2282751 }]
   }
 }

@@ -93,4 +93,12 @@ class FramePathCheck : FunSpec({
         check(path.at(5.0) == WallPoint(3.0, 2.0))
         check(path.at(100.0) == WallPoint(3.0, 4.0))
     }
+
+    test("the rest of a way starts where the carriage is and keeps every turn ahead") {
+        val path = FramePath(listOf(WallPoint(0.0, 0.0), WallPoint(3.0, 0.0), WallPoint(3.0, 4.0)))
+        check(path.after(1.5).points == listOf(WallPoint(1.5, 0.0), WallPoint(3.0, 0.0), WallPoint(3.0, 4.0)))
+        check(path.after(5.0).points == listOf(WallPoint(3.0, 2.0), WallPoint(3.0, 4.0)))
+        check(path.after(0.0).length == path.length)
+        check(path.after(100.0).points == listOf(WallPoint(3.0, 4.0)))
+    }
 })

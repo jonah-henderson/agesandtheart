@@ -56,6 +56,17 @@ data class FramePath(val points: List<WallPoint>) {
         return points.last()
     }
 
+    /** The rest of the way from [travelled] blocks along. */
+    fun after(travelled: Double): FramePath {
+        val rest = mutableListOf(at(travelled))
+        var left = travelled.coerceAtLeast(0.0)
+        for ((a, b) in points.zipWithNext()) {
+            if (left < a.distanceTo(b)) rest += b
+            left -= a.distanceTo(b)
+        }
+        return FramePath(rest)
+    }
+
     /** The same way travelled the other way, as the frame comes home by the way it went. */
     fun reversed(): FramePath = FramePath(points.reversed())
 
