@@ -46,6 +46,12 @@ class BookFinderRenderState : BlockEntityRenderState() {
     /** The slot it draws a book from or pushes one into. */
     var slot: Int = 0
 
+    /**
+     * How far in its paddles rest at home: into the chiselled shelf it is mounted on, or no further than that block's
+     * face where it is mounted on anything else (Jonah, 2026-11-20).
+     */
+    var tuckedAtHome: Float = 0.0f
+
     var look: BookLook? = null
     var binding: BookBinding = BookBinding.THICK
 
@@ -94,9 +100,13 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         val level = finder.level ?: return
         state.facing = finder.facing
         state.task = finder.task
-        state.elapsed = ((level.gameTime - finder.startedAt) + partialTicks).coerceAtMost(finder.ticksOf(finder.task).toFloat())
+        // Between the last tick and this one, as entities are drawn, so what rides the carriage keeps step with it.
+        val sinceTheLastTick = (level.gameTime - finder.startedAt - 1) + partialTicks
+        state.elapsed = sinceTheLastTick.coerceIn(0.0f, finder.ticksOf(finder.task).toFloat())
         state.at = finder.carriageAt(state.elapsed.toDouble())
         state.slot = finder.errand?.slot ?: 0
+        val mountedOn = level.getBlockState(finder.blockPos.relative(finder.facing.opposite))
+        state.tuckedAtHome = if (BookFinders.isAShelfFacing(mountedOn, finder.facing)) STOWED else CLEAR_OF_THE_SHELF
         val right = finder.facing.counterClockWise
         val finderSpace = finder.blockPos.relative(right, Math.round(state.at.across).toInt()).above(Math.round(state.at.up).toInt())
         state.finderLight = LightCoordsUtil.getLightCoords(level, finderSpace)
@@ -181,9 +191,9 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         }
         val backward = lasts - state.elapsed
         return when (state.task) {
-            FrameTask.RESTING -> AT_REST
-            FrameTask.FOLDING -> folding(state.elapsed)
-            FrameTask.UNFOLDING -> folding(backward)
+            FrameTask.RESTING -> atRest(state)
+            FrameTask.FOLDING -> folding(state, state.elapsed)
+            FrameTask.UNFOLDING -> folding(state, backward)
             FrameTask.GOING_FOR, FrameTask.COMING_BACK -> travelling(state, carrying = false)
             // Out of another finder's way, with the book from the lectern where there was one.
             FrameTask.STEPPING_ASIDE, FrameTask.STANDING_ASIDE, FrameTask.STEPPING_BACK -> travelling(state, carrying = state.look != null)
@@ -193,13 +203,16 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
             FrameTask.DELIVERING -> delivering(state, state.elapsed)
             FrameTask.STOWING -> delivering(state, backward)
             FrameTask.PRESENTING, FrameTask.CLOSING ->
-                AT_REST.copy(book = bookOnTheLectern(state, 0.0f, 0.0f, state.openness), open = state.openness)
+                atRest(state).copy(book = bookOnTheLectern(state, 0.0f, 0.0f, state.openness), open = state.openness)
         }
     }
 
-    private fun folding(ticks: Float): Posture {
+    /** At home with the surface up: the rotator at the top, its paddles tucked in as far as they go there. */
+    private fun atRest(state: BookFinderRenderState): Posture = Posture(arm = Arm(rise = HOME_RISE, reach = state.tuckedAtHome))
+
+    private fun folding(state: BookFinderRenderState, ticks: Float): Posture {
         fun share(step: Fold) = eased(FinderMotions.FOLD.through(step, ticks))
-        val arm = Arm(rise = HOME_RISE, reach = STOWED * (1.0f - share(Fold.PADDLES_OUT)))
+        val arm = Arm(rise = HOME_RISE, reach = state.tuckedAtHome * (1.0f - share(Fold.PADDLES_OUT)))
         return Posture(arm = arm, fold = share(Fold.SURFACE_DOWN))
     }
 
@@ -233,14 +246,16 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         val lift = LEVEL * (share(Deliver.LEVEL) - share(Deliver.LOWER_THE_BOOK))
         val fold = 1.0f - share(Deliver.SURFACE_UP)
         // Tucked into the gap between books while the lectern takes the book down, then out to right itself in front of
-        // the shelf, clear of the book now below it, up to the top, and back in.
+        // the shelf, clear of the book now below it, up to the top, and back in as far as it rests. Mounted on anything
+        // but a shelf it tucks into the block all the same, rather than meet the book on its way down (Jonah).
         val righted = share(Deliver.RIGHT_ITSELF)
-        val outToRightItself = (STOWED - CLEAR_OF_THE_SHELF) * (share(Deliver.COME_OUT) - share(Deliver.GO_BACK_IN))
+        val outToRightItself = (STOWED - CLEAR_OF_THE_SHELF) * share(Deliver.COME_OUT)
+        val backInToRest = (state.tuckedAtHome - CLEAR_OF_THE_SHELF) * share(Deliver.GO_BACK_IN)
         val arm = Arm(
             across = SHIFT_ASIDE * (share(Deliver.SHIFT_ASIDE) - righted),
             rise = HOME_RISE * share(Deliver.RIDE_UP),
             tip = share(Deliver.TIP) - righted,
-            reach = STOWED * share(Deliver.TUCK_IN) - outToRightItself,
+            reach = STOWED * share(Deliver.TUCK_IN) - outToRightItself + backInToRest,
         )
         val tippedAtTheLevel = carriedBook(state, Arm(tip = 1.0f))
         val book = when {
@@ -400,8 +415,12 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
         /** The paddles reach this far from the ring toward the reader. */
         const val PADDLE_LENGTH = 8.0f
 
-        /** How far each paddle stands off a book's cover, and the lectern's surface off a paddle under the book, so none is drawn in one plane with another. */
-        const val PADDLE_CLEARANCE = 0.01f
+        /**
+         * How far each paddle stands off a book's cover, and the lectern's surface off a paddle under the book, so none is
+         * drawn in one plane with another: further than a title on a cover is pulled toward the eye ([BookTitle]'s
+         * polygon offset), which at a hundredth of a pixel drew titles over the paddles from a few blocks off.
+         */
+        const val PADDLE_CLEARANCE = 0.1f
 
         /**
          * How far the paddles go into the shelf, to take hold of a book or be out of the way: as far as they reach while
@@ -412,9 +431,6 @@ class BookFinderRenderer(context: BlockEntityRendererProvider.Context) :
 
         /** The paddles as far in as they come while wholly out of the shelf, where they can turn without meeting its books. */
         const val CLEAR_OF_THE_SHELF = SHELF_FACE - RING_DEPTH
-
-        /** At home with the surface up: the rotator at the top, its paddles in the shelf. */
-        val AT_REST = Posture(arm = Arm(rise = HOME_RISE, reach = STOWED))
 
         /**
          * The middles of the books the shelf's texture draws in its slots, three across, from the left as the wall is

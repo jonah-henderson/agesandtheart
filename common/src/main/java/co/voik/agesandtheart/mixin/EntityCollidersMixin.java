@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.book.FinderCarriages;
 import co.voik.agesandtheart.content.OreColliders;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -13,7 +14,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Lets a drifting body be stood on where its rock actually is ({@link OreColliders#standingIn}).
+ * Lets a drifting body be stood on where its rock actually is ({@link OreColliders#standingIn}), and a book finder's
+ * carriage where its frame is ({@link FinderCarriages#collidersIn}), which is no entity at all.
  *
  * <p><b>Why a mixin, and there is genuinely no alternative.</b> {@code EntityGetter.getEntityCollisions}
  * builds its shapes as {@code Shapes.create(entity.getBoundingBox())} — an AABB, hard-coded, with no
@@ -50,11 +52,12 @@ public abstract class EntityCollidersMixin {
         CallbackInfoReturnable<List<VoxelShape>> collision
     ) {
         List<VoxelShape> bodies = OreColliders.INSTANCE.standingIn(source, level, boundingBox);
-        if (bodies.isEmpty()) {
+        List<VoxelShape> carriages = FinderCarriages.INSTANCE.collidersIn(level, boundingBox);
+        if (bodies.isEmpty() && carriages.isEmpty()) {
             return;
         }
         collision.setReturnValue(
-            ImmutableList.<VoxelShape>builder().addAll(collision.getReturnValue()).addAll(bodies).build()
+            ImmutableList.<VoxelShape>builder().addAll(collision.getReturnValue()).addAll(bodies).addAll(carriages).build()
         );
     }
 }

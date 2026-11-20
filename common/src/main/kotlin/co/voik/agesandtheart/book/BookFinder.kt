@@ -150,7 +150,10 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         if (level.isClientSide) {
-            createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> FinderSounds.tick(finder) }
+            createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder ->
+                FinderCarriages.moveWhatItMeets(finder)
+                FinderSounds.tick(finder)
+            }
         } else {
             createTickerHelper(type, BookFinders.ENTITY) { _, _, _, finder -> finder.tick() }
         }
@@ -376,6 +379,9 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     /** The way the frame takes on a task that travels. */
     var path: FramePath? = null
         private set
+
+    /** Where this side last carried the carriage's riders to ([FinderCarriages]); never saved or sent. */
+    var carriageCarriedTo: WallPoint? = null
 
     /** The book in the frame's clamps, or held open. */
     var carried: ItemStack = ItemStack.EMPTY
@@ -607,6 +613,7 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
 
     fun tick() {
         val level = level as? ServerLevel ?: return
+        FinderCarriages.moveWhatItMeets(this)
         if (isWallChanged) {
             isWallChanged = false
             keepToTheWall(level)
@@ -1124,6 +1131,16 @@ class BookFinderBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Book
     }
 
     /** Broken, the book in its frame drops where the frame is, and the shelf it was on an errand to goes dark. */
+    override fun clearRemoved() {
+        super.clearRemoved()
+        FinderCarriages.loaded(this)
+    }
+
+    override fun setRemoved() {
+        FinderCarriages.unloaded(this)
+        super.setRemoved()
+    }
+
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
         val level = level ?: return
         errand?.let { FrameIndicators.errandMoved(level, facing, from = it.shelf, to = null) }
