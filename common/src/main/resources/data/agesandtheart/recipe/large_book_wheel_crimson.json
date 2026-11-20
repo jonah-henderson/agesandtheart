@@ -1,0 +1,23 @@
+{
+  "_comment": "[AI] The wood's stripped log in the middle, its slabs all round it (Jonah, 2026-11-20).",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "large_book_wheel",
+  "key": {
+    "S": "minecraft:crimson_slab",
+    "L": "minecraft:stripped_crimson_stem"
+  },
+  "pattern": [
+    "SSS",
+    "SLS",
+    "SSS"
+  ],
+  "result": {
+    "id": "agesandtheart:large_book_wheel",
+    "components": {
+      "minecraft:block_state": {
+        "wood": "crimson"
+      }
+    }
+  }
+}

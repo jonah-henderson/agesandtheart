@@ -1,6 +1,259 @@
 {
+  "_comment": "[AI] The large book wheel in its wood, its shelves at rest.",
   "model": {
-    "type": "minecraft:model",
-    "model": "agesandtheart:block/large_book_wheel_left"
+    "type": "minecraft:select",
+    "property": "minecraft:block_state",
+    "block_state_property": "wood",
+    "cases": [
+      {
+        "when": "oak",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_oak"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_oak"
+            }
+          ]
+        }
+      },
+      {
+        "when": "spruce",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_spruce"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_spruce"
+            }
+          ]
+        }
+      },
+      {
+        "when": "birch",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_birch"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_birch"
+            }
+          ]
+        }
+      },
+      {
+        "when": "jungle",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_jungle"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_jungle"
+            }
+          ]
+        }
+      },
+      {
+        "when": "acacia",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_acacia"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_acacia"
+            }
+          ]
+        }
+      },
+      {
+        "when": "dark_oak",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_dark_oak"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_dark_oak"
+            }
+          ]
+        }
+      },
+      {
+        "when": "mangrove",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_mangrove"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_mangrove"
+            }
+          ]
+        }
+      },
+      {
+        "when": "cherry",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_cherry"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_cherry"
+            }
+          ]
+        }
+      },
+      {
+        "when": "pale_oak",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_pale_oak"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_pale_oak"
+            }
+          ]
+        }
+      },
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_bamboo"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_bamboo"
+            }
+          ]
+        }
+      },
+      {
+        "when": "crimson",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_crimson"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_crimson"
+            }
+          ]
+        }
+      },
+      {
+        "when": "warped",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_warped"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_warped"
+            }
+          ]
+        }
+      },
+      {
+        "when": "poplar",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_poplar"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_poplar"
+            }
+          ]
+        }
+      },
+      {
+        "when": "palm",
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_wheel_palm",
+              "tints": [
+                {
+                  "type": "minecraft:constant",
+                  "value": 16763036
+                }
+              ]
+            },
+            {
+              "type": "minecraft:model",
+              "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_palm",
+              "tints": [
+                {
+                  "type": "minecraft:constant",
+                  "value": 16763036
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:composite",
+      "models": [
+        {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/large_book_wheel_wheel_oak"
+        },
+        {
+          "type": "minecraft:model",
+          "model": "agesandtheart:block/large_book_wheel_shelves_at_rest_oak"
+        }
+      ]
+    }
   }
 }

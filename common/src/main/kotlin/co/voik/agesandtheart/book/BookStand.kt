@@ -35,7 +35,7 @@ data class OpenBookPose(val facing: Direction, val middle: Vec3, val lyingOn: Bo
     /** Where on the book a look from [eye] through [through] lands, or null where it misses the book. */
     fun spotLookedAt(binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? = when (lyingOn) {
         null -> LecternBookPlane.spotLookedAt(facing, corner, binding, eye, through)
-        else -> LecternBookPlane.spotLookedAtOn(facing, lyingOn.top, lyingOn.leanedBackDegrees, binding, eye, through)
+        else -> LecternBookPlane.spotLookedAtOn(lyingOn.towardTheReader, lyingOn.top, lyingOn.leanedBackDegrees, binding, eye, through)
     }
 
     private companion object {
@@ -44,10 +44,10 @@ data class OpenBookPose(val facing: Direction, val middle: Vec3, val lyingOn: Bo
 }
 
 /**
- * A surface a book lies open on other than a lectern's slope: the middle of its top, and how far it leans back from
- * upright, 90 where it is flat.
+ * A surface a book lies open on other than a lectern's slope: the middle of its top, how far it leans back from upright
+ * (90 where it is flat), and which way, level, its reader stands from it.
  */
-data class BookSurface(val top: Vec3, val leanedBackDegrees: Double)
+data class BookSurface(val top: Vec3, val leanedBackDegrees: Double, val towardTheReader: Vec3)
 
 /** What a reader asks of a book lying open on a stand, from its screen. */
 enum class StandAsked { TAKE, CLOSE }

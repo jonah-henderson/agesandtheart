@@ -1,9 +1,13 @@
 {
+  "_comment": "[AI] The large wheel in the wood it was built of, dropped once, by the block holding it; its books fall out of it as it is broken.",
   "type": "minecraft:block",
   "pools": [
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
       "entries": [
         {
           "type": "minecraft:item",
@@ -12,14 +16,20 @@
             "type": "minecraft:match_block",
             "blocks": "agesandtheart:large_book_wheel",
             "state": {
-              "part": "left"
+              "cell": "8"
             }
-          }
+          },
+          "modifier": [
+            {
+              "type": "minecraft:copy_state",
+              "block": "agesandtheart:large_book_wheel",
+              "properties": [
+                "wood"
+              ]
+            }
+          ]
         }
-      ],
-      "condition": {
-        "type": "minecraft:survives_explosion"
-      }
+      ]
     }
   ],
   "random_sequence": "agesandtheart:blocks/large_book_wheel"

@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/book_carousel_arm_tinted",
+  "textures": {
+    "planks": "minecraft:block/birch_planks"
+  }
+}

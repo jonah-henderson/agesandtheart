@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/large_book_wheel_wheel_tinted",
+  "textures": {
+    "planks": "minecraft:block/birch_planks"
+  }
+}

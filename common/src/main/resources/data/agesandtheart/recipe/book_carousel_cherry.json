@@ -1,0 +1,24 @@
+{
+  "_comment": "[AI] A fence post at the top and bottom of the middle, the wood's slabs across the middle, sticks at the top corners (Jonah, 2026-11-20).",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "book_carousel",
+  "key": {
+    "T": "minecraft:stick",
+    "F": "minecraft:cherry_fence",
+    "S": "minecraft:cherry_slab"
+  },
+  "pattern": [
+    "TFT",
+    "SSS",
+    " F "
+  ],
+  "result": {
+    "id": "agesandtheart:book_carousel",
+    "components": {
+      "minecraft:block_state": {
+        "wood": "cherry"
+      }
+    }
+  }
+}

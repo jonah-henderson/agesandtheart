@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/large_book_wheel_shelves_at_rest",
+  "textures": {
+    "planks": "minecraft:block/birch_planks"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "_comment": "[AI] Shown on first holding the wood's slab or stripped log, as vanilla's wooden things are.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_slab": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:palm_slab"
+          }
+        ]
+      }
+    },
+    "has_log": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:stripped_palm_log"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:large_book_wheel_palm"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_slab",
+      "has_log",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:large_book_wheel_palm"
+    ]
+  }
+}

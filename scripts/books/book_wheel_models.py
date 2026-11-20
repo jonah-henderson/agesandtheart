@@ -183,7 +183,7 @@ def main():
             if turn:
                 variant["y"] = turn
             variants[f"facing={facing},piece=stand,wood={wood}"] = variant
-        variants[f"piece=arms,wood={wood}"] = {"model": f"agesandtheart:block/book_wheel_arms_{wood}"}
+        variants[f"piece=wheel,wood={wood}"] = {"model": f"agesandtheart:block/book_wheel_arms_{wood}"}
     variants["piece=shelf"] = {"model": "agesandtheart:block/book_wheel_shelf"}
     write(ASSETS / "blockstates/book_wheel.json", {
         "_comment": "[AI] Jonah's small book wheel in the wood it was built of: the stand by facing; the arms and a shelf unturned, for BookWheelRenderer.",

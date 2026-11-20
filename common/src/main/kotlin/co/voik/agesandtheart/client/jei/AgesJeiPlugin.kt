@@ -54,11 +54,11 @@ class AgesJeiPlugin : IModPlugin {
 
     override fun getPluginUid(): Identifier = "jei".location()
 
-    /** A toolbox, bookstand or small book wheel of each wood is its own entry, as the creative tab lists them. */
+    /** A toolbox, bookstand or book wheel of each wood is its own entry, as the creative tab lists them. */
     override fun registerItemSubtypes(registration: ISubtypeRegistration) {
         registration.registerFromDataComponentTypes(AgeContent.TOOLBOX, DataComponents.BLOCK_STATE)
         registration.registerFromDataComponentTypes(Bookstands.ITEM, DataComponents.BLOCK_STATE)
-        registration.registerFromDataComponentTypes(BookWheels.SMALL_ITEM, DataComponents.BLOCK_STATE)
+        for (wheel in BookWheels.BLOCKS) registration.registerFromDataComponentTypes(BookWheels.ITEMS.getValue(wheel), DataComponents.BLOCK_STATE)
     }
 
     override fun registerCategories(registration: IRecipeCategoryRegistration) {

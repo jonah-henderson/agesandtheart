@@ -101,11 +101,11 @@ object LecternBookPlane {
         spotOn(frameOf(facing, corner, binding), eye, through)
 
     /**
-     * The same, for a book read from [facing] lying on a surface whose middle is at [top], leaning back [leanedBackDegrees]
-     * from upright: a lectern's slope 67.5, a flat shelf 90, and one leaning away more.
+     * The same, for a book read from out along [towardTheReader], level, lying on a surface whose middle is at [top],
+     * leaning back [leanedBackDegrees] from upright: a lectern's slope 67.5, a flat shelf 90, a carousel's board 15.
      */
-    fun spotLookedAtOn(facing: Direction, top: Vec3, leanedBackDegrees: Double, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? =
-        spotOn(frameOn(facing, top, leanedBackDegrees, binding), eye, through)
+    fun spotLookedAtOn(towardTheReader: Vec3, top: Vec3, leanedBackDegrees: Double, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? =
+        spotOn(frameOn(towardTheReader, top, leanedBackDegrees, binding), eye, through)
 
     private fun spotOn(frame: Frame, eye: Vec3, through: Vec3): LecternBookSpot? {
         val direction = through.subtract(eye)
@@ -135,14 +135,14 @@ object LecternBookPlane {
     private class Frame(val surface: Vec3, val normal: Vec3, val upThePage: Vec3, val towardTheLeft: Vec3)
 
     private fun frameOf(facing: Direction, corner: Vec3, binding: BookBinding): Frame {
-        val slope = frameOn(facing, Vec3.ZERO, TILT_DEGREES, binding)
+        val reader = horizontal(facing)
+        val slope = frameOn(reader, Vec3.ZERO, TILT_DEGREES, binding)
         val centre = corner.add(0.5, CENTRE_HEIGHT, 0.5).add(slope.upThePage.scale(-DOWN_THE_SLOPE))
-        return frameOn(facing, centre.add(slope.normal.scale(-ONTO_THE_SLOPE)), TILT_DEGREES, binding)
+        return frameOn(reader, centre.add(slope.normal.scale(-ONTO_THE_SLOPE)), TILT_DEGREES, binding)
     }
 
-    private fun frameOn(facing: Direction, top: Vec3, leanedBackDegrees: Double, binding: BookBinding): Frame {
+    private fun frameOn(towardTheReader: Vec3, top: Vec3, leanedBackDegrees: Double, binding: BookBinding): Frame {
         val tilt = Math.toRadians(leanedBackDegrees)
-        val towardTheReader = horizontal(facing)
         val normal = towardTheReader.scale(cos(tilt)).add(UP.scale(sin(tilt)))
         val upThePage = towardTheReader.scale(-sin(tilt)).add(UP.scale(cos(tilt)))
         return Frame(
@@ -150,7 +150,8 @@ object LecternBookPlane {
             normal = normal,
             upThePage = upThePage,
             // The reader stands on the facing side looking back across the lectern, so their left is clockwise.
-            towardTheLeft = horizontal(facing.clockWise),
+            // The reader looks back across the book, so their left is a quarter turn clockwise of them, seen from above.
+            towardTheLeft = Vec3(-towardTheReader.z, 0.0, towardTheReader.x),
         )
     }
 

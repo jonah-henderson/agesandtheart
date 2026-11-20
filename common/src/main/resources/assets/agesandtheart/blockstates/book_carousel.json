@@ -1,35 +1,635 @@
 {
-  "_comment": "[AI] Stand-in frames on vanilla's spruce until the asset pass, modelled facing north. The books are drawn from the lower part by `BookWheelRenderer`, the upper part above it.",
+  "_comment": "[AI] Jonah's book carousel in the wood it was built of: the stand by facing in the block holding it, nothing in its others; one arm unturned, for BookWheelRenderer to turn to each place.",
   "variants": {
-    "facing=north,part=lower": {
-      "model": "agesandtheart:block/book_carousel_lower"
+    "cell=4,facing=north,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_stand_oak"
     },
-    "facing=north,part=upper": {
-      "model": "agesandtheart:block/book_carousel_upper"
-    },
-    "facing=east,part=lower": {
-      "model": "agesandtheart:block/book_carousel_lower",
+    "cell=4,facing=east,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_stand_oak",
       "y": 90
     },
-    "facing=east,part=upper": {
-      "model": "agesandtheart:block/book_carousel_upper",
+    "cell=4,facing=south,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_stand_oak",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_stand_oak",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=1,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=2,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=3,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=5,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=6,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=7,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=8,piece=stand,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "piece=wheel,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_arm_oak"
+    },
+    "piece=shelf,wood=oak": {
+      "model": "agesandtheart:block/book_carousel_part_oak"
+    },
+    "cell=4,facing=north,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_stand_spruce"
+    },
+    "cell=4,facing=east,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_stand_spruce",
       "y": 90
     },
-    "facing=south,part=lower": {
-      "model": "agesandtheart:block/book_carousel_lower",
+    "cell=4,facing=south,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_stand_spruce",
       "y": 180
     },
-    "facing=south,part=upper": {
-      "model": "agesandtheart:block/book_carousel_upper",
+    "cell=4,facing=west,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_stand_spruce",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=1,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=2,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=3,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=5,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=6,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=7,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=8,piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "piece=wheel,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_arm_spruce"
+    },
+    "piece=shelf,wood=spruce": {
+      "model": "agesandtheart:block/book_carousel_part_spruce"
+    },
+    "cell=4,facing=north,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_stand_birch"
+    },
+    "cell=4,facing=east,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_stand_birch",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_stand_birch",
       "y": 180
     },
-    "facing=west,part=lower": {
-      "model": "agesandtheart:block/book_carousel_lower",
+    "cell=4,facing=west,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_stand_birch",
       "y": 270
     },
-    "facing=west,part=upper": {
-      "model": "agesandtheart:block/book_carousel_upper",
+    "cell=0,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=1,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=2,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=3,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=5,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=6,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=7,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=8,piece=stand,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "piece=wheel,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_arm_birch"
+    },
+    "piece=shelf,wood=birch": {
+      "model": "agesandtheart:block/book_carousel_part_birch"
+    },
+    "cell=4,facing=north,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_stand_jungle"
+    },
+    "cell=4,facing=east,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_stand_jungle",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_stand_jungle",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_stand_jungle",
       "y": 270
+    },
+    "cell=0,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=1,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=2,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=3,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=5,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=6,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=7,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=8,piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "piece=wheel,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_arm_jungle"
+    },
+    "piece=shelf,wood=jungle": {
+      "model": "agesandtheart:block/book_carousel_part_jungle"
+    },
+    "cell=4,facing=north,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_stand_acacia"
+    },
+    "cell=4,facing=east,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_stand_acacia",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_stand_acacia",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_stand_acacia",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=1,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=2,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=3,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=5,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=6,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=7,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=8,piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "piece=wheel,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_arm_acacia"
+    },
+    "piece=shelf,wood=acacia": {
+      "model": "agesandtheart:block/book_carousel_part_acacia"
+    },
+    "cell=4,facing=north,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_dark_oak"
+    },
+    "cell=4,facing=east,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_dark_oak",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_dark_oak",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_dark_oak",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=1,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=2,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=3,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=5,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=6,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=7,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=8,piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "piece=wheel,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_arm_dark_oak"
+    },
+    "piece=shelf,wood=dark_oak": {
+      "model": "agesandtheart:block/book_carousel_part_dark_oak"
+    },
+    "cell=4,facing=north,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_stand_mangrove"
+    },
+    "cell=4,facing=east,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_stand_mangrove",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_stand_mangrove",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_stand_mangrove",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=1,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=2,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=3,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=5,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=6,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=7,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=8,piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "piece=wheel,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_arm_mangrove"
+    },
+    "piece=shelf,wood=mangrove": {
+      "model": "agesandtheart:block/book_carousel_part_mangrove"
+    },
+    "cell=4,facing=north,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_stand_cherry"
+    },
+    "cell=4,facing=east,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_stand_cherry",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_stand_cherry",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_stand_cherry",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=1,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=2,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=3,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=5,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=6,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=7,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=8,piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "piece=wheel,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_arm_cherry"
+    },
+    "piece=shelf,wood=cherry": {
+      "model": "agesandtheart:block/book_carousel_part_cherry"
+    },
+    "cell=4,facing=north,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_pale_oak"
+    },
+    "cell=4,facing=east,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_pale_oak",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_pale_oak",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_stand_pale_oak",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=1,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=2,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=3,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=5,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=6,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=7,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=8,piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "piece=wheel,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_arm_pale_oak"
+    },
+    "piece=shelf,wood=pale_oak": {
+      "model": "agesandtheart:block/book_carousel_part_pale_oak"
+    },
+    "cell=4,facing=north,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_stand_bamboo"
+    },
+    "cell=4,facing=east,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_stand_bamboo",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_stand_bamboo",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_stand_bamboo",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=1,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=2,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=3,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=5,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=6,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=7,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=8,piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "piece=wheel,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_arm_bamboo"
+    },
+    "piece=shelf,wood=bamboo": {
+      "model": "agesandtheart:block/book_carousel_part_bamboo"
+    },
+    "cell=4,facing=north,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_stand_crimson"
+    },
+    "cell=4,facing=east,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_stand_crimson",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_stand_crimson",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_stand_crimson",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=1,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=2,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=3,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=5,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=6,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=7,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=8,piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "piece=wheel,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_arm_crimson"
+    },
+    "piece=shelf,wood=crimson": {
+      "model": "agesandtheart:block/book_carousel_part_crimson"
+    },
+    "cell=4,facing=north,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_stand_warped"
+    },
+    "cell=4,facing=east,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_stand_warped",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_stand_warped",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_stand_warped",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=1,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=2,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=3,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=5,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=6,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=7,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=8,piece=stand,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "piece=wheel,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_arm_warped"
+    },
+    "piece=shelf,wood=warped": {
+      "model": "agesandtheart:block/book_carousel_part_warped"
+    },
+    "cell=4,facing=north,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_stand_poplar"
+    },
+    "cell=4,facing=east,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_stand_poplar",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_stand_poplar",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_stand_poplar",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=1,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=2,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=3,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=5,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=6,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=7,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=8,piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "piece=wheel,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_arm_poplar"
+    },
+    "piece=shelf,wood=poplar": {
+      "model": "agesandtheart:block/book_carousel_part_poplar"
+    },
+    "cell=4,facing=north,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_stand_palm"
+    },
+    "cell=4,facing=east,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_stand_palm",
+      "y": 90
+    },
+    "cell=4,facing=south,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_stand_palm",
+      "y": 180
+    },
+    "cell=4,facing=west,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_stand_palm",
+      "y": 270
+    },
+    "cell=0,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=1,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=2,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=3,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=5,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=6,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=7,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "cell=8,piece=stand,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
+    },
+    "piece=wheel,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_arm_palm"
+    },
+    "piece=shelf,wood=palm": {
+      "model": "agesandtheart:block/book_carousel_part_palm"
     }
   }
 }

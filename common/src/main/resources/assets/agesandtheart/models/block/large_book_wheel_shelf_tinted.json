@@ -1,0 +1,80 @@
+{
+  "credit": "Made with Blockbench; cut and textured by scripts/books/large_book_wheel_models.py",
+  "textures": {
+    "particle": "#planks",
+    "top": "minecraft:block/lectern_top",
+    "sides": "minecraft:block/lectern_sides"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        7.0,
+        3.0
+      ],
+      "to": [
+        16.0,
+        9.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            2.0
+          ],
+          "texture": "#sides"
+        },
+        "east": {
+          "uv": [
+            1.0,
+            4.0,
+            11.0,
+            6.0
+          ],
+          "texture": "#sides"
+        },
+        "south": {
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            6.0
+          ],
+          "texture": "#sides"
+        },
+        "west": {
+          "uv": [
+            1.0,
+            4.0,
+            11.0,
+            6.0
+          ],
+          "texture": "#sides"
+        },
+        "up": {
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            12.0
+          ],
+          "texture": "#top",
+          "rotation": 180
+        },
+        "down": {
+          "uv": [
+            0.0,
+            1.0,
+            16.0,
+            11.0
+          ],
+          "texture": "#planks",
+          "tintindex": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "_comment": "[AI] Shown on first holding the wood's fence or slab, as vanilla's wooden things are.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_fence": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:dark_oak_fence"
+          }
+        ]
+      }
+    },
+    "has_slab": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:dark_oak_slab"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:book_carousel_dark_oak"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_fence",
+      "has_slab",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:book_carousel_dark_oak"
+    ]
+  }
+}

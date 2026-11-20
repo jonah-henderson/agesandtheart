@@ -16,7 +16,7 @@
       "model": "agesandtheart:block/book_wheel_stand_oak",
       "y": 270
     },
-    "piece=arms,wood=oak": {
+    "piece=wheel,wood=oak": {
       "model": "agesandtheart:block/book_wheel_arms_oak"
     },
     "facing=north,piece=stand,wood=spruce": {
@@ -34,7 +34,7 @@
       "model": "agesandtheart:block/book_wheel_stand_spruce",
       "y": 270
     },
-    "piece=arms,wood=spruce": {
+    "piece=wheel,wood=spruce": {
       "model": "agesandtheart:block/book_wheel_arms_spruce"
     },
     "facing=north,piece=stand,wood=birch": {
@@ -52,7 +52,7 @@
       "model": "agesandtheart:block/book_wheel_stand_birch",
       "y": 270
     },
-    "piece=arms,wood=birch": {
+    "piece=wheel,wood=birch": {
       "model": "agesandtheart:block/book_wheel_arms_birch"
     },
     "facing=north,piece=stand,wood=jungle": {
@@ -70,7 +70,7 @@
       "model": "agesandtheart:block/book_wheel_stand_jungle",
       "y": 270
     },
-    "piece=arms,wood=jungle": {
+    "piece=wheel,wood=jungle": {
       "model": "agesandtheart:block/book_wheel_arms_jungle"
     },
     "facing=north,piece=stand,wood=acacia": {
@@ -88,7 +88,7 @@
       "model": "agesandtheart:block/book_wheel_stand_acacia",
       "y": 270
     },
-    "piece=arms,wood=acacia": {
+    "piece=wheel,wood=acacia": {
       "model": "agesandtheart:block/book_wheel_arms_acacia"
     },
     "facing=north,piece=stand,wood=dark_oak": {
@@ -106,7 +106,7 @@
       "model": "agesandtheart:block/book_wheel_stand_dark_oak",
       "y": 270
     },
-    "piece=arms,wood=dark_oak": {
+    "piece=wheel,wood=dark_oak": {
       "model": "agesandtheart:block/book_wheel_arms_dark_oak"
     },
     "facing=north,piece=stand,wood=mangrove": {
@@ -124,7 +124,7 @@
       "model": "agesandtheart:block/book_wheel_stand_mangrove",
       "y": 270
     },
-    "piece=arms,wood=mangrove": {
+    "piece=wheel,wood=mangrove": {
       "model": "agesandtheart:block/book_wheel_arms_mangrove"
     },
     "facing=north,piece=stand,wood=cherry": {
@@ -142,7 +142,7 @@
       "model": "agesandtheart:block/book_wheel_stand_cherry",
       "y": 270
     },
-    "piece=arms,wood=cherry": {
+    "piece=wheel,wood=cherry": {
       "model": "agesandtheart:block/book_wheel_arms_cherry"
     },
     "facing=north,piece=stand,wood=pale_oak": {
@@ -160,7 +160,7 @@
       "model": "agesandtheart:block/book_wheel_stand_pale_oak",
       "y": 270
     },
-    "piece=arms,wood=pale_oak": {
+    "piece=wheel,wood=pale_oak": {
       "model": "agesandtheart:block/book_wheel_arms_pale_oak"
     },
     "facing=north,piece=stand,wood=bamboo": {
@@ -178,7 +178,7 @@
       "model": "agesandtheart:block/book_wheel_stand_bamboo",
       "y": 270
     },
-    "piece=arms,wood=bamboo": {
+    "piece=wheel,wood=bamboo": {
       "model": "agesandtheart:block/book_wheel_arms_bamboo"
     },
     "facing=north,piece=stand,wood=crimson": {
@@ -196,7 +196,7 @@
       "model": "agesandtheart:block/book_wheel_stand_crimson",
       "y": 270
     },
-    "piece=arms,wood=crimson": {
+    "piece=wheel,wood=crimson": {
       "model": "agesandtheart:block/book_wheel_arms_crimson"
     },
     "facing=north,piece=stand,wood=warped": {
@@ -214,7 +214,7 @@
       "model": "agesandtheart:block/book_wheel_stand_warped",
       "y": 270
     },
-    "piece=arms,wood=warped": {
+    "piece=wheel,wood=warped": {
       "model": "agesandtheart:block/book_wheel_arms_warped"
     },
     "facing=north,piece=stand,wood=poplar": {
@@ -232,7 +232,7 @@
       "model": "agesandtheart:block/book_wheel_stand_poplar",
       "y": 270
     },
-    "piece=arms,wood=poplar": {
+    "piece=wheel,wood=poplar": {
       "model": "agesandtheart:block/book_wheel_arms_poplar"
     },
     "facing=north,piece=stand,wood=palm": {
@@ -250,7 +250,7 @@
       "model": "agesandtheart:block/book_wheel_stand_palm",
       "y": 270
     },
-    "piece=arms,wood=palm": {
+    "piece=wheel,wood=palm": {
       "model": "agesandtheart:block/book_wheel_arms_palm"
     },
     "piece=shelf": {

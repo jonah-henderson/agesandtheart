@@ -2,11 +2,6 @@ package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.content.WoodKind
 import co.voik.agesandtheart.location
-import kotlin.math.sin
-import kotlin.math.cos
-import kotlin.math.abs
-import kotlin.math.floor
-import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.minecraft.server.level.ServerPlayer
 import com.mojang.serialization.Codec
@@ -43,6 +38,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.component.BlockItemStateProperties
 import net.minecraft.world.item.context.BlockPlaceContext
+import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ScheduledTickAccess
@@ -61,103 +57,45 @@ import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
+import net.minecraft.world.level.block.state.properties.IntegerProperty
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.phys.shapes.CollisionContext
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
 
 /**
- * Which way a wheel's axle runs, and so which face of it shows which tray. Trays are counted round from the front: an
- * axle running **across** (left to right, as Ramelli's does) carries them front, over the top, back and under; an
- * **upright** one, a carousel's, carries them front, to the right, back and to the left. The faces the axle comes out
- * of show no tray, and turn the wheel by hand.
+ * The three book wheels (design §7.8.3), each Jonah's model, built of any wood, its shelves on the lectern's boards, a
+ * book to a shelf.
+ *
+ * - **Small:** one block, four shelves sliding on a cross of arms round an axle running across.
+ * - **Large:** two blocks across, three up and three back, eight shelves hung on pins round an axle running across.
+ * - **Carousel:** three blocks across and three back, eight shelves at the tips of arms round an upright post.
  */
-enum class WheelAxle {
-    ACROSS,
-    UPRIGHT,
+enum class WheelForm(val id: String, val shelves: ModelledShelves, val cells: WheelCells?) {
+    SMALL("book_wheel", WheelShelves.SMALL, null),
+    LARGE("large_book_wheel", WheelShelves.LARGE, WheelCells.LARGE),
+    CAROUSEL("book_carousel", CarouselShelves, WheelCells.CAROUSEL),
     ;
 
-    /** The tray position [face] shows, counted round from the front, or null where it is an end of the axle. */
-    fun positionShownBy(face: WheelFace): Int? = when (this) {
-        ACROSS -> when (face) {
-            WheelFace.FRONT -> 0
-            WheelFace.TOP -> 1
-            WheelFace.BACK -> 2
-            WheelFace.BOTTOM -> 3
-            WheelFace.LEFT, WheelFace.RIGHT -> null
-        }
-        UPRIGHT -> when (face) {
-            WheelFace.FRONT -> 0
-            WheelFace.RIGHT -> 1
-            WheelFace.BACK -> 2
-            WheelFace.LEFT -> 3
-            WheelFace.TOP, WheelFace.BOTTOM -> null
-        }
-    }
-}
+    val trays: Int get() = shelves.positions
 
-/** A face of a wheel as whoever stands at its front sees it. */
-enum class WheelFace {
-    FRONT, BACK, LEFT, RIGHT, TOP, BOTTOM;
-
-    companion object {
-        /** [side] of a wheel whose front faces [facing]. */
-        fun of(side: Direction, facing: Direction): WheelFace = when (side) {
-            Direction.UP -> TOP
-            Direction.DOWN -> BOTTOM
-            facing -> FRONT
-            facing.opposite -> BACK
-            // Standing at the front, looking back at it, a quarter clockwise from the front is on their left.
-            facing.clockWise -> LEFT
-            else -> RIGHT
-        }
-    }
+    /** Which of the wheel's blocks a state is, for a wheel bigger than a block. */
+    val cell: IntegerProperty? by lazy { cells?.let { IntegerProperty.create("cell", 0, it.count - 1) } }
 }
 
 /**
- * The three book wheels, each a wheel one block across with four trays (design §7.8.3).
+ * A book wheel (design §7.8.3): books on shelves round a wheel turned by hand (Jonah, 2026-11-19). A book on any shelf
+ * is a lectern's ([BookStands]): opened, read and linked from where it lies, and taken with its screen's Take Book; one
+ * left open stays open as the wheel turns. A book in hand goes onto whichever empty shelf a look meets, and a use landing
+ * anywhere else pushes the wheel the way the look would turn it about its axle ([ModelledShelves.pushedBy]). Breaking
+ * it drops its books, as a chest does.
  *
- * - **Small:** one block, a book to a tray.
- * - **Large:** Ramelli's wheel (1588), its axle across: two blocks side by side along the axle, two books to a tray.
- * - **Carousel:** its axle upright: two blocks one over the other, a tier of trays in each, which turn together.
- */
-enum class WheelForm(
-    val id: String,
-    val axle: WheelAxle,
-    val booksPerTray: Int,
-    /** The two parts of a two-block wheel, the first first, or null for a wheel of one block. */
-    val part: EnumProperty<PairPart>?,
-) {
-    SMALL("book_wheel", WheelAxle.ACROSS, 1, null),
-    LARGE("large_book_wheel", WheelAxle.ACROSS, 2, EnumProperty.create("part", PairPart::class.java, PairPart.LEFT, PairPart.RIGHT)),
-    CAROUSEL("book_carousel", WheelAxle.UPRIGHT, 2, EnumProperty.create("part", PairPart::class.java, PairPart.LOWER, PairPart.UPPER)),
-    ;
-
-    val books: Int get() = TRAYS * booksPerTray
-
-    /** From the first part toward the second, for a wheel whose front faces [facing]: to the right, or up. */
-    fun towardTheSecond(facing: Direction): Direction? = when (this) {
-        SMALL -> null
-        LARGE -> facing.counterClockWise
-        CAROUSEL -> Direction.UP
-    }
-
-    companion object {
-        const val TRAYS = 4
-    }
-}
-
-/**
- * A book wheel (design §7.8.3): books on trays round a wheel turned by hand, and taken and shelved only at
- * the front, which is what makes it a wheel rather than a round chiselled shelf.
- *
- * Used on its front with a book in hand, it shelves the book on the front tray's empty place; a book there is a
- * lectern's ([BookStands]): opened, read and linked from where it lies, and taken with its screen's Take Book. A book
- * left open stays open as the wheel turns, carried round level, as on Ramelli's. Used on a face that shows another tray,
- * it turns that tray round to the front the short way; used on an end of its axle, it turns a tray on, or back when
- * sneaking. Breaking it drops its books, as a chest does.
- *
- * Each block is a whole box, so the face a click lands on is the face of the wheel it means; the art may draw less.
+ * A wheel bigger than a block stands in its [WheelForm.cells], all of which go together; its model and its books are kept
+ * in the block it is built round, and the others draw nothing but their part of its stand. Each block is a whole box, for
+ * clicking; a look is followed through it to what of the wheel it meets.
  */
 abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -165,33 +103,52 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
     abstract val form: WheelForm
 
     init {
-        var state = stateDefinition.any().setValue(FACING, Direction.NORTH)
-        form.part?.let { part -> state = state.setValue(part, part.possibleValues.first { it.isFirst }) }
+        var state = stateDefinition.any()
+            .setValue(FACING, Direction.NORTH)
+            .setValue(WOOD, WoodKind.OAK)
+            .setValue(PIECE, WheelPiece.STAND)
+        val cells = form.cells
+        val cell = form.cell
+        if (cells != null && cell != null) state = state.setValue(cell, cells.holder)
         registerDefaultState(state)
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING)
-        form.part?.let { builder.add(it) }
+        builder.add(FACING, WOOD, PIECE)
+        form.cell?.let { builder.add(it) }
     }
 
-    /** Its front toward whoever places it, where there is room for its second block. */
+    /** Its front toward whoever places it, where every block of it has room. */
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState? {
         val facing = context.horizontalDirection.opposite
-        val toward = form.towardTheSecond(facing) ?: return defaultBlockState().setValue(FACING, facing)
-        val second = context.clickedPos.relative(toward)
+        val placed = defaultBlockState().setValue(FACING, facing)
+        val cells = form.cells ?: return placed
+        val cell = form.cell ?: return placed
+        val placedCell = cells.placedFor(facing, context.clickedFace)
+        val holder = context.clickedPos.subtract(cells.offsetOf(placedCell, facing))
         val level = context.level
-        val hasRoom = level.isInsideBuildHeight(second) && level.getBlockState(second).canBeReplaced(context)
-        return if (hasRoom) defaultBlockState().setValue(FACING, facing) else null
+        fun hasRoomAt(index: Int): Boolean {
+            val at = holder.offset(cells.offsetOf(index, facing))
+            val isThePlacedOne = index == placedCell
+            return level.isInsideBuildHeight(at) && (isThePlacedOne || level.getBlockState(at).canBeReplaced(context))
+        }
+        if (!(0 until cells.count).all(::hasRoomAt)) return null
+        return placed.setValue(cell, placedCell)
     }
 
     override fun setPlacedBy(level: Level, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
-        val part = form.part ?: return
-        val toward = form.towardTheSecond(state.getValue(FACING)) ?: return
-        level.setBlock(pos.relative(toward), state.setValue(part, part.possibleValues.first { !it.isFirst }), UPDATE_ALL)
+        val cells = form.cells ?: return
+        val cell = form.cell ?: return
+        val facing = state.getValue(FACING)
+        val holder = holderPos(state, pos)
+        val placedCell = state.getValue(cell)
+        for (index in 0 until cells.count) {
+            if (index == placedCell) continue
+            level.setBlock(holder.offset(cells.offsetOf(index, facing)), state.setValue(cell, index), UPDATE_ALL)
+        }
     }
 
-    /** A two-block wheel goes whole: either block lost takes the other with it. */
+    /** A wheel bigger than a block goes whole: any block of it lost takes the others with it. */
     override fun updateShape(
         state: BlockState,
         level: LevelReader,
@@ -202,35 +159,51 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
         neighbourState: BlockState,
         random: RandomSource,
     ): BlockState {
-        val part = form.part
-        if (part == null || directionToNeighbour != towardTheOther(state)) {
+        val cells = form.cells
+        val cell = form.cell
+        if (cells == null || cell == null) {
             return super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random)
         }
-        val otherStands = neighbourState.`is`(this) &&
-            neighbourState.getValue(FACING) == state.getValue(FACING) &&
-            neighbourState.getValue(part) != state.getValue(part)
-        return if (otherStands) state else Blocks.AIR.defaultBlockState()
+        val facing = state.getValue(FACING)
+        val beside = cells.beside(state.getValue(cell), facing, directionToNeighbour) ?: return state
+        val isTheWheel = neighbourState.`is`(this) &&
+            neighbourState.getValue(FACING) == facing &&
+            neighbourState.getValue(cell) == beside
+        return if (isTheWheel) state else Blocks.AIR.defaultBlockState()
     }
 
-    /** In creative, breaking the second block leaves nothing of the first to drop, as a door's upper half does. */
+    /** In creative, breaking any other block leaves nothing of the block holding it to drop, as a door's upper half does. */
     override fun playerWillDestroy(level: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
-        val part = form.part
-        if (!level.isClientSide && player.preventsBlockDrops() && part != null && !state.getValue(part).isFirst) {
-            val first = firstPos(state, pos)
-            val firstState = level.getBlockState(first)
-            if (firstState.`is`(this) && firstState.getValue(part).isFirst) {
-                level.setBlock(first, Blocks.AIR.defaultBlockState(), UPDATE_ALL or UPDATE_SUPPRESS_DROPS)
+        if (!level.isClientSide && player.preventsBlockDrops() && !isHolder(state)) {
+            val holder = holderPos(state, pos)
+            val holderState = level.getBlockState(holder)
+            if (holderState.`is`(this) && isHolder(holderState)) {
+                level.setBlock(holder, Blocks.AIR.defaultBlockState(), UPDATE_ALL or UPDATE_SUPPRESS_DROPS)
             }
         }
         return super.playerWillDestroy(level, pos, state, player)
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity? =
-        if (isFirst(state)) BookWheelBlockEntity(pos, state) else null
+        if (isHolder(state)) BookWheelBlockEntity(pos, state) else null
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
-    /** The wheel turns on the client, catching up with the tray the server has at the front ([WheelTurning]). */
+    /** A whole block, for clicking, but at the carousel's corners, which stand only where its arms sweep. */
+    override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape {
+        val cells = form.cells
+        val cell = form.cell
+        if (form.shelves != CarouselShelves || cells == null || cell == null) return Shapes.block()
+        val fromTheHolder = cells.offsetOf(state.getValue(cell), state.getValue(FACING))
+        return CarouselShelves.shapeOf(fromTheHolder.x, fromTheHolder.z) ?: Shapes.block()
+    }
+
+    /** Shades nothing beside it, as glass does: its whole-block box is for clicking, and the wheel is open. */
+    override fun getShadeBrightness(state: BlockState, level: BlockGetter, pos: BlockPos): Float = UNSHADED
+
+    /** Light passes through it as through air, so the wheel's blocks are lit where they stand. */
+    override fun propagatesSkylightDown(state: BlockState): Boolean = true
+
     /** On a client the wheel's drawing catches up with it; on the server its open books are shut when left unwatched. */
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
         if (level.isClientSide) {
@@ -255,34 +228,19 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult =
         use(ItemStack.EMPTY, state, level, pos, player, hitResult)
 
-    /**
-     * [player] using the wheel with [held] in hand: at the front, shelving it where the tray's place is empty and
-     * taking the book there where it is not; elsewhere, turning.
-     */
+    /** [player] using the wheel with [held] in hand: a book on a shelf, a book onto an empty one, or a push. */
     private fun use(held: ItemStack, state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
-        val wheel = level.getBlockEntity(firstPos(state, pos)) as? BookWheelBlockEntity ?: return InteractionResult.PASS
-        val along = form.part?.let { state.getValue(it).along } ?: 0
-        return when (val used = usedAt(state, pos, player, hitResult, wheel, held)) {
+        val wheel = level.getBlockEntity(holderPos(state, pos)) as? BookWheelBlockEntity ?: return InteractionResult.PASS
+        return when (val used = usedAt(state, player, hitResult, wheel, held)) {
             WheelUse.None -> InteractionResult.PASS
             is WheelUse.Turn -> {
                 if (!level.isClientSide) wheel.turn(used.by)
                 InteractionResult.SUCCESS
             }
-            is WheelUse.Book -> useTheBook(wheel, wheel.slotOf(wheel.trayAt(used.position), along), level, player, hitResult)
+            is WheelUse.Book -> useTheBook(wheel, wheel.trayAt(used.position), level, player, hitResult)
             is WheelUse.Shelve -> {
-                if (!level.isClientSide) wheel.shelve(wheel.trayAt(used.position), along, held.consumeAndReturn(1, player))
+                if (!level.isClientSide) wheel.shelve(wheel.trayAt(used.position), held.consumeAndReturn(1, player))
                 InteractionResult.SUCCESS
-            }
-            WheelUse.Front -> {
-                val slot = wheel.slotOf(wheel.frontTray, along)
-                when {
-                    !wheel.bookIn(slot).isEmpty -> useTheBook(wheel, slot, level, player, hitResult)
-                    held.isEmpty -> InteractionResult.PASS
-                    else -> {
-                        if (!level.isClientSide) wheel.shelve(wheel.frontTray, along, held.consumeAndReturn(1, player))
-                        InteractionResult.SUCCESS
-                    }
-                }
             }
         }
     }
@@ -296,127 +254,74 @@ abstract class BookWheelBlock(properties: Properties) : BaseEntityBlock(properti
             take = { player.inventory.placeItemBackInInventory(wheel.take(slot), Prediction.SERVER_ONLY) },
         )
 
-    /** What [player]'s use of the wheel at [hitResult] means: the face hit means a tray, an end of the axle a turn. */
-    protected open fun usedAt(
-        state: BlockState,
-        pos: BlockPos,
-        player: Player,
-        hitResult: BlockHitResult,
-        wheel: BookWheelBlockEntity,
-        held: ItemStack,
-    ): WheelUse {
-        val face = WheelFace.of(hitResult.direction, state.getValue(FACING))
-        val position = form.axle.positionShownBy(face)
-        return when {
-            position == 0 -> WheelUse.Front
-            position == null -> WheelUse.Turn(if (player.isSecondaryUseActive) -1 else 1)
-            position * 2 > WheelForm.TRAYS -> WheelUse.Turn(position - WheelForm.TRAYS)
-            else -> WheelUse.Turn(position)
-        }
-    }
-
-    override fun rotate(state: BlockState, rotation: Rotation): BlockState = state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
-
-    override fun mirror(state: BlockState, mirror: Mirror): BlockState = state.rotate(mirror.getRotation(state.getValue(FACING)))
-
-    private fun isFirst(state: BlockState): Boolean = form.part?.let { state.getValue(it).isFirst } ?: true
-
-    /** From this block toward the wheel's other block. */
-    private fun towardTheOther(state: BlockState): Direction? {
-        val toward = form.towardTheSecond(state.getValue(FACING)) ?: return null
-        return if (isFirst(state)) toward else toward.opposite
-    }
-
-    /** The block holding the wheel's books. */
-    fun firstPos(state: BlockState, pos: BlockPos): BlockPos {
-        if (isFirst(state)) return pos
-        val toward = form.towardTheSecond(state.getValue(FACING)) ?: return pos
-        return pos.relative(toward.opposite)
-    }
-
-    companion object {
-        val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
-    }
-}
-
-/**
- * What a use of a wheel means: the front tray, its book or its empty place; the book on the tray at [Book.position]
- * round from the front, or a book in hand put onto the empty one at [Shelve.position]; a turn by [Turn.by] trays; or
- * nothing.
- */
-sealed interface WheelUse {
-    data object Front : WheelUse
-    data object None : WheelUse
-    data class Book(val position: Int) : WheelUse
-    data class Shelve(val position: Int) : WheelUse
-    data class Turn(val by: Int) : WheelUse
-}
-
-/** Which of the small wheel's models a state of it is: the stand, in the world, or the moving parts its renderer draws. */
-enum class WheelPiece(private val serializedName: String) : StringRepresentable {
-    STAND("stand"),
-    SHELF("shelf"),
-    ARMS("arms"),
-    ;
-
-    override fun getSerializedName(): String = serializedName
-}
-
-/**
- * Jonah's small wheel, built of any wood and drawn in it, its shelves on the lectern's boards (Jonah, 2026-11-19). A
- * book on any shelf is used where it lies, as a lectern's is, and a book in hand goes onto whichever empty shelf it meets.
- * A use landing anywhere else pushes the wheel away from whoever uses it, by the half it lands in: above the axle from
- * the front, the front shelf rises to the top; below it, the front shelf sinks beneath; from behind, the other way.
- */
-class SmallBookWheelBlock(properties: Properties) : BookWheelBlock(properties) {
-    override val form: WheelForm get() = WheelForm.SMALL
-
-    init {
-        registerDefaultState(defaultBlockState().setValue(WOOD, WoodKind.OAK).setValue(PIECE, WheelPiece.STAND))
-    }
-
-    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        super.createBlockStateDefinition(builder)
-        builder.add(WOOD, PIECE)
-    }
-
-    override fun usedAt(
-        state: BlockState,
-        pos: BlockPos,
-        player: Player,
-        hitResult: BlockHitResult,
-        wheel: BookWheelBlockEntity,
-        held: ItemStack,
-    ): WheelUse {
-        val corner = Vec3.atLowerCornerOf(pos)
+    /** What [player]'s use of the wheel at [hitResult] means, with [held] in hand. */
+    private fun usedAt(state: BlockState, player: Player, hitResult: BlockHitResult, wheel: BookWheelBlockEntity, held: ItemStack): WheelUse {
+        val corner = Vec3.atLowerCornerOf(wheel.blockPos)
         val facing = state.getValue(FACING)
         val eye = player.eyePosition.subtract(corner)
-        val looked = SmallWheelShelves.lookedAt(facing, eye, hitResult.location.subtract(corner)) { position ->
+        val looked = form.shelves.lookedAt(facing, eye, hitResult.location.subtract(corner)) { position ->
             !wheel.bookIn(wheel.trayAt(position)).isEmpty
         }
-        // A shelf met with a book on it was met from beneath; a book in hand goes onto an empty one.
-        val isShelving = looked is SmallWheelShelves.Look.AtShelf && !held.isEmpty &&
-            wheel.bookIn(wheel.trayAt(looked.position)).isEmpty
+        // A shelf met with a book on it was met from behind its book; a book in hand goes onto an empty one.
+        val isShelving = looked is ShelfLook.AtShelf && !held.isEmpty && wheel.bookIn(wheel.trayAt(looked.position)).isEmpty
+        val pushedBy = form.shelves.pushedBy(facing, eye, looked.point)
         return when {
-            looked is SmallWheelShelves.Look.AtBook -> WheelUse.Book(looked.position)
+            looked is ShelfLook.AtBook -> WheelUse.Book(looked.position)
             isShelving -> WheelUse.Shelve(looked.position)
-            else -> WheelUse.Turn(SmallWheelShelves.pushedBy(facing, eye, looked.point))
+            pushedBy == 0 -> WheelUse.None
+            else -> WheelUse.Turn(pushedBy)
         }
     }
 
     override fun getCloneItemStack(level: LevelReader, pos: BlockPos, state: BlockState, includeData: Boolean): ItemStack =
         BookWheels.inItsWood(super.getCloneItemStack(level, pos, state, includeData), state)
 
+    override fun rotate(state: BlockState, rotation: Rotation): BlockState = state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
+
+    override fun mirror(state: BlockState, mirror: Mirror): BlockState = state.rotate(mirror.getRotation(state.getValue(FACING)))
+
+    /** Whether [state] is the block holding the wheel: the only block of a small one, or the one a bigger one is built round. */
+    fun isHolder(state: BlockState): Boolean {
+        val cells = form.cells ?: return true
+        val cell = form.cell ?: return true
+        return state.getValue(cell) == cells.holder
+    }
+
+    /** The block holding the wheel's books, for its block [state] at [pos]. */
+    fun holderPos(state: BlockState, pos: BlockPos): BlockPos {
+        val cells = form.cells ?: return pos
+        val cell = form.cell ?: return pos
+        return pos.subtract(cells.offsetOf(state.getValue(cell), state.getValue(FACING)))
+    }
+
     companion object {
+        val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
         val WOOD: EnumProperty<WoodKind> = WoodKind.PROPERTY
         val PIECE: EnumProperty<WheelPiece> = EnumProperty.create("piece", WheelPiece::class.java)
+        private const val UNSHADED = 1.0f
     }
 }
 
-/** A small book wheel in hand, named for its wood as a boat or a sign is; one with no wood kept is oak. */
-class SmallBookWheelItem(block: Block, properties: Properties) : BlockItem(block, properties) {
-    override fun getName(stack: ItemStack): Component =
-        BookWheels.nameOf(stack.get(DataComponents.BLOCK_STATE)?.get(SmallBookWheelBlock.WOOD) ?: WoodKind.OAK)
+/** What a use of a wheel means: the book on the shelf at a position round from the front, a book in hand put onto the empty one there, a turn by [Turn.by] shelves, or nothing. */
+sealed interface WheelUse {
+    data object None : WheelUse
+    data class Book(val position: Int) : WheelUse
+    data class Shelve(val position: Int) : WheelUse
+    data class Turn(val by: Int) : WheelUse
+}
+
+/** Which of a wheel's models a state of it is: the stand, in the world, or the moving parts its renderer draws. */
+enum class WheelPiece(private val serializedName: String) : StringRepresentable {
+    STAND("stand"),
+    SHELF("shelf"),
+    WHEEL("wheel"),
+    ;
+
+    override fun getSerializedName(): String = serializedName
+}
+
+class SmallBookWheelBlock(properties: Properties) : BookWheelBlock(properties) {
+    override val form: WheelForm get() = WheelForm.SMALL
 }
 
 class LargeBookWheelBlock(properties: Properties) : BookWheelBlock(properties) {
@@ -427,15 +332,21 @@ class BookCarouselBlock(properties: Properties) : BookWheelBlock(properties) {
     override val form: WheelForm get() = WheelForm.CAROUSEL
 }
 
+/** A wheel in hand, named for its wood as a boat or a sign is; one with no wood kept is oak. */
+class BookWheelItem(private val wheel: BookWheelBlock, properties: Properties) : BlockItem(wheel, properties) {
+    override fun getName(stack: ItemStack): Component =
+        BookWheels.nameOf(wheel, stack.get(DataComponents.BLOCK_STATE)?.get(BookWheelBlock.WOOD) ?: WoodKind.OAK)
+}
+
 /**
- * A wheel's books, by slot, a tray's books side by side ([WheelForm.booksPerTray]) and the trays in order round; and
- * which tray is at the front. Only the server turns it; every client turns its own drawing after ([WheelTurning]).
+ * A wheel's books, a slot to each shelf in order round, and which shelf is at the front. Only the server turns it; every
+ * client turns its own drawing after ([WheelTurning]).
  */
 class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookWheels.ENTITY, pos, state), BookStand {
 
     val form: WheelForm = (state.block as BookWheelBlock).form
 
-    private val books: NonNullList<ItemStack> = NonNullList.withSize(form.books, ItemStack.EMPTY)
+    private val books: NonNullList<ItemStack> = NonNullList.withSize(form.trays, ItemStack.EMPTY)
 
     /** The tray at the front. */
     var frontTray = 0
@@ -457,32 +368,11 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
 
     override fun openPlaces(): Collection<Int> = opened.toList()
 
-    /**
-     * Only the books at the front, where they are read; and of a carousel's two tiers only the upper one, since its model
-     * will have one (Jonah, 2026-11-19).
-     */
-    override fun panelCandidates(): Collection<Int> {
-        val places = (0 until form.booksPerTray).map { slotOf(frontTray, it) }
-        val read = when {
-            // Every shelf of the small wheel is read where it is (Jonah, 2026-11-19).
-            form == WheelForm.SMALL -> (0 until form.books).toList()
-            form.axle == WheelAxle.UPRIGHT -> places.takeLast(1)
-            else -> places
-        }
-        return read.filter { it in opened }
-    }
-
-    /** Lying on its tray where the tray rests, as a lectern would hold it, read from the front. */
+    /** Lying on its shelf where the shelf rests, read from outside the wheel; every shelf's is read where it is (Jonah). */
     override fun openBookPose(place: Int): OpenBookPose {
-        if (form == WheelForm.SMALL) {
-            val position = Math.floorMod(place - frontTray, WheelForm.TRAYS)
-            val surface = SmallWheelShelves.bookSurface(facing, position)
-            val top = Vec3.atLowerCornerOf(blockPos).add(surface.top)
-            return OpenBookPose(facing, top, BookSurface(top, surface.leanedBackDegrees))
-        }
-        val round = (place / form.booksPerTray - frontTray) * WheelTrays.QUARTER_TURN
-        val middle = WheelTrays.openBookMiddle(form, facing, place % form.booksPerTray, round)
-        return OpenBookPose(WheelTrays.outwardFacing(form, facing, round), Vec3.atLowerCornerOf(blockPos).add(middle))
+        val surface = form.shelves.bookSurface(facing, Math.floorMod(place - frontTray, form.trays))
+        val top = Vec3.atLowerCornerOf(blockPos).add(surface.top)
+        return OpenBookPose(facing, top, surface.copy(top = top))
     }
 
     override fun answer(player: ServerPlayer, place: Int, asked: StandAsked) {
@@ -514,20 +404,15 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
 
     fun bookIn(slot: Int): ItemStack = books[slot]
 
-    fun slotOf(tray: Int, along: Int): Int = tray * form.booksPerTray + along
+    /** The shelf [position] round from the front. */
+    fun trayAt(position: Int): Int = Math.floorMod(frontTray + position, form.trays)
 
-    /** The tray [position] round from the front. */
-    fun trayAt(position: Int): Int = Math.floorMod(frontTray + position, WheelForm.TRAYS)
+    fun turnTheWheel() = turning.tick(frontTray, lastTurn, form.trays)
 
-    fun atTheFront(along: Int): ItemStack = books[slotOf(frontTray, along)]
-
-    fun turnTheWheel() = turning.tick(frontTray, lastTurn)
-
-    /** [book] onto place [along] of [tray], which is empty. */
-    fun shelve(tray: Int, along: Int, book: ItemStack) {
-        val slot = slotOf(tray, along)
-        if (!books[slot].isEmpty) return
-        books[slot] = book
+    /** [book] onto [tray], which is empty. */
+    fun shelve(tray: Int, book: ItemStack) {
+        if (!books[tray].isEmpty) return
+        books[tray] = book
         val enchanted = book.`is`(Items.ENCHANTED_BOOK)
         play(if (enchanted) SoundEvents.CHISELED_BOOKSHELF_INSERT_ENCHANTED else SoundEvents.CHISELED_BOOKSHELF_INSERT)
         changed()
@@ -544,9 +429,9 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
         return taken
     }
 
-    /** On by [by] trays, bringing the tray [by] round from the front to it. */
+    /** On by [by] shelves, bringing the shelf [by] round from the front to it. */
     fun turn(by: Int) {
-        frontTray = Math.floorMod(frontTray + by, WheelForm.TRAYS)
+        frontTray = Math.floorMod(frontTray + by, form.trays)
         lastTurn = if (by < 0) -1 else 1
         play(SoundEvents.ITEM_FRAME_ROTATE_ITEM)
         changed()
@@ -571,9 +456,9 @@ class BookWheelBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookW
         super.loadAdditional(input)
         books.clear()
         ContainerHelper.loadAllItems(input, books)
-        frontTray = Math.floorMod(input.getIntOr(FRONT_KEY, 0), WheelForm.TRAYS)
+        frontTray = Math.floorMod(input.getIntOr(FRONT_KEY, 0), form.trays)
         opened.clear()
-        input.read(OPEN_KEY, Codec.INT.listOf()).ifPresent { slots -> opened += slots.filter { it in 0 until form.books } }
+        input.read(OPEN_KEY, Codec.INT.listOf()).ifPresent { slots -> opened += slots.filter { it in 0 until form.trays } }
         lastTurn = if (input.getIntOr(LAST_TURN_KEY, 1) < 0) -1 else 1
     }
 
@@ -607,7 +492,7 @@ class WheelTurning {
     private var at = 0.0f
     private var before = 0.0f
 
-    fun tick(frontTray: Int, lastTurn: Int) {
+    fun tick(frontTray: Int, lastTurn: Int, trays: Int) {
         if (!isStarted) {
             isStarted = true
             target = frontTray
@@ -615,12 +500,12 @@ class WheelTurning {
             before = at
             return
         }
-        val ahead = Math.floorMod(frontTray - target, WheelForm.TRAYS)
+        val ahead = Math.floorMod(frontTray - target, trays)
         target += when {
             ahead == 0 -> 0
-            ahead * 2 == WheelForm.TRAYS -> if (lastTurn < 0) -ahead else ahead
-            ahead * 2 < WheelForm.TRAYS -> ahead
-            else -> ahead - WheelForm.TRAYS
+            ahead * 2 == trays -> if (lastTurn < 0) -ahead else ahead
+            ahead * 2 < trays -> ahead
+            else -> ahead - trays
         }
         before = at
         at = if (at < target) minOf(at + TRAYS_A_TICK, target.toFloat()) else maxOf(at - TRAYS_A_TICK, target.toFloat())
@@ -631,248 +516,8 @@ class WheelTurning {
         if (!isStarted) frontTray.toFloat() else before + (at - before) * partialTick
 
     private companion object {
-        /** A quarter turn in half a second. */
+        /** A tray round in half a second. */
         const val TRAYS_A_TICK = 0.1f
-    }
-}
-
-/**
- * Where a wheel's trays carry their books, in blocks from the corner of the block holding them and in the world's axes,
- * for the renderer and for a book lying open there alike. The art sets these, with its model's trays.
- */
-object WheelTrays {
-    /** From the axle to where a tray carries its book. */
-    const val RADIUS = 4.5 / 16.0
-
-    /** A carousel's tier floor, above the bottom of its block. */
-    const val TIER_FLOOR = 2.0 / 16.0
-
-    /** How far above its tray an open book's middle stands. */
-    const val OPEN_ABOVE_THE_TRAY = 3.0 / 16.0
-
-    const val QUARTER_TURN = Math.PI / 2
-
-    /** Where place [along] of the tray [round] radians round from the front is: over the top, or to the right. */
-    fun trayMiddle(form: WheelForm, facing: Direction, along: Int, round: Double): Vec3 {
-        val forward = Vec3(facing.stepX.toDouble(), 0.0, facing.stepZ.toDouble())
-        val right = facing.counterClockWise.let { Vec3(it.stepX.toDouble(), 0.0, it.stepZ.toDouble()) }
-        val middle = Vec3(HALF, HALF, HALF)
-        return when (form.axle) {
-            WheelAxle.ACROSS -> middle.add(right.scale(along.toDouble()))
-                .add(forward.scale(RADIUS * cos(round))).add(0.0, RADIUS * sin(round), 0.0)
-            WheelAxle.UPRIGHT -> Vec3(HALF, along + TIER_FLOOR, HALF)
-                .add(forward.scale(RADIUS * cos(round))).add(right.scale(RADIUS * sin(round)))
-        }
-    }
-
-    fun openBookMiddle(form: WheelForm, facing: Direction, along: Int, round: Double): Vec3 =
-        trayMiddle(form, facing, along, round).add(0.0, OPEN_ABOVE_THE_TRAY, 0.0)
-
-    /** Which way a book open on the tray [round] radians round is read from: the front, or out from a carousel's axle. */
-    fun outwardFacing(form: WheelForm, facing: Direction, round: Double): Direction = when (form.axle) {
-        WheelAxle.ACROSS -> facing
-        WheelAxle.UPRIGHT -> {
-            val quarters = Math.floorMod(Math.round(round / QUARTER_TURN).toInt(), WheelForm.TRAYS)
-            // A quarter on is the tray to the right, which faces right: anticlockwise of the front, seen from above.
-            (0 until quarters).fold(facing) { turned, _ -> turned.counterClockWise }
-        }
-    }
-
-    private const val HALF = 0.5
-}
-
-/**
- * Where the small wheel's shelves are, as Jonah's model rests them facing north, in its pixels. Each shelf rides an arm
- * of a cross turning on the axle, sliding along it as in a groove (Jonah): from one resting place to the next it turns a
- * quarter with the arm, slides between the two places' distances along it, and tilts between their tilts, so it passes
- * through every resting pose on its way round.
- *
- * Positions are counted round as the trays are: the front, the top, the back and the bottom.
- */
-object SmallWheelShelves {
-    const val FRONT = 0
-    const val TOP = 1
-    const val BACK = 2
-    const val BOTTOM = 3
-
-    /** A shelf's middle, and its tilt about the model's x axis: a negative tilt lowers its front edge. */
-    data class ShelfPose(val middle: Vec3, val tiltDegrees: Double) {
-        private val tilt: Double get() = Math.toRadians(tiltDegrees)
-
-        /** Out of the shelf's top. */
-        val normal: Vec3 get() = Vec3(0.0, cos(tilt), sin(tilt))
-
-        /** Along the shelf's top toward its back edge. */
-        val towardTheBack: Vec3 get() = Vec3(0.0, -sin(tilt), cos(tilt))
-
-        /** The middle of the shelf's top, where a book lies. */
-        val top: Vec3 get() = middle.add(normal.scale(SHELF_THICKNESS / 2))
-
-        /** How far a book on it, read from the front, leans back from upright: a lectern's 67.5 at the front, flat 90. */
-        val leanedBackDegrees: Double get() = QUARTER_TURN_DEGREES + tiltDegrees
-    }
-
-    /** Where the axle runs, across the block. */
-    val AXLE = Vec3(8.0, 9.0, 8.0)
-
-    private const val SHELF_THICKNESS = 1.0
-
-    /** The shelves as Jonah's model rests them, by position; only the front one tilts, so the front is plain (Jonah). */
-    private val AT_REST = listOf(
-        ShelfPose(Vec3(8.0, 9.5, 4.0), -22.5),
-        ShelfPose(Vec3(8.0, 15.5, 8.0), 0.0),
-        ShelfPose(Vec3(8.0, 9.5, 12.0), 0.0),
-        ShelfPose(Vec3(8.0, 2.5, 8.0), 0.0),
-    )
-
-    private const val QUARTER_TURN = Math.PI / 2
-    private const val QUARTER_TURN_DEGREES = 90.0
-    private const val PIXELS = 16.0
-    private const val MIDDLE = 8.0
-    private val POSITIONS = WheelForm.TRAYS.toDouble()
-
-    /** Out along the arm that points [round] radians round from the front. */
-    private fun outward(round: Double) = Vec3(0.0, sin(round), -cos(round))
-
-    /** Across that arm, the way it turns. */
-    private fun sideways(round: Double) = Vec3(0.0, cos(round), sin(round))
-
-    /** How far out along its arm, and across it, the shelf resting at [position] is. */
-    private fun onItsArm(position: Int): Pair<Double, Double> {
-        val round = position * QUARTER_TURN
-        val fromTheAxle = AT_REST[position].middle.subtract(AXLE)
-        return fromTheAxle.dot(outward(round)) to fromTheAxle.dot(sideways(round))
-    }
-
-    /** The shelf at [position] round, fractional between its resting places. */
-    fun poseAt(position: Double): ShelfPose {
-        val wrapped = position - POSITIONS * floor(position / POSITIONS)
-        val from = floor(wrapped).toInt()
-        val to = (from + 1) % WheelForm.TRAYS
-        val share = wrapped - from
-        fun between(a: Double, b: Double) = a + (b - a) * share
-        val (alongFrom, acrossFrom) = onItsArm(from)
-        val (alongTo, acrossTo) = onItsArm(to)
-        val round = wrapped * QUARTER_TURN
-        val middle = AXLE
-            .add(outward(round).scale(between(alongFrom, alongTo)))
-            .add(sideways(round).scale(between(acrossFrom, acrossTo)))
-        return ShelfPose(middle, between(AT_REST[from].tiltDegrees, AT_REST[to].tiltDegrees))
-    }
-
-    /** How far the cross of arms has turned, in degrees about the model's x axis, with [front] the tray at the front. */
-    fun armsTurnedDegrees(front: Double): Double = -front * Math.toDegrees(QUARTER_TURN)
-
-    /** The top a book lies on, on the shelf resting at [position], in the block of a wheel facing [facing]. */
-    fun bookSurface(facing: Direction, position: Int): BookSurface {
-        val pose = AT_REST[position]
-        return BookSurface(toTheBlock(facing, pose.top), pose.leanedBackDegrees)
-    }
-
-    /** What a look at the wheel meets first, and where, in the model's pixels. */
-    sealed interface Look {
-        val point: Vec3
-
-        data class AtBook(val position: Int, override val point: Vec3) : Look
-        data class AtShelf(val position: Int, override val point: Vec3) : Look
-        data class AtFrame(override val point: Vec3) : Look
-    }
-
-    /** Half a shelf across and along it, and a little over, so that a look at its edge meets it. */
-    private const val HALF_ACROSS = 7.5
-    private const val HALF_ALONG = 4.5
-
-    /** How far over its shelf's top a book's open pages stand. */
-    private const val BOOK_OVER_THE_SHELF = 2.0
-
-    /** The plinth, the posts and the arms where they rest. */
-    private val FRAME = listOf(
-        AABB(0.0, 0.0, 0.0, 16.0, 2.0, 16.0),
-        AABB(-1.0, 0.0, 7.0, 0.0, 10.0, 9.0),
-        AABB(16.0, 0.0, 7.0, 17.0, 10.0, 9.0),
-        AABB(0.0, 2.0, 7.0, 1.0, 16.0, 9.0),
-        AABB(15.0, 2.0, 7.0, 16.0, 16.0, 9.0),
-        AABB(0.0, 8.0, 1.0, 1.0, 10.0, 15.0),
-        AABB(15.0, 8.0, 1.0, 16.0, 10.0, 15.0),
-    )
-
-    /** How far a look is followed, in pixels. */
-    private const val LOOKED_THROUGH = 160.0
-
-    /**
-     * What a look from [eye] through [hit], both in blocks from the block's corner, meets first on a wheel facing
-     * [facing] at rest: a book on the shelf at a position [hasABook], a shelf, the frame; or, meeting none of them,
-     * the block where it was hit.
-     */
-    fun lookedAt(facing: Direction, eye: Vec3, hit: Vec3, hasABook: (Int) -> Boolean): Look {
-        val from = inTheModel(facing, eye)
-        val through = inTheModel(facing, hit)
-        val looking = through.subtract(from).normalize()
-        val met = mutableListOf<Pair<Double, Look>>()
-        for ((position, pose) in AT_REST.withIndex()) {
-            if (hasABook(position)) {
-                val pages = pose.top.add(pose.normal.scale(BOOK_OVER_THE_SHELF))
-                alongTheLookTo(pose, pages, from, looking, onlyFromAbove = true)
-                    ?.let { met += it to Look.AtBook(position, from.add(looking.scale(it))) }
-            }
-            alongTheLookTo(pose, pose.middle, from, looking, onlyFromAbove = false)
-                ?.let { met += it to Look.AtShelf(position, from.add(looking.scale(it))) }
-        }
-        val end = from.add(looking.scale(LOOKED_THROUGH))
-        for (box in FRAME) {
-            box.clip(from, end).orElse(null)?.let { met += it.distanceTo(from) to Look.AtFrame(it) }
-        }
-        return met.minByOrNull { it.first }?.second ?: Look.AtFrame(through)
-    }
-
-    /** How far along a look from [from] it meets a shelf like [pose]'s lying at [middle], or null where it misses. */
-    private fun alongTheLookTo(pose: ShelfPose, middle: Vec3, from: Vec3, looking: Vec3, onlyFromAbove: Boolean): Double? {
-        val into = looking.dot(pose.normal)
-        val isEdgeOn = abs(into) < EDGE_ON
-        if (isEdgeOn || (onlyFromAbove && into > 0.0)) return null
-        val along = middle.subtract(from).dot(pose.normal) / into
-        if (along <= 0.0) return null
-        val landed = from.add(looking.scale(along)).subtract(middle)
-        val isOnIt = abs(landed.x) <= HALF_ACROSS && abs(landed.dot(pose.towardTheBack)) <= HALF_ALONG
-        return if (isOnIt) along else null
-    }
-
-    private const val EDGE_ON = 1e-6
-
-    /**
-     * Which way a use landing at [point], in the model's pixels, pushes a wheel facing [facing], used from [eye] in
-     * blocks from its corner: away from whoever pushes it. From the front, above the axle the front shelf rises to the
-     * top (the tray beneath comes to the front); below it, the front shelf sinks beneath; from behind, the other way.
-     */
-    fun pushedBy(facing: Direction, eye: Vec3, point: Vec3): Int {
-        val isFromTheFront = inTheModel(facing, eye).z < AXLE.z
-        val isAboveTheAxle = point.y >= AXLE.y
-        return if (isFromTheFront == isAboveTheAxle) -1 else 1
-    }
-
-    /** A point in the model's pixels, facing north, in the block of a wheel facing [facing]. */
-    fun toTheBlock(facing: Direction, pixels: Vec3): Vec3 {
-        val east = facing.clockWise
-        val back = facing.opposite
-        val across = pixels.x - MIDDLE
-        val toTheBack = pixels.z - MIDDLE
-        return Vec3(
-            (MIDDLE + across * east.stepX + toTheBack * back.stepX) / PIXELS,
-            pixels.y / PIXELS,
-            (MIDDLE + across * east.stepZ + toTheBack * back.stepZ) / PIXELS,
-        )
-    }
-
-    /** A point in the block of a wheel facing [facing], in the model's pixels facing north. */
-    private fun inTheModel(facing: Direction, inTheBlock: Vec3): Vec3 {
-        val east = facing.clockWise
-        val back = facing.opposite
-        val fromTheMiddle = inTheBlock.subtract(0.5, 0.0, 0.5)
-        return Vec3(
-            MIDDLE + (fromTheMiddle.x * east.stepX + fromTheMiddle.z * east.stepZ) * PIXELS,
-            inTheBlock.y * PIXELS,
-            MIDDLE + (fromTheMiddle.x * back.stepX + fromTheMiddle.z * back.stepZ) * PIXELS,
-        )
     }
 }
 
@@ -895,26 +540,27 @@ object BookWheels {
     val BLOCKS: List<BookWheelBlock> = listOf(SMALL, LARGE, CAROUSEL)
 
     val ITEMS: Map<BookWheelBlock, Item> = BLOCKS.associateWith { block ->
-        val properties = Item.Properties().setId(ResourceKey.create(Registries.ITEM, block.form.id.location())).useBlockDescriptionPrefix()
-        if (block == SMALL) SmallBookWheelItem(block, properties) else BlockItem(block, properties)
+        BookWheelItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, block.form.id.location())).useBlockDescriptionPrefix())
     }
 
-    val SMALL_ITEM: Item get() = ITEMS.getValue(SMALL)
+    /** The wheel [item] places, or null. */
+    fun wheelOf(item: Item): BookWheelBlock? = BLOCKS.firstOrNull { ITEMS[it] == item }
 
-    /** "Dark Oak Book Wheel". */
-    fun nameOf(wood: WoodKind): Component = Component.translatable("block.agesandtheart.book_wheel.${wood.serializedName}")
+    /** "Dark Oak Large Book Wheel". */
+    fun nameOf(wheel: BookWheelBlock, wood: WoodKind): Component =
+        Component.translatable("block.agesandtheart.${wheel.form.id}.${wood.serializedName}")
 
-    /** A small book wheel of [wood]. */
-    fun stackOf(wood: WoodKind): ItemStack {
-        val stack = ItemStack(SMALL_ITEM)
-        stack.set(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY.with(SmallBookWheelBlock.WOOD, wood))
+    /** A wheel [wheel] of [wood]. */
+    fun stackOf(wheel: BookWheelBlock, wood: WoodKind): ItemStack {
+        val stack = ItemStack(ITEMS.getValue(wheel))
+        stack.set(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY.with(BookWheelBlock.WOOD, wood))
         return stack
     }
 
-    /** [stack], marked with the wood of the small wheel in [state], as the loot table's `copy_state` marks a broken one. */
+    /** [stack], marked with the wood of the wheel in [state], as the loot table's `copy_state` marks a broken one. */
     fun inItsWood(stack: ItemStack, state: BlockState): ItemStack {
         val properties = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY)
-        stack.set(DataComponents.BLOCK_STATE, properties.with(SmallBookWheelBlock.WOOD, state))
+        stack.set(DataComponents.BLOCK_STATE, properties.with(BookWheelBlock.WOOD, state))
         return stack
     }
 

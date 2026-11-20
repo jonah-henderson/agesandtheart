@@ -156,10 +156,10 @@ object AgeTints {
             PalmWood.SIGN, PalmWood.WALL_SIGN, PalmWood.HANGING_SIGN, PalmWood.WALL_HANGING_SIGN,
         )
         for (block in sawnThroughout) registrar(listOf(sawn, sawn), block)
-        // Only a palm toolbox's, bookstand's or small book wheel's model asks for a tint, so the other woods draw untinted.
+        // Only a palm toolbox's, bookstand's or book wheel's model asks for a tint, so the other woods draw untinted.
         registrar(listOf(sawn), AgeContent.TOOLBOX_BLOCK)
         registrar(listOf(sawn), Bookstands.BLOCK)
-        registrar(listOf(sawn), BookWheels.SMALL)
+        for (wheel in BookWheels.BLOCKS) registrar(listOf(sawn), wheel)
         for (block in listOf(PalmWood.FRONDS, PalmWood.POTTED_SAPLING)) registrar(listOf(green), block)
         for (block in listOf(PalmWood.COCONUT, PalmWood.HANGING_COCONUT)) {
             registrar(listOf(BlockTintSources.constant(opaque(PalmWood.COCONUT_TINT))), block)

@@ -1,35 +1,131 @@
 {
-  "_comment": "[AI] Stand-in frames on vanilla's spruce until the asset pass, modelled facing north. The books are drawn from the left part by `BookWheelRenderer`, the right part a block to the west of it (the right, seen from the front).",
+  "_comment": "[AI] Jonah's large book wheel in the wood it was built of, standing on nothing: its blocks draw only their particles; the wheel and a shelf unturned, for BookWheelRenderer.",
   "variants": {
-    "facing=north,part=left": {
-      "model": "agesandtheart:block/large_book_wheel_left"
+    "piece=stand,wood=oak": {
+      "model": "agesandtheart:block/large_book_wheel_part_oak"
     },
-    "facing=north,part=right": {
-      "model": "agesandtheart:block/large_book_wheel_right"
+    "piece=wheel,wood=oak": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_oak"
     },
-    "facing=east,part=left": {
-      "model": "agesandtheart:block/large_book_wheel_left",
-      "y": 90
+    "piece=shelf,wood=oak": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_oak"
     },
-    "facing=east,part=right": {
-      "model": "agesandtheart:block/large_book_wheel_right",
-      "y": 90
+    "piece=stand,wood=spruce": {
+      "model": "agesandtheart:block/large_book_wheel_part_spruce"
     },
-    "facing=south,part=left": {
-      "model": "agesandtheart:block/large_book_wheel_left",
-      "y": 180
+    "piece=wheel,wood=spruce": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_spruce"
     },
-    "facing=south,part=right": {
-      "model": "agesandtheart:block/large_book_wheel_right",
-      "y": 180
+    "piece=shelf,wood=spruce": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_spruce"
     },
-    "facing=west,part=left": {
-      "model": "agesandtheart:block/large_book_wheel_left",
-      "y": 270
+    "piece=stand,wood=birch": {
+      "model": "agesandtheart:block/large_book_wheel_part_birch"
     },
-    "facing=west,part=right": {
-      "model": "agesandtheart:block/large_book_wheel_right",
-      "y": 270
+    "piece=wheel,wood=birch": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_birch"
+    },
+    "piece=shelf,wood=birch": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_birch"
+    },
+    "piece=stand,wood=jungle": {
+      "model": "agesandtheart:block/large_book_wheel_part_jungle"
+    },
+    "piece=wheel,wood=jungle": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_jungle"
+    },
+    "piece=shelf,wood=jungle": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_jungle"
+    },
+    "piece=stand,wood=acacia": {
+      "model": "agesandtheart:block/large_book_wheel_part_acacia"
+    },
+    "piece=wheel,wood=acacia": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_acacia"
+    },
+    "piece=shelf,wood=acacia": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_acacia"
+    },
+    "piece=stand,wood=dark_oak": {
+      "model": "agesandtheart:block/large_book_wheel_part_dark_oak"
+    },
+    "piece=wheel,wood=dark_oak": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_dark_oak"
+    },
+    "piece=shelf,wood=dark_oak": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_dark_oak"
+    },
+    "piece=stand,wood=mangrove": {
+      "model": "agesandtheart:block/large_book_wheel_part_mangrove"
+    },
+    "piece=wheel,wood=mangrove": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_mangrove"
+    },
+    "piece=shelf,wood=mangrove": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_mangrove"
+    },
+    "piece=stand,wood=cherry": {
+      "model": "agesandtheart:block/large_book_wheel_part_cherry"
+    },
+    "piece=wheel,wood=cherry": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_cherry"
+    },
+    "piece=shelf,wood=cherry": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_cherry"
+    },
+    "piece=stand,wood=pale_oak": {
+      "model": "agesandtheart:block/large_book_wheel_part_pale_oak"
+    },
+    "piece=wheel,wood=pale_oak": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_pale_oak"
+    },
+    "piece=shelf,wood=pale_oak": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_pale_oak"
+    },
+    "piece=stand,wood=bamboo": {
+      "model": "agesandtheart:block/large_book_wheel_part_bamboo"
+    },
+    "piece=wheel,wood=bamboo": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_bamboo"
+    },
+    "piece=shelf,wood=bamboo": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_bamboo"
+    },
+    "piece=stand,wood=crimson": {
+      "model": "agesandtheart:block/large_book_wheel_part_crimson"
+    },
+    "piece=wheel,wood=crimson": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_crimson"
+    },
+    "piece=shelf,wood=crimson": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_crimson"
+    },
+    "piece=stand,wood=warped": {
+      "model": "agesandtheart:block/large_book_wheel_part_warped"
+    },
+    "piece=wheel,wood=warped": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_warped"
+    },
+    "piece=shelf,wood=warped": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_warped"
+    },
+    "piece=stand,wood=poplar": {
+      "model": "agesandtheart:block/large_book_wheel_part_poplar"
+    },
+    "piece=wheel,wood=poplar": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_poplar"
+    },
+    "piece=shelf,wood=poplar": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_poplar"
+    },
+    "piece=stand,wood=palm": {
+      "model": "agesandtheart:block/large_book_wheel_part_palm"
+    },
+    "piece=wheel,wood=palm": {
+      "model": "agesandtheart:block/large_book_wheel_wheel_palm"
+    },
+    "piece=shelf,wood=palm": {
+      "model": "agesandtheart:block/large_book_wheel_shelf_palm"
     }
   }
 }
