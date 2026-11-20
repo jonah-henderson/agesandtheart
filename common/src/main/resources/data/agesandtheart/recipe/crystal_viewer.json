@@ -16,7 +16,7 @@
   "key": {
     "R": "#agesandtheart:rime_crystals",
     "S": "minecraft:spyglass",
-    "B": "minecraft:copper_bulb",
+    "B": ["minecraft:copper_bulb", "minecraft:waxed_copper_bulb"],
     "I": "minecraft:iron_bars",
     "X": "minecraft:prismarine_crystals"
   },
