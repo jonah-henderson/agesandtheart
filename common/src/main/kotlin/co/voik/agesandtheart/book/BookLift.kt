@@ -32,6 +32,7 @@ import net.minecraft.world.ContainerHelper
 import net.minecraft.world.Containers
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
@@ -74,40 +75,67 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * chain up each column between the base and the cap, and a shelf for every block of both columns from the base's row
  * to the cap's.
  *
- * Positions run round the loop from the base of the first column — the left, from the front — up it to the cap, across
- * to the second, and down it back to the base. A loop turned on carries its shelves up the first column; turned back,
- * up the second. Only a shelf in the chain's rows can be reached; those in the base's row and the cap's are passing
- * round the machinery inside them.
+ * Positions run round the loop from the base of the first column — the frame running it — up it to the cap, across the
+ * top through any frames between the two caps, down the far column, and back across the bottom through any frames
+ * between the two bases (Jonah, 2026-11-19). A loop turned on carries its shelves up the first column; turned back, up
+ * the far one. Only a shelf in the chain's rows can be reached; the rest are passing round inside the frames.
  */
-data class BookLiftLoop(val chainLength: Int) {
+data class BookLiftLoop(val chainLength: Int, val span: Int = 1) {
 
-    /** The rows from the base's to the cap's. */
+    /** A place in the loop: how many blocks across from the first column, and how far up from the bases' row. */
+    data class Cell(val across: Int, val row: Int)
+
+    /** The rows from the bases' to the caps'. */
     val rows: Int get() = chainLength + 2
 
-    val shelves: Int get() = rows * 2
+    val top: Int get() = rows - 1
 
-    /** Which column position [position] is in, and which row, the base's being 0. */
-    fun cellOf(position: Int): Pair<Int, Int> {
+    /** The frames between the two columns, along the top or along the bottom. */
+    private val between: Int get() = span - 1
+
+    val shelves: Int get() = rows * 2 + between * 2
+
+    fun cellOf(position: Int): Cell {
         val round = Math.floorMod(position, shelves)
-        return if (round < rows) 0 to round else 1 to (shelves - 1 - round)
+        val upTheFirst = rows
+        val acrossTheTop = upTheFirst + between
+        val downTheFar = acrossTheTop + rows
+        return when {
+            round < upTheFirst -> Cell(0, round)
+            round < acrossTheTop -> Cell(round - upTheFirst + 1, top)
+            round < downTheFar -> Cell(span, top - (round - acrossTheTop))
+            else -> Cell(span - 1 - (round - downTheFar), 0)
+        }
     }
 
-    fun positionOf(column: Int, row: Int): Int = if (column == 0) row else shelves - 1 - row
+    /** The position at [row] of [column], the first (0) or the far one (1). */
+    fun positionOf(column: Int, row: Int): Int = if (column == 0) row else rows + between + (top - row)
+
+    /** How many blocks across from the first column [column] is. */
+    fun acrossOf(column: Int): Int = if (column == 0) 0 else span
 
     fun isReachable(row: Int): Boolean = row in 1..chainLength
 
     companion object {
-        /** The most chain a book lift hangs up each column (Jonah, 2026-11-18): forty lengths, and 44 shelves. */
+        /** The most chain a book lift hangs up each column (Jonah, 2026-11-18): forty lengths. */
         const val LONGEST_CHAIN = 20
 
-        val MOST_SHELVES: Int = BookLiftLoop(LONGEST_CHAIN).shelves
+        /** The most frames across a lift's top or bottom, its two columns' included. */
+        const val MOST_FRAMES_ACROSS = 8
+        const val WIDEST_SPAN = MOST_FRAMES_ACROSS - 1
+
+        val MOST_SHELVES: Int = BookLiftLoop(LONGEST_CHAIN, WIDEST_SPAN).shelves
     }
 }
 
-/** Which end of its column a book lift frame is: a base, its hold on top, or a cap over the chain, its hold underneath. */
-enum class FrameEnd(private val key: String) : StringRepresentable {
+/**
+ * Which part of a lift a book lift frame is: a base, its hold on top; a cap over the chain, its hold underneath; or a
+ * frame between two columns' bases or caps, which the books pass through and which has no hold (Jonah, 2026-11-19).
+ */
+enum class FramePart(private val key: String) : StringRepresentable {
     BASE("base"),
     CAP("cap"),
+    BETWEEN("between"),
     ;
 
     override fun getSerializedName(): String = key
@@ -178,14 +206,15 @@ object LiftButtonLayout {
  * A book lift's frame (Jonah, 2026-11-19): one block, facing whoever placed it, which is the way its buttons face and
  * the way the lift's open books are read from. Two frames side by side — beside each other or one behind the other —
  * with chain hung straight up from both to two more frames level with each other make a lift; the four are its corners,
- * and the bottom frame placed first runs it ([BookLiftBlockEntity]). The bottom two are bases and the top two
- * caps ([END]). Only the frame running it has buttons ([BUTTONS], Jonah), showing which is pressed ([PRESSED]). While
- * nothing powers the lift ([POWERED]), every button is in, dark and locked (Jonah).
+ * and the bottom frame placed first runs it ([BookLiftBlockEntity]). A row of frames may stand between the two bases
+ * and another between the two caps, which the books pass through. The bottom ends are bases, the top ends caps and the
+ * rest between ([PART]). Only the frame running it has buttons ([BUTTONS], Jonah), showing which is pressed
+ * ([PRESSED]). While nothing powers the lift ([POWERED]), every button is in, dark and locked (Jonah).
  *
  * A frame shows what it will be as the lift is built, before it stands (Jonah, 2026-11-19), from what is beside it: with
- * chain under it, a cap; with chain over it, a base; with neither, what a frame beside it is. It has buttons only as a base
- * with no base beside it that has them already, so the first placed keeps them, and that is the one that will run the lift
- * (Jonah).
+ * chain under it, a cap; with chain over it, a base; with frames either side of it, between; at the end of a row, what
+ * the nearest frame along it that is not between is. It has buttons only as the base placed first along its row, which
+ * is the one that will run the lift (Jonah).
  *
  * Its buttons turn the lift ([LiftButton]). Breaking any frame brings the whole lift down, the other frames, the chain
  * and the books (Jonah).
@@ -196,7 +225,7 @@ class BookLiftFrameBlock(properties: Properties) : BaseEntityBlock(properties) {
         registerDefaultState(
             stateDefinition.any()
                 .setValue(FACING, Direction.NORTH)
-                .setValue(END, FrameEnd.BASE)
+                .setValue(PART, FramePart.BASE)
                 .setValue(BUTTONS, true)
                 .setValue(POWERED, false)
                 .setValue(PRESSED, LiftButton.STOP),
@@ -204,7 +233,7 @@ class BookLiftFrameBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(FACING, END, BUTTONS, POWERED, PRESSED)
+        builder.add(FACING, PART, BUTTONS, POWERED, PRESSED)
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
@@ -222,6 +251,10 @@ class BookLiftFrameBlock(properties: Properties) : BaseEntityBlock(properties) {
     ): BlockState = shownAt(level, pos, state)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BookLiftBlockEntity(pos, state)
+
+    override fun setPlacedBy(level: Level, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
+        (level.getBlockEntity(pos) as? BookLiftBlockEntity)?.placedNow()
+    }
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
@@ -262,38 +295,60 @@ class BookLiftFrameBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     companion object {
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
-        val END: EnumProperty<FrameEnd> = EnumProperty.create("end", FrameEnd::class.java)
+        val PART: EnumProperty<FramePart> = EnumProperty.create("part", FramePart::class.java)
         val BUTTONS: BooleanProperty = BooleanProperty.create("buttons")
         val POWERED: BooleanProperty = BlockStateProperties.POWERED
         val PRESSED: EnumProperty<LiftButton> = EnumProperty.create("pressed", LiftButton::class.java)
 
         private const val PIXELS = 16.0
 
-        /** [state] at [pos] shown as the end it is, with buttons where it runs, or will run, a lift. */
+        /** [state] at [pos] shown as the part it is, with buttons where it runs, or will run, a lift. */
         fun shownAt(level: LevelReader, pos: BlockPos, state: BlockState): BlockState {
-            val end = endAt(level, pos)
-            return state.setValue(END, end).setValue(BUTTONS, hasButtonsAt(level, pos, end))
+            val part = partAt(level, pos)
+            return state.setValue(PART, part).setValue(BUTTONS, hasButtonsAt(level, pos, part))
         }
 
-        private fun endAt(level: LevelReader, pos: BlockPos): FrameEnd {
+        private fun isAFrame(state: BlockState): Boolean = state.`is`(BookLifts.FRAME)
+
+        /** The frames in a row from [pos] toward [direction], not [pos]'s own, as far as they run unbroken. */
+        private fun rowFrom(level: LevelReader, pos: BlockPos, direction: Direction): List<Pair<BlockPos, BlockState>> =
+            (1..BookLiftLoop.WIDEST_SPAN).asSequence()
+                .map { pos.relative(direction, it) }
+                .map { it to level.getBlockState(it) }
+                .takeWhile { (_, state) -> isAFrame(state) }
+                .toList()
+
+        private fun partAt(level: LevelReader, pos: BlockPos): FramePart {
             fun isChain(state: BlockState): Boolean {
                 val isUprightChain = state.`is`(BlockTags.CHAINS) && state.getValue(ChainBlock.AXIS) == Direction.Axis.Y
                 return isUprightChain || state.`is`(BookLifts.SHELF)
             }
-            if (isChain(level.getBlockState(pos.below()))) return FrameEnd.CAP
-            if (isChain(level.getBlockState(pos.above()))) return FrameEnd.BASE
-            val besideIt = Direction.Plane.HORIZONTAL.map { level.getBlockState(pos.relative(it)) }.firstOrNull { it.`is`(BookLifts.FRAME) }
-            return besideIt?.getValue(END) ?: FrameEnd.BASE
+            if (isChain(level.getBlockState(pos.below()))) return FramePart.CAP
+            if (isChain(level.getBlockState(pos.above()))) return FramePart.BASE
+            fun isAFrameToward(direction: Direction) = isAFrame(level.getBlockState(pos.relative(direction)))
+            val isInARow = Direction.Plane.HORIZONTAL.any { isAFrameToward(it) && isAFrameToward(it.opposite) }
+            if (isInARow) return FramePart.BETWEEN
+            val endOfTheRow = Direction.Plane.HORIZONTAL.firstNotNullOfOrNull { direction ->
+                rowFrom(level, pos, direction).map { (_, state) -> state.getValue(PART) }.firstOrNull { it != FramePart.BETWEEN }
+            }
+            return endOfTheRow ?: FramePart.BASE
         }
 
-        /** A standing lift's own frame, or else a base beside no base with buttons, which a lift would be run from. */
-        private fun hasButtonsAt(level: LevelReader, pos: BlockPos, end: FrameEnd): Boolean {
-            if (end == FrameEnd.CAP) return false
+        /** A standing lift's own frame, or else the base placed first along its rows, which a lift would be run from. */
+        private fun hasButtonsAt(level: LevelReader, pos: BlockPos, part: FramePart): Boolean {
+            if (part != FramePart.BASE) return false
             val frame = level.getBlockEntity(pos) as? BookLiftBlockEntity
             frame?.controller()?.let { return it === frame }
-            fun isABase(state: BlockState) = state.`is`(BookLifts.FRAME) && state.getValue(END) == FrameEnd.BASE
-            fun hasButtons(state: BlockState) = isABase(state) && state.getValue(BUTTONS)
-            return Direction.Plane.HORIZONTAL.none { hasButtons(level.getBlockState(pos.relative(it))) }
+            val placed = frame?.placedAt ?: BookLiftBlockEntity.PLACED_JUST_NOW
+            fun wasPlacedBefore(otherPos: BlockPos, other: BlockState): Boolean {
+                if (other.getValue(PART) != FramePart.BASE) return false
+                val otherPlaced = (level.getBlockEntity(otherPos) as? BookLiftBlockEntity)?.placedAt ?: BookLiftBlockEntity.PLACED_JUST_NOW
+                // Placed in the same tick, or neither known: the one further west or north.
+                return otherPlaced < placed || (otherPlaced == placed && otherPos < pos)
+            }
+            return Direction.Plane.HORIZONTAL.none { direction ->
+                rowFrom(level, pos, direction).any { (otherPos, other) -> wasPlacedBefore(otherPos, other) }
+            }
         }
     }
 }
@@ -534,13 +589,14 @@ class BookLiftShelfBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(B
 
 /**
  * A book lift frame's block entity. Every frame has one; the frame that runs a lift ([isStanding]) holds its books and
- * how it is turning, and the lift's other three frames only say which frame that is ([controller]).
+ * how it is turning, and the lift's other frames only say which frame that is ([controller]). Each remembers when it was
+ * placed, since the first base placed along a row is the one with buttons.
  *
- * **It stands** while two frames side by side, two more level with each other above them at most
- * [BookLiftLoop.LONGEST_CHAIN] blocks up, and chain — iron or copper, hung straight — up both columns between are all
- * there; each length then becomes a [BookLiftShelfBlock]. Of the two bottom frames, the one placed first runs it, the one
- * with buttons (Jonah, 2026-11-19), and its facing is the way the lift's books are read. A block of arc
- * crystal beside either bottom frame runs it, at one speed whatever its height. The server looks at it twice a second,
+ * **It stands** while a row of frames at the bottom, chain — iron or copper, hung straight — up from both its ends, and
+ * a row of frames as long across their tops at most [BookLiftLoop.LONGEST_CHAIN] blocks up are all there, the rows at
+ * most [BookLiftLoop.MOST_FRAMES_ACROSS] frames long; each length then becomes a [BookLiftShelfBlock]. The base with
+ * buttons runs it (Jonah, 2026-11-19), and its facing is the way the lift's books are read. A block of arc
+ * crystal beside any bottom frame runs it, at one speed whatever its height. The server looks at it twice a second,
  * and at once when something beside a frame or a shelf changes.
  *
  * **It comes down** as Jonah ruled: a shelf broken breaks the whole chain, and the books drop where their shelves were,
@@ -586,8 +642,17 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
     private var isPowered = false
     private var shouldLookAgain = true
 
-    /** On the frame running a lift: from it toward the other bottom frame, the second column. */
+    /** On the frame running a lift: from it toward the far column. */
     private var towardThePartner: Direction = Direction.EAST
+
+    /** When the frame was placed, in game ticks: [PLACED_JUST_NOW] until a player places it, and 0 for one placed before this was kept. */
+    var placedAt: Long = PLACED_JUST_NOW
+        private set
+
+    fun placedNow() {
+        placedAt = level?.gameTime ?: return
+        setChanged()
+    }
 
     /** On a lift's other frames: the frame running it. */
     private var runBy: BlockPos? = null
@@ -598,9 +663,6 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
         val by = runBy ?: return null
         return (level?.getBlockEntity(by) as? BookLiftBlockEntity)?.takeIf { it.isStanding }
     }
-
-    /** Which column a frame or space at [pos] is in, or null where it is in neither. */
-    fun columnOf(pos: BlockPos): Int? = (0..1).firstOrNull { columnBase(it).x == pos.x && columnBase(it).z == pos.z }
 
     /** The shelves whose books lie open, which they stay as the lift runs. */
     private val opened = HashSet<Int>()
@@ -616,13 +678,13 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
     /** The open books on shelves a player can reach, not those passing round inside the frames; the nearest is chosen. */
     override fun panelCandidates(): Collection<Int> {
         val loop = loop ?: return emptyList()
-        return opened.filter { loop.isReachable(loop.cellOf(it + shift).second) }
+        return opened.filter { loop.isReachable(loop.cellOf(it + shift).row) }
     }
 
     /** Lying open on its shelf's platform, where the shelf rests, read from the lift's front. */
     override fun openBookPose(place: Int): OpenBookPose {
-        val (column, row) = (loop ?: BookLiftLoop(1)).cellOf(place + shift)
-        return OpenBookPose(facing, Vec3.atLowerCornerOf(columnBase(column).above(row)).add(LiftPlatform.bookMiddle(facing)))
+        val cell = (loop ?: BookLiftLoop(1)).cellOf(place + shift)
+        return OpenBookPose(facing, Vec3.atLowerCornerOf(cellAt(cell)).add(LiftPlatform.bookMiddle(facing)))
     }
 
     override fun answer(player: ServerPlayer, place: Int, asked: StandAsked) {
@@ -651,8 +713,10 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
 
     val facing: Direction get() = blockState.getValue(BookLiftFrameBlock.FACING)
 
-    /** The bottom of [column]: the bottom frame in it. */
-    fun columnBase(column: Int): BlockPos = if (column == 0) blockPos else blockPos.relative(towardThePartner)
+    /** Where [across] blocks toward the far column and [row] up from this frame is. */
+    private fun cellAt(across: Int, row: Int): BlockPos = blockPos.relative(towardThePartner, across).above(row)
+
+    private fun cellAt(cell: BookLiftLoop.Cell): BlockPos = cellAt(cell.across, cell.row)
 
     fun lookAgain() {
         shouldLookAgain = true
@@ -792,7 +856,7 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
     }
 
     private fun forEachShelf(loop: BookLiftLoop, action: (column: Int, row: Int, pos: BlockPos) -> Unit) {
-        for (column in 0..1) for (row in 1..loop.chainLength) action(column, row, columnBase(column).above(row))
+        for (column in 0..1) for (row in 1..loop.chainLength) action(column, row, cellAt(loop.acrossOf(column), row))
     }
 
     private fun forEachShelf(loop: BookLiftLoop, action: (BlockPos) -> Unit) = forEachShelf(loop) { _, _, pos -> action(pos) }
@@ -806,7 +870,7 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
             if (runBy == null) standUp(level)
             return
         }
-        val everyFrameStands = level.getBlockState(columnBase(1)).`is`(BookLifts.FRAME) && topFramesAt(level, standing.chainLength + 1)
+        val everyFrameStands = frames(standing).all { level.getBlockState(it).`is`(BookLifts.FRAME) }
         if (!everyFrameStands) {
             comeDown(level, alsoTheFrames = true)
             level.destroyBlock(blockPos, true)
@@ -818,12 +882,9 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
             comeDown(level, alsoTheFrames = false)
             return
         }
-        isPowered = hasArcCrystalBeside(level)
+        isPowered = hasArcCrystalBeside(level, standing)
         showOnTheFrames(level)
     }
-
-    /** Whether a frame stands [up] blocks above each column's bottom. */
-    private fun topFramesAt(level: Level, up: Int): Boolean = (0..1).all { level.getBlockState(columnBase(it).above(up)).`is`(BookLifts.FRAME) }
 
     /** A frame of no lift at [pos], free to be claimed by this one. */
     private fun isAFreeFrame(level: Level, pos: BlockPos): Boolean {
@@ -832,23 +893,34 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
     }
 
     /**
-     * Stands it up where this frame has buttons and a free frame beside it, chain hangs straight up both columns, and two
-     * free frames close them at the top: each length made a shelf, every shelf empty, the first at the bottom of this
-     * frame's column. Only the frame with buttons stands it, so each pair is tried once.
+     * Stands it up where this frame has buttons and a row of free frames runs from it to one with chain over it, chain
+     * hangs straight up from both ends, and a row of free frames as long closes them at the top: each length made a shelf,
+     * every shelf empty, the first at the bottom of this frame's column. Only the frame with buttons stands it, so each
+     * lift is tried once.
      */
     private fun standUp(level: Level) {
         val state = blockState
         if (!state.`is`(BookLifts.FRAME) || !state.getValue(BookLiftFrameBlock.BUTTONS)) return
         for (toward in Direction.Plane.HORIZONTAL) {
             towardThePartner = toward
-            if (!isAFreeFrame(level, columnBase(1))) continue
+            val span = spanAlongTheRow(level) ?: continue
             var up = 1
-            while (up <= BookLiftLoop.LONGEST_CHAIN && (0..1).all { isChain(level.getBlockState(columnBase(it).above(up))) }) up++
+            while (up <= BookLiftLoop.LONGEST_CHAIN && listOf(0, span).all { isChain(level.getBlockState(cellAt(it, up))) }) up++
             val chainLength = up - 1
-            if (chainLength < 1 || !(0..1).all { isAFreeFrame(level, columnBase(it).above(up)) }) continue
-            standUp(level, BookLiftLoop(chainLength))
+            if (chainLength < 1 || !(0..span).all { isAFreeFrame(level, cellAt(it, up)) }) continue
+            standUp(level, BookLiftLoop(chainLength, span))
             return
         }
+    }
+
+    /** How far toward the partner the far column is: the first free frame along the row with chain over it, past only free frames. */
+    private fun spanAlongTheRow(level: Level): Int? {
+        for (across in 1..BookLiftLoop.WIDEST_SPAN) {
+            val frame = cellAt(across, 0)
+            if (!isAFreeFrame(level, frame)) return null
+            if (isChain(level.getBlockState(frame.above()))) return across
+        }
+        return null
     }
 
     private fun standUp(level: Level, standing: BookLiftLoop) {
@@ -868,15 +940,15 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
         direction = 0
         asked = 0
         books.clear()
-        isPowered = hasArcCrystalBeside(level)
+        isPowered = hasArcCrystalBeside(level, standing)
         showOnTheFrames(level)
         play(SoundEvents.CHAIN_PLACE)
         changed()
     }
 
-    /** The lift's frames but this one: the other at the bottom, and the two at the top. */
+    /** The lift's frames but this one: the rest of the bottom row, and the top row. */
     private fun otherFrames(standing: BookLiftLoop): List<BlockPos> =
-        listOf(columnBase(1), columnBase(0).above(standing.chainLength + 1), columnBase(1).above(standing.chainLength + 1))
+        (1..standing.span).map { cellAt(it, 0) } + (0..standing.span).map { cellAt(it, standing.top) }
 
     /** Made one of the lift run by the frame at [controller], or none with null. */
     fun claimedBy(controller: BlockPos?) {
@@ -886,10 +958,10 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
 
     private fun isChain(state: BlockState): Boolean = state.`is`(BlockTags.CHAINS) && state.getValue(ChainBlock.AXIS) == Direction.Axis.Y
 
-    /** A block of arc crystal against either bottom frame, on any side but its top. */
-    private fun hasArcCrystalBeside(level: Level): Boolean = (0..1).any { column ->
-        val base = columnBase(column)
-        Direction.entries.filter { it != Direction.UP }.any { level.getBlockState(base.relative(it)).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) }
+    /** A block of arc crystal against any bottom frame, on any side but its top. */
+    private fun hasArcCrystalBeside(level: Level, standing: BookLiftLoop): Boolean = (0..standing.span).any { across ->
+        val frame = cellAt(across, 0)
+        Direction.entries.filter { it != Direction.UP }.any { level.getBlockState(frame.relative(it)).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) }
     }
 
     /** Its books dropped where their shelves are and the whole chain broken, and with [alsoTheFrames], its other frames. */
@@ -918,8 +990,7 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
             val book = books[shelf]
             if (book.isEmpty) continue
             books[shelf] = ItemStack.EMPTY
-            val (column, row) = standing.cellOf(shelf + shift)
-            val at = columnBase(column).above(row)
+            val at = cellAt(standing.cellOf(shelf + shift))
             Containers.dropItemStack(level, at.x + HALF, at.y + HALF, at.z + HALF, book)
         }
     }
@@ -955,7 +1026,9 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
         val chainLength = input.getIntOr(CHAIN_KEY, 0).coerceIn(0, BookLiftLoop.LONGEST_CHAIN)
         towardThePartner = input.read(PARTNER_KEY, Direction.CODEC).orElse(Direction.EAST)
         runBy = input.read(RUN_BY_KEY, BlockPos.CODEC).orElse(null)
-        loop = if (chainLength > 0) BookLiftLoop(chainLength) else null
+        val span = input.getIntOr(SPAN_KEY, 1).coerceIn(1, BookLiftLoop.WIDEST_SPAN)
+        loop = if (chainLength > 0) BookLiftLoop(chainLength, span) else null
+        placedAt = input.getLongOr(PLACED_KEY, 0L)
         shift = input.getIntOr(SHIFT_KEY, 0)
         opened.clear()
         input.read(OPEN_KEY, Codec.INT.listOf()).ifPresent { shelves -> opened += shelves.filter { it in 0 until BookLiftLoop.MOST_SHELVES } }
@@ -970,6 +1043,8 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
         super.saveAdditional(output)
         ContainerHelper.saveAllItems(output, books, true)
         output.putInt(CHAIN_KEY, loop?.chainLength ?: 0)
+        output.putInt(SPAN_KEY, loop?.span ?: 1)
+        output.putLong(PLACED_KEY, placedAt)
         output.store(PARTNER_KEY, Direction.CODEC, towardThePartner)
         runBy?.let { output.store(RUN_BY_KEY, BlockPos.CODEC, it) }
         output.putInt(SHIFT_KEY, shift)
@@ -999,6 +1074,11 @@ class BookLiftBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(BookLi
         private const val MOVED_SHIFT_STRIDE = 4
 
         private const val CHAIN_KEY = "chain"
+        private const val SPAN_KEY = "span"
+        private const val PLACED_KEY = "placed_at"
+
+        /** A frame not yet placed by anybody, which counts as placed after every other. */
+        const val PLACED_JUST_NOW = Long.MAX_VALUE
         private const val SHIFT_KEY = "shift"
         private const val OPEN_KEY = "open"
         private const val PARTNER_KEY = "toward_the_partner"

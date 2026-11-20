@@ -6,16 +6,17 @@ The book lift's models, from Jonah's Blockbench project.
 
 Writes, under the mod's assets:
 
-- `models/block/book_lift_frame_base.json` and `book_lift_frame_cap.json`, the project's `base` group: a frame's box,
-  its buttons' panel to the front and its wheels to either side. A base has the hold on top, where the shelves go in
-  and out, and the cap has it underneath; each has the other's face on its far side. The back is the front's panel.
+- `models/block/book_lift_frame_<part>.json`, the project's `base` group: a frame's box, its buttons' panel to the
+  front and its wheels to either side. A base has the hold on top, where the shelves go in and out, and a cap has it
+  underneath; each has the other's face on its far side. A frame between two columns has no hold, and the far face on
+  both. The back is the front's panel.
 - `models/block/book_lift_button_<button>.json`, `_pressed.json` and `_locked.json`, each of the `buttons` group's
   buttons out, in by half a pixel and lit, and in and dark. Out, its faces take tint 1, the dark grey; pressed, tint 0,
   the yellow; locked, while nothing powers the lift, tint 2, the same grey (`AgeTints`). A button's face mapped onto pixels of the texture not yet painted is put on the button grey
   instead, and named, so it has no holes.
 - `models/block/book_lift_platform.json`, the `platform` group a block lower, where it rests in a shelf's block, tinted
   by the chain it hangs on (`AgeTints`).
-- `blockstates/book_lift_frame.json`: the box by `end`, and where it has `buttons`, each out or in by `pressed`, or all
+- `blockstates/book_lift_frame.json`: the box by `part`, and where it has `buttons`, each out or in by `pressed`, or all
   locked where it is not `powered`, all turned by facing.
 - `blockstates/book_lift_shelf.json`: the platform turned by facing while `shows=platform`, and nothing otherwise.
 - `items/book_lift_frame.json` and `models/item/book_lift_frame.json`: a base, its buttons locked as a frame of no lift
@@ -200,14 +201,16 @@ def main():
     copy_own_textures(project, project_path)
 
     [box] = elements_under(project, "base")
-    # The cap is the base with its hold underneath; the back of either is the front's panel.
-    ends = {
+    # The cap is the base with its hold underneath, and a frame between has the far face both ways; the back of every
+    # one is the front's panel.
+    faces_of_each_part = {
         "base": {"south": "north"},
         "cap": {"south": "north", "up": "down", "down": "up"},
+        "between": {"south": "north", "up": "down"},
     }
-    for end, faces_from in ends.items():
+    for part, faces_from in faces_of_each_part.items():
         model = model_of([with_cullfaces(element_of(box, keys, uv_scale, faces_from=faces_from))], textures)
-        write(ASSETS / f"models/block/book_lift_frame_{end}.json", {"parent": "minecraft:block/block", **model})
+        write(ASSETS / f"models/block/book_lift_frame_{part}.json", {"parent": "minecraft:block/block", **model})
 
     frame_texture = next(t for t in project["textures"] if OWN_TEXTURES[t["name"].removesuffix(".png")][0] == "frame")
     frame_image = Image.open((project_path.parent / frame_texture["relative_path"]).resolve()).convert("RGBA")
@@ -229,8 +232,8 @@ def main():
 
     frame_parts = []
     for facing in FACING_TURNS:
-        for end in ends:
-            frame_parts.append({"when": {"facing": facing, "end": end}, "apply": turned(f"agesandtheart:block/book_lift_frame_{end}", facing)})
+        for part in faces_of_each_part:
+            frame_parts.append({"when": {"facing": facing, "part": part}, "apply": turned(f"agesandtheart:block/book_lift_frame_{part}", facing)})
         for button in BUTTONS:
             others = "|".join(b for b in BUTTONS if b != button)
             running = {"facing": facing, "buttons": "true", "powered": "true"}
@@ -239,7 +242,7 @@ def main():
             locked = {"facing": facing, "buttons": "true", "powered": "false"}
             frame_parts.append({"when": locked, "apply": turned(f"agesandtheart:block/book_lift_button_{button}_locked", facing)})
     write(ASSETS / "blockstates/book_lift_frame.json", {
-        "_comment": "[AI] A book lift frame: its box, a base or a cap, and, on the one running a lift, its five buttons: the one "
+        "_comment": "[AI] A book lift frame: its box, a base, a cap or a frame between, and, on the one running a lift, its five buttons: the one "
                     "pressed in and lit, or every one in and dark while nothing powers it. " + GENERATED,
         "multipart": frame_parts,
     })
@@ -253,7 +256,7 @@ def main():
         ],
     })
 
-    item_elements = [with_cullfaces(element_of(box, keys, uv_scale, faces_from=ends["base"]))]
+    item_elements = [with_cullfaces(element_of(box, keys, uv_scale, faces_from=faces_of_each_part["base"]))]
     for locked in buttons.values():
         item_elements += locked
     write(ASSETS / "models/item/book_lift_frame.json", {

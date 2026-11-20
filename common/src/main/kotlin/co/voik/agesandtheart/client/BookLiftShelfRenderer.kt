@@ -124,9 +124,9 @@ class BookLiftShelfRenderer(context: BlockEntityRendererProvider.Context) :
         if (way == 0) return listOf(piece(0.0f, here - lift.shift, withThePlatform = false))
         val step = ((lift.ticksIntoStep + partialTicks) / BookLiftBlockEntity.STEP_TICKS).coerceIn(0.0f, 1.0f)
         // Positions run along a column, so the block before and the block after are the ones below and above it.
-        val cameFrom = loop.cellOf(here - way).second
+        val cameFrom = loop.cellOf(here - way).row
         val entering = piece((cameFrom - shelf.row) * (1.0f - step), here - way - lift.shift, withThePlatform = true)
-        val goesTo = loop.cellOf(here + way).second
+        val goesTo = loop.cellOf(here + way).row
         if (loop.isReachable(goesTo)) return listOf(entering)
         val leaving = piece((goesTo - shelf.row) * step, here - lift.shift, withThePlatform = true)
         return listOf(entering, leaving)
