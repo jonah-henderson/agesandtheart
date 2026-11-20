@@ -97,7 +97,10 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
         builder.add(FACING, HOME, PART, INDICATOR)
     }
 
-    /** Only on the face of a chiselled bookshelf, facing out of it. */
+    /**
+     * On the side of any block, facing out of it (Jonah, 2026-11-20): over a chiselled bookshelf it reaches the shelf,
+     * and over anything else it is only track, for the carriage to travel.
+     */
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState? {
         val facing = context.clickedFace.takeIf { it.axis.isHorizontal } ?: return null
         val state = defaultBlockState().setValue(FACING, facing)
@@ -105,7 +108,7 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     override fun canSurvive(state: BlockState, level: LevelReader, pos: BlockPos): Boolean =
-        BookFinders.isOnAShelf(level, pos, state.getValue(FACING))
+        BookFinders.isAgainstABlock(level, pos, state.getValue(FACING))
 
     override fun updateShape(
         state: BlockState,
@@ -117,8 +120,8 @@ class BookFinderBlock(properties: Properties) : BaseEntityBlock(properties) {
         neighbourState: BlockState,
         random: RandomSource,
     ): BlockState {
-        val lostItsShelf = directionToNeighbour == state.getValue(FACING).opposite && !state.canSurvive(level, pos)
-        return if (lostItsShelf) Blocks.AIR.defaultBlockState() else state
+        val lostWhatItStandsOn = directionToNeighbour == state.getValue(FACING).opposite && !state.canSurvive(level, pos)
+        return if (lostWhatItStandsOn) Blocks.AIR.defaultBlockState() else state
     }
 
     override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
@@ -240,7 +243,10 @@ class BookFinderFrameBlock(properties: Properties) : Block(properties) {
         builder.add(FACING, INDICATOR)
     }
 
-    /** Only on the face of a chiselled bookshelf, facing out of it. */
+    /**
+     * On the side of any block, facing out of it (Jonah, 2026-11-20): over a chiselled bookshelf it reaches the shelf,
+     * and over anything else it is only track, for the carriage to travel.
+     */
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState? {
         val facing = context.clickedFace.takeIf { it.axis.isHorizontal } ?: return null
         val state = defaultBlockState().setValue(FACING, facing)
@@ -248,7 +254,7 @@ class BookFinderFrameBlock(properties: Properties) : Block(properties) {
     }
 
     override fun canSurvive(state: BlockState, level: LevelReader, pos: BlockPos): Boolean =
-        BookFinders.isOnAShelf(level, pos, state.getValue(FACING))
+        BookFinders.isAgainstABlock(level, pos, state.getValue(FACING))
 
     override fun updateShape(
         state: BlockState,
@@ -260,8 +266,8 @@ class BookFinderFrameBlock(properties: Properties) : Block(properties) {
         neighbourState: BlockState,
         random: RandomSource,
     ): BlockState {
-        val lostItsShelf = directionToNeighbour == state.getValue(FACING).opposite && !state.canSurvive(level, pos)
-        return if (lostItsShelf) Blocks.AIR.defaultBlockState() else state
+        val lostWhatItStandsOn = directionToNeighbour == state.getValue(FACING).opposite && !state.canSurvive(level, pos)
+        return if (lostWhatItStandsOn) Blocks.AIR.defaultBlockState() else state
     }
 
     override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
@@ -1301,11 +1307,16 @@ object BookFinders {
         return held.useOn(UseOnContext(player, hand, hitResult))
     }
 
-    /** Whether something at [pos] facing [facing] is mounted on the face of a chiselled bookshelf facing the same way. */
-    fun isOnAShelf(level: BlockGetter, pos: BlockPos, facing: Direction): Boolean {
-        val behind = level.getBlockState(pos.relative(facing.opposite))
-        return behind.`is`(Blocks.CHISELED_BOOKSHELF) && behind.getValue(ChiseledBookShelfBlock.FACING) == facing
-    }
+    /** Whether something at [pos] facing [facing] is mounted on the side of a block, which any but air or the like is. */
+    fun isAgainstABlock(level: BlockGetter, pos: BlockPos, facing: Direction): Boolean =
+        canCarryATrack(level.getBlockState(pos.relative(facing.opposite)))
+
+    /** Whether a frame or a finder may be built against [state]: anything solid enough not to be built over. */
+    fun canCarryATrack(state: BlockState): Boolean = !state.isAir && !state.canBeReplaced()
+
+    /** Whether [state] is a chiselled bookshelf facing [facing], which a finder on the wall in front of it serves. */
+    fun isAShelfFacing(state: BlockState, facing: Direction): Boolean =
+        state.`is`(Blocks.CHISELED_BOOKSHELF) && state.getValue(ChiseledBookShelfBlock.FACING) == facing
 
     val ENTITY: BlockEntityType<BookFinderBlockEntity> = BlockEntityType({ pos, state -> BookFinderBlockEntity(pos, state) }, setOf(BLOCK))
 

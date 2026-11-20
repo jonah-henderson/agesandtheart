@@ -3,8 +3,6 @@ package co.voik.agesandtheart.book
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.ChiseledBookShelfBlock
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -184,23 +182,23 @@ data class FramePath(val points: List<WallPoint>) {
 }
 
 /**
- * The chiselled bookshelves a book finder can reach (design §7.8.3): every one joined to the shelf it is
- * mounted on, side to side or one over another, facing the way it does, with a book finder frame or another finder over
- * its front, which is the track its frame travels (Jonah, 2026-11-19). A wall reaching into an unloaded chunk stops
- * there, and none is larger than [MOST_SHELVES].
+ * The wall a book finder's carriage travels (design §7.8.3): every block joined to the one it is mounted on, side to
+ * side or one over another, with a book finder frame or another finder over its face, facing the way it does, which is
+ * the [track]; of those, the [shelves] are the chiselled bookshelves facing the same way, the only blocks it searches and
+ * serves (Jonah, 2026-11-20). A wall reaching into an unloaded chunk stops there, and none is larger than [MOST_SHELVES].
  */
-class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: Set<BlockPos>) {
+class BookFinderWall(val finder: BlockPos, val facing: Direction, val track: Set<BlockPos>, val shelves: Set<BlockPos>) {
 
     /** Toward the right as the wall is faced. */
     private val right: Direction = facing.counterClockWise
 
-    /** The spaces in front of the shelves, the finder's own among them. */
-    val room: Set<WallCell> = shelves.mapTo(HashSet()) { cellOf(it) }
+    /** The spaces in front of the wall's track, the finder's own among them. */
+    val room: Set<WallCell> = track.mapTo(HashSet()) { cellOf(it) }
 
-    /** The space in front of [shelf]. */
+    /** The space in front of [shelf], or of any block of the track. */
     fun cellOf(shelf: BlockPos): WallCell = WallCell.of(finder, facing, shelf)
 
-    /** The shelf behind [cell]. */
+    /** The block behind [cell]. */
     fun shelfAt(cell: WallCell): BlockPos = finder.relative(right, cell.across).above(cell.up).relative(facing.opposite)
 
     companion object {
@@ -211,24 +209,23 @@ class BookFinderWall(val finder: BlockPos, val facing: Direction, val shelves: S
             val first = finder.relative(facing.opposite)
             val found = LinkedHashSet<BlockPos>()
             val waiting = ArrayDeque<BlockPos>()
-            fun consider(shelf: BlockPos) {
-                if (found.size >= MOST_SHELVES || shelf in found || !level.isLoaded(shelf) || !level.isLoaded(shelf.relative(facing))) return
-                val state = level.getBlockState(shelf)
-                val isAShelfOfTheWall = state.`is`(Blocks.CHISELED_BOOKSHELF) && state.getValue(ChiseledBookShelfBlock.FACING) == facing
-                if (!isAShelfOfTheWall) return
-                val front = level.getBlockState(shelf.relative(facing))
+            fun consider(block: BlockPos) {
+                if (found.size >= MOST_SHELVES || block in found || !level.isLoaded(block) || !level.isLoaded(block.relative(facing))) return
+                if (!BookFinders.canCarryATrack(level.getBlockState(block))) return
+                val front = level.getBlockState(block.relative(facing))
                 val isAFrameOrAFinder = front.`is`(BookFinders.FRAME) || front.`is`(BookFinders.BLOCK)
-                val hasATrack = shelf.relative(facing) == finder || (isAFrameOrAFinder && front.getValue(BookFinderFrameBlock.FACING) == facing)
+                val hasATrack = block.relative(facing) == finder || (isAFrameOrAFinder && front.getValue(BookFinderFrameBlock.FACING) == facing)
                 if (!hasATrack) return
-                found += shelf
-                waiting.addLast(shelf)
+                found += block
+                waiting.addLast(block)
             }
             consider(first)
             while (waiting.isNotEmpty()) {
-                val shelf = waiting.removeFirst()
-                for (way in listOf(Direction.UP, Direction.DOWN, facing.clockWise, facing.counterClockWise)) consider(shelf.relative(way))
+                val block = waiting.removeFirst()
+                for (way in listOf(Direction.UP, Direction.DOWN, facing.clockWise, facing.counterClockWise)) consider(block.relative(way))
             }
-            return BookFinderWall(finder, facing, found)
+            val shelves = found.filterTo(LinkedHashSet()) { BookFinders.isAShelfFacing(level.getBlockState(it), facing) }
+            return BookFinderWall(finder, facing, found, shelves)
         }
     }
 }

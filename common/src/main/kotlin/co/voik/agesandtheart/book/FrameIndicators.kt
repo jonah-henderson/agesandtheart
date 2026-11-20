@@ -6,8 +6,6 @@ import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.ChiseledBookShelfBlock
 
 /**
  * What each book finder frame's indicator shows. Whether a finder reaches a frame changes with any track on its wall,
@@ -51,7 +49,7 @@ object FrameIndicators {
     private fun settle(level: ServerLevel, shelf: BlockPos, facing: Direction): Set<BlockPos> {
         val joined = joinedTo(level, shelf, facing)
         val finders = joined.map { it.relative(facing) }.filter { level.getBlockState(it).`is`(BookFinders.BLOCK) }
-        val reached = finders.flatMapTo(HashSet()) { BookFinderWall.of(level, it, facing).shelves }
+        val reached = finders.flatMapTo(HashSet()) { BookFinderWall.of(level, it, facing).track }
         for (frameShelf in joined) {
             show(level, frameShelf.relative(facing), facing) { shown ->
                 when {
@@ -88,11 +86,10 @@ object FrameIndicators {
     private fun hasATrack(level: ServerLevel, shelf: BlockPos, facing: Direction): Boolean {
         val front = shelf.relative(facing)
         if (!level.isLoaded(shelf) || !level.isLoaded(front)) return false
-        val state = level.getBlockState(shelf)
-        val isAShelfFacingOut = state.`is`(Blocks.CHISELED_BOOKSHELF) && state.getValue(ChiseledBookShelfBlock.FACING) == facing
         val inFront = level.getBlockState(front)
         val isFinderOrFrame = inFront.`is`(BookFinders.BLOCK) || inFront.`is`(BookFinders.FRAME)
-        return isAShelfFacingOut && isFinderOrFrame && inFront.getValue(BookFinderFrameBlock.FACING) == facing
+        val carriesIt = BookFinders.canCarryATrack(level.getBlockState(shelf))
+        return carriesIt && isFinderOrFrame && inFront.getValue(BookFinderFrameBlock.FACING) == facing
     }
 
     /** The frame or finder at [front] facing [facing], if there is one, shown as [change] has it. */
