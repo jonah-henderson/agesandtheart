@@ -1,0 +1,7 @@
+[feature] the book storage update! loads of new ways to organise your books
+[feature] added book stands. simple, but get the job done for a handful of books
+[feature] added book wheels. what if your book stands could spin?
+[feature] added large book wheels. more book per wheel
+[feature] added book carousels. for those who find the large book wheels too... vertical
+[feature] added book lifts. place up to 8 frames in a row, then another matching row up to 20 blocks above or below them. connect the ends of the row with chains, and find a way to power it. voila, motorised book rotation
+[feature] added book finders. the ultimate in book retrieval. build chiselled bookshelves, outfit them with book finder frames, and connect a finder. it will list all contained books and intelligently seek them out for you. plus, you can ride them. watch your head!
