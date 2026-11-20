@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.28
+line=0.29
 generator=30
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -11,7 +11,14 @@ block agesandtheart:archive
 block agesandtheart:astrite_block
 block agesandtheart:astrite_shard
 block agesandtheart:blue_rime_crystal
+block agesandtheart:book_carousel
+block agesandtheart:book_finder
+block agesandtheart:book_finder_frame
+block agesandtheart:book_lift_frame
+block agesandtheart:book_lift_shelf
+block agesandtheart:book_wheel
 block agesandtheart:bookbinder
+block agesandtheart:bookstand
 block agesandtheart:charged_arc_crystal
 block agesandtheart:coconut
 block agesandtheart:collapsing_fissure
@@ -36,6 +43,7 @@ block agesandtheart:grinder
 block agesandtheart:hanging_coconut
 block agesandtheart:held_air
 block agesandtheart:ink
+block agesandtheart:large_book_wheel
 block agesandtheart:lava_tube
 block agesandtheart:linking_book_receptacle
 block agesandtheart:linking_portal
@@ -98,7 +106,12 @@ block agesandtheart:yellow_rime_crystal
 block_entity_type agesandtheart:advanced_analysis_machine
 block_entity_type agesandtheart:analysis_machine
 block_entity_type agesandtheart:archive
+block_entity_type agesandtheart:book_finder
+block_entity_type agesandtheart:book_lift_frame
+block_entity_type agesandtheart:book_lift_shelf
+block_entity_type agesandtheart:book_wheel
 block_entity_type agesandtheart:bookbinder
+block_entity_type agesandtheart:bookstand
 block_entity_type agesandtheart:drying_rack
 block_entity_type agesandtheart:fusion_compounder
 block_entity_type agesandtheart:linking_book_receptacle
@@ -120,7 +133,14 @@ block_states agesandtheart:archive 1
 block_states agesandtheart:astrite_block 2
 block_states agesandtheart:astrite_shard 24
 block_states agesandtheart:blue_rime_crystal 48
+block_states agesandtheart:book_carousel 1512
+block_states agesandtheart:book_finder 192
+block_states agesandtheart:book_finder_frame 12
+block_states agesandtheart:book_lift_frame 240
+block_states agesandtheart:book_lift_shelf 40
+block_states agesandtheart:book_wheel 168
 block_states agesandtheart:bookbinder 8
+block_states agesandtheart:bookstand 56
 block_states agesandtheart:charged_arc_crystal 1
 block_states agesandtheart:coconut 1
 block_states agesandtheart:collapsing_fissure 1
@@ -145,6 +165,7 @@ block_states agesandtheart:grinder 3
 block_states agesandtheart:hanging_coconut 12
 block_states agesandtheart:held_air 1
 block_states agesandtheart:ink 16
+block_states agesandtheart:large_book_wheel 3024
 block_states agesandtheart:lava_tube 1
 block_states agesandtheart:linking_book_receptacle 2
 block_states agesandtheart:linking_portal 2
@@ -259,7 +280,13 @@ item agesandtheart:archive
 item agesandtheart:astrite_block
 item agesandtheart:astrite_shard
 item agesandtheart:blue_rime_crystal
+item agesandtheart:book_carousel
+item agesandtheart:book_finder
+item agesandtheart:book_finder_frame
+item agesandtheart:book_lift_frame
+item agesandtheart:book_wheel
 item agesandtheart:bookbinder
+item agesandtheart:bookstand
 item agesandtheart:carapace_powder
 item agesandtheart:charged_arc_crystal
 item agesandtheart:charged_arc_crystal_block
@@ -297,6 +324,7 @@ item agesandtheart:hadalfish_lure
 item agesandtheart:ink_bottle
 item agesandtheart:ink_bucket
 item agesandtheart:ink_cake
+item agesandtheart:large_book_wheel
 item agesandtheart:lava_tube
 item agesandtheart:lightless_age_survey
 item agesandtheart:linking_book
@@ -410,7 +438,10 @@ payload agesandtheart:archive_sync
 payload agesandtheart:archive_withdraw
 payload agesandtheart:archive_write
 payload agesandtheart:blizzard
+payload agesandtheart:book_finder_fetch
+payload agesandtheart:book_finder_list
 payload agesandtheart:book_held_open
+payload agesandtheart:book_stand_ask
 payload agesandtheart:bookbinder_rename
 payload agesandtheart:cataclysm
 payload agesandtheart:charged_creature
@@ -429,6 +460,7 @@ payload agesandtheart:lectern_book
 payload agesandtheart:lexicon
 payload agesandtheart:link
 payload agesandtheart:link_ended
+payload agesandtheart:link_from_an_open_book
 payload agesandtheart:machine_catalog
 payload agesandtheart:machine_fill
 payload agesandtheart:machine_recipes
@@ -486,6 +518,10 @@ sound_event agesandtheart:asteroid_shock
 sound_event agesandtheart:asteroid_winter
 sound_event agesandtheart:blizzard_exposed
 sound_event agesandtheart:blizzard_sheltered
+sound_event agesandtheart:block.book_finder.extractor
+sound_event agesandtheart:block.book_finder.junction
+sound_event agesandtheart:block.book_finder.surface
+sound_event agesandtheart:block.book_finder.travel
 sound_event agesandtheart:gale_exposed
 sound_event agesandtheart:gale_sheltered
 sound_event agesandtheart:gust
