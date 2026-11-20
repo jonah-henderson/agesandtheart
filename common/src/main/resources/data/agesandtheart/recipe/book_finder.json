@@ -1,0 +1,21 @@
+{
+  "_comment": "[AI] Temperstone either side of an astrite shard across the top, gold ingots either side of nara probes, and of a block of arc crystal beneath (Jonah, 2026-11-20).",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "TAT",
+    "GPG",
+    "GBG"
+  ],
+  "key": {
+    "T": "agesandtheart:temperstone",
+    "A": "agesandtheart:astrite_shard",
+    "G": "minecraft:gold_ingot",
+    "P": "agesandtheart:compounded_stone_probes",
+    "B": "agesandtheart:arc_crystal_block"
+  },
+  "result": {
+    "id": "agesandtheart:book_finder",
+    "count": 1
+  }
+}

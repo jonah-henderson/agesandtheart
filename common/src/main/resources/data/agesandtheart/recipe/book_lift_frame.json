@@ -1,0 +1,23 @@
+{
+  "_comment": "[AI] Temperstone, deretheni plate and a stone button across the top, chain either side of a chiselled bookshelf, iron ingots either side of an astrite shard beneath (Jonah, 2026-11-20).",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "TPB",
+    "CSC",
+    "IAI"
+  ],
+  "key": {
+    "T": "agesandtheart:temperstone",
+    "P": "agesandtheart:pitchstone_plate",
+    "B": "minecraft:stone_button",
+    "C": "#minecraft:chains",
+    "S": "minecraft:chiseled_bookshelf",
+    "I": "minecraft:iron_ingot",
+    "A": "agesandtheart:astrite_shard"
+  },
+  "result": {
+    "id": "agesandtheart:book_lift_frame",
+    "count": 1
+  }
+}

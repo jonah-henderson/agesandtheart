@@ -1121,7 +1121,7 @@ object BookLifts {
             .noLootTable(),
     )
 
-    val FRAME_ITEM: Item = BlockItem(FRAME, Item.Properties().setId(ResourceKey.create(Registries.ITEM, FRAME_ID)).useBlockDescriptionPrefix())
+    val FRAME_ITEM: Item = HintedBlockItem(FRAME, Item.Properties().setId(ResourceKey.create(Registries.ITEM, FRAME_ID)).useBlockDescriptionPrefix(), lines = 3)
 
     val ENTITY: BlockEntityType<BookLiftBlockEntity> =
         BlockEntityType({ pos, state -> BookLiftBlockEntity(pos, state) }, setOf(FRAME))

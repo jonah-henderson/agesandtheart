@@ -1295,7 +1295,7 @@ object BookFinders {
             .pushReaction(PushReaction.POPPED),
     )
 
-    val ITEM: Item = BlockItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())
+    val ITEM: Item = HintedBlockItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix(), lines = 3)
 
     val FRAME_ID: Identifier = "book_finder_frame".location()
 
