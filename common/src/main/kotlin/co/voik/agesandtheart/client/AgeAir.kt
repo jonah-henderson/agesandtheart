@@ -21,6 +21,8 @@ import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import org.joml.Vector3f
+import org.joml.Vector3fc
 
 /**
  * How an Age's air is painted, on the side that draws it.
@@ -134,21 +136,41 @@ object AgeAir {
         }
     }
 
-    /** One attribute and the value asked of it, kept together so the pair stays typed — as `Atmosphere` does. */
+    /**
+     * One attribute and what is asked of it, kept together so the pair stays typed — as `Atmosphere` does.
+     * Mostly a value laid over whatever was there; [over] is handed that, for a value made from it.
+     */
     private class Painted<Value : Any>(
         private val attribute: EnvironmentAttribute<Value>,
-        private val value: Value,
+        private val over: (below: Value) -> Value,
     ) {
+        constructor(attribute: EnvironmentAttribute<Value>, value: Value) : this(attribute, { _ -> value })
+
         fun everywhere(layers: EnvironmentAttributeSystem.Builder, daylight: Daylight) {
-            layers.addTimeBasedLayer(attribute) { _, tick -> daylight.over(attribute, value, tick) }
+            layers.addTimeBasedLayer(attribute) { below, tick -> daylight.over(attribute, over(below), tick) }
         }
 
         fun onlyIn(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, biome: Identifier, daylight: Daylight) {
             layers.addPositionalLayer(attribute) { below, at, _ ->
                 val here = level.getBiome(BlockPos.containing(at)).unwrapKey().orElse(null)?.identifier()
-                if (here == biome) daylight.over(attribute, value, level.gameTime.toInt()) else below
+                if (here == biome) daylight.over(attribute, over(below), level.gameTime.toInt()) else below
             }
         }
+    }
+
+    /**
+     * [tint]'s hue, as bright as [below] is.
+     *
+     * The lightmap starts every light level from the ambient colour, so it is the darkest anything is drawn.
+     * The world's own is near black (`#0a0a0a` in the overworld), and a tint at full strength would light every
+     * night and cave.
+     */
+    private fun hueAtBrightnessOf(tint: Rgba, below: Vector3fc): Vector3fc {
+        val hue = tint.rgb()
+        val tintBrightness = maxOf(hue.x(), hue.y(), hue.z())
+        if (tintBrightness <= 0f) return hue
+        val belowBrightness = maxOf(below.x(), below.y(), below.z())
+        return Vector3f(hue).mul(belowBrightness / tintBrightness)
     }
 
     /**
@@ -197,7 +219,8 @@ object AgeAir {
      * **One parameter where vanilla has several**, twice over: fog is a far edge with the near one a fixed share
      * of it, so thickening always draws the fog in rather than inverting somewhere in the middle; and the
      * light is the sky's and the ambient together, because a writer who says the light is green means all
-     * of it. Both granular sets are still there for the day a word wants one.
+     * of it — the ambient taking the colour at its own brightness. Both granular sets are still there for the
+     * day a word wants one.
      */
     private fun painting(look: Look): List<Painted<*>> = buildList {
         look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.rgb())) }
@@ -205,9 +228,9 @@ object AgeAir {
         look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.rgb())) }
         look.waterFog?.let { add(Painted(EnvironmentAttributes.WATER_FOG_COLOR, it.rgb())) }
         // One parameter for the light, because a writer who says the light is green means all of it.
-        look.tint?.let {
-            add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.rgb()))
-            add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.rgb()))
+        look.tint?.let { tint ->
+            add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, tint.rgb()))
+            add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR) { below -> hueAtBrightnessOf(tint, below) })
         }
         // How often is `Motes`', not ours: a lava spark has to be thinner than drifting ash to read as air.
         look.motes?.let { named ->
