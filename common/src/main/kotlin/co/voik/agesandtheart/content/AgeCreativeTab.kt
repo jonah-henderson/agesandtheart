@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.location
 import net.minecraft.core.registries.BuiltInRegistries
@@ -30,6 +31,7 @@ object AgeCreativeTab {
                     when (item) {
                         AgeContent.TOOLBOX -> WoodKind.entries.forEach { wood -> output.accept(ToolboxBlock.stackOf(wood)) }
                         Bookstands.ITEM -> WoodKind.entries.forEach { wood -> output.accept(Bookstands.stackOf(wood)) }
+                        BookWheels.SMALL_ITEM -> WoodKind.entries.forEach { wood -> output.accept(BookWheels.stackOf(wood)) }
                         else -> output.accept(item)
                     }
                 }

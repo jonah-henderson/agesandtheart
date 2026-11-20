@@ -56,6 +56,18 @@ object OpenOnAStand {
         BookOnTheSlope.layOnItsBack(open, binding, poseStack)
     }
 
+    /**
+     * [poseStack] carried onto a surface whose middle is at [top], read by somebody looking [readerYRot], the surface
+     * leaning back [leanedBackDegrees] from upright (a lectern's slope 67.5, a flat shelf 90), and the book [open] of
+     * the way open.
+     */
+    fun poseLyingOn(poseStack: PoseStack, top: Vec3, readerYRot: Float, leanedBackDegrees: Float, binding: BookBinding, open: Float) {
+        poseStack.translate(top.x, top.y, top.z)
+        poseStack.rotate(Axis.YP.rotationDegrees(-readerYRot))
+        poseStack.rotate(Axis.ZP.rotationDegrees(leanedBackDegrees))
+        BookOnTheSlope.layOnItsBack(open, binding, poseStack)
+    }
+
     /** As a lectern facing [facing] is read. */
     fun readerYRotOf(facing: Direction): Float = facing.clockWise.toYRot()
 

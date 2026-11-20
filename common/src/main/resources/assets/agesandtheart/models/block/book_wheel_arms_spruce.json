@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/book_wheel_arms",
+  "textures": {
+    "planks": "minecraft:block/spruce_planks"
+  }
+}

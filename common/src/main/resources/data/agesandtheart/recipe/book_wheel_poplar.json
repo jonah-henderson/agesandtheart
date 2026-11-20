@@ -1,0 +1,23 @@
+{
+  "_comment": "[AI] Slabs above, either side and below its middle, planks in the middle and the two lower corners (Jonah, 2026-11-19).",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "group": "book_wheel",
+  "key": {
+    "S": "minecraft:poplar_slab",
+    "P": "minecraft:poplar_planks"
+  },
+  "pattern": [
+    " S ",
+    "SPS",
+    "PSP"
+  ],
+  "result": {
+    "id": "agesandtheart:book_wheel",
+    "components": {
+      "minecraft:block_state": {
+        "wood": "poplar"
+      }
+    }
+  }
+}

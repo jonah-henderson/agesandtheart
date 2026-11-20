@@ -97,8 +97,17 @@ object LecternBookPlane {
      * The same, for a book held as a lectern holds it with the lectern's block corner at [corner] — as a book finder's
      * frame holds one, lower than a lectern would.
      */
-    fun spotLookedAt(facing: Direction, corner: Vec3, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? {
-        val frame = frameOf(facing, corner, binding)
+    fun spotLookedAt(facing: Direction, corner: Vec3, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? =
+        spotOn(frameOf(facing, corner, binding), eye, through)
+
+    /**
+     * The same, for a book read from [facing] lying on a surface whose middle is at [top], leaning back [leanedBackDegrees]
+     * from upright: a lectern's slope 67.5, a flat shelf 90, and one leaning away more.
+     */
+    fun spotLookedAtOn(facing: Direction, top: Vec3, leanedBackDegrees: Double, binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? =
+        spotOn(frameOn(facing, top, leanedBackDegrees, binding), eye, through)
+
+    private fun spotOn(frame: Frame, eye: Vec3, through: Vec3): LecternBookSpot? {
         val direction = through.subtract(eye)
         val intoTheFace = direction.dot(frame.normal)
         // Edge-on or from behind: a book is read from its reader's side and no other.
@@ -126,13 +135,18 @@ object LecternBookPlane {
     private class Frame(val surface: Vec3, val normal: Vec3, val upThePage: Vec3, val towardTheLeft: Vec3)
 
     private fun frameOf(facing: Direction, corner: Vec3, binding: BookBinding): Frame {
-        val tilt = Math.toRadians(TILT_DEGREES)
+        val slope = frameOn(facing, Vec3.ZERO, TILT_DEGREES, binding)
+        val centre = corner.add(0.5, CENTRE_HEIGHT, 0.5).add(slope.upThePage.scale(-DOWN_THE_SLOPE))
+        return frameOn(facing, centre.add(slope.normal.scale(-ONTO_THE_SLOPE)), TILT_DEGREES, binding)
+    }
+
+    private fun frameOn(facing: Direction, top: Vec3, leanedBackDegrees: Double, binding: BookBinding): Frame {
+        val tilt = Math.toRadians(leanedBackDegrees)
         val towardTheReader = horizontal(facing)
         val normal = towardTheReader.scale(cos(tilt)).add(UP.scale(sin(tilt)))
         val upThePage = towardTheReader.scale(-sin(tilt)).add(UP.scale(cos(tilt)))
-        val centre = corner.add(0.5, CENTRE_HEIGHT, 0.5).add(upThePage.scale(-DOWN_THE_SLOPE))
         return Frame(
-            surface = centre.add(normal.scale(pageSurfaceOf(binding) - ONTO_THE_SLOPE)),
+            surface = top.add(normal.scale(pageSurfaceOf(binding))),
             normal = normal,
             upThePage = upThePage,
             // The reader stands on the facing side looking back across the lectern, so their left is clockwise.

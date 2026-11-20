@@ -28,14 +28,26 @@ import net.minecraft.world.phys.Vec3
  * Where a book lying open on a stand of ours lies, as a lectern holds one: read from the [facing] side, its middle at
  * [middle]. A lectern's own book has its middle [LecternBookPlane.CENTRE_HEIGHT] above the lectern's corner.
  */
-data class OpenBookPose(val facing: Direction, val middle: Vec3) {
+data class OpenBookPose(val facing: Direction, val middle: Vec3, val lyingOn: BookSurface? = null) {
     /** Where a lectern's corner would be for its book to lie so. */
     val corner: Vec3 get() = middle.subtract(HALF, LecternBookPlane.CENTRE_HEIGHT, HALF)
+
+    /** Where on the book a look from [eye] through [through] lands, or null where it misses the book. */
+    fun spotLookedAt(binding: BookBinding, eye: Vec3, through: Vec3): LecternBookSpot? = when (lyingOn) {
+        null -> LecternBookPlane.spotLookedAt(facing, corner, binding, eye, through)
+        else -> LecternBookPlane.spotLookedAtOn(facing, lyingOn.top, lyingOn.leanedBackDegrees, binding, eye, through)
+    }
 
     private companion object {
         const val HALF = 0.5
     }
 }
+
+/**
+ * A surface a book lies open on other than a lectern's slope: the middle of its top, and how far it leans back from
+ * upright, 90 where it is flat.
+ */
+data class BookSurface(val top: Vec3, val leanedBackDegrees: Double)
 
 /** What a reader asks of a book lying open on a stand, from its screen. */
 enum class StandAsked { TAKE, CLOSE }
@@ -103,24 +115,31 @@ object BookStands {
                 open(level)
                 level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1.0f, 1.0f)
             }
+            linkFromThePanel(level, stand, place, book, player, hit) -> {}
             else -> {
-                val pose = stand.openBookPose(place)
-                val spot = LecternBookPlane.spotLookedAt(pose.facing, pose.corner, BookBinding.of(book), player.eyePosition, hit.location)
-                val onThePanel = spot != null && spot.page == panelPage && spot.withinThePanel
-                val here = BookBeingRead.OnAStand(pos, place)
-                if (onThePanel) {
-                    // Goes, and leaves the book lying open for the next reader, as a lectern does.
-                    if (level.isClientSide) LinkTransitOpener.begin(here)
-                    if (level is ServerLevel && player is ServerPlayer) {
-                        if (Linking.go(player, level, book)) stand.setChanged() else Linking.endedWithoutGoing(player)
-                    }
-                } else {
-                    if (level.isClientSide) BookStandOpener.readOurs(book, here)
-                    if (player is ServerPlayer) PageLearning.study(player, book)
-                }
+                if (level.isClientSide) BookStandOpener.readOurs(book, BookBeingRead.OnAStand(pos, place))
+                if (player is ServerPlayer) PageLearning.study(player, book)
             }
         }
         return InteractionResult.SUCCESS
+    }
+
+    /**
+     * Where [player]'s look through [hit] lands on the panel of [book], lying open at [place] on [stand]: goes, and
+     * leaves the book lying open for the next reader, as a lectern does. Whether the look was on the panel.
+     */
+    fun linkFromThePanel(level: Level, stand: BlockEntity, place: Int, book: ItemStack, player: Player, hit: BlockHitResult): Boolean {
+        stand as BookStand
+        val panelPage = LecternBooks.panelPageOf(book) ?: return false
+        if (stand.openBookAt(place) == null) return false
+        val spot = stand.openBookPose(place).spotLookedAt(BookBinding.of(book), player.eyePosition, hit.location)
+        val onThePanel = spot != null && spot.page == panelPage && spot.withinThePanel
+        if (!onThePanel) return false
+        if (level.isClientSide) LinkTransitOpener.begin(BookBeingRead.OnAStand(stand.blockPos, place))
+        if (level is ServerLevel && player is ServerPlayer) {
+            if (Linking.go(player, level, book)) stand.setChanged() else Linking.endedWithoutGoing(player)
+        }
+        return true
     }
 
     /** The book lying open at [place] of the stand at [pos], where [viewer] may see its panel, or null. */

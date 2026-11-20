@@ -1,0 +1,79 @@
+{
+  "credit": "Made with Blockbench; textured by scripts/books/book_wheel_models.py",
+  "textures": {
+    "top": "minecraft:block/lectern_top",
+    "sides": "minecraft:block/lectern_sides",
+    "base": "minecraft:block/lectern_base",
+    "particle": "minecraft:block/lectern_sides"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        7.5,
+        4
+      ],
+      "to": [
+        15,
+        8.5,
+        12
+      ],
+      "faces": {
+        "up": {
+          "uv": [
+            1,
+            13,
+            15,
+            5
+          ],
+          "texture": "#top"
+        },
+        "north": {
+          "uv": [
+            0,
+            15,
+            14,
+            16
+          ],
+          "texture": "#sides"
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            9,
+            2
+          ],
+          "texture": "#sides"
+        },
+        "south": {
+          "uv": [
+            2,
+            15,
+            16,
+            16
+          ],
+          "texture": "#sides"
+        },
+        "west": {
+          "uv": [
+            9,
+            1,
+            1,
+            2
+          ],
+          "texture": "#sides"
+        },
+        "down": {
+          "uv": [
+            1,
+            0,
+            15,
+            8
+          ],
+          "texture": "#base"
+        }
+      }
+    }
+  ]
+}
