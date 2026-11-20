@@ -344,7 +344,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Sixty-five Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Sixty-seven Mixins and three accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -394,6 +394,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   and an Age gets the menu's; NeoForge could swap the screen, Fabric has no event that does, and the
   background is all that differs.
 - **`LecternBlockMixin`** and **`LecternBlockEntityMixin`** — books on vanilla lecterns (design §7.8.2). The click and the auto-close ride `useWithoutItem` and the lectern's own scheduled tick, and the block entity is taught to tell a client which book it holds, which vanilla never does. The `book_open` property rides `StateDefinitionBuilderMixin` beside deep waterlogging. The renderer is not a Mixin: `LecternBookRenderer` extends vanilla's, and `client/ClientRegistrations` registers it in vanilla's place.
+- **`VillagerLecternsMixin`** — a lectern holding a descriptive or linking book is nobody's job site
+  (`book/VillagersAtOurLecterns`): the job-site search's per-position check, which vanilla passes as always yes, refuses
+  one, and a behaviour added to the villager's core package lets go of one a book of ours is laid on. A lectern's state
+  cannot say whose book it holds, so the POI type cannot leave it out, and neither loader has a job-site event.
 - **`GrindstoneBarMixin`** — a grindstone worn by a grinder shows its runs left as a durability bar
   (`station/GrindstoneWear`). The wear is a `wear` property riding `StateDefinitionBuilderMixin`, which the
   grindstone's loot table copies onto the item and placing puts back; real `DAMAGE` would draw the bar for free

@@ -58,7 +58,8 @@
     "StateDefinitionBuilderMixin",
     "StructureMixin",
     "TreeFeatureMixin",
-    "TreeGrowerMixin"
+    "TreeGrowerMixin",
+    "VillagerLecternsMixin"
   ],
   "client": [
     "client.CameraMixin",
