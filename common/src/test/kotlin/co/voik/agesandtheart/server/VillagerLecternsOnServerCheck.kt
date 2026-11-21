@@ -18,6 +18,8 @@ class VillagerLecternsOnServerCheck : FunSpec({
 
     /** A pen at [x] with an unemployed villager tagged [tag] in it and a lectern holding [book] three blocks off. */
     fun penWith(tag: String, x: Int, book: String) {
+        // A villager takes a job only by day, and other checks leave the shared server at any hour.
+        inWorld("time set noon")
         inWorld("forceload add $x $Z")
         server.waitUntil("the pen's chunk loading") { passes("if loaded $x $Y $Z") }
         inWorld("fill ${x - PEN} ${Y - 1} ${Z - PEN} ${x + PEN} ${Y + 3} ${Z + PEN} minecraft:barrier hollow")
@@ -44,8 +46,7 @@ class VillagerLecternsOnServerCheck : FunSpec({
         return false
     }
 
-    // Set aside: it fails in the full server run and passes alone (remaining-work.md). The last test is a control too.
-    xtest("a villager takes a lectern holding a book and quill") {
+    test("a villager takes a lectern holding a book and quill") {
         penWith("quill", QUILL_X, "minecraft:writable_book")
         check(becomesALibrarian("quill")) { "the villager never took the lectern, so nothing below shows anything" }
     }
