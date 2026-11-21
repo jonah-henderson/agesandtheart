@@ -49,8 +49,8 @@ mordant = "3.1.0"
 # why this is the first time it has come up. Each spans one minor line, since under 1.0 a minor is breaking:
 # move both with every breaking Ephemeris release.
 ephemeris = "0.10.1"
-ephemerisRangeNeoForge = "[0.10.0,0.11.0)"
-ephemerisRangeFabric = "~0.10.0"
+ephemerisRangeNeoForge = "[0.10.1,0.11.0)"
+ephemerisRangeFabric = "~0.10.1"
 
 # NeoForge's config system, made available to Fabric — https://github.com/Fuzss/forgeconfigapiport-fabric
 # Declared as a dependency rather than bundled: it is a *mod* (it hooks the loader lifecycle and wants
