@@ -32,7 +32,7 @@ object Resolver {
         // A ban or a link-in is said of the whole Age rather than of any part of it, so it is set aside from what each
         // part resolves.
         val (ofTheWholeAge, landings) = book.landings.partition { it.banned.isNotEmpty() || it.linksIn != null }
-        val resolving = Resolving(world, landings, draw)
+        val resolving = Resolving(world, landings, draw, book.possible.map(Landing::at).toSet())
         resolving.flaws += book.chargedBeforeResolving
         resolving.flaws += bannedButAskedFor(book.possible)
         val filled = Aspect.entries.associateWith { resolving.fill(it) }

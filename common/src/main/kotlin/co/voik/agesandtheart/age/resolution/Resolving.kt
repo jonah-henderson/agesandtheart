@@ -10,7 +10,13 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * One book being resolved: the world it is resolved against, what landed, the Age's draw, and the flaws found so
  * far. Each part of the resolver is written against it — catalogues, steering, populations, mintings.
  */
-internal class Resolving(val world: WorldFacts, landings: List<Landing>, val draw: Long) {
+internal class Resolving(
+    val world: WorldFacts,
+    landings: List<Landing>,
+    val draw: Long,
+    /** Where the pages could land before the draw; a page that dangled lands elsewhere too, and is not charged there. */
+    private val couldLand: Set<LandingAt> = landings.map(Landing::at).toSet(),
+) {
 
     /** What landed, with every material asked for by tag settled to one block for this Age. */
     val said: List<Landing> = landings.map(::materialised)
@@ -49,12 +55,14 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
     }
 
     /**
-     * One flaw per pair of words given ground of their own in [aspect] without `and` between them. Only certainties
-     * are charged: a suggestion meeting a certainty yields uncharged, as in a clash, and two suggestions dividing
-     * would be charged at some seeds and not others.
+     * One flaw per pair of words given ground of their own in [aspect] without `and` between them. Only what the pages
+     * could do is charged, as a clash is (the-world-model.md §8): certainties where they could land. A suggestion meeting
+     * a certainty yields uncharged, two suggestions would be charged at some seeds and not others, and so would a page
+     * that dangled, which its clash already charged.
      */
     private fun rivalsDividing(aspect: Aspect, groups: List<List<Landing>>): List<Flaw> {
-        val certain = groups.map { group -> group.filter { it.chance >= CERTAIN } }
+        fun isCharged(landing: Landing) = landing.chance >= CERTAIN && landing.at in couldLand
+        val certain = groups.map { group -> group.filter(::isCharged) }
         val found = mutableListOf<Flaw>()
         for (first in certain.indices) {
             for (second in first + 1..<certain.size) {
