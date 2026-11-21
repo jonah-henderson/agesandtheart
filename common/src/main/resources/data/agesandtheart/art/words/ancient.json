@@ -45,27 +45,27 @@
     {
       "concept": "tint",
       "value": "yellow",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "tint",
       "value": "grey",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "motes",
       "value": "glimmer",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "haze",
       "value": "+0.15",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "block",
       "value": "#stony",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     }
   ]
 }

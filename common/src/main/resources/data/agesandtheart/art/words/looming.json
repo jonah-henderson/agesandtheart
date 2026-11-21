@@ -22,30 +22,30 @@
       "concept": "height",
       "value": "-0.4",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "black",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "haze",
       "value": "+0.3",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "size",

@@ -28,36 +28,36 @@
       "concept": "tint",
       "value": "blue",
       "for": "air",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "tint",
       "value": "white",
       "for": "air",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "sun",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "brightness",
       "value": "0.05..1.0",
       "for": "stars",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "humidity",
       "value": "-0.1",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "weather",

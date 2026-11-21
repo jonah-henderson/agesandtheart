@@ -22,76 +22,76 @@
       "concept": "colour",
       "value": "black",
       "for": "sky",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "sky",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "red",
       "for": "sky",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "tint",
       "value": "purple",
       "for": "air",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "tint",
       "value": "grey",
       "for": "air",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "tint",
       "value": "red",
       "for": "air",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "black",
       "for": "clouds",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "clouds",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "haze",
       "value": "+0.3",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "motes",
       "value": "souls",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "motes",
       "value": "sculk",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "density",
       "value": "-0.4",
       "for": "stars",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "block",
       "value": "#dark",
       "for": "landmass",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",

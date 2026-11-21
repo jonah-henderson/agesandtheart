@@ -23,13 +23,13 @@
       "concept": "colour",
       "value": "blue",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "brightness",
       "value": "0.15..1.0",
       "for": "stars",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "frequency",

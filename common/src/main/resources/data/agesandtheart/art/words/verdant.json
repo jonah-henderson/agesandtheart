@@ -49,34 +49,34 @@
       "concept": "frequency",
       "value": "0.3..0.8",
       "for": "weather",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "green",
       "for": "grass",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "green",
       "for": "leaves",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "spore_blossom",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "cherry_petals",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "firefly",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "frequency",

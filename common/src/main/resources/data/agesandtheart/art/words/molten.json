@@ -29,23 +29,23 @@
       "concept": "colour",
       "value": "red",
       "for": "sky",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "concept": "colour",
       "value": "orange",
       "for": "sky",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "concept": "tint",
       "value": "red",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "concept": "tint",
       "value": "orange",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "for": "underground",

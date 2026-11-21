@@ -40,7 +40,7 @@
     },
     {
       "for": "rainbow",
-      "chance": 0.33,
+      "chance_from_whole_age": 0.33,
       "means": [
         {
           "sets": {
@@ -52,7 +52,7 @@
     },
     {
       "for": "air",
-      "chance": 0.33,
+      "chance_from_whole_age": 0.33,
       "means": [
         {
           "sets": {
@@ -78,68 +78,68 @@
       "concept": "colour",
       "value": "purple",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "magenta",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "cyan",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "indigo",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "magenta",
       "for": "clouds",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "cyan",
       "for": "clouds",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "clouds",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "glimmer",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "firefly",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "cherry_petals",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "starlight",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "spore_blossom",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "cast",
@@ -152,11 +152,11 @@
       "concept": "size",
       "value": "+0.7",
       "for": "moon",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "for": "stars",
-      "chance": 0.33,
+      "chance_from_whole_age": 0.33,
       "means": [
         {
           "sets": {
@@ -170,7 +170,7 @@
       "concept": "block",
       "value": "#colourful",
       "for": "landmass",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",

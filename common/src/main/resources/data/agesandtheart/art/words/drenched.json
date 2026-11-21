@@ -35,13 +35,13 @@
       "concept": "colour",
       "value": "grey",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "height",
       "value": "-0.3",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "landmass",

@@ -29,41 +29,41 @@
       "concept": "colour",
       "value": "purple",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "blue",
       "for": "sky",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "starlight",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "motes",
       "value": "glimmer",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "brightness",
       "value": "0.2..1.0",
       "for": "stars",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "density",
       "value": "+0.3",
       "for": "stars",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "block",
       "value": "#colourful",
       "for": "landmass",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "cast",

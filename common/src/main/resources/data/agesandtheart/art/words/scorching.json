@@ -39,22 +39,22 @@
     },
     {
       "concept": "evaporation",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "ash",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "murk",
       "value": "0.1..0.4",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "humidity",
       "value": "-0.8..-0.2",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "cast",
@@ -67,25 +67,25 @@
       "concept": "colour",
       "value": "red",
       "for": "sun",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "orange",
       "for": "sun",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "colour",
       "value": "yellow",
       "for": "sun",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "size",
       "value": "0.5..0.75",
       "for": "sun",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "for": "sky",

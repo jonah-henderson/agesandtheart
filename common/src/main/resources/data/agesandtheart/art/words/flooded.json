@@ -52,13 +52,13 @@
       "concept": "depth",
       "value": "+0.3",
       "for": "sea",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "frequency",
       "value": "0.3..0.7",
       "for": "weather",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "underground",

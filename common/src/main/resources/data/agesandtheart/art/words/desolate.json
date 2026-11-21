@@ -26,57 +26,52 @@
       "concept": "colour",
       "value": "grey",
       "for": "grass",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "yellow",
       "for": "grass",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "leaves",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "black",
       "for": "leaves",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "grey",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "ash",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "haze",
       "value": "+0.2",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "structures",
-      "chance": 0.5,
+      "chance_from_whole_age": 0.5,
       "means": [
-        {
-          "sets": {
-            "material": "#sandy"
-          }
-        },
         {
           "sets": {
             "material": "#sandy"

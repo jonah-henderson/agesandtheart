@@ -88,30 +88,30 @@
       "concept": "colour",
       "value": "red",
       "for": "sun",
-      "chance": 0.6
+      "chance_from_whole_age": 0.6
     },
     {
       "concept": "colour",
       "value": "blue",
       "for": "sun",
-      "chance": 0.6
+      "chance_from_whole_age": 0.6
     },
     {
       "concept": "size",
       "value": "0.7..1.0",
       "for": "sun",
-      "chance": 0.6
+      "chance_from_whole_age": 0.6
     },
     {
       "concept": "colour",
       "value": "red",
       "for": "sky",
-      "chance": 0.6
+      "chance_from_whole_age": 0.6
     },
     {
       "concept": "haze",
       "value": "0.35..0.7",
-      "chance": 0.6
+      "chance_from_whole_age": 0.6
     }
   ]
 }

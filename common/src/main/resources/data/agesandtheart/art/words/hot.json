@@ -28,24 +28,24 @@
       "concept": "tint",
       "value": "orange",
       "for": "air",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "orange",
       "for": "sun",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "red",
       "for": "sun",
-      "chance": 0.33
+      "chance_from_whole_age": 0.33
     },
     {
       "concept": "haze",
       "value": "+0.2",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "weather",

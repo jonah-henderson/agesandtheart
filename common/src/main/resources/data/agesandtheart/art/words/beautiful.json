@@ -58,64 +58,64 @@
       "concept": "colour",
       "value": "blue",
       "for": "sky",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "clouds",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "green",
       "for": "grass",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "red",
       "for": "leaves",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "orange",
       "for": "leaves",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",
       "value": "yellow",
       "for": "leaves",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "motes",
       "value": "cherry_petals",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "motes",
       "value": "spore_blossom",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "motes",
       "value": "firefly",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "frequency",
       "value": "0.5..1.0",
       "for": "rainbow",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "brightness",
       "value": "0.15..1.0",
       "for": "stars",
-      "chance": 0.43
+      "chance_from_whole_age": 0.43
     },
     {
       "concept": "colour",

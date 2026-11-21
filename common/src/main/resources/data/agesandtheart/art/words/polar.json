@@ -109,37 +109,37 @@
       "concept": "motes",
       "value": "snow",
       "for": "air",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "default",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "blue",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "sky",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "brightness",
       "value": "0.15..1.0",
       "for": "stars",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "weather",

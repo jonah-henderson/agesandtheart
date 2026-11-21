@@ -25,23 +25,23 @@
       "concept": "colour",
       "value": "grey",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "colour",
       "value": "black",
       "for": "clouds",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "smoke",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "concept": "motes",
       "value": "ash",
-      "chance": 0.5
+      "chance_from_whole_age": 0.5
     },
     {
       "for": "sky",

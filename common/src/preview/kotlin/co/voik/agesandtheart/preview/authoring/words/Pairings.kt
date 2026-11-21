@@ -12,10 +12,12 @@ import co.voik.agesandtheart.age.resolution.Landing
 import co.voik.agesandtheart.age.resolution.Resolver
 import co.voik.agesandtheart.age.resolution.cameToNothingAmong
 import co.voik.agesandtheart.age.words.Acceptance
+import co.voik.agesandtheart.age.words.JoinedPair
 import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Outcome
 import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.ValueType
 import co.voik.agesandtheart.age.words.Word
 import co.voik.agesandtheart.age.words.Words
 import co.voik.agesandtheart.location
@@ -217,8 +219,20 @@ class Pairings(private val corpus: WordCorpus, private val standIn: Word? = null
         val fromTheWholeAge = offer.ownChanceFromWholeAge?.let { if (it > Offer.NEVER) Offer.CERTAIN else it }
         val chance = if (offer.chance > Offer.NEVER) Offer.CERTAIN else Offer.NEVER
         val certain = offer.copy(chance = chance, ownChanceFromWholeAge = fromTheWholeAge)
-        val laid = sense.copy(offers = sense.offers.map { if (it == offer) certain else it }, isDefault = true)
+        val offered = sense.offers.filterNot { isAnAlternativeTo(offer, it) }.map { if (it == offer) certain else it }
+        val laid = sense.copy(offers = offered, isDefault = true)
         return Probe(Word("$PROBE$index".location(), listOf(laid)), certain)
+    }
+
+    /**
+     * Whether [other] would be drawn against [offer] as its alternative where both land, as the draw draws a page's offers
+     * of one concept to one part: set aside, so the probe is the one drawn.
+     */
+    private fun isAnAlternativeTo(offer: Offer, other: Offer): Boolean {
+        if (other == offer || offer.isAReading || other.isAReading || other.concept != offer.concept) return false
+        val concept = words.concepts[offer.concept]
+        val holdsSeveral = concept?.joined == JoinedPair.DIVIDE || concept?.values == ValueType.WEIGHTS
+        return !holdsSeveral
     }
 
     /** The words with the probes among them, and the books written in them. */

@@ -24,30 +24,30 @@
       "concept": "haze",
       "value": "-1.0..-0.5",
       "for": "air",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "murk",
       "value": "-1.0..-0.55",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "colour",
       "value": "blue",
       "for": "sky",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "colour",
       "value": "white",
       "for": "clouds",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     },
     {
       "concept": "brightness",
       "value": "0.15..1.0",
       "for": "stars",
-      "chance": 0.4
+      "chance_from_whole_age": 0.4
     }
   ]
 }

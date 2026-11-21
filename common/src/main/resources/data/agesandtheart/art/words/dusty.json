@@ -33,23 +33,18 @@
       "concept": "colour",
       "value": "yellow",
       "for": "sky",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "concept": "colour",
       "value": "orange",
       "for": "sky",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "for": "structures",
-      "chance": 0.67,
+      "chance_from_whole_age": 0.67,
       "means": [
-        {
-          "sets": {
-            "material": "#sandy"
-          }
-        },
         {
           "sets": {
             "material": "#sandy"
@@ -61,7 +56,7 @@
       "concept": "colour",
       "value": "yellow",
       "for": "grass",
-      "chance": 0.67
+      "chance_from_whole_age": 0.67
     },
     {
       "for": "weather",
