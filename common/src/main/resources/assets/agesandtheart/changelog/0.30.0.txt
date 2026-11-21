@@ -1,0 +1,13 @@
+[feature] recorded images may now be framed with any wood planks. they may also still be hung on walls without a frame
+[feature] improved the highlight hints at writer's desks with grammar guides
+[feature] villagers will try to avoid working at lecterns that hold linking books
+[performance] improved occasional stutters during auto saves with large numbers of Ages present
+[performance] stop simulating Ages no one has been to in... ages
+[balance] rare Age materials now all require masterwork ink to encourage mastering the collection challenges
+[bugfix] improved layout of tooltips for words that apply to lots of things
+[bugfix] fixed certain words like "frozen" not applying their effects as often as intended
+[bugfix] fix conflicting words on certain situations not charging instability
+[bugfix] fix landmass size modifiers not applying properly
+[bugfix] fix "verdant" applying to more things than intended, like planetary rings
+[bugfix] fix Ages with coloured sunlight not getting dark at night
+[bugfix] fix crystal viewer recipe not accepting waxed copper bulbs

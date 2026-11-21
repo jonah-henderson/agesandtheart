@@ -24,7 +24,7 @@
   "item.agesandtheart_imaging.photographic_plate": "Photographic Plate",
   "item.agesandtheart_imaging.recorded_image": "Recorded Image",
   "item.agesandtheart_imaging.recorded_image.of": "Recorded Image of %s",
-  "item.agesandtheart_imaging.recorded_image.framed_in": "[AI] Framed in %s",
+  "item.agesandtheart_imaging.recorded_image.framed_in": "%s frame",
   "subtitles.agesandtheart_imaging.image_recorder.shutter": "Shutter clicks",
   "tag.item.agesandtheart_imaging.image_recorder_fittings": "Image Recorder Fittings"
 }

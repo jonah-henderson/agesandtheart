@@ -157,6 +157,7 @@ private class NotesPanel(private val font: Font, panelWidth: Int, notes: List<Re
             "art" to 0x6FA8FF,
             "balance" to 0xFF7043,
             "bugfix" to 0xFFE066,
+            "performance" to 0x90EE90,
         )
         const val UNNAMED_TAG_COLOUR = 0xAAAAAA
 

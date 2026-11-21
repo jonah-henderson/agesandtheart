@@ -244,14 +244,12 @@ object AgeConfig {
             .translation(translationOf("tornadoes_destroy_blocks"))
             .define("tornadoesDestroyBlocks", true)
         builder.pop()
-        builder.comment("[AI] Resting Ages").translation(translationOf(RESTING)).push(RESTING)
+        builder.comment("Pause idle Ages").translation(translationOf(RESTING)).push(RESTING)
         agesKeptRunning = builder
             .comment(
-                "[AI] How many Ages keep running while nobody is in them, the most recently visited first. Any",
-                "others stand still once nothing has been in them for ten seconds: their time, weather and",
-                "everything else wait where they were, and go on from there when somebody arrives. An Age",
-                "with a player, a loaded chunk or a forceloaded chunk in it always runs. Set this above how",
-                "many Ages the server has for none to ever stand still.",
+                "Minimum number of Ages to always simulate. When the number of total Ages exceeds this number,",
+                "Ages that haven't been visited or otherwise activated in a while will suspend simulation to",
+                "save resources.",
             )
             .translation(translationOf("ages_kept_running"))
             .defineInRange("agesKeptRunning", DEFAULT_AGES_KEPT_RUNNING, 0, Int.MAX_VALUE)

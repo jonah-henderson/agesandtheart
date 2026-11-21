@@ -1,8 +1,9 @@
 {
-  "_comment": "[AI] Its own picture, in a frame of its planks where it is framed, wherever the item shows (`RecordedImageRenderer`).",
   "model": {
     "type": "minecraft:special",
     "base": "agesandtheart_imaging:item/recorded_image",
-    "model": { "type": "agesandtheart_imaging:recorded_image" }
+    "model": {
+      "type": "agesandtheart_imaging:recorded_image"
+    }
   }
 }

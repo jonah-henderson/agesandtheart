@@ -6,8 +6,7 @@
     "",
     "`verdant landmass` is lush country on it.",
     "",
-    "[AI] Its density is aimed at the features, where the lush bar narrows it to what grows, so it thickens the",
-    "[AI] growth and nothing else that takes density: not the stars, clouds, caves or planetary rings."
+    "Needs to be scoped to 'features' or else things like planetary rings can pick it up."
   ],
   "speech": "adjective",
   "offers": [
