@@ -16,7 +16,8 @@ data class TextMark(
     val scriptUnknown: Boolean = false,
     val colour: Int? = null,
     val underline: Int? = null,
-    val tooltip: Component? = null,
+    /** A line for each thing said of the word on hover; nothing where empty. */
+    val tooltip: List<Component> = emptyList(),
     /** Drawn just before the word, in room made for it. */
     val badge: Badge? = null,
 )

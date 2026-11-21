@@ -8,18 +8,17 @@ import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
+import java.util.Optional
 
 /**
- * One word disagreeing with another, as the template needs it.
+ * One thing wrong with a word in the template, as the screen says it: a conflict with [against], or, where [against] is
+ * null, a meaning nothing took. Where they conflict is left out: the words around them say it.
  *
- * **A pair, never a loser** (design §7.3). Which of two tied words is displaced is a function of the seed,
+ * **A pair, never a loser** (design §7.3). Which of two conflicting words is displaced is a function of the seed,
  * so naming one as the casualty would be a guess dressed as a fact — where "these two are asking for
- * different things" is true however the draw falls. Both words are marked and each tooltip names the other.
- *
- * [register] is `Register.key`, kept as a string so the screen can say *how* they disagree without the
- * client needing the instability model.
+ * different things" is true however the draw falls. Both words are marked and each names the other.
  */
-data class Quarrel(val word: Identifier, val against: Identifier, val register: String)
+data class Quarrel(val word: Identifier, val against: Identifier?)
 
 private val TIER_STREAM: StreamCodec<ByteBuf, InkTier> =
     ByteBufCodecs.idMapper({ InkTier.entries[it] }, { it.ordinal })
@@ -79,9 +78,8 @@ data class DeskSyncPayload(
 
         private val QUARREL_STREAM: StreamCodec<ByteBuf, Quarrel> = StreamCodec.composite(
             Identifier.STREAM_CODEC, Quarrel::word,
-            Identifier.STREAM_CODEC, Quarrel::against,
-            ByteBufCodecs.STRING_UTF8, Quarrel::register,
-            ::Quarrel,
+            ByteBufCodecs.optional(Identifier.STREAM_CODEC), { Optional.ofNullable(it.against) },
+            { word, against -> Quarrel(word, against.orElse(null)) },
         )
 
         private val READING_STREAM: StreamCodec<ByteBuf, List<ReadoutClause>> =

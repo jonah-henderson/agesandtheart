@@ -203,9 +203,9 @@ class TemplateEditor(
             val top = innerTop + row * ROW
             if (!withinContentAreaTopBottom(top, top + ROW)) return@forEachIndexed
             extractRow(graphics, layout, row, top, shown)
-            val hovered = hoveredBadge(layout, row, top, shown, mouseX, pointerY)?.tooltip
-                ?: hoveredMark(layout, row, top, shown, mouseX, pointerY)?.tooltip
-            hovered?.let { graphics.setTooltipForNextFrame(it, mouseX, mouseY) }
+            val hovered = hoveredBadge(layout, row, top, shown, mouseX, pointerY)?.tooltip?.let(::listOf)
+                ?: hoveredMark(layout, row, top, shown, mouseX, pointerY)?.tooltip.orEmpty()
+            if (hovered.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, hovered, mouseX, mouseY)
         }
         extractSelection(graphics, layout)
         extractCursor(graphics, layout)

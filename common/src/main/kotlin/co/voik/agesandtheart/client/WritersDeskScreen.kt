@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.desk.Quarrel
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.ui.Badge
 import co.voik.agesandtheart.client.ui.ColumnedTooltip
@@ -368,6 +369,10 @@ class WritersDeskScreen(
         readingView.message = readingText()
     }
 
+    /** What is wrong with a word, as its tooltip says it: "Conflicts with Dense." or "Nothing took this meaning." */
+    private fun saidOf(quarrel: Quarrel): Component =
+        quarrel.against?.let { translated("quarrel", WordNames.readable(it)) } ?: translated("nothing_took")
+
     /** The runs of the template as the desk last read them, with the text they were read from. */
     private fun marks(): MarkedText? {
         val readFrom = DeskModel.template() ?: return null
@@ -377,26 +382,24 @@ class WritersDeskScreen(
     private fun markFor(read: ReadWord): TextMark = when (read.state) {
         WordState.LEARNED -> {
             val word = read.word
-            val quarrel = DeskModel.quarrels().firstOrNull { it.word == word }
+            val quarrels = DeskModel.quarrels().filter { it.word == word }
+            val isWrong = quarrels.isNotEmpty()
             TextMark(
                 read.start, read.end,
                 script = word?.let(KnownWords::scriptText),
-                colour = quarrel?.let { Palette.WARNING },
-                underline = if (quarrel != null) Palette.WARNING else UNDERLINE,
-                tooltip = quarrel?.let {
-                    if (it.word == it.against) translated("quarrel_alone")
-                    else translated("quarrel", WordNames.readable(it.against))
-                },
+                colour = if (isWrong) Palette.WARNING else null,
+                underline = if (isWrong) Palette.WARNING else UNDERLINE,
+                tooltip = quarrels.map(::saidOf).distinct(),
                 badge = archivedBadge(word),
             )
         }
         WordState.UNLEARNED -> TextMark(
             read.start, read.end,
-            scriptUnknown = true, underline = UNDERLINE, tooltip = translated("translation_unknown"),
+            scriptUnknown = true, underline = UNDERLINE, tooltip = listOf(translated("translation_unknown")),
         )
         WordState.UNKNOWN -> TextMark(
             read.start, read.end,
-            colour = Palette.WARNING, underline = Palette.WARNING, tooltip = translated("not_a_word"),
+            colour = Palette.WARNING, underline = Palette.WARNING, tooltip = listOf(translated("not_a_word")),
         )
     }
 

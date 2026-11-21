@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -98,8 +99,12 @@ class WritersDeskMenu(
     /**
      * What is wrong with the sentence as it currently stands — **empty without the implement that reveals
      * it** (design §7.3), resolved against [writingSeed] so the answer is the one the bound book will
-     * actually produce. A flaw naming one word is paired with itself, which is how "nothing here can be
-     * this" reaches a display that only knows how to mark pairs.
+     * actually produce.
+     *
+     * Two words that cannot both be what they said are each marked, naming the other. A page that placed nothing is marked alone, as a meaning nothing took, whether it dangled or
+     * nothing in the vocabulary could back it — the same to a writer, and only the second a fault of ours. A
+     * dangling page's flaw also names the word its meaning was drawn onto, which did nothing wrong and is left
+     * unmarked.
      */
     private fun quarrelsIn(capabilities: DeskState, words: List<Identifier>, resolved: Resolution?): List<Quarrel> {
         if (DeskCapability.REVEAL_CONFLICTS !in capabilities.capabilities) return emptyList()
@@ -108,13 +113,14 @@ class WritersDeskMenu(
         return flaws.flatMap { flaw ->
             val named = flaw.words.mapNotNull(byName::get)
             val first = named.firstOrNull() ?: return@flatMap emptyList()
-            val second = named.getOrNull(1) ?: first
-            if (first == second) {
-                listOf(Quarrel(first, first, flaw.register.key))
+            val second = named.getOrNull(1)
+            val conflicts = flaw.register == Register.INCOHERENT && second != null && second != first
+            if (conflicts) {
+                listOf(Quarrel(first, second), Quarrel(requireNotNull(second), first))
             } else {
-                listOf(Quarrel(first, second, flaw.register.key), Quarrel(second, first, flaw.register.key))
+                listOf(Quarrel(first, against = null))
             }
-        }
+        }.distinct()
     }
 
     companion object {
