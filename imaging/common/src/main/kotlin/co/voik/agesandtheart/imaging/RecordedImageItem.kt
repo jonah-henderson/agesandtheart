@@ -48,6 +48,9 @@ class RecordedImageItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
+        stack.framedIn?.let { planks ->
+            builder.accept(Component.translatable("item.agesandtheart_imaging.recorded_image.framed_in", planks.name).withStyle(ChatFormatting.GRAY))
+        }
         val picture = stack.get(ImagingComponents.PICTURE) ?: return
         // The place as well as the name, since the name may be one it was given.
         builder.accept(Component.literal(picture.place).withStyle(ChatFormatting.GRAY))
@@ -55,5 +58,13 @@ class RecordedImageItem(properties: Properties) : Item(properties) {
             Component.literal("${picture.position.x}, ${picture.position.y}, ${picture.position.z}")
                 .withStyle(ChatFormatting.DARK_GRAY),
         )
+    }
+
+    companion object {
+        /** A picture just taken, as it comes from the recorder: the picture alone, to be framed at a crafting table. */
+        fun taken(picture: Picture): ItemStack = ItemStack(ImagingContent.RECORDED_IMAGE).apply {
+            set(ImagingComponents.PICTURE, picture)
+            set(ImagingComponents.FRAME, PictureFrame.UNFRAMED)
+        }
     }
 }

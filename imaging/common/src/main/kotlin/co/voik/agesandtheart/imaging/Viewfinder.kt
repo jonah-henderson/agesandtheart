@@ -86,7 +86,7 @@ object Viewfinder {
             return
         }
         val picture = Picture(UUID.randomUUID(), WordNames.placeName(player.level().dimension()), player.blockPosition())
-        val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
+        val recordedImage = RecordedImageItem.taken(picture)
         handOver(player, recordedImage)
         Shots.taken(player, picture.id)
         // Heard and seen by everyone near but the photographer, whose own client played it the moment the shutter went.

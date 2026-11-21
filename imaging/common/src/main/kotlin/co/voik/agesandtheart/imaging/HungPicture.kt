@@ -17,20 +17,27 @@ import net.minecraft.world.entity.decoration.HangingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 
 /**
- * A recorded image hung on a wall as a painting is: a block square, the 16:9 picture across its width and its frame
- * filling the rest. It holds the recorded image itself, so taking it down gives back the same one, name and all.
+ * A recorded image hung on a wall as a painting is: the 16:9 picture a block wide, and where it is framed, its frame
+ * making it a block square. It holds the recorded image itself, so taking it down gives back the same one, name and all.
  */
 class HungPicture(type: EntityType<out HungPicture>, level: Level) : HangingEntity(type, level) {
 
     var image: ItemStack
         get() = entityData.get(IMAGE)
-        private set(value) = entityData.set(IMAGE, value)
+        private set(value) {
+            entityData.set(IMAGE, value)
+            recalculateBoundingBox()
+        }
+
+    /** The planks its frame is of, or null where it is the picture alone. */
+    val frame: Block? get() = image.framedIn
 
     constructor(level: Level, pos: BlockPos, facing: Direction, image: ItemStack) : this(ImagingContent.HUNG_PICTURE, level) {
         this.pos = pos
@@ -43,11 +50,18 @@ class HungPicture(type: EntityType<out HungPicture>, level: Level) : HangingEnti
         builder.define(IMAGE, ItemStack.EMPTY)
     }
 
-    /** A block square standing off the wall by a sixteenth, as a one-block painting's is. */
+    /** A block wide and a sixteenth off the wall, as a one-block painting is: a block high in a frame, the picture's height without. */
     override fun calculateBoundingBox(pos: BlockPos, direction: Direction): AABB {
         val centre = Vec3.atCenterOf(pos).relative(direction, -OFF_THE_WALL)
         val isAlongX = direction.axis == Direction.Axis.X
-        return AABB.ofSize(centre, if (isAlongX) THICKNESS else 1.0, 1.0, if (isAlongX) 1.0 else THICKNESS)
+        val height = if (frame != null) 1.0 else PICTURE_HEIGHT
+        return AABB.ofSize(centre, if (isAlongX) THICKNESS else 1.0, height, if (isAlongX) 1.0 else THICKNESS)
+    }
+
+    /** A client learns the image after the entity, and only then how tall it hangs. */
+    override fun onSyncedDataUpdated(accessor: EntityDataAccessor<*>) {
+        super.onSyncedDataUpdated(accessor)
+        if (accessor == IMAGE) recalculateBoundingBox()
     }
 
     override fun dropItem(level: ServerLevel, breaker: Entity?) {
@@ -92,6 +106,9 @@ class HungPicture(type: EntityType<out HungPicture>, level: Level) : HangingEnti
 
     companion object {
         private val IMAGE: EntityDataAccessor<ItemStack> = SynchedEntityData.defineId(HungPicture::class.java, EntityDataSerializers.ITEM_STACK)
+
+        /** A 16:9 picture a block wide. */
+        const val PICTURE_HEIGHT = 9.0 / 16.0
 
         private const val FACING_KEY = "facing"
         private const val IMAGE_KEY = "image"

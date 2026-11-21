@@ -40,6 +40,9 @@ class ImagingNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.MENU) { helper -> ImagingContent.menus.forEach { (id, type) -> helper.register(id, type) } }
         event.register(Registries.SOUND_EVENT) { helper -> ImagingContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) } }
         event.register(Registries.ENTITY_TYPE) { helper -> ImagingContent.entities.forEach { (id, type) -> helper.register(id, type) } }
+        event.register(Registries.RECIPE_SERIALIZER) { helper ->
+            ImagingContent.recipeSerializers.forEach { (id, serializer) -> helper.register(id, serializer) }
+        }
     }
 
     private fun onBuildCreativeTab(event: BuildCreativeModeTabContentsEvent) {

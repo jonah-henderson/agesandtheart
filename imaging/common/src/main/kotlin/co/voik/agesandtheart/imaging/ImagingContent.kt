@@ -10,6 +10,7 @@ import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.CreativeModeTab
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.MenuType
@@ -121,6 +122,8 @@ object ImagingContent {
         SLIDE_CAROUSEL_ID to SLIDE_CAROUSEL,
         TRIPOD_ID to TRIPOD,
     )
+
+    val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> = listOf(FramingRecipe.ID to FramingRecipe.SERIALIZER)
 
     /** Ages and the Art's creative tab, where the companion's items are shown. */
     val TAB: ResourceKey<CreativeModeTab> = ResourceKey.create(Registries.CREATIVE_MODE_TAB, AgeCreativeTab.ID)

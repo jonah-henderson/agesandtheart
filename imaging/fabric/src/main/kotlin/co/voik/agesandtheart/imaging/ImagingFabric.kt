@@ -19,6 +19,7 @@ fun init() {
     ImagingContent.menus.forEach { (id, type) -> Registry.register(BuiltInRegistries.MENU, id, type) }
     ImagingContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     ImagingContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
+    ImagingContent.recipeSerializers.forEach { (id, serializer) -> Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id, serializer) }
     CreativeModeTabEvents.modifyOutputEvent(ImagingContent.TAB).register { output ->
         ImagingContent.shownInTheTab.forEach(output::accept)
     }

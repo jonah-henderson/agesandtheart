@@ -117,7 +117,7 @@ class ImageRecorderBlockEntity(pos: BlockPos, state: BlockState) :
         }
         plates.shrink(1)
         val picture = Picture(UUID.randomUUID(), WordNames.placeName(level.dimension()), blockPos)
-        val recordedImage = ItemStack(ImagingContent.RECORDED_IMAGE).apply { set(ImagingComponents.PICTURE, picture) }
+        val recordedImage = RecordedImageItem.taken(picture)
         if (items[RecorderSlots.PICTURE].isEmpty) items[RecorderSlots.PICTURE] = recordedImage else ejectOutTheBack(level, recordedImage)
         setChanged()
         level.updateNeighbourForOutputSignal(blockPos, blockState.block)
