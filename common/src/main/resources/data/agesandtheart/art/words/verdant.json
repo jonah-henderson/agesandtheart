@@ -4,7 +4,10 @@
     "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
     "things are drawn for every verdant Age; a rainbow is only offered.",
     "",
-    "`verdant landmass` is lush country on it."
+    "`verdant landmass` is lush country on it.",
+    "",
+    "[AI] Its density is aimed at the features, where the lush bar narrows it to what grows, so it thickens the",
+    "[AI] growth and nothing else that takes density: not the stars, clouds, caves or planetary rings."
   ],
   "speech": "adjective",
   "offers": [
@@ -18,7 +21,8 @@
     },
     {
       "concept": "density",
-      "value": "0.5..1.0"
+      "value": "0.5..1.0",
+      "for": "features"
     },
     {
       "concept": "bar",
