@@ -64,11 +64,13 @@ class VillagerLecternsOnServerCheck : FunSpec({
     }
 })
 
+// Out of every other check's way: the shared server's forced chunks and wanderers stay put between specs, and a
+// villager beside the warden's box kept it from ever digging down.
 private const val Y = 200
-private const val Z = 6000
-private const val QUILL_X = 6000
-private const val LINKING_X = 6300
-private const val LEAVING_X = 6600
+private const val Z = -7000
+private const val QUILL_X = -7000
+private const val LINKING_X = -7300
+private const val LEAVING_X = -7600
 
 /** Half the pen's width, walls included. */
 private const val PEN = 5
