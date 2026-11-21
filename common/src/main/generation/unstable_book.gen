@@ -34,8 +34,10 @@ moderately_unstable =
     | age pillared gentle landmass frozen scorching climate dry flooded rock molten flooded sea
     | age dry flooded rock drenched parched weather clear murky waters
 
+# [AI] Never parched weather beside a climate of its own: parched said of the weather reaches the climate too, and makes
+# [AI] a mistake more there.
 severely_unstable =
-    age colossal minuscule landmass frozen scorching climate molten flooded sea drenched parched weather clear murky waters
+    age colossal minuscule landmass frozen scorching climate molten flooded sea blizzard inferno weather clear murky waters
     | age colossal minuscule landmass frozen scorching climate molten flooded sea dry flooded rock clear murky waters
     | age pillared gentle landmass frozen scorching climate molten flooded sea dry flooded rock clear murky waters
     | age frozen scorching climate blizzard inferno weather molten flooded sea dry flooded rock clear murky waters

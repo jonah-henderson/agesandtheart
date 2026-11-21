@@ -112,9 +112,17 @@ internal fun Resolving.carriersOf(landing: Landing, aspect: Aspect): List<Taggab
 
 /**
  * Whether [landing] has a steering sense here — something it sets that this aspect turns — beyond setting the member it
- * chose outright in its own configuration, as `pyramidal` chooses the geometric landform and sets its shape.
+ * chose outright in its own configuration, as `pyramidal` chooses the geometric landform and sets its shape. A landing
+ * that chooses nothing steers where what its page said of the same thing does: `colossal`'s bar toward monumental
+ * landforms lands apart from its size.
  */
 private fun Resolving.steersInstead(aspect: Aspect, landing: Landing): Boolean {
+    fun saidBeside(other: Landing) = other.page == landing.page && other.saidOf == landing.saidOf
+    val itsPageSteers = landing.choice == null && speakingTo(aspect).filter(::saidBeside).any { steers(aspect, it) }
+    return steers(aspect, landing) || itsPageSteers
+}
+
+private fun Resolving.steers(aspect: Aspect, landing: Landing): Boolean {
     val turned = (landing.settings.keys + landing.bendings.keys).filter { world.turnsAParameter(aspect, it) }
     val chosen = landing.choice
     val configuresItsChoice = chosen != null && turned.all(chosen::honoursParameterNamed)

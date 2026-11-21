@@ -35,7 +35,8 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
 
     /**
      * Records the share each of [groups] went to of [aspect] divided between them — unless `and` joined them all,
-     * which is a division the writer asked for and reads as one. One between rivals marks [aspect] [contested].
+     * which is a division the writer asked for and reads as one. One between rivals marks [aspect] [contested] and is
+     * charged as they would be had they clashed ([rivalsDividing]).
      */
     fun divide(aspect: Aspect, groups: List<List<Landing>>) {
         if (groups.size < 2) return
@@ -44,6 +45,28 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
         if (askedFor) return
         contested += aspect
         for ((share, group) in groups.withIndex()) group.forEach { divide(it, share) }
+        flaws += rivalsDividing(aspect, groups).filter { rivals -> flaws.none { it.words.toSet() == rivals.words.toSet() } }
+    }
+
+    /**
+     * One flaw per pair of words given ground of their own in [aspect] without `and` between them. Only certainties
+     * are charged: a suggestion meeting a certainty yields uncharged, as in a clash, and two suggestions dividing
+     * would be charged at some seeds and not others.
+     */
+    private fun rivalsDividing(aspect: Aspect, groups: List<List<Landing>>): List<Flaw> {
+        val certain = groups.map { group -> group.filter { it.chance >= CERTAIN } }
+        val found = mutableListOf<Flaw>()
+        for (first in certain.indices) {
+            for (second in first + 1..<certain.size) {
+                for (one in certain[first]) {
+                    for (other in certain[second]) {
+                        val areRivals = one.word != other.word && !one.isJoinedTo(other)
+                        if (areRivals) found += flaw(Register.INCOHERENT, listOf(one, other).sortedBy { it.page }, aspect)
+                    }
+                }
+            }
+        }
+        return found.distinctBy { it.words.toSet() }
     }
 
     private val contested = mutableSetOf<Aspect>()
@@ -96,6 +119,7 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
         const val UNASKED_LAND_SALT = 0x1A4D_0F2EL
         const val WORD_MIXER = -0x61c8_8646_80b5_83ebL
         private const val MATERIAL_SALT = 0x3A7E_41A1L
+        private const val CERTAIN = 1.0
     }
 }
 

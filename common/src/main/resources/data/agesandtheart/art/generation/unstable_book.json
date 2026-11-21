@@ -26,7 +26,7 @@
       {"produce":["age","dry","flooded","rock","drenched","parched","weather","clear","murky","waters"]}
     ],
     "severely_unstable": [
-      {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","flooded","sea","drenched","parched","weather","clear","murky","waters"]},
+      {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","flooded","sea","blizzard","inferno","weather","clear","murky","waters"]},
       {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]},
       {"produce":["age","pillared","gentle","landmass","frozen","scorching","climate","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]},
       {"produce":["age","frozen","scorching","climate","blizzard","inferno","weather","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]}
