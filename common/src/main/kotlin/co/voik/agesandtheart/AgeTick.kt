@@ -19,6 +19,7 @@ import co.voik.agesandtheart.content.PlasmaField
 import co.voik.agesandtheart.content.Dragons
 import co.voik.agesandtheart.content.ScarabArrivals
 import co.voik.agesandtheart.content.Wardens
+import co.voik.ephemeris.RuntimeLevelResting
 import net.minecraft.server.MinecraftServer
 
 /**
@@ -41,6 +42,8 @@ object AgeTick {
         if (saved.ages.isEmpty()) return
         PhenomenaCeiling.tick(server)
         for (level in server.allLevels) {
+            // A resting Age did not tick, and nothing of it goes on here either — see `RuntimeLevelResting`.
+            if (RuntimeLevelResting.isResting(level)) continue
             val age = level.dimension().identifier()
             val recipe = saved.recipe(age) ?: continue
             val composition = recipe.composition ?: continue

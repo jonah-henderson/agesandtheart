@@ -89,6 +89,7 @@ object ClothSettings {
     val PAGES: Map<String, Page> = mapOf(
         "rendering" to Page.PERFORMANCE,
         "linking" to Page.PERFORMANCE,
+        "resting" to Page.PERFORMANCE,
         "phenomena.maxPhenomena" to Page.PERFORMANCE,
         "phenomena.phenomenaLimitScope" to Page.PERFORMANCE,
         "phenomena" to Page.BALANCE,

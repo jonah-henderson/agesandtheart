@@ -46,6 +46,7 @@ import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
 import co.voik.agesandtheart.worldgen.fissure.TheFall
 import co.voik.ephemeris.LevelWeather
+import co.voik.ephemeris.RuntimeLevelResting
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -70,6 +71,8 @@ object CommonSetup {
     fun init() {
         // An Age keeps weather of its own — the seam is the library's, what an Age asks for is ours.
         LevelWeather.source { level -> AgeWeather.of(level) }
+        // And stands still when nobody has been in it lately, past as many as the server keeps running.
+        RuntimeLevelResting.keepAwake { AgeConfig.agesKeptRunning.get() }
         // And is dressed and aired as it opens, by whichever route opened it.
         Ages.attach()
         Skies.attach()

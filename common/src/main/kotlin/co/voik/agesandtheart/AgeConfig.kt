@@ -96,6 +96,12 @@ object AgeConfig {
     val windStrength: ModConfigSpec.DoubleValue
     val tornadoesDestroyBlocks: ModConfigSpec.BooleanValue
 
+    /**
+     * How many Ages go on ticking with nobody in them, the most recently visited first — see Ephemeris's
+     * `RuntimeLevelResting`. Read live, about once a second.
+     */
+    val agesKeptRunning: ModConfigSpec.IntValue
+
     /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
     val coconutHoofbeats: ModConfigSpec.BooleanValue
 
@@ -238,6 +244,18 @@ object AgeConfig {
             .translation(translationOf("tornadoes_destroy_blocks"))
             .define("tornadoesDestroyBlocks", true)
         builder.pop()
+        builder.comment("[AI] Resting Ages").translation(translationOf(RESTING)).push(RESTING)
+        agesKeptRunning = builder
+            .comment(
+                "[AI] How many Ages keep running while nobody is in them, the most recently visited first. Any",
+                "others stand still once nothing has been in them for ten seconds: their time, weather and",
+                "everything else wait where they were, and go on from there when somebody arrives. An Age",
+                "with a player, a loaded chunk or a forceloaded chunk in it always runs. Set this above how",
+                "many Ages the server has for none to ever stand still.",
+            )
+            .translation(translationOf("ages_kept_running"))
+            .defineInRange("agesKeptRunning", DEFAULT_AGES_KEPT_RUNNING, 0, Int.MAX_VALUE)
+        builder.pop()
         builder.comment("Easter eggs").translation(translationOf(EASTER_EGGS)).push(EASTER_EGGS)
         coconutHoofbeats = builder
             .comment("Walking with half a coconut in each hand sounds like a horse.")
@@ -264,6 +282,9 @@ object AgeConfig {
     private const val DEFAULT_PHENOMENA_AT_ONCE = 2
     private const val MOST_PHENOMENA_AT_ONCE = 64
     private const val DEFAULT_GALE_WIND = 0.4
+
+    private const val RESTING = "resting"
+    private const val DEFAULT_AGES_KEPT_RUNNING = 50
 
     private const val EASTER_EGGS = "easter_eggs"
 }
