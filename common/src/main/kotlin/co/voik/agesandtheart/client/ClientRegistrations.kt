@@ -8,6 +8,8 @@ import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.book.BookLifts
+import co.voik.agesandtheart.client.ui.ClientColumnedTooltip
+import co.voik.agesandtheart.client.ui.ColumnedTooltip
 import co.voik.agesandtheart.content.NotebookTooltip
 import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
@@ -78,6 +80,7 @@ object ClientRegistrations {
 
     val TOOLTIPS: List<TooltipFor<*>> = listOf(
         TooltipFor(NotebookTooltip::class.java, ::ClientNotebookTooltip),
+        TooltipFor(ColumnedTooltip::class.java, ::ClientColumnedTooltip),
     )
 
     val ENTITY_RENDERERS: List<RendererForEntity<*>> = listOf(

@@ -3,11 +3,9 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.client.ui.ColumnedTooltip
 import net.minecraft.ChatFormatting
-import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.MutableComponent
 import net.minecraft.resources.Identifier
 
 /**
@@ -19,23 +17,28 @@ object WordReachTooltip {
 
     /**
      * "Applies to:" and the first [FIRST_SHOWN] of what [word] applies to, with how many more and a hint to hold Shift;
-     * every one, by part and wrapped to [widest] pixels, where [expanded]. Nothing for an aiming page, or a word the
-     * server never described.
+     * every one, under its part, where [expanded] — laid out in columns to fit the screen ([ColumnedTooltip]). Nothing
+     * for an aiming page, or a word the server never described.
      */
-    fun linesFor(word: Identifier, expanded: Boolean, widest: Int): List<Component> {
-        val reach = KnownWords.reachOf(word) ?: return emptyList()
+    fun tooltipFor(word: Identifier, expanded: Boolean): ColumnedTooltip? {
+        val reach = KnownWords.reachOf(word) ?: return null
         val isAnAimingPage = word.namespace == Constants.MOD_ID && Aspect.byPage(word.path) != null
-        if (isAnAimingPage) return emptyList()
-        val heading = Component.translatable(APPLIES_TO).withStyle(ChatFormatting.GRAY)
+        if (isAnAimingPage) return null
+        val title = listOf(Component.translatable(APPLIES_TO).withStyle(ChatFormatting.GRAY))
         val parts = partsOf(word, reach)
         val entries = parts.flatMap { it.entries }
+        fun unheaded(shown: List<String>) = listOf(ColumnedTooltip.Section(null, shown))
         return when {
-            entries.isEmpty() -> listOf(heading, entry(Component.translatable(APPLIES_ANYWHERE).string))
-            entries.size <= FIRST_SHOWN -> listOf(heading) + entries.map(::entry)
-            expanded -> listOf(heading) + parts.flatMap { linesOf(it, widest) }
-            else -> listOf(heading) + entries.take(FIRST_SHOWN).map(::entry) + listOf(
-                Component.translatable(APPLIES_MORE, entries.size - FIRST_SHOWN).withStyle(ChatFormatting.GRAY),
-                Component.translatable(EXPAND_HINT).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
+            entries.isEmpty() -> ColumnedTooltip(title, unheaded(listOf(Component.translatable(APPLIES_ANYWHERE).string)))
+            entries.size <= FIRST_SHOWN -> ColumnedTooltip(title, unheaded(entries))
+            expanded -> ColumnedTooltip(title, parts.map { ColumnedTooltip.Section(it.name?.let(Component::literal), it.entries) })
+            else -> ColumnedTooltip(
+                title,
+                unheaded(entries.take(FIRST_SHOWN)),
+                footer = listOf(
+                    Component.translatable(APPLIES_MORE, entries.size - FIRST_SHOWN).withStyle(ChatFormatting.GRAY),
+                    Component.translatable(EXPAND_HINT).withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC),
+                ),
             )
         }
     }
@@ -82,28 +85,7 @@ object WordReachTooltip {
     private fun everyOf(part: Aspect): String =
         Component.translatableWithFallback("$EVERY.${part.key}", "all %s", KnownWords.ofTheGameIn(part)).string
 
-    /** [part] as lines: its name, then what it holds, wrapped to [widest] pixels beneath it. */
-    private fun linesOf(part: Part, widest: Int): List<Component> {
-        val label = part.name?.let { listOf(Component.literal(it).withStyle(ChatFormatting.GRAY)) }.orEmpty()
-        return label + wrapped(part.entries, widest).map(::entry)
-    }
-
-    private fun entry(text: String): MutableComponent =
-        CommonComponents.space().append(text).withStyle(ChatFormatting.BLUE)
-
     private fun nameOf(word: Identifier): String = WordNames.readable(word).string
-
-    /** [names] as many to a line as fit in [widest] pixels, so a part with forty in it stays a block rather than a column. */
-    private fun wrapped(names: List<String>, widest: Int): List<String> {
-        val font = Minecraft.getInstance().font
-        val lines = mutableListOf<String>()
-        for (name in names) {
-            val last = lines.lastOrNull()
-            val fitsOnTheLastLine = last != null && font.width(entry(last + LIST_SEPARATOR + name)) <= widest
-            if (fitsOnTheLastLine) lines[lines.lastIndex] = last + LIST_SEPARATOR + name else lines += name
-        }
-        return lines
-    }
 
     private const val APPLIES_TO = "item.agesandtheart.page.applies_to"
     private const val APPLIES_ANYWHERE = "item.agesandtheart.page.applies_anywhere"
@@ -118,5 +100,4 @@ object WordReachTooltip {
 
     /** How many are listed before Shift is held. */
     private const val FIRST_SHOWN = 5
-    private const val LIST_SEPARATOR = ", "
 }

@@ -1,10 +1,13 @@
 package co.voik.agesandtheart.client.ui
 
+import java.util.Optional
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner
 import net.minecraft.client.gui.components.ObjectSelectionList
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
+import net.minecraft.world.inventory.tooltip.TooltipComponent
 
 /**
  * Something a row offers to do to the thing it names — the buttons at its right edge.
@@ -116,6 +119,8 @@ class LabelledRow<T : Any>(
     private val actions: List<RowAction<T>> = emptyList(),
     /** Shown while the row is hovered away from its buttons; nothing when empty. */
     private val tooltip: (T) -> List<Component> = { emptyList() },
+    /** Shown in [tooltip]'s place where it answers, for a tooltip that lays itself out ([ColumnedTooltip]). */
+    private val laidOutTooltip: (T) -> TooltipComponent? = { null },
     /** How far in its name is drawn, under a heading folded beneath another. */
     private val indent: Int = 0,
     /** What is said beside it in a gutter on its left, asked as it is drawn; null where the list keeps no gutter. */
@@ -152,8 +157,15 @@ class LabelledRow<T : Any>(
         val overTheBadge = shown?.isUnder(mouseX, mouseY, badgeX, badgeY) == true
         if (hovered) {
             // Set before the buttons, so a hovered button's own tooltip replaces it.
+            val laidOut = if (overTheBadge) null else laidOutTooltip(value)
             val lines = if (overTheBadge) listOf(shown.tooltip) else tooltip(value)
-            if (lines.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
+            if (laidOut != null) {
+                graphics.setTooltipForNextFrame(
+                    font, emptyList(), Optional.of(laidOut), DefaultTooltipPositioner.INSTANCE, mouseX, mouseY, false, null,
+                )
+            } else if (lines.isNotEmpty()) {
+                graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
+            }
         }
 
         for ((index, action) in actions.withIndex()) {
@@ -220,6 +232,7 @@ class LabelledRow<T : Any>(
             tooltip: (T) -> List<Component>,
             indent: Int = 0,
             badge: ((T) -> Badge?)? = null,
+            laidOutTooltip: (T) -> TooltipComponent? = { null },
         ): LabelledRow<T> {
             val font = Minecraft.getInstance().font
             val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
@@ -228,7 +241,7 @@ class LabelledRow<T : Any>(
             val width = labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH)
             val lines = wrappings.getOrPut(label to width) { wrapLabel(label, width, WRAP_INDENT, font::width) }
             if (wrappings.size > MOST_WRAPPINGS_KEPT) wrappings.clear()
-            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip, indent, badge)
+            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip, laidOutTooltip, indent, badge)
         }
 
         /**
@@ -314,8 +327,9 @@ class LabelledList<T : Any>(
         tooltip: (T) -> List<Component> = { emptyList() },
         startsCollapsed: Boolean = false,
         badge: ((T) -> Badge?)? = null,
+        laidOutTooltip: (T) -> TooltipComponent? = { null },
     ) {
-        reshow = { showGrouped(groups, label, count, key, actions, tooltip, startsCollapsed, badge) }
+        reshow = { showGrouped(groups, label, count, key, actions, tooltip, startsCollapsed, badge, laidOutTooltip) }
         if (startsCollapsed != startedCollapsed) toggled.clear()
         startedCollapsed = startsCollapsed
         val wasSelected = (selected as? LabelledRow<T>)?.value?.let(key)
@@ -332,7 +346,9 @@ class LabelledList<T : Any>(
             if (isCollapsed) return
             for (value in group.values) {
                 val row =
-                    LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip, indent, badge)
+                    LabelledRow.wrapped(
+                        value, label(value), count(value), onSelect, actions, rowWidth, tooltip, indent, badge, laidOutTooltip,
+                    )
                 addEntry(row, LabelledRow.heightOf(row))
             }
             for (subgroup in group.subgroups) add(subgroup, toggledAs, depth + 1)
