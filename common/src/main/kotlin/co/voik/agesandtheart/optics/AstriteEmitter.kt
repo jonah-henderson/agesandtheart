@@ -86,8 +86,8 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     private val atItsBack = IncomingBeams()
 
     /** A beam travelling the way it faces has come in at its back. */
-    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, until: Long) {
-        if (travelling == blockState.getValue(AstriteEmitterBlock.FACING)) atItsBack.take(source, light, until)
+    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, diffuse: Boolean, until: Long) {
+        if (travelling == blockState.getValue(AstriteEmitterBlock.FACING)) atItsBack.take(source, travelling, light, diffuse, until)
     }
 
     fun tick(level: ServerLevel) {
@@ -114,7 +114,7 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     override fun loadAdditional(input: ValueInput) {
         super.loadAdditional(input)
         crystal = CrystalHolder.load(input)
-        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), null)
+        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), emptyList())
     }
 
     override fun saveAdditional(output: ValueOutput) {

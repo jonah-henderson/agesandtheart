@@ -1,0 +1,13 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). Built with its straight face north and turned face up; the blockstate turns it. A splitter: a beam in at the straight face (the copper bulb) goes on out of the face opposite, and half turns out of the turned face.",
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "minecraft:block/amethyst_block",
+    "north": "minecraft:block/copper_bulb",
+    "south": "minecraft:block/lodestone_top",
+    "east": "minecraft:block/amethyst_block",
+    "west": "minecraft:block/amethyst_block",
+    "up": "minecraft:block/lodestone_top",
+    "down": "minecraft:block/amethyst_block"
+  }
+}

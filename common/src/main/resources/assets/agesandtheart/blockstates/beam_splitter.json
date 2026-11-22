@@ -1,0 +1,110 @@
+{
+  "variants": {
+    "faces=north_east": {
+      "model": "agesandtheart:block/beam_splitter"
+    },
+    "faces=north_west": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 180,
+      "y": 180
+    },
+    "faces=north_up": {
+      "model": "agesandtheart:block/beam_splitter_turned_up"
+    },
+    "faces=north_down": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "x": 180,
+      "y": 180
+    },
+    "faces=south_east": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 180
+    },
+    "faces=south_west": {
+      "model": "agesandtheart:block/beam_splitter",
+      "y": 180
+    },
+    "faces=south_up": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "y": 180
+    },
+    "faces=south_down": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "x": 180
+    },
+    "faces=east_north": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 180,
+      "y": 270
+    },
+    "faces=east_south": {
+      "model": "agesandtheart:block/beam_splitter",
+      "y": 90
+    },
+    "faces=east_up": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "y": 90
+    },
+    "faces=east_down": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "x": 180,
+      "y": 270
+    },
+    "faces=west_north": {
+      "model": "agesandtheart:block/beam_splitter",
+      "y": 270
+    },
+    "faces=west_south": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 180,
+      "y": 90
+    },
+    "faces=west_up": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "y": 270
+    },
+    "faces=west_down": {
+      "model": "agesandtheart:block/beam_splitter_turned_up",
+      "x": 180,
+      "y": 90
+    },
+    "faces=up_north": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 270,
+      "y": 270
+    },
+    "faces=up_south": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 270,
+      "y": 90
+    },
+    "faces=up_east": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 270
+    },
+    "faces=up_west": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 270,
+      "y": 180
+    },
+    "faces=down_north": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 90,
+      "y": 270
+    },
+    "faces=down_south": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 90,
+      "y": 90
+    },
+    "faces=down_east": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 90
+    },
+    "faces=down_west": {
+      "model": "agesandtheart:block/beam_splitter",
+      "x": 90,
+      "y": 180
+    }
+  }
+}

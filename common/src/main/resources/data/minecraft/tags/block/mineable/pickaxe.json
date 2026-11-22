@@ -31,6 +31,8 @@
     "agesandtheart:astrite_emitter",
     "agesandtheart:beam_receiver",
     "agesandtheart:reflector",
+    "agesandtheart:beam_splitter",
+    "agesandtheart:beam_merger",
     "agesandtheart:optical_conduit",
     "agesandtheart:sunlight_collector",
     "agesandtheart:astrite_mirror"

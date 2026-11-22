@@ -4,8 +4,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Astrite's optics at noon (`optics/`): a collector's diffuse light focused by an emitter into a laser, light shared
- * across a conduit network, colours mixed in one, stripes keeping conduits apart, and redstone putting an emitter out.
+ * Astrite's optics at noon (`optics/`): a collector's diffuse light focused by an emitter into a laser, bounced over a
+ * wall, split and merged, light shared across a conduit network, colours mixed in one, stripes keeping conduits apart,
+ * and redstone putting an emitter out.
  */
 @Tags(NEEDS_SERVER)
 class BeamOnServerCheck : FunSpec({
@@ -17,10 +18,12 @@ class BeamOnServerCheck : FunSpec({
 
     fun set(x: Int, z: Int, block: String) = inWorld("setblock $x $Y $z $block")
 
+    fun setAt(x: Int, y: Int, z: Int, block: String) = inWorld("setblock $x $y $z $block")
+
     fun lit(x: Int, z: Int) = passes("if block $x $Y $z agesandtheart:beam_receiver[powered=true]")
 
     fun bench(x: Int) {
-        inWorld("forceload add ${x - 2} ${Z - 2} ${x + 10} ${Z + 10}")
+        inWorld("forceload add ${x - 2} ${Z - 10} ${x + 12} ${Z + 10}")
         server.waitUntil("the bench's chunks loading") { passes("if loaded $x $Y $Z") }
         inWorld("time set noon")
         inWorld("weather clear")
@@ -39,6 +42,55 @@ class BeamOnServerCheck : FunSpec({
         focusedBench(FOCUSED_X)
         server.sprint(SETTLING_TICKS)
         check(lit(FOCUSED_X + 7, Z + 4)) { "the receiver past the reflector was not lit" }
+    }
+
+    test("four reflectors bounce a laser up, over a wall and down again") {
+        val x = BOUNCED_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
+        setAt(x + 4, Y, Z, "agesandtheart:reflector[mirror=west_up]")
+        setAt(x + 4, Y + 3, Z, "agesandtheart:reflector[mirror=down_east]")
+        for (height in 0..2) setAt(x + 6, Y + height, Z, "minecraft:stone")
+        setAt(x + 8, Y + 3, Z, "agesandtheart:reflector[mirror=west_down]")
+        setAt(x + 8, Y, Z, "agesandtheart:reflector[mirror=up_east]")
+        set(x + 10, Z, "agesandtheart:beam_receiver")
+        server.sprint(SETTLING_TICKS)
+        check(lit(x + 10, Z)) { "the receiver past the wall was not lit" }
+    }
+
+    test("a splitter halves a laser between two receivers, which a doubled laser lights") {
+        val x = SPLIT_X
+        bench(x)
+        for (along in 0..2) set(x + along, Z, "agesandtheart:optical_conduit")
+        set(x, Z - 1, "agesandtheart:sunlight_collector[facing=south]")
+        set(x + 1, Z + 1, "agesandtheart:astrite_emitter[facing=south]")
+        set(x + 1, Z + 4, "agesandtheart:beam_splitter[faces=north_east]")
+        set(x + 1, Z + 7, "agesandtheart:beam_receiver")
+        set(x + 4, Z + 4, "agesandtheart:beam_receiver")
+        server.sprint(SETTLING_TICKS)
+        check(!lit(x + 1, Z + 7) && !lit(x + 4, Z + 4)) { "half a full laser lit a receiver past a splitter" }
+        set(x + 2, Z - 1, "agesandtheart:sunlight_collector[facing=south]")
+        server.sprint(SETTLING_TICKS)
+        check(lit(x + 1, Z + 7)) { "the half of a doubled laser carrying straight on did not light its receiver" }
+        check(lit(x + 4, Z + 4)) { "the half of a doubled laser turned by a splitter did not light its receiver" }
+    }
+
+    test("a laser split and brought back together by a merger is whole again") {
+        val x = MERGED_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
+        set(x + 4, Z, "agesandtheart:beam_splitter[faces=west_north]")
+        set(x + 4, Z - 4, "agesandtheart:reflector[mirror=south_east]")
+        set(x + 8, Z, "agesandtheart:reflector[mirror=west_north]")
+        set(x + 8, Z - 4, "agesandtheart:beam_merger[faces=north_west]")
+        set(x + 8, Z - 7, "agesandtheart:beam_receiver")
+        server.sprint(SETTLING_TICKS)
+        check(lit(x + 8, Z - 7)) { "the two halves of a laser merged again did not light a receiver" }
+        set(x + 4, Z - 4, "minecraft:air")
+        server.sprint(SETTLING_TICKS)
+        check(!lit(x + 8, Z - 7)) { "half a laser through a merger lit a receiver" }
     }
 
     test("redstone puts an emitter out") {
@@ -103,6 +155,9 @@ private const val SWITCHED_X = -9300
 private const val SHARED_X = -9400
 private const val MIXED_X = -9500
 private const val STRIPED_X = -9600
+private const val BOUNCED_X = -9700
+private const val SPLIT_X = -9800
+private const val MERGED_X = -9900
 
 /** Light is passed on every tick, and this is room to spare for a chain of three. */
 private const val SETTLING_TICKS = 10

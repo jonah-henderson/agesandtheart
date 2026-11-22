@@ -1,0 +1,13 @@
+{
+  "_comment": "[AI] A reflector half-silvered with a lens and bound with copper, to tell it from a splitter. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "agesandtheart:reflector",
+    "agesandtheart:astrite_lens",
+    "minecraft:copper_ingot"
+  ],
+  "result": {
+    "id": "agesandtheart:beam_merger"
+  }
+}

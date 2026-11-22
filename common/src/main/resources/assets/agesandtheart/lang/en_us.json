@@ -243,6 +243,8 @@
   "block.agesandtheart.astrite_emitter": "[AI] Astrite Emitter",
   "block.agesandtheart.beam_receiver": "[AI] Beam Receiver",
   "block.agesandtheart.reflector": "[AI] Reflector",
+  "block.agesandtheart.beam_splitter": "[AI] Beam Splitter",
+  "block.agesandtheart.beam_merger": "[AI] Beam Merger",
   "block.agesandtheart.sunlight_collector": "[AI] Sunlight Collector",
   "block.agesandtheart.optical_conduit": "[AI] Optical Conduit",
   "block.agesandtheart.astrite_mirror": "[AI] Astrite Mirror",

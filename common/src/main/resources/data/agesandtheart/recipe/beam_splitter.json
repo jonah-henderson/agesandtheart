@@ -1,0 +1,12 @@
+{
+  "_comment": "[AI] A reflector half-silvered with a lens. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "ingredients": [
+    "agesandtheart:reflector",
+    "agesandtheart:astrite_lens"
+  ],
+  "result": {
+    "id": "agesandtheart:beam_splitter"
+  }
+}

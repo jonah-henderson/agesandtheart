@@ -14,7 +14,7 @@ import net.minecraft.world.level.material.MapColor
 
 /**
  * Astrite's optics (design §7.4): the lens and mirror, the collector gathering sunlight, the emitter focusing it into a
- * laser, the reflector and receiver a beam runs between, and the conduit carrying light between them.
+ * laser, the reflector, splitter, merger and receiver a beam runs between, and the conduit carrying light between them.
  */
 object Optics {
     val LENS_ID: Identifier = "astrite_lens".location()
@@ -24,6 +24,8 @@ object Optics {
     val REFLECTOR_ID: Identifier = "reflector".location()
     val COLLECTOR_ID: Identifier = "sunlight_collector".location()
     val CONDUIT_ID: Identifier = "optical_conduit".location()
+    val SPLITTER_ID: Identifier = "beam_splitter".location()
+    val MERGER_ID: Identifier = "beam_merger".location()
 
     private const val STRENGTH = 3.0f
     private const val CONDUIT_STRENGTH = 0.5f
@@ -44,6 +46,8 @@ object Optics {
     val EMITTER: AstriteEmitterBlock = AstriteEmitterBlock(properties(EMITTER_ID))
     val RECEIVER: BeamReceiverBlock = BeamReceiverBlock(properties(RECEIVER_ID))
     val REFLECTOR: ReflectorBlock = ReflectorBlock(properties(REFLECTOR_ID).noOcclusion())
+    val SPLITTER: BeamSplitterBlock = BeamSplitterBlock(properties(SPLITTER_ID).noOcclusion())
+    val MERGER: BeamMergerBlock = BeamMergerBlock(properties(MERGER_ID).noOcclusion())
     val COLLECTOR: SunlightCollectorBlock = SunlightCollectorBlock(properties(COLLECTOR_ID).noOcclusion())
     val MIRROR_BLOCK: AstriteMirrorBlock = AstriteMirrorBlock(properties(MIRROR_ID).strength(MIRROR_STRENGTH).sound(SoundType.GLASS).noOcclusion())
     val CONDUIT: OpticalConduitBlock = OpticalConduitBlock(
@@ -57,6 +61,8 @@ object Optics {
     /** Kept under its own item name, since it was an item before it could be placed. */
     val MIRROR: Item = BlockItem(MIRROR_BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, MIRROR_ID)))
     val COLLECTOR_ITEM: Item = itemFor(COLLECTOR, COLLECTOR_ID)
+    val SPLITTER_ITEM: Item = itemFor(SPLITTER, SPLITTER_ID)
+    val MERGER_ITEM: Item = itemFor(MERGER, MERGER_ID)
     val CONDUIT_ITEM: Item = itemFor(CONDUIT, CONDUIT_ID)
 
     val EMITTER_ENTITY: BlockEntityType<AstriteEmitterBlockEntity> =
@@ -65,6 +71,8 @@ object Optics {
         BlockEntityType({ pos, state -> BeamReceiverBlockEntity(pos, state) }, setOf(RECEIVER))
     val COLLECTOR_ENTITY: BlockEntityType<SunlightCollectorBlockEntity> =
         BlockEntityType({ pos, state -> SunlightCollectorBlockEntity(pos, state) }, setOf(COLLECTOR))
+    val MERGER_ENTITY: BlockEntityType<BeamMergerBlockEntity> =
+        BlockEntityType({ pos, state -> BeamMergerBlockEntity(pos, state) }, setOf(MERGER))
     val MIRROR_ENTITY: BlockEntityType<AstriteMirrorBlockEntity> =
         BlockEntityType({ pos, state -> AstriteMirrorBlockEntity(pos, state) }, setOf(MIRROR_BLOCK))
 
@@ -75,6 +83,8 @@ object Optics {
         COLLECTOR_ID to COLLECTOR,
         CONDUIT_ID to CONDUIT,
         MIRROR_ID to MIRROR_BLOCK,
+        SPLITTER_ID to SPLITTER,
+        MERGER_ID to MERGER,
     )
     val ITEMS: List<Pair<Identifier, Item>> = listOf(
         LENS_ID to LENS,
@@ -84,11 +94,14 @@ object Optics {
         REFLECTOR_ID to REFLECTOR_ITEM,
         COLLECTOR_ID to COLLECTOR_ITEM,
         CONDUIT_ID to CONDUIT_ITEM,
+        SPLITTER_ID to SPLITTER_ITEM,
+        MERGER_ID to MERGER_ITEM,
     )
     val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         EMITTER_ID to EMITTER_ENTITY,
         RECEIVER_ID to RECEIVER_ENTITY,
         COLLECTOR_ID to COLLECTOR_ENTITY,
         MIRROR_ID to MIRROR_ENTITY,
+        MERGER_ID to MERGER_ENTITY,
     )
 }

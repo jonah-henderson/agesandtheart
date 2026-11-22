@@ -91,8 +91,8 @@ class BeamReceiverBlockEntity(pos: BlockPos, state: BlockState) :
 
     private val reaching = IncomingBeams()
 
-    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, until: Long) {
-        reaching.take(source, light, until)
+    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, diffuse: Boolean, until: Long) {
+        reaching.take(source, travelling, light, diffuse, until)
     }
 
     /** The light of the beams reaching it, or null where none is. */

@@ -101,7 +101,7 @@ class SunlightCollectorBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun loadAdditional(input: ValueInput) {
         super.loadAdditional(input)
-        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), null)
+        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), emptyList())
     }
 
     override fun saveAdditional(output: ValueOutput) {
