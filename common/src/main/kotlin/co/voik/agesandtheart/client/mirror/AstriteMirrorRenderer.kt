@@ -10,6 +10,8 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.renderpearl.api.pipeline.BindGroupLayout
+import com.mojang.renderpearl.api.pipeline.BlendFunction
+import com.mojang.renderpearl.api.pipeline.CompareOp
 import com.mojang.renderpearl.api.pipeline.ColorTargetState
 import com.mojang.renderpearl.api.pipeline.DepthStencilState
 import com.mojang.renderpearl.api.pipeline.PrimitiveTopology
@@ -22,6 +24,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
+import net.minecraft.client.renderer.oit.OitPipelineSet
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer
 import net.minecraft.client.renderer.rendertype.RenderSetup
 import net.minecraft.client.renderer.rendertype.RenderType
@@ -29,6 +32,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.AbstractTexture
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.util.ARGB
 import net.minecraft.world.phys.Vec3
 
 class AstriteMirrorRenderState : BlockEntityRenderState() {
@@ -37,9 +41,10 @@ class AstriteMirrorRenderState : BlockEntityRenderState() {
 }
 
 /**
- * The reflection on an astrite mirror's glass, where its plane is the one [MirrorReflection] drew this frame; the
- * block's own model is the glass shown otherwise. The glass is laid in a grid, each point looked up where it falls in
- * the reflection's texture, since a texture stretched across one quad would bend under perspective.
+ * The faint reflection in a mirror's polished astrite, where its plane is the one [MirrorReflection] drew this frame:
+ * added over the block's own face at [REFLECTION_STRENGTH], as light off a polished stone is, rather than replacing it.
+ * The face is laid in a grid, each point looked up where it falls in the reflection's texture, since a texture
+ * stretched across one quad would bend under perspective.
  */
 class AstriteMirrorRenderer : BlockEntityRenderer<AstriteMirrorBlockEntity, AstriteMirrorRenderState> {
 
@@ -104,24 +109,35 @@ class AstriteMirrorRenderer : BlockEntityRenderer<AstriteMirrorBlockEntity, Astr
         /** How far in front of the model's glass the reflection is laid, so the two never fight. */
         const val PROUD = 0.002
 
-        /** A touch of grey: astrite silvering is not a perfect mirror. */
-        const val TINT = 0xFFE8E8F0.toInt()
+        /** How much of the reflection's light the polish gives back, of 255. */
+        const val REFLECTION_STRENGTH = 44
+        val TINT: Int = ARGB.color(255, REFLECTION_STRENGTH, REFLECTION_STRENGTH, REFLECTION_STRENGTH)
+
+        private val SHEEN: RenderPipeline.Snippet = RenderPipeline.builder(MATRICES_AND_PROJECTION)
+            .withVertexShader("core/position_tex_color")
+            .withFragmentShader("core/position_tex_color")
+            .withBindGroupLayout(BindGroupLayout.builder().withUniform("Sampler0", UniformType.COMBINED_IMAGE_SAMPLER).build())
+            .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
+            .withPrimitiveTopology(PrimitiveTopology.QUADS)
+            .buildSnippet()
+
+        /** The sorted pass a client with improved transparency draws blended light in, as `lightThroughFog` has. */
+        @Suppress("DEPRECATION")
+        private val SORTED_SHEEN: OitPipelineSet =
+            OitPipelineSet.builder("astrite_mirror_reflection", RenderPipeline.builder(SHEEN).withShaderDefine("OIT_ADDITIVE")).build()
 
         val REFLECTION: RenderType = RenderType.create(
             "astrite_mirror_reflection",
             RenderSetup.builder(
-                RenderPipeline.builder(MATRICES_AND_PROJECTION)
+                RenderPipeline.builder(SHEEN)
                     .withLocation("pipeline/astrite_mirror_reflection".location())
-                    .withColorTargetState(ColorTargetState.DEFAULT)
-                    .withVertexShader("core/position_tex_color")
-                    .withFragmentShader("core/position_tex_color")
-                    .withBindGroupLayout(BindGroupLayout.builder().withUniform("Sampler0", UniformType.COMBINED_IMAGE_SAMPLER).build())
-                    .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
-                    .withPrimitiveTopology(PrimitiveTopology.QUADS)
-                    .withDepthStencilState(DepthStencilState.DEFAULT)
+                    .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
                     .withCull(false)
+                    // Tested as everything is (26.3's depth runs backwards) but never written, being light laid over a face.
+                    .withDepthStencilState(DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false))
                     .build(),
             ).withTexture("Sampler0", MirrorTexture.LOCATION) { RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR) }
+                .setOitPipelines(SORTED_SHEEN)
                 .createRenderSetup(),
         )
     }

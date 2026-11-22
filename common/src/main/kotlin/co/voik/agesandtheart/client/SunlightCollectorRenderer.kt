@@ -70,7 +70,7 @@ class SunlightCollectorRenderer(context: BlockEntityRendererProvider.Context) :
     }
 
     override fun submit(state: SunlightCollectorRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
-        BeamDrawing.submit(state, poseStack, collector)
+        BeamDrawing.submit(state, poseStack, collector, camera.pos)
         poseStack.pushPose()
         poseStack.translate(MIDDLE, PIVOT_HEIGHT, MIDDLE)
         poseStack.rotate(Quaternionf().rotationTo(UP, state.dishFacing))
