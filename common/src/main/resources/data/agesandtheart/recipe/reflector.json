@@ -1,15 +1,15 @@
 {
-  "_comment": "[AI] Stand-in: a lens backed by glass, as a mirror is silvered glass. Ratios are unbalanced.",
+  "_comment": "[AI] A mirror held in glass. Ratios are unbalanced.",
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
     "A": "agesandtheart:astrite_shard",
-    "L": "agesandtheart:astrite_lens",
+    "M": "agesandtheart:astrite_mirror",
     "G": "minecraft:glass"
   },
   "pattern": [
     "AGA",
-    "GLG",
+    "GMG",
     "AGA"
   ],
   "result": {

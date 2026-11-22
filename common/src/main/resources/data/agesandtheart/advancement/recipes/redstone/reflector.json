@@ -1,5 +1,5 @@
 {
-  "_comment": "[AI] Learned on first holding a lens.",
+  "_comment": "[AI] Learned on first holding a mirror.",
   "parent": "minecraft:recipes/root",
   "criteria": {
     "has_the_item": {
@@ -7,7 +7,7 @@
       "conditions": {
         "items": [
           {
-            "items": "agesandtheart:astrite_lens"
+            "items": "agesandtheart:astrite_mirror"
           }
         ]
       }

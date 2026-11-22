@@ -1,0 +1,15 @@
+{
+  "_comment": "[AI] Two shards ground flat with sand and backed with copper. Off the grinder like the lens (Jonah, 2026-11-22). Ratios are unbalanced.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:astrite_shard",
+    "agesandtheart:astrite_shard",
+    "#minecraft:sand",
+    "minecraft:copper_ingot"
+  ],
+  "result": {
+    "id": "agesandtheart:astrite_mirror",
+    "count": 1
+  }
+}

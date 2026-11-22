@@ -12,9 +12,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.MapColor
 
-/** Astrite's optics (design §7.4): the lens, and the emitter, receiver and reflector a beam runs between. */
+/** Astrite's optics (design §7.4): the lens and mirror, and the emitter, receiver and reflector a beam runs between. */
 object Optics {
     val LENS_ID: Identifier = "astrite_lens".location()
+    val MIRROR_ID: Identifier = "astrite_mirror".location()
     val EMITTER_ID: Identifier = "astrite_emitter".location()
     val RECEIVER_ID: Identifier = "beam_receiver".location()
     val REFLECTOR_ID: Identifier = "reflector".location()
@@ -32,6 +33,7 @@ object Optics {
         BlockItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix())
 
     val LENS: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, LENS_ID)))
+    val MIRROR: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MIRROR_ID)))
 
     val EMITTER: AstriteEmitterBlock = AstriteEmitterBlock(properties(EMITTER_ID))
     val RECEIVER: BeamReceiverBlock = BeamReceiverBlock(properties(RECEIVER_ID))
@@ -48,6 +50,6 @@ object Optics {
 
     val BLOCKS: List<Pair<Identifier, Block>> = listOf(EMITTER_ID to EMITTER, RECEIVER_ID to RECEIVER, REFLECTOR_ID to REFLECTOR)
     val ITEMS: List<Pair<Identifier, Item>> =
-        listOf(LENS_ID to LENS, EMITTER_ID to EMITTER_ITEM, RECEIVER_ID to RECEIVER_ITEM, REFLECTOR_ID to REFLECTOR_ITEM)
+        listOf(LENS_ID to LENS, MIRROR_ID to MIRROR, EMITTER_ID to EMITTER_ITEM, RECEIVER_ID to RECEIVER_ITEM, REFLECTOR_ID to REFLECTOR_ITEM)
     val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(EMITTER_ID to EMITTER_ENTITY, RECEIVER_ID to RECEIVER_ENTITY)
 }

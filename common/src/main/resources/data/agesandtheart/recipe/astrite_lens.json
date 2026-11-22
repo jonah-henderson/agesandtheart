@@ -1,7 +1,12 @@
 {
-  "_comment": "[AI] A shard ground into a lens at the grinder, as astrite's optics ask (Jonah, 2026-11-22). Ratios are unbalanced.",
-  "type": "agesandtheart:grinding",
-  "ingredient": "agesandtheart:astrite_shard",
+  "_comment": "[AI] A shard ground down with sand and polished on leather. Kept off the grinder, which deretheni gates, so optics open with astrite alone (Jonah, 2026-11-22). Ratios are unbalanced.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:astrite_shard",
+    "#minecraft:sand",
+    "minecraft:leather"
+  ],
   "result": {
     "id": "agesandtheart:astrite_lens",
     "count": 1

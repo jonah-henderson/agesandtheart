@@ -1,0 +1,7 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). A pane of glass reads as a flat, bright face.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:block/glass"
+  }
+}
