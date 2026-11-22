@@ -1,7 +1,13 @@
 {
-  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9).",
-  "parent": "minecraft:block/cube_all",
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The conduit side faces north, as the emitter's back looks.",
+  "parent": "minecraft:block/cube",
   "textures": {
-    "all": "minecraft:block/target_top"
+    "particle": "minecraft:block/target_top",
+    "north": "minecraft:block/daylight_detector_top",
+    "south": "minecraft:block/target_top",
+    "east": "minecraft:block/target_top",
+    "west": "minecraft:block/target_top",
+    "up": "minecraft:block/target_top",
+    "down": "minecraft:block/target_top"
   }
 }

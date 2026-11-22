@@ -17,22 +17,14 @@ object LightNetworks {
     /** One network: its conduits, and what joins them. */
     data class Network(val conduits: Set<BlockPos>, val endpoints: Set<BlockPos>)
 
-    /** The light reaching the output at [output] from every network it is joined to. */
-    fun lightFor(level: ServerLevel, output: BlockPos): Light? =
-        Light.together(networksTouching(level, output).mapNotNull { network -> shareOf(level, network) })
+    /** The light reaching the output at [output] from the network it is joined to. */
+    fun lightFor(level: ServerLevel, output: BlockPos): Light? = networkAt(level, output)?.let { shareOf(level, it) }
 
-    /** The networks joined to the endpoint at [endpoint], each once. */
-    fun networksTouching(level: ServerLevel, endpoint: BlockPos): List<Network> {
-        val endpointState = level.getBlockState(endpoint)
-        val networks = mutableListOf<Network>()
-        for (direction in Direction.entries) {
-            val conduit = endpoint.relative(direction)
-            val isAJoinedConduit = level.getBlockState(conduit).block is OpticalConduitBlock &&
-                OpticalConduitBlock.joinsEndpoint(direction.opposite, endpointState)
-            val isAlreadyFound = networks.any { conduit in it.conduits }
-            if (isAJoinedConduit && !isAlreadyFound) networks += networkFrom(level, conduit)
-        }
-        return networks
+    /** The network joined to the endpoint at [endpoint] on its one joining side, or null where none is. */
+    private fun networkAt(level: ServerLevel, endpoint: BlockPos): Network? {
+        val side = OpticalConduitBlock.joiningSide(level.getBlockState(endpoint)) ?: return null
+        val conduit = endpoint.relative(side)
+        return if (level.getBlockState(conduit).block is OpticalConduitBlock) networkFrom(level, conduit) else null
     }
 
     private fun networkFrom(level: ServerLevel, start: BlockPos): Network {
@@ -69,7 +61,7 @@ object LightNetworks {
 
     private fun lightPutIn(level: ServerLevel, endpoint: BlockPos): Light? = when (val entity = level.getBlockEntity(endpoint)) {
         is SunlightCollectorBlockEntity -> entity.gathered(level)
-        is BeamReceiverBlockEntity -> entity.beamLight(level)?.sharedBetween(networksTouching(level, endpoint).size)
+        is BeamReceiverBlockEntity -> entity.beamLight(level)
         else -> null
     }
 

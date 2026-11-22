@@ -91,7 +91,6 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     fun tick(level: ServerLevel) {
-        if (!Beam.isTimeToLook(level)) return
         val traced = traced(level)
         Beam.deliver(level, worldPosition, traced)
         if (traced.segments == path.segments) return

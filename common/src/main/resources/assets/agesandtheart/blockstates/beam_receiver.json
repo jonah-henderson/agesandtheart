@@ -1,10 +1,50 @@
 {
   "variants": {
-    "powered=false": {
+    "facing=north,powered=false": {
       "model": "agesandtheart:block/beam_receiver"
     },
-    "powered=true": {
+    "facing=north,powered=true": {
       "model": "agesandtheart:block/beam_receiver_on"
+    },
+    "facing=east,powered=false": {
+      "model": "agesandtheart:block/beam_receiver",
+      "y": 90
+    },
+    "facing=east,powered=true": {
+      "model": "agesandtheart:block/beam_receiver_on",
+      "y": 90
+    },
+    "facing=south,powered=false": {
+      "model": "agesandtheart:block/beam_receiver",
+      "y": 180
+    },
+    "facing=south,powered=true": {
+      "model": "agesandtheart:block/beam_receiver_on",
+      "y": 180
+    },
+    "facing=west,powered=false": {
+      "model": "agesandtheart:block/beam_receiver",
+      "y": 270
+    },
+    "facing=west,powered=true": {
+      "model": "agesandtheart:block/beam_receiver_on",
+      "y": 270
+    },
+    "facing=up,powered=false": {
+      "model": "agesandtheart:block/beam_receiver",
+      "x": 270
+    },
+    "facing=up,powered=true": {
+      "model": "agesandtheart:block/beam_receiver_on",
+      "x": 270
+    },
+    "facing=down,powered=false": {
+      "model": "agesandtheart:block/beam_receiver",
+      "x": 90
+    },
+    "facing=down,powered=true": {
+      "model": "agesandtheart:block/beam_receiver_on",
+      "x": 90
     }
   }
 }

@@ -72,14 +72,14 @@ object Beam {
     /** What stops a beam though it would otherwise pass: tinted glass, which is for keeping light out. */
     val STOPS_BEAMS: TagKey<Block> = TagKey.create(Registries.BLOCK, "stops_beams".location())
 
-    /** How often every beam is followed again, in ticks, and how long what it reached keeps its light. */
-    const val LOOKS_AGAIN_EVERY = 10L
-    const val HELD_FOR = 12L
+    /**
+     * How long what a beam reached keeps its light, in ticks. Every beam is followed again each tick, and one tick more
+     * covers a block that ticks before the source feeding it.
+     */
+    const val HELD_FOR = 1L
 
     private const val MOST_TURNS = 16
     private const val HALF = 0.5f
-
-    fun isTimeToLook(level: Level): Boolean = level.gameTime % LOOKS_AGAIN_EVERY == 0L
 
     /** The beam leaving [source] toward [facing] as [light], reaching [range] blocks. */
     fun trace(level: Level, source: BlockPos, facing: Direction, light: Light, range: Int, diffuse: Boolean): BeamPath {

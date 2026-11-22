@@ -87,7 +87,6 @@ class SunlightCollectorBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     fun tick(level: ServerLevel) {
-        if (!Beam.isTimeToLook(level)) return
         val facing = blockState.getValue(SunlightCollectorBlock.FACING)
         val feedsAConduit = level.getBlockState(worldPosition.relative(facing)).block is OpticalConduitBlock
         val light = gathered(level)

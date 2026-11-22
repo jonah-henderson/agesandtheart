@@ -145,15 +145,18 @@ class OpticalConduitBlock(properties: Properties) : Block(properties) {
             return isAConduitItJoins || joinsEndpoint(direction, neighbour)
         }
 
+        /** Whether a conduit joins [endpoint], the block toward [towardEndpoint]: only on the endpoint's [joiningSide]. */
+        fun joinsEndpoint(towardEndpoint: Direction, endpoint: BlockState): Boolean = joiningSide(endpoint) == towardEndpoint.opposite
+
         /**
-         * Whether a conduit joins [endpoint], the block toward [towardEndpoint]: an emitter at its back, a collector at
-         * the face its light leaves by, and a receiver on any side.
+         * The one side of an optical block a conduit joins: an emitter's back, the face a collector's light leaves by,
+         * and a receiver's conduit side. Null for any other block.
          */
-        fun joinsEndpoint(towardEndpoint: Direction, endpoint: BlockState): Boolean = when (endpoint.block) {
-            is AstriteEmitterBlock -> endpoint.getValue(AstriteEmitterBlock.FACING) == towardEndpoint
-            is SunlightCollectorBlock -> endpoint.getValue(SunlightCollectorBlock.FACING) == towardEndpoint.opposite
-            is BeamReceiverBlock -> true
-            else -> false
+        fun joiningSide(endpoint: BlockState): Direction? = when (endpoint.block) {
+            is AstriteEmitterBlock -> endpoint.getValue(AstriteEmitterBlock.FACING).opposite
+            is SunlightCollectorBlock -> endpoint.getValue(SunlightCollectorBlock.FACING)
+            is BeamReceiverBlock -> endpoint.getValue(BeamReceiverBlock.FACING)
+            else -> null
         }
 
         private fun joinedAround(state: BlockState, level: BlockGetter, pos: BlockPos): BlockState =

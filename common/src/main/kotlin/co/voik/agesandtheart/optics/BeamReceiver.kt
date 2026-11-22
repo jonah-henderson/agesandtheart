@@ -8,10 +8,12 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.DirectionalBlock
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -19,24 +21,29 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.BooleanProperty
+import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
 
 /**
- * A beam receiver: a full redstone signal on every side while full light reaches it, by a beam or through a conduit,
- * of exactly the colour of the rime crystal slotted in, or of any colour without one. A beam reaching it is also light
- * put into the conduits joined to it.
+ * A beam receiver: a full redstone signal on every side while full light reaches it, by a beam or through the conduit
+ * on its one conduit side, of exactly the colour of the rime crystal slotted in, or of any colour without one. A beam
+ * reaching it is also light put into that conduit's network.
  */
 class BeamReceiverBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(POWERED, false))
+        registerDefaultState(stateDefinition.any().setValue(POWERED, false).setValue(FACING, Direction.NORTH))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(POWERED)
+        builder.add(POWERED, FACING)
     }
+
+    /** Its conduit side toward the block it was placed against. */
+    override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
+        defaultBlockState().setValue(FACING, context.clickedFace.opposite)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BeamReceiverBlockEntity(pos, state)
 
@@ -70,6 +77,9 @@ class BeamReceiverBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     companion object {
         val POWERED: BooleanProperty = BlockStateProperties.POWERED
+
+        /** Its conduit side. */
+        val FACING: EnumProperty<Direction> = DirectionalBlock.FACING
         private const val FULL_SIGNAL = 15
     }
 }
@@ -89,7 +99,6 @@ class BeamReceiverBlockEntity(pos: BlockPos, state: BlockState) :
     fun beamLight(level: Level): Light? = reaching.lightAt(level.gameTime)
 
     fun tick(level: ServerLevel) {
-        if (!Beam.isTimeToLook(level)) return
         val light = beamLight(level) ?: LightNetworks.lightFor(level, worldPosition)
         val isLit = light != null && isLitBy(light)
         if (blockState.getValue(BeamReceiverBlock.POWERED) == isLit) return

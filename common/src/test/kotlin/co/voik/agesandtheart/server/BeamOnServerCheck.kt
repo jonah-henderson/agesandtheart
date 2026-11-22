@@ -74,7 +74,7 @@ class BeamOnServerCheck : FunSpec({
             set(inputX, Z + 1, "agesandtheart:beam_receiver")
         }
         set(x + 4, Z + 1, "agesandtheart:beam_receiver{crystal:\"yellow\"}")
-        set(x + 4, Z - 1, "agesandtheart:beam_receiver{crystal:\"red\"}")
+        set(x + 4, Z - 1, "agesandtheart:beam_receiver[facing=south]{crystal:\"red\"}")
         server.sprint(SETTLING_TICKS)
         check(lit(x + 4, Z + 1)) { "red and lime light in one network did not light a receiver asking yellow" }
         check(!lit(x + 4, Z - 1)) { "a receiver asking red was lit by red and lime light mixed" }
@@ -104,5 +104,5 @@ private const val SHARED_X = -9400
 private const val MIXED_X = -9500
 private const val STRIPED_X = -9600
 
-/** Light is passed on every ten ticks and held twelve, and a chain of three passes needs several looks. */
-private const val SETTLING_TICKS = 60
+/** Light is passed on every tick, and this is room to spare for a chain of three. */
+private const val SETTLING_TICKS = 10
