@@ -44,16 +44,16 @@ class BeamOnServerCheck : FunSpec({
         check(lit(FOCUSED_X + 7, Z + 4)) { "the receiver past the reflector was not lit" }
     }
 
-    test("four reflectors bounce a laser up, over a wall and down again") {
+    test("four vertical reflectors bounce a laser up, over a wall and down again") {
         val x = BOUNCED_X
         bench(x)
         set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
         set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
-        setAt(x + 4, Y, Z, "agesandtheart:reflector[mirror=west_up]")
-        setAt(x + 4, Y + 3, Z, "agesandtheart:reflector[mirror=down_east]")
+        setAt(x + 4, Y, Z, "agesandtheart:vertical_reflector[mirror=west_up]")
+        setAt(x + 4, Y + 3, Z, "agesandtheart:vertical_reflector[mirror=down_east]")
         for (height in 0..2) setAt(x + 6, Y + height, Z, "minecraft:stone")
-        setAt(x + 8, Y + 3, Z, "agesandtheart:reflector[mirror=west_down]")
-        setAt(x + 8, Y, Z, "agesandtheart:reflector[mirror=up_east]")
+        setAt(x + 8, Y + 3, Z, "agesandtheart:vertical_reflector[mirror=west_down]")
+        setAt(x + 8, Y, Z, "agesandtheart:vertical_reflector[mirror=up_east]")
         set(x + 10, Z, "agesandtheart:beam_receiver")
         server.sprint(SETTLING_TICKS)
         check(lit(x + 10, Z)) { "the receiver past the wall was not lit" }

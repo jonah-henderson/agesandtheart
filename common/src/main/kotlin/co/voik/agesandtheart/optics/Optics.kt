@@ -26,6 +26,9 @@ object Optics {
     val CONDUIT_ID: Identifier = "optical_conduit".location()
     val SPLITTER_ID: Identifier = "beam_splitter".location()
     val MERGER_ID: Identifier = "beam_merger".location()
+    val VERTICAL_REFLECTOR_ID: Identifier = "vertical_reflector".location()
+    val VERTICAL_SPLITTER_ID: Identifier = "vertical_beam_splitter".location()
+    val VERTICAL_MERGER_ID: Identifier = "vertical_beam_merger".location()
 
     private const val STRENGTH = 3.0f
     private const val CONDUIT_STRENGTH = 0.5f
@@ -45,9 +48,12 @@ object Optics {
 
     val EMITTER: AstriteEmitterBlock = AstriteEmitterBlock(properties(EMITTER_ID))
     val RECEIVER: BeamReceiverBlock = BeamReceiverBlock(properties(RECEIVER_ID))
-    val REFLECTOR: ReflectorBlock = ReflectorBlock(properties(REFLECTOR_ID).noOcclusion())
-    val SPLITTER: BeamSplitterBlock = BeamSplitterBlock(properties(SPLITTER_ID).noOcclusion())
-    val MERGER: BeamMergerBlock = BeamMergerBlock(properties(MERGER_ID).noOcclusion())
+    val REFLECTOR: ReflectorBlock = ReflectorBlock(properties(REFLECTOR_ID).noOcclusion(), OpticPlane.HORIZONTAL)
+    val VERTICAL_REFLECTOR: ReflectorBlock = ReflectorBlock(properties(VERTICAL_REFLECTOR_ID).noOcclusion(), OpticPlane.VERTICAL)
+    val SPLITTER: BeamSplitterBlock = BeamSplitterBlock(properties(SPLITTER_ID).noOcclusion(), OpticPlane.HORIZONTAL)
+    val VERTICAL_SPLITTER: BeamSplitterBlock = BeamSplitterBlock(properties(VERTICAL_SPLITTER_ID).noOcclusion(), OpticPlane.VERTICAL)
+    val MERGER: BeamMergerBlock = BeamMergerBlock(properties(MERGER_ID).noOcclusion(), OpticPlane.HORIZONTAL)
+    val VERTICAL_MERGER: BeamMergerBlock = BeamMergerBlock(properties(VERTICAL_MERGER_ID).noOcclusion(), OpticPlane.VERTICAL)
     val COLLECTOR: SunlightCollectorBlock = SunlightCollectorBlock(properties(COLLECTOR_ID).noOcclusion())
     val MIRROR_BLOCK: AstriteMirrorBlock = AstriteMirrorBlock(properties(MIRROR_ID).strength(MIRROR_STRENGTH).sound(SoundType.GLASS).noOcclusion())
     val CONDUIT: OpticalConduitBlock = OpticalConduitBlock(
@@ -63,6 +69,9 @@ object Optics {
     val COLLECTOR_ITEM: Item = itemFor(COLLECTOR, COLLECTOR_ID)
     val SPLITTER_ITEM: Item = itemFor(SPLITTER, SPLITTER_ID)
     val MERGER_ITEM: Item = itemFor(MERGER, MERGER_ID)
+    val VERTICAL_REFLECTOR_ITEM: Item = itemFor(VERTICAL_REFLECTOR, VERTICAL_REFLECTOR_ID)
+    val VERTICAL_SPLITTER_ITEM: Item = itemFor(VERTICAL_SPLITTER, VERTICAL_SPLITTER_ID)
+    val VERTICAL_MERGER_ITEM: Item = itemFor(VERTICAL_MERGER, VERTICAL_MERGER_ID)
     val CONDUIT_ITEM: Item = itemFor(CONDUIT, CONDUIT_ID)
 
     val EMITTER_ENTITY: BlockEntityType<AstriteEmitterBlockEntity> =
@@ -72,7 +81,7 @@ object Optics {
     val COLLECTOR_ENTITY: BlockEntityType<SunlightCollectorBlockEntity> =
         BlockEntityType({ pos, state -> SunlightCollectorBlockEntity(pos, state) }, setOf(COLLECTOR))
     val MERGER_ENTITY: BlockEntityType<BeamMergerBlockEntity> =
-        BlockEntityType({ pos, state -> BeamMergerBlockEntity(pos, state) }, setOf(MERGER))
+        BlockEntityType({ pos, state -> BeamMergerBlockEntity(pos, state) }, setOf(MERGER, VERTICAL_MERGER))
     val MIRROR_ENTITY: BlockEntityType<AstriteMirrorBlockEntity> =
         BlockEntityType({ pos, state -> AstriteMirrorBlockEntity(pos, state) }, setOf(MIRROR_BLOCK))
 
@@ -85,6 +94,9 @@ object Optics {
         MIRROR_ID to MIRROR_BLOCK,
         SPLITTER_ID to SPLITTER,
         MERGER_ID to MERGER,
+        VERTICAL_REFLECTOR_ID to VERTICAL_REFLECTOR,
+        VERTICAL_SPLITTER_ID to VERTICAL_SPLITTER,
+        VERTICAL_MERGER_ID to VERTICAL_MERGER,
     )
     val ITEMS: List<Pair<Identifier, Item>> = listOf(
         LENS_ID to LENS,
@@ -96,6 +108,9 @@ object Optics {
         CONDUIT_ID to CONDUIT_ITEM,
         SPLITTER_ID to SPLITTER_ITEM,
         MERGER_ID to MERGER_ITEM,
+        VERTICAL_REFLECTOR_ID to VERTICAL_REFLECTOR_ITEM,
+        VERTICAL_SPLITTER_ID to VERTICAL_SPLITTER_ITEM,
+        VERTICAL_MERGER_ID to VERTICAL_MERGER_ITEM,
     )
     val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         EMITTER_ID to EMITTER_ENTITY,

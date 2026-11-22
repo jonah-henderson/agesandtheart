@@ -1,0 +1,12 @@
+{
+  "_comment": "[AI] A vertical reflector turned back to turn beams level.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "group": "agesandtheart_reflector",
+  "ingredients": [
+    "agesandtheart:vertical_reflector"
+  ],
+  "result": {
+    "id": "agesandtheart:reflector"
+  }
+}

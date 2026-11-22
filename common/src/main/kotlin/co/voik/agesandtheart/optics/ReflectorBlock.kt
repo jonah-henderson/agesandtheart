@@ -17,27 +17,24 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * Two open faces at right angles, joined by a mirror: a beam entering by one leaves by the other, and a beam meeting
- * any other face stops. Using a face opens it, the mirror turning to join it with the face opened before.
+ * any other face stops. Its [plane] says which faces it can join. Using a face opens it, the mirror turning to join it
+ * with the face opened before, or on the vertical form with whichever of the two is not as level as it.
  */
-class ReflectorBlock(properties: Properties) : Block(properties) {
+class ReflectorBlock(properties: Properties, val plane: OpticPlane) : Block(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(MIRROR, Mirror.of(Direction.NORTH, Direction.EAST)))
+        registerDefaultState(stateDefinition.any().setValue(MIRROR, OpticPlane.resting(plane)))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(MIRROR)
     }
 
-    /** Open to the placer, and to their right, or toward them where they look up or down at it. */
-    override fun getStateForPlacement(context: BlockPlaceContext): BlockState {
-        val towardThePlacer = context.nearestLookingDirection.opposite
-        val other = if (towardThePlacer.axis.isHorizontal) towardThePlacer.clockWise else context.horizontalDirection.opposite
-        return defaultBlockState().setValue(MIRROR, Mirror.of(towardThePlacer, other))
-    }
+    override fun getStateForPlacement(context: BlockPlaceContext): BlockState = defaultBlockState().setValue(MIRROR, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
-        val opened = state.getValue(MIRROR).opening(hitResult.direction) ?: return InteractionResult.PASS
+        val opened = plane.opening(state.getValue(MIRROR), hitResult.direction) { mirror, face -> mirror.opening(face) }
+            ?: return InteractionResult.PASS
         if (!level.isClientSide) {
             level.setBlock(pos, state.setValue(MIRROR, opened), UPDATE_ALL)
             level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, 1f, 1f)

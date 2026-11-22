@@ -29,28 +29,21 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * The faces of a splitter or merger, which are a half-silvered reflector: the straight face (`first`), on the axis a
- * beam carries straight along, and the turned face (`second`), at right angles to it. Set as a reflector's are, open
- * to the placer and to their right, or toward them where they look up or down; using a face on the straight axis
- * makes it the straight face, and any other makes it the turned one.
+ * beam carries straight along, and the turned face (`second`), at right angles to it. Placed as a reflector of the same
+ * plane is; using a face on the straight axis makes it the straight face, and on the horizontal form any other makes it
+ * the turned one.
  */
 object HalfSilvered {
     val FACES: EnumProperty<Mirror> = EnumProperty.create("faces", Mirror::class.java)
 
-    fun placed(context: BlockPlaceContext): Mirror {
-        val towardThePlacer = context.nearestLookingDirection.opposite
-        val other = if (towardThePlacer.axis.isHorizontal) towardThePlacer.clockWise else context.horizontalDirection.opposite
-        return Mirror.of(towardThePlacer, other)
-    }
-
-    /** The faces after [face] is used, or none where nothing changes. */
-    fun opening(faces: Mirror, face: Direction): Mirror? = when {
-        face == faces.first || face == faces.second -> null
-        face.axis == faces.first.axis -> Mirror.of(face, faces.second)
+    /** The faces after [face], a level face not already open, is used on the horizontal form. */
+    fun levelOpening(faces: Mirror, face: Direction): Mirror = when (face.axis) {
+        faces.first.axis -> Mirror.of(face, faces.second)
         else -> Mirror.of(faces.first, face)
     }
 
-    fun use(state: BlockState, level: Level, pos: BlockPos, hitResult: BlockHitResult): InteractionResult {
-        val opened = opening(state.getValue(FACES), hitResult.direction) ?: return InteractionResult.PASS
+    fun use(plane: OpticPlane, state: BlockState, level: Level, pos: BlockPos, hitResult: BlockHitResult): InteractionResult {
+        val opened = plane.opening(state.getValue(FACES), hitResult.direction, ::levelOpening) ?: return InteractionResult.PASS
         if (!level.isClientSide) {
             level.setBlock(pos, state.setValue(FACES, opened), Block.UPDATE_ALL)
             level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, 1f, 1f)
@@ -60,13 +53,13 @@ object HalfSilvered {
 }
 
 /**
- * A beam splitter: a beam coming in at its straight face goes on through at half its intensity, and the other half
- * turns out of its turned face. A beam reaching any other face stops.
+ * A beam splitter, in the horizontal or the vertical [plane]: a beam coming in at its straight face goes on through at
+ * half its intensity, and the other half turns out of its turned face. A beam reaching any other face stops.
  */
-class BeamSplitterBlock(properties: Properties) : Block(properties) {
+class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : Block(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, Mirror.of(Direction.NORTH, Direction.EAST)))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
@@ -74,10 +67,10 @@ class BeamSplitterBlock(properties: Properties) : Block(properties) {
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
-        defaultBlockState().setValue(HalfSilvered.FACES, HalfSilvered.placed(context))
+        defaultBlockState().setValue(HalfSilvered.FACES, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult =
-        HalfSilvered.use(state, level, pos, hitResult)
+        HalfSilvered.use(plane, state, level, pos, hitResult)
 
     companion object {
         /** Where the turned half of a beam travelling [direction] into a splitter in [state] leaves it, or none where it stops. */
@@ -89,14 +82,14 @@ class BeamSplitterBlock(properties: Properties) : Block(properties) {
 }
 
 /**
- * A beam merger: a beam coming in at the face opposite its straight face, and one coming in at its turned face, leave
+ * A beam merger, in the horizontal or the vertical [plane]: a beam coming in at the face opposite its straight face, and one coming in at its turned face, leave
  * together by the straight face, their intensities added and their colours mixed. Unfocused only where everything
  * reaching it is.
  */
-class BeamMergerBlock(properties: Properties) : BaseEntityBlock(properties) {
+class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, Mirror.of(Direction.NORTH, Direction.EAST)))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
@@ -104,10 +97,10 @@ class BeamMergerBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
-        defaultBlockState().setValue(HalfSilvered.FACES, HalfSilvered.placed(context))
+        defaultBlockState().setValue(HalfSilvered.FACES, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult =
-        HalfSilvered.use(state, level, pos, hitResult)
+        HalfSilvered.use(plane, state, level, pos, hitResult)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BeamMergerBlockEntity(pos, state)
 

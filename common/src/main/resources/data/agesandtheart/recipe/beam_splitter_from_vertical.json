@@ -1,0 +1,12 @@
+{
+  "_comment": "[AI] A vertical beam splitter turned back to turn beams level.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "group": "agesandtheart_beam_splitter",
+  "ingredients": [
+    "agesandtheart:vertical_beam_splitter"
+  ],
+  "result": {
+    "id": "agesandtheart:beam_splitter"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "_comment": "[AI] A vertical beam merger turned back to turn beams level.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "group": "agesandtheart_beam_merger",
+  "ingredients": [
+    "agesandtheart:vertical_beam_merger"
+  ],
+  "result": {
+    "id": "agesandtheart:beam_merger"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "_comment": "[AI] Both turns learned on first holding either form.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "agesandtheart:beam_merger",
+              "agesandtheart:vertical_beam_merger"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_the_item"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:vertical_beam_merger",
+      "agesandtheart:beam_merger_from_vertical"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "_comment": "[AI] A beam splitter turned on its side, to turn beams up and down (Jonah, 2026-11-22).",
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "group": "agesandtheart_beam_splitter",
+  "ingredients": [
+    "agesandtheart:beam_splitter"
+  ],
+  "result": {
+    "id": "agesandtheart:vertical_beam_splitter"
+  }
+}
