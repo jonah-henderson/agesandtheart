@@ -17,6 +17,7 @@ enum class LearnedBy(private val key: String) : StringRepresentable {
     ANALYSIS("analysis"),
     OBSERVATION("observation"),
     MASTERY("mastery"),
+    STUDY("study"),
     ;
 
     override fun getSerializedName(): String = key

@@ -37,6 +37,9 @@ import co.voik.agesandtheart.desk.ArchiveBlock
 import co.voik.agesandtheart.desk.EmptyGrammarGuideBlock
 import co.voik.agesandtheart.desk.EmptyGrammarGuideBlockEntity
 import co.voik.agesandtheart.desk.EmptyGrammarGuideItem
+import co.voik.agesandtheart.desk.GrammarGuideBlock
+import co.voik.agesandtheart.desk.GrammarGuideBlockEntity
+import co.voik.agesandtheart.desk.GrammarGuideMenu
 import co.voik.agesandtheart.desk.GrammarStudyMenu
 import co.voik.agesandtheart.desk.ArchiveBlockEntity
 import co.voik.agesandtheart.desk.ArchiveItem
@@ -1424,8 +1427,8 @@ object AgeContent {
 
     private val GRAMMAR_GUIDE_ID: Identifier = "grammar_guide".location()
 
-    /** The D'ni grammar guide (design §7.4), an implement the desk counts; built from the survey reports. */
-    val GRAMMAR_GUIDE_BLOCK: Block = Block(
+    /** The D'ni grammar guide (design §7.4), an implement the desk counts, and where a reader studies new words. */
+    val GRAMMAR_GUIDE_BLOCK: GrammarGuideBlock = GrammarGuideBlock(
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, GRAMMAR_GUIDE_ID))
             .mapColor(MapColor.WOOD)
@@ -1459,6 +1462,9 @@ object AgeContent {
 
     val EMPTY_GRAMMAR_GUIDE_ENTITY: BlockEntityType<EmptyGrammarGuideBlockEntity> =
         BlockEntityType({ pos, state -> EmptyGrammarGuideBlockEntity(pos, state) }, setOf(EMPTY_GRAMMAR_GUIDE_BLOCK))
+
+    val GRAMMAR_GUIDE_ENTITY: BlockEntityType<GrammarGuideBlockEntity> =
+        BlockEntityType({ pos, state -> GrammarGuideBlockEntity(pos, state) }, setOf(GRAMMAR_GUIDE_BLOCK))
 
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
@@ -2168,6 +2174,7 @@ object AgeContent {
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         ARCHIVE_ID to ARCHIVE_ENTITY,
         EMPTY_GRAMMAR_GUIDE_ID to EMPTY_GRAMMAR_GUIDE_ENTITY,
+        GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
@@ -2249,6 +2256,11 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    val GRAMMAR_GUIDE_MENU: MenuType<GrammarGuideMenu> = MenuType(
+        { containerId, inventory -> GrammarGuideMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     /** Both stations', which differ only in what their block entity works. */
     val STATION_MENU: MenuType<StationMenu> = MenuType(
         { containerId, inventory -> StationMenu(containerId, inventory) },
@@ -2267,6 +2279,7 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
         EMPTY_GRAMMAR_GUIDE_ID to GRAMMAR_STUDY_MENU,
+        GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_MENU,
         STATION_ID to STATION_MENU,
         Compounder.ID to Compounder.MENU,
         Bookbinder.ID to Bookbinder.MENU,

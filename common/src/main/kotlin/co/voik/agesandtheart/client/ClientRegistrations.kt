@@ -142,6 +142,7 @@ object ClientRegistrations {
         ScreenForMenu(AgeContent.INK_CASE_MENU, ::InkCaseScreen),
         ScreenForMenu(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen),
         ScreenForMenu(AgeContent.GRAMMAR_STUDY_MENU, ::GrammarStudyScreen),
+        ScreenForMenu(AgeContent.GRAMMAR_GUIDE_MENU, ::GrammarGuideScreen),
         // Its own screen rather than a line on the desk's -- an implement that does something is the thing
         // you go and look at (Jonah, 2026-09-07).
         ScreenForMenu(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen),

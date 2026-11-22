@@ -1,5 +1,8 @@
 {
-  "_comment": "[AI] What studying an empty grammar guide takes (design 7.4): the points that fill one, what a page is worth by its word's rarity, and what a survey report is worth. Set so that a player finishes the guide after the desk's first upgrade and before its second (Jonah, 2026-11-22).",
+  "_comment": [
+    "[AI] What studying a grammar guide takes (design 7.4). `full`, `pages` and `items`: the points that fill an empty guide, what a page is worth by its word's rarity, and what a survey report is worth, set so that a player finishes the guide after the desk's first upgrade and before its second (Jonah, 2026-11-22).",
+    "[AI] `trades`: what a full guide asks to study one new word of a tier, from the pages of a notebook in its slot. `price` pages of `paid_in` or a higher tier are spent, the lowest first, and the study runs `seconds` while the guide's chunk is loaded. The word is one the reader has not learned from `buckets`; a reader who knows them all is given `experience` points instead, as coal, lapis and diamond ore give. A page's tier is the one whose buckets hold its word's (Jonah, 2026-11-22)."
+  ],
   "full": 200,
   "pages": {
     "common": 1,
@@ -12,5 +15,28 @@
     "agesandtheart:sunlit_age_survey": 20,
     "agesandtheart:lightless_age_survey": 20,
     "agesandtheart:cramped_age_survey": 20
+  },
+  "trades": {
+    "common": {
+      "buckets": ["common", "staple", "critical"],
+      "price": 20,
+      "paid_in": "common",
+      "seconds": 120,
+      "experience": { "least": 0, "most": 2 }
+    },
+    "uncommon": {
+      "buckets": ["uncommon"],
+      "price": 50,
+      "paid_in": "common",
+      "seconds": 300,
+      "experience": { "least": 2, "most": 5 }
+    },
+    "rare": {
+      "buckets": ["rare"],
+      "price": 30,
+      "paid_in": "uncommon",
+      "seconds": 600,
+      "experience": { "least": 3, "most": 7 }
+    }
   }
 }
