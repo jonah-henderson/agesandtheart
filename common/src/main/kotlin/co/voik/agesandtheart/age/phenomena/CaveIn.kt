@@ -209,13 +209,18 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
             standTheStarsBehind(level, at)
             return
         }
+        val hangsOverAir = !level.getBlockState(at.below()).isSolidRender
         // **No drops.** A collapse that showered its contents would be a mining tool rather than a hazard,
         // and `Collapse` sets air for the same reason.
         level.setBlock(at, AIR, Block.UPDATE_ALL)
-        // **Not the column that threw the last one.** A share drawn per block alone let one column shed a
-        // block on every course, which reads as a chute rather than as a slope shedding rubble.
+        // **Not the column that threw the last one**, for ground: a share drawn per block alone let one column shed a
+        // block on every course, which reads as a chute rather than as a slope shedding rubble. A ceiling sheds far
+        // more, every course, so that it comes down rather than vanishing.
         val column = BlockPos.asLong(at.x, 0, at.z)
-        if (random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender && threwRubble[column] != at.y + 1) {
+        val share = if (hangsOverAir) CEILING_RUBBLE else LEAVES_RUBBLE
+        val shedTheLastCourse = threwRubble[column] == at.y + 1
+        val sheds = random.nextFloat() < share && standing.isSolidRender && (hangsOverAir || !shedTheLastCourse)
+        if (sheds) {
             threwRubble[column] = at.y
             FallingRubble.throwDown(level, at, standing)
         }
@@ -445,6 +450,9 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         private const val LIVES_FOR = 2400L
 
         private const val LEAVES_RUBBLE = 0.08f
+
+        /** What a block with open air under it sheds: a roof coming down, held back by `FallingRubble`'s own cap. */
+        private const val CEILING_RUBBLE = 0.6f
 
         private const val NOT_STARTED = Long.MIN_VALUE
 

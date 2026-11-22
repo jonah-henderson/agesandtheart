@@ -41,11 +41,13 @@ object CaveIns {
             val x = near.x + random.nextInt(NEARBY * 2 + 1) - NEARBY
             val z = near.z + random.nextInt(NEARBY * 2 + 1) - NEARBY
             if (!level.isLoaded(BlockPos(x, near.y, z))) return@repeat
+            val aimedAt = near.y + random.nextInt(WITHIN_HEIGHT + 1) - random.nextInt(WITHIN_HEIGHT + 1)
+            val ground = faceNear(level, x, z, aimedAt, near.y) ?: return@repeat
             if (!PhenomenaCeiling.mayBegin(level, Phenomenon.TECTONICS)) return@repeat
             val shape = random.nextLong()
             CaveIn.begin(
                 level = level,
-                at = groundAt(level, x, z),
+                at = ground,
                 shape = shape,
                 form = behaviour.shapeDrawnFrom(shape),
                 reach = behaviour.reachAt(dials.size),
@@ -55,15 +57,30 @@ object CaveIns {
     }
 
     /**
-     * Where a cave-in begins, which is **at the surface rather than at the player's own height**.
+     * Where a cave-in begins: the exposed face nearest [aimedAt] in this column, within [WITHIN_HEIGHT] of it — a floor
+     * or a ceiling, so one sometimes comes down over a player rather than only opening under them. [aimedAt] is drawn
+     * about [playerHeight] leaning toward it, so the floor a player is on is the likeliest, and the roof of a roofed
+     * Age is reached only from near it.
      *
-     * A swathe centred on somebody standing on a hillside would cut half its shape through open air. Put on
-     * the ground, the crack's plan lies where there is rock to take, and [CaveIn] eats down from there.
-     * The ocean floor's heightmap, which passes through water, so a cave-in under the sea starts on the
-     * seabed rather than at the waterline.
+     * Solid is what the ocean floor's heightmap counts, so under the sea the face is the seabed. With no face near, a
+     * player above the surface (flying, or on a tower) is struck at the surface, and anyone else not at all.
      */
-    private fun groundAt(level: ServerLevel, x: Int, z: Int): BlockPos =
-        BlockPos(x, level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE, z)
+    private fun faceNear(level: ServerLevel, x: Int, z: Int, aimedAt: Int, playerHeight: Int): BlockPos? {
+        val counts = Heightmap.Types.OCEAN_FLOOR.isOpaque()
+        val top = level.minY + level.height - ONE
+        val cursor = BlockPos.MutableBlockPos()
+        fun solid(y: Int) = counts.test(level.getBlockState(cursor.set(x, y, z)))
+        fun isFace(y: Int): Boolean {
+            val inTheWorld = y > level.minY && y < top
+            return inTheWorld && solid(y) && (!solid(y + ONE) || !solid(y - ONE))
+        }
+        for (away in 0..WITHIN_HEIGHT) {
+            if (isFace(aimedAt - away)) return BlockPos(x, aimedAt - away, z)
+            if (away > 0 && isFace(aimedAt + away)) return BlockPos(x, aimedAt + away, z)
+        }
+        val surface = level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE
+        return if (playerHeight > surface) BlockPos(x, surface, z) else null
+    }
 
     /**
      * How many chances a pass gets and how rarely each one takes.
@@ -77,6 +94,9 @@ object CaveIns {
 
     /** Near enough to see and hear, and near enough to be standing on. */
     private const val NEARBY = 48
+
+    /** How far above or below a player's height a cave-in is aimed, and how far from there it looks for a face. */
+    private const val WITHIN_HEIGHT = 24
 
     private const val ONE = 1
 }
