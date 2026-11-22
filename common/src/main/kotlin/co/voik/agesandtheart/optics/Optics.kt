@@ -27,6 +27,7 @@ object Optics {
 
     private const val STRENGTH = 3.0f
     private const val CONDUIT_STRENGTH = 0.5f
+    private const val MIRROR_STRENGTH = 0.3f
 
     private fun properties(id: Identifier): BlockBehaviour.Properties = BlockBehaviour.Properties.of()
         .setId(ResourceKey.create(Registries.BLOCK, id))
@@ -39,12 +40,12 @@ object Optics {
         BlockItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix())
 
     val LENS: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, LENS_ID)))
-    val MIRROR: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MIRROR_ID)))
 
     val EMITTER: AstriteEmitterBlock = AstriteEmitterBlock(properties(EMITTER_ID))
     val RECEIVER: BeamReceiverBlock = BeamReceiverBlock(properties(RECEIVER_ID))
     val REFLECTOR: ReflectorBlock = ReflectorBlock(properties(REFLECTOR_ID).noOcclusion())
     val COLLECTOR: SunlightCollectorBlock = SunlightCollectorBlock(properties(COLLECTOR_ID).noOcclusion())
+    val MIRROR_BLOCK: AstriteMirrorBlock = AstriteMirrorBlock(properties(MIRROR_ID).strength(MIRROR_STRENGTH).sound(SoundType.GLASS).noOcclusion())
     val CONDUIT: OpticalConduitBlock = OpticalConduitBlock(
         properties(CONDUIT_ID).strength(CONDUIT_STRENGTH).sound(SoundType.GLASS).noOcclusion().isRedstoneConductor { _, _, _ -> false },
     )
@@ -52,6 +53,9 @@ object Optics {
     val EMITTER_ITEM: Item = itemFor(EMITTER, EMITTER_ID)
     val RECEIVER_ITEM: Item = itemFor(RECEIVER, RECEIVER_ID)
     val REFLECTOR_ITEM: Item = itemFor(REFLECTOR, REFLECTOR_ID)
+
+    /** Kept under its own item name, since it was an item before it could be placed. */
+    val MIRROR: Item = BlockItem(MIRROR_BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, MIRROR_ID)))
     val COLLECTOR_ITEM: Item = itemFor(COLLECTOR, COLLECTOR_ID)
     val CONDUIT_ITEM: Item = itemFor(CONDUIT, CONDUIT_ID)
 
@@ -61,6 +65,8 @@ object Optics {
         BlockEntityType({ pos, state -> BeamReceiverBlockEntity(pos, state) }, setOf(RECEIVER))
     val COLLECTOR_ENTITY: BlockEntityType<SunlightCollectorBlockEntity> =
         BlockEntityType({ pos, state -> SunlightCollectorBlockEntity(pos, state) }, setOf(COLLECTOR))
+    val MIRROR_ENTITY: BlockEntityType<AstriteMirrorBlockEntity> =
+        BlockEntityType({ pos, state -> AstriteMirrorBlockEntity(pos, state) }, setOf(MIRROR_BLOCK))
 
     val BLOCKS: List<Pair<Identifier, Block>> = listOf(
         EMITTER_ID to EMITTER,
@@ -68,6 +74,7 @@ object Optics {
         REFLECTOR_ID to REFLECTOR,
         COLLECTOR_ID to COLLECTOR,
         CONDUIT_ID to CONDUIT,
+        MIRROR_ID to MIRROR_BLOCK,
     )
     val ITEMS: List<Pair<Identifier, Item>> = listOf(
         LENS_ID to LENS,
@@ -78,5 +85,10 @@ object Optics {
         COLLECTOR_ID to COLLECTOR_ITEM,
         CONDUIT_ID to CONDUIT_ITEM,
     )
-    val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(EMITTER_ID to EMITTER_ENTITY, RECEIVER_ID to RECEIVER_ENTITY, COLLECTOR_ID to COLLECTOR_ENTITY)
+    val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
+        EMITTER_ID to EMITTER_ENTITY,
+        RECEIVER_ID to RECEIVER_ENTITY,
+        COLLECTOR_ID to COLLECTOR_ENTITY,
+        MIRROR_ID to MIRROR_ENTITY,
+    )
 }

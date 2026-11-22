@@ -169,6 +169,32 @@ class PreviewWorld private constructor(
 
     companion object {
 
+        /**
+         * A renderer of its own over a level that already exists, the player's own among them: drawn from a camera
+         * somewhere else without disturbing the renderer the level was made with. The level is not this world's to
+         * close. Sized to a [width] by [height] target.
+         */
+        fun over(level: ClientLevel, width: Int, height: Int): PreviewWorld {
+            val minecraft = Minecraft.getInstance()
+            val renderer = LevelRenderer(
+                minecraft.entityRenderDispatcher,
+                minecraft.blockEntityRenderDispatcher,
+                minecraft.modelManager,
+                minecraft.textureManager,
+                minecraft.atlasManager,
+                minecraft.shaderManager,
+                minecraft.gameRenderer,
+                width,
+                height,
+            )
+            val renderState = LevelRenderState()
+            renderer.levelRenderState = renderState
+            val extractor = LevelExtractor(minecraft, renderState, renderer)
+            extractor.onResourceManagerReload(minecraft.resourceManager)
+            extractor.setLevel(level)
+            return PreviewWorld(level, renderer, extractor, renderState)
+        }
+
         /** Null when the dimension type the server named is not in the client's registries. */
         fun standUp(description: Description): PreviewWorld? {
             val minecraft = Minecraft.getInstance()

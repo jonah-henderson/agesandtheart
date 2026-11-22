@@ -6,6 +6,7 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.book.Bookbinder
 import co.voik.agesandtheart.book.BookFinders
 import co.voik.agesandtheart.book.BookWheels
+import co.voik.agesandtheart.client.mirror.AstriteMirrorRenderer
 import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.book.BookLifts
 import co.voik.agesandtheart.client.ui.ClientColumnedTooltip
@@ -138,6 +139,7 @@ object ClientRegistrations {
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
         RendererForBlockEntity(Optics.EMITTER_ENTITY) { BeamRenderer() },
         RendererForBlockEntity(Optics.COLLECTOR_ENTITY) { SunlightCollectorRenderer(it) },
+        RendererForBlockEntity(Optics.MIRROR_ENTITY) { AstriteMirrorRenderer() },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

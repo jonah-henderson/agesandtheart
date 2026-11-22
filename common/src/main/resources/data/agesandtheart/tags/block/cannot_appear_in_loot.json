@@ -70,6 +70,7 @@
     "agesandtheart:beam_receiver",
     "agesandtheart:reflector",
     "agesandtheart:optical_conduit",
-    "agesandtheart:sunlight_collector"
+    "agesandtheart:sunlight_collector",
+    "agesandtheart:astrite_mirror"
   ]
 }

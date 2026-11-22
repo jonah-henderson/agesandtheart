@@ -73,9 +73,17 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
 
     /**
      * Places the camera at [eye], looking along [yaw] and [pitch] as an entity does, for a [width] by [height] frame, at
-     * [fieldOfView] degrees from top to bottom.
+     * [fieldOfView] degrees from top to bottom, culling what lies further than [cullingReach] blocks.
      */
-    fun placeAt(eye: Vec3, yaw: Float, pitch: Float, width: Int, height: Int, fieldOfView: Float = FIELD_OF_VIEW) {
+    fun placeAt(
+        eye: Vec3,
+        yaw: Float,
+        pitch: Float,
+        width: Int,
+        height: Int,
+        fieldOfView: Float = FIELD_OF_VIEW,
+        cullingReach: Float = FAR_PLANE,
+    ) {
         setPosition(eye)
         placedYaw = yaw
         placedPitch = pitch
@@ -86,7 +94,7 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
         drawProjection.setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
-        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height, fieldOfView), position())
+        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height, fieldOfView, cullingReach), position())
     }
 
     /**
@@ -170,11 +178,16 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
          * The draw's matrix is [Projection]'s, built in [placeAt] — see [describeTo] for why it cannot
          * be this one.
          */
-        fun cullingProjectionFor(width: Int, height: Int, fieldOfView: Float = FIELD_OF_VIEW): Matrix4f = Matrix4f().setPerspective(
+        fun cullingProjectionFor(
+            width: Int,
+            height: Int,
+            fieldOfView: Float = FIELD_OF_VIEW,
+            reach: Float = FAR_PLANE,
+        ): Matrix4f = Matrix4f().setPerspective(
             fieldOfView * Mth.DEG_TO_RAD,
             width.toFloat() / height.toFloat(),
             NEAR_PLANE,
-            FAR_PLANE,
+            reach,
             zZeroToOne(),
         )
 

@@ -1,0 +1,67 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). A pane a pixel thick against the south side, its glass facing north; the reflection is drawn over the glass.",
+  "textures": {
+    "particle": "minecraft:block/iron_block",
+    "glass": "minecraft:block/iron_block",
+    "back": "minecraft:block/cut_copper"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        15
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass"
+        },
+        "south": {
+          "texture": "#back",
+          "cullface": "south"
+        },
+        "east": {
+          "texture": "#back",
+          "uv": [
+            0,
+            0,
+            1,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#back",
+          "uv": [
+            15,
+            0,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#back",
+          "uv": [
+            0,
+            15,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#back",
+          "uv": [
+            0,
+            0,
+            16,
+            1
+          ]
+        }
+      }
+    }
+  ]
+}

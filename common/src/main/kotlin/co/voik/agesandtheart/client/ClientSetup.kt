@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.client.mirror.MirrorReflection
 import co.voik.agesandtheart.age.consequence.TemptationsHere
 import co.voik.ephemeris.client.RecolouredRenderTypes
 import net.minecraft.client.gui.screens.Screen
@@ -94,6 +95,7 @@ object ClientSetup {
     }
 
     fun disconnected() {
+        MirrorReflection.forget()
         DazzledView.forget()
         KnownWords.forgetAll()
         Surf.forget()

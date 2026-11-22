@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin.client;
 
+import co.voik.agesandtheart.client.mirror.MirrorReflection;
 import co.voik.agesandtheart.client.panel.OpenBookPanels;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
@@ -46,5 +47,6 @@ public abstract class GameRendererMixin {
             boolean advanceGameTime,
             CallbackInfo callback) {
         OpenBookPanels.drawFrame(deltaTracker);
+        MirrorReflection.INSTANCE.drawFrame(deltaTracker);
     }
 }

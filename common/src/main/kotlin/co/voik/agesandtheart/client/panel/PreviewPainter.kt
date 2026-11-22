@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.SectionPos
 import net.minecraft.util.ARGB
 import net.minecraft.world.attribute.EnvironmentAttributes
+import org.joml.Matrix4f
 import org.joml.Vector4f
 
 /**
@@ -48,7 +49,7 @@ class PreviewPainter {
     /**
      * Draws one frame of [world] from [camera] onto [target], its fog ending [shownRadiusChunks] out; [advanceLight]
      * runs the world's light first, which has to come before its sections are meshed. Without [showsNames], no name is
-     * drawn over anybody's head.
+     * drawn over anybody's head. [adjustProjection] may change the draw's projection once the camera has described it.
      */
     fun paint(
         world: PreviewWorld,
@@ -58,9 +59,11 @@ class PreviewPainter {
         delta: DeltaTracker,
         advanceLight: () -> Unit = world::runTheLight,
         showsNames: Boolean = true,
+        adjustProjection: (Matrix4f) -> Unit = {},
     ) {
         val state = world.renderState.cameraRenderState
         camera.describeTo(state, target.width, target.height)
+        adjustProjection(state.projectionMatrix)
         val terrainFog = describeAtmosphere(state, world, camera, shownRadiusChunks, delta)
         try {
             BorrowedFrame.lentTo(target, camera, world.level, state.projectionMatrix, delta).use {
