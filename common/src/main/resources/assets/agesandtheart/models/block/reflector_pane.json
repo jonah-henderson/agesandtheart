@@ -1,0 +1,52 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). An astrite mirror between two faces. Modelled standing between the north and east faces; the renderer turns it onto the block's own.",
+  "textures": {
+    "particle": "minecraft:block/amethyst_block",
+    "face": "minecraft:block/amethyst_block",
+    "back": "minecraft:block/cut_copper"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        7.75
+      ],
+      "to": [
+        16,
+        16,
+        8.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#face"
+        },
+        "south": {
+          "texture": "#back"
+        },
+        "east": {
+          "texture": "#back"
+        },
+        "west": {
+          "texture": "#back"
+        },
+        "up": {
+          "texture": "#back"
+        },
+        "down": {
+          "texture": "#back"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "axis": "y",
+        "angle": -45,
+        "rescale": true
+      }
+    }
+  ]
+}

@@ -9,7 +9,9 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
@@ -20,15 +22,17 @@ import net.minecraft.world.phys.BlockHitResult
  * any other face stops. Its [plane] says which faces it can join. Using a face opens it, the mirror turning to join it
  * with the face opened before, or on the vertical form with whichever of the two is not as level as it.
  */
-class ReflectorBlock(properties: Properties, val plane: OpticPlane) : Block(properties) {
+class ReflectorBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(MIRROR, OpticPlane.resting(plane)))
+        registerDefaultState(stateDefinition.any().setValue(MIRROR, OpticPlane.resting(plane)).setValue(PIECE, OpticPiece.FRAME))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(MIRROR)
+        builder.add(MIRROR, PIECE)
     }
+
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = ReflectorBlockEntity(pos, state)
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState = defaultBlockState().setValue(MIRROR, plane.placed(context))
 
@@ -87,6 +91,7 @@ class ReflectorBlock(properties: Properties, val plane: OpticPlane) : Block(prop
 
     companion object {
         val MIRROR: EnumProperty<Mirror> = EnumProperty.create("mirror", Mirror::class.java)
+        val PIECE: EnumProperty<OpticPiece> = EnumProperty.create("piece", OpticPiece::class.java)
 
         /** Where a beam travelling [direction] into a reflector in [state] leaves it, or none where it stops. */
         fun turn(state: BlockState, direction: Direction): Direction? {
@@ -99,4 +104,11 @@ class ReflectorBlock(properties: Properties, val plane: OpticPlane) : Block(prop
             }
         }
     }
+}
+
+/** Only so the client can draw a reflector's mirror turning; it keeps nothing. */
+class ReflectorBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Optics.REFLECTOR_ENTITY, pos, state), HoldsAMirror {
+    override val faces: ReflectorBlock.Mirror get() = blockState.getValue(ReflectorBlock.MIRROR)
+    override val isHalfSilvered: Boolean get() = false
+    override val turning = MirrorTurning()
 }

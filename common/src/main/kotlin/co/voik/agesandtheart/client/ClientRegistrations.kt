@@ -140,7 +140,9 @@ object ClientRegistrations {
         RendererForBlockEntity(Optics.EMITTER_ENTITY) { BeamRenderer() },
         RendererForBlockEntity(Optics.COLLECTOR_ENTITY) { SunlightCollectorRenderer(it) },
         RendererForBlockEntity(Optics.MIRROR_ENTITY) { AstriteMirrorRenderer() },
-        RendererForBlockEntity(Optics.MERGER_ENTITY) { BeamRenderer() },
+        RendererForBlockEntity(Optics.MERGER_ENTITY) { OpticMirrorRenderer(it) },
+        RendererForBlockEntity(Optics.REFLECTOR_ENTITY) { OpticMirrorRenderer(it) },
+        RendererForBlockEntity(Optics.SPLITTER_ENTITY) { OpticMirrorRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

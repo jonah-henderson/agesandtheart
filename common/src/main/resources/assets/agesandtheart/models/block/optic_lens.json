@@ -1,0 +1,41 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The lens on a splitter or merger's straight face, modelled on the north face and turned onto it by the renderer.",
+  "textures": {
+    "particle": "minecraft:block/copper_bulb",
+    "lens": "minecraft:block/copper_bulb"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        6,
+        0.5
+      ],
+      "to": [
+        10,
+        10,
+        1.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lens"
+        },
+        "south": {
+          "texture": "#lens"
+        },
+        "east": {
+          "texture": "#lens"
+        },
+        "west": {
+          "texture": "#lens"
+        },
+        "up": {
+          "texture": "#lens"
+        },
+        "down": {
+          "texture": "#lens"
+        }
+      }
+    }
+  ]
+}

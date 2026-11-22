@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/reflector_up_north"
+    "model": "agesandtheart:item/vertical_reflector"
   }
 }

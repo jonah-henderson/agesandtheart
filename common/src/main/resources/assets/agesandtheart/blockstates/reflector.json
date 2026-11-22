@@ -1,76 +1,13 @@
 {
   "variants": {
-    "mirror=down_north": {
-      "model": "agesandtheart:block/reflector_down_north"
+    "piece=frame": {
+      "model": "agesandtheart:block/reflector_frame"
     },
-    "mirror=down_south": {
-      "model": "agesandtheart:block/reflector_down_south"
+    "piece=mirror": {
+      "model": "agesandtheart:block/reflector_pane"
     },
-    "mirror=down_west": {
-      "model": "agesandtheart:block/reflector_down_west"
-    },
-    "mirror=down_east": {
-      "model": "agesandtheart:block/reflector_down_east"
-    },
-    "mirror=up_north": {
-      "model": "agesandtheart:block/reflector_up_north"
-    },
-    "mirror=up_south": {
-      "model": "agesandtheart:block/reflector_up_south"
-    },
-    "mirror=up_west": {
-      "model": "agesandtheart:block/reflector_up_west"
-    },
-    "mirror=up_east": {
-      "model": "agesandtheart:block/reflector_up_east"
-    },
-    "mirror=north_down": {
-      "model": "agesandtheart:block/reflector_down_north"
-    },
-    "mirror=north_up": {
-      "model": "agesandtheart:block/reflector_up_north"
-    },
-    "mirror=north_west": {
-      "model": "agesandtheart:block/reflector_north_west"
-    },
-    "mirror=north_east": {
-      "model": "agesandtheart:block/reflector_north_east"
-    },
-    "mirror=south_down": {
-      "model": "agesandtheart:block/reflector_down_south"
-    },
-    "mirror=south_up": {
-      "model": "agesandtheart:block/reflector_up_south"
-    },
-    "mirror=south_west": {
-      "model": "agesandtheart:block/reflector_south_west"
-    },
-    "mirror=south_east": {
-      "model": "agesandtheart:block/reflector_south_east"
-    },
-    "mirror=west_down": {
-      "model": "agesandtheart:block/reflector_down_west"
-    },
-    "mirror=west_up": {
-      "model": "agesandtheart:block/reflector_up_west"
-    },
-    "mirror=west_north": {
-      "model": "agesandtheart:block/reflector_north_west"
-    },
-    "mirror=west_south": {
-      "model": "agesandtheart:block/reflector_south_west"
-    },
-    "mirror=east_down": {
-      "model": "agesandtheart:block/reflector_down_east"
-    },
-    "mirror=east_up": {
-      "model": "agesandtheart:block/reflector_up_east"
-    },
-    "mirror=east_north": {
-      "model": "agesandtheart:block/reflector_north_east"
-    },
-    "mirror=east_south": {
-      "model": "agesandtheart:block/reflector_south_east"
+    "piece=lens": {
+      "model": "agesandtheart:block/optic_lens"
     }
   }
 }

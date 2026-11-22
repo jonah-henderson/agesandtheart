@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/beam_splitter_turned_up"
+    "model": "agesandtheart:item/vertical_beam_splitter"
   }
 }

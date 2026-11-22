@@ -56,15 +56,17 @@ object HalfSilvered {
  * A beam splitter, in the horizontal or the vertical [plane]: a beam coming in at its straight face goes on through at
  * half its intensity, and the other half turns out of its turned face. A beam reaching any other face stops.
  */
-class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : Block(properties) {
+class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.FRAME))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(HalfSilvered.FACES)
+        builder.add(HalfSilvered.FACES, ReflectorBlock.PIECE)
     }
+
+    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BeamSplitterBlockEntity(pos, state)
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
         defaultBlockState().setValue(HalfSilvered.FACES, plane.placed(context))
@@ -89,11 +91,11 @@ class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : Block(p
 class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.FRAME))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(HalfSilvered.FACES)
+        builder.add(HalfSilvered.FACES, ReflectorBlock.PIECE)
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
@@ -109,15 +111,25 @@ class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntit
         else createTickerHelper(type, Optics.MERGER_ENTITY) { tickedIn, _, _, merger -> merger.tick(tickedIn as ServerLevel) }
 }
 
+/** Only so the client can draw a splitter's mirror turning; it keeps nothing. */
+class BeamSplitterBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(Optics.SPLITTER_ENTITY, pos, state), HoldsAMirror {
+    override val faces: Mirror get() = blockState.getValue(HalfSilvered.FACES)
+    override val isHalfSilvered: Boolean get() = true
+    override val turning = MirrorTurning()
+}
+
 class BeamMergerBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(Optics.MERGER_ENTITY, pos, state), ShinesABeam, TakesBeams {
+    BlockEntity(Optics.MERGER_ENTITY, pos, state), ShinesABeam, TakesBeams, HoldsAMirror {
+
+    override val isHalfSilvered: Boolean get() = true
+    override val turning = MirrorTurning()
 
     override var path: BeamPath = BeamPath.DARK
         private set
 
     private val coming = IncomingBeams()
 
-    private val faces: Mirror get() = blockState.getValue(HalfSilvered.FACES)
+    override val faces: Mirror get() = blockState.getValue(HalfSilvered.FACES)
 
     /** A beam travelling toward its straight face, through the face opposite or in at its turned face. */
     override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, diffuse: Boolean, until: Long) {

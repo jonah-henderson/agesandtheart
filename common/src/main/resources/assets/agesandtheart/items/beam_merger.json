@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/beam_merger"
+    "model": "agesandtheart:item/beam_merger"
   }
 }

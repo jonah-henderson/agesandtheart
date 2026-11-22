@@ -80,6 +80,10 @@ object Optics {
         BlockEntityType({ pos, state -> BeamReceiverBlockEntity(pos, state) }, setOf(RECEIVER))
     val COLLECTOR_ENTITY: BlockEntityType<SunlightCollectorBlockEntity> =
         BlockEntityType({ pos, state -> SunlightCollectorBlockEntity(pos, state) }, setOf(COLLECTOR))
+    val REFLECTOR_ENTITY: BlockEntityType<ReflectorBlockEntity> =
+        BlockEntityType({ pos, state -> ReflectorBlockEntity(pos, state) }, setOf(REFLECTOR, VERTICAL_REFLECTOR))
+    val SPLITTER_ENTITY: BlockEntityType<BeamSplitterBlockEntity> =
+        BlockEntityType({ pos, state -> BeamSplitterBlockEntity(pos, state) }, setOf(SPLITTER, VERTICAL_SPLITTER))
     val MERGER_ENTITY: BlockEntityType<BeamMergerBlockEntity> =
         BlockEntityType({ pos, state -> BeamMergerBlockEntity(pos, state) }, setOf(MERGER, VERTICAL_MERGER))
     val MIRROR_ENTITY: BlockEntityType<AstriteMirrorBlockEntity> =
@@ -118,5 +122,7 @@ object Optics {
         COLLECTOR_ID to COLLECTOR_ENTITY,
         MIRROR_ID to MIRROR_ENTITY,
         MERGER_ID to MERGER_ENTITY,
+        REFLECTOR_ID to REFLECTOR_ENTITY,
+        SPLITTER_ID to SPLITTER_ENTITY,
     )
 }
