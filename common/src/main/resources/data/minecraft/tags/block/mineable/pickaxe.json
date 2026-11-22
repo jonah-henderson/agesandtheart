@@ -27,6 +27,9 @@
     "agesandtheart:grinder",
     "agesandtheart:pulper",
     "agesandtheart:white_sandstone",
-    "agesandtheart:compounded_stone"
+    "agesandtheart:compounded_stone",
+    "agesandtheart:astrite_emitter",
+    "agesandtheart:beam_receiver",
+    "agesandtheart:reflector"
   ]
 }

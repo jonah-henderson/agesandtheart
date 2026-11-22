@@ -65,6 +65,9 @@
     "agesandtheart:temperstone",
     "agesandtheart:raw_temperstone",
     "agesandtheart:scorched_temperstone",
-    "agesandtheart:lava_tube"
+    "agesandtheart:lava_tube",
+    "agesandtheart:astrite_emitter",
+    "agesandtheart:beam_receiver",
+    "agesandtheart:reflector"
   ]
 }

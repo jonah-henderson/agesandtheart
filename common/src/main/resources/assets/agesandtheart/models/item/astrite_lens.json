@@ -1,0 +1,7 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The spyglass's lens end would be closer; the amethyst shard reads as astrite.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/amethyst_shard"
+  }
+}

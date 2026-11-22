@@ -1,0 +1,15 @@
+{
+  "_comment": "[AI] What a beam passes besides anything with no collision (optics/Beam): glass and panes. Stained glass colours it on the way.",
+  "values": [
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    {
+      "id": "#c:glass_blocks",
+      "required": false
+    },
+    {
+      "id": "#c:glass_panes",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9).",
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "minecraft:block/target_top"
+  }
+}

@@ -28,6 +28,7 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import net.minecraft.client.gui.screens.inventory.MenuAccess
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider
+import co.voik.agesandtheart.optics.Optics
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.NoopRenderer
@@ -135,6 +136,7 @@ object ClientRegistrations {
         RendererForBlockEntity(Bookstands.ENTITY) { BookstandRenderer(it) },
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
+        RendererForBlockEntity(Optics.EMITTER_ENTITY) { BeamRenderer() },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

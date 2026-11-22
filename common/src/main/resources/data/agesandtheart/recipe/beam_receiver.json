@@ -1,0 +1,18 @@
+{
+  "_comment": "[AI] Stand-in: a lens over redstone. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": "agesandtheart:astrite_shard",
+    "L": "agesandtheart:astrite_lens",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "ALA",
+    "ARA",
+    "AAA"
+  ],
+  "result": {
+    "id": "agesandtheart:beam_receiver"
+  }
+}

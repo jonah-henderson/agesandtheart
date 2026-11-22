@@ -1,0 +1,13 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The front is where the beam leaves, the back where sunlight is taken in.",
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "minecraft:block/amethyst_block",
+    "north": "minecraft:block/copper_bulb",
+    "south": "minecraft:block/daylight_detector_top",
+    "east": "minecraft:block/amethyst_block",
+    "west": "minecraft:block/amethyst_block",
+    "up": "minecraft:block/amethyst_block",
+    "down": "minecraft:block/amethyst_block"
+  }
+}

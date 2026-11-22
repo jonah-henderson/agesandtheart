@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart:block/astrite_emitter"
+    },
+    "facing=east": {
+      "model": "agesandtheart:block/astrite_emitter",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart:block/astrite_emitter",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart:block/astrite_emitter",
+      "y": 270
+    },
+    "facing=up": {
+      "model": "agesandtheart:block/astrite_emitter",
+      "x": 270
+    },
+    "facing=down": {
+      "model": "agesandtheart:block/astrite_emitter",
+      "x": 90
+    }
+  }
+}

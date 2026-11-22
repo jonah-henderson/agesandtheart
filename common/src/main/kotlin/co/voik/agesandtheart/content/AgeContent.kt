@@ -38,6 +38,7 @@ import co.voik.agesandtheart.desk.EmptyGrammarGuideBlock
 import co.voik.agesandtheart.desk.EmptyGrammarGuideBlockEntity
 import co.voik.agesandtheart.desk.EmptyGrammarGuideItem
 import co.voik.agesandtheart.desk.GrammarGuideBlock
+import co.voik.agesandtheart.optics.Optics
 import co.voik.agesandtheart.desk.GrammarGuideBlockEntity
 import co.voik.agesandtheart.desk.GrammarGuideMenu
 import co.voik.agesandtheart.desk.GrammarStudyMenu
@@ -2112,6 +2113,7 @@ object AgeContent {
         Compounder.ID to Compounder.BLOCK,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.BLOCK,
         DryingRack.ID to DryingRack.BLOCK,
+        *Optics.BLOCKS.toTypedArray(),
         Bookbinder.ID to Bookbinder.BLOCK,
         *BookWheels.BLOCKS.map { it.form.id.location() to it }.toTypedArray(),
         BookLifts.FRAME_ID to BookLifts.FRAME,
@@ -2185,6 +2187,7 @@ object AgeContent {
         Compounder.ID to Compounder.ENTITY,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ENTITY,
         DryingRack.ID to DryingRack.ENTITY,
+        *Optics.BLOCK_ENTITIES.toTypedArray(),
         Bookbinder.ID to Bookbinder.ENTITY,
         BookWheels.ENTITY_ID to BookWheels.ENTITY,
         BookLifts.FRAME_ID to BookLifts.ENTITY,
@@ -2349,6 +2352,7 @@ object AgeContent {
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ITEM,
         AdvancedAnalysisMachine.PROBES_ID to AdvancedAnalysisMachine.PROBES,
         DryingRack.ID to DryingRack.ITEM,
+        *Optics.ITEMS.toTypedArray(),
         Bookbinder.ID to Bookbinder.ITEM,
         *BookWheels.ITEMS.map { (block, item) -> block.form.id.location() to item }.toTypedArray(),
         BookLifts.FRAME_ID to BookLifts.FRAME_ITEM,

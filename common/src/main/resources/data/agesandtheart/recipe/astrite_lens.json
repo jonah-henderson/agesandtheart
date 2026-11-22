@@ -1,0 +1,9 @@
+{
+  "_comment": "[AI] A shard ground into a lens at the grinder, as astrite's optics ask (Jonah, 2026-11-22). Ratios are unbalanced.",
+  "type": "agesandtheart:grinding",
+  "ingredient": "agesandtheart:astrite_shard",
+  "result": {
+    "id": "agesandtheart:astrite_lens",
+    "count": 1
+  }
+}
