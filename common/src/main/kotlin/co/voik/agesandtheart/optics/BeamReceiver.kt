@@ -24,8 +24,9 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
 
 /**
- * A beam receiver: a full redstone signal on every side while a beam reaches it, or only a beam nearest in colour to
- * the rime crystal slotted in.
+ * A beam receiver: a full redstone signal on every side while full light reaches it, by a beam or through a conduit,
+ * of exactly the colour of the rime crystal slotted in, or of any colour without one. A beam reaching it is also light
+ * put into the conduits joined to it.
  */
 class BeamReceiverBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -74,23 +75,30 @@ class BeamReceiverBlock(properties: Properties) : BaseEntityBlock(properties) {
 }
 
 class BeamReceiverBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(Optics.RECEIVER_ENTITY, pos, state), CrystalHolder {
+    BlockEntity(Optics.RECEIVER_ENTITY, pos, state), CrystalHolder, TakesBeams {
 
     override var crystal: RimeColour? = null
 
-    private var litUntil: Long = 0L
+    private val reaching = IncomingBeams()
 
-    /** A beam of [colour] reached it, and lights it until [until] unless it is of the wrong colour. */
-    fun litBy(colour: Int, until: Long) {
-        val wanted = crystal
-        val isTheColourAsked = wanted == null || Beam.nearestRimeColour(colour) == wanted
-        if (isTheColourAsked) litUntil = maxOf(litUntil, until)
+    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, until: Long) {
+        reaching.take(source, light, until)
     }
 
+    /** The light of the beams reaching it, or null where none is. */
+    fun beamLight(level: Level): Light? = reaching.lightAt(level.gameTime)
+
     fun tick(level: ServerLevel) {
-        val isLit = level.gameTime <= litUntil
+        if (!Beam.isTimeToLook(level)) return
+        val light = beamLight(level) ?: LightNetworks.lightFor(level, worldPosition)
+        val isLit = light != null && isLitBy(light)
         if (blockState.getValue(BeamReceiverBlock.POWERED) == isLit) return
         level.setBlock(worldPosition, blockState.setValue(BeamReceiverBlock.POWERED, isLit), Block.UPDATE_ALL)
+    }
+
+    private fun isLitBy(light: Light): Boolean {
+        val isTheColourAsked = crystal == null || light.colour == crystal
+        return light.isStrongEnough && isTheColourAsked
     }
 
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {

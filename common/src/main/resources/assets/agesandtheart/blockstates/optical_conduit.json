@@ -1,0 +1,193 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "stripe": "none"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core"
+      }
+    },
+    {
+      "when": {
+        "stripe": "white"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_white"
+      }
+    },
+    {
+      "when": {
+        "stripe": "orange"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_orange"
+      }
+    },
+    {
+      "when": {
+        "stripe": "magenta"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_magenta"
+      }
+    },
+    {
+      "when": {
+        "stripe": "light_blue"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_light_blue"
+      }
+    },
+    {
+      "when": {
+        "stripe": "yellow"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_yellow"
+      }
+    },
+    {
+      "when": {
+        "stripe": "lime"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_lime"
+      }
+    },
+    {
+      "when": {
+        "stripe": "pink"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_pink"
+      }
+    },
+    {
+      "when": {
+        "stripe": "gray"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_gray"
+      }
+    },
+    {
+      "when": {
+        "stripe": "light_gray"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_light_gray"
+      }
+    },
+    {
+      "when": {
+        "stripe": "cyan"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_cyan"
+      }
+    },
+    {
+      "when": {
+        "stripe": "purple"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_purple"
+      }
+    },
+    {
+      "when": {
+        "stripe": "blue"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_blue"
+      }
+    },
+    {
+      "when": {
+        "stripe": "brown"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_brown"
+      }
+    },
+    {
+      "when": {
+        "stripe": "green"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_green"
+      }
+    },
+    {
+      "when": {
+        "stripe": "red"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_red"
+      }
+    },
+    {
+      "when": {
+        "stripe": "black"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_core_black"
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm"
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "up": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "down": "true"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optical_conduit_arm",
+        "x": 90
+      }
+    }
+  ]
+}

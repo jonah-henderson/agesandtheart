@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "facing=north,piece=base": {
+      "model": "agesandtheart:block/sunlight_collector"
+    },
+    "facing=north,piece=dish": {
+      "model": "agesandtheart:block/sunlight_collector_dish"
+    },
+    "facing=east,piece=base": {
+      "model": "agesandtheart:block/sunlight_collector",
+      "y": 90
+    },
+    "facing=east,piece=dish": {
+      "model": "agesandtheart:block/sunlight_collector_dish"
+    },
+    "facing=south,piece=base": {
+      "model": "agesandtheart:block/sunlight_collector",
+      "y": 180
+    },
+    "facing=south,piece=dish": {
+      "model": "agesandtheart:block/sunlight_collector_dish"
+    },
+    "facing=west,piece=base": {
+      "model": "agesandtheart:block/sunlight_collector",
+      "y": 270
+    },
+    "facing=west,piece=dish": {
+      "model": "agesandtheart:block/sunlight_collector_dish"
+    }
+  }
+}

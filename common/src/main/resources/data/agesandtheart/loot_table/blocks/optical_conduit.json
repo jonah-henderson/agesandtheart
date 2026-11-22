@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:optical_conduit",
+          "modifier": [
+            {
+              "type": "minecraft:copy_state",
+              "block": "agesandtheart:optical_conduit",
+              "properties": [
+                "stripe"
+              ]
+            }
+          ]
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/optical_conduit"
+}

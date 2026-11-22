@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "redstone",
+  "group": "agesandtheart_optical_conduit_stripe",
+  "ingredients": [
+    "agesandtheart:optical_conduit",
+    "minecraft:gray_dye"
+  ],
+  "result": {
+    "id": "agesandtheart:optical_conduit",
+    "count": 1,
+    "components": {
+      "minecraft:block_state": {
+        "stripe": "gray"
+      }
+    }
+  }
+}

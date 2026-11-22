@@ -1,5 +1,5 @@
 {
-  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The front is where the beam leaves, the back where sunlight is taken in.",
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). The front is where the laser leaves, the back where light is fed in.",
   "parent": "minecraft:block/cube",
   "textures": {
     "particle": "minecraft:block/amethyst_block",

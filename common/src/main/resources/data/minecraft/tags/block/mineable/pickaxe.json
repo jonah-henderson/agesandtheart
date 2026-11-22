@@ -30,6 +30,8 @@
     "agesandtheart:compounded_stone",
     "agesandtheart:astrite_emitter",
     "agesandtheart:beam_receiver",
-    "agesandtheart:reflector"
+    "agesandtheart:reflector",
+    "agesandtheart:optical_conduit",
+    "agesandtheart:sunlight_collector"
   ]
 }

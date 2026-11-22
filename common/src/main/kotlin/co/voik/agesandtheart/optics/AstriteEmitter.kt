@@ -9,7 +9,6 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.util.ARGB
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -29,8 +28,8 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
 
 /**
- * An astrite emitter: sunlight reaching its back is focused through its lens into a beam out of its front, as long
- * as the sunlight is bright, and coloured by a rime crystal slotted in. A redstone signal puts it out.
+ * An astrite emitter: light reaching its back, from a conduit or a beam, is focused through its lens into a laser out
+ * of its front, in the colour it was fed or that of a rime crystal slotted in. A redstone signal puts it out.
  */
 class AstriteEmitterBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -77,19 +76,24 @@ class AstriteEmitterBlock(properties: Properties) : BaseEntityBlock(properties) 
 }
 
 class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(Optics.EMITTER_ENTITY, pos, state), CrystalHolder {
+    BlockEntity(Optics.EMITTER_ENTITY, pos, state), CrystalHolder, ShinesABeam, TakesBeams {
 
     override var crystal: RimeColour? = null
 
-    var path: BeamPath = BeamPath.DARK
+    override var path: BeamPath = BeamPath.DARK
         private set
 
+    private val atItsBack = IncomingBeams()
+
+    /** A beam travelling the way it faces has come in at its back. */
+    override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, until: Long) {
+        if (travelling == blockState.getValue(AstriteEmitterBlock.FACING)) atItsBack.take(source, light, until)
+    }
+
     fun tick(level: ServerLevel) {
-        if (level.gameTime % LOOKS_AGAIN_EVERY != 0L) return
+        if (!Beam.isTimeToLook(level)) return
         val traced = traced(level)
-        for ((receiver, colour) in traced.reached) {
-            (level.getBlockEntity(receiver) as? BeamReceiverBlockEntity)?.litBy(colour, level.gameTime + LIT_FOR)
-        }
+        Beam.deliver(level, worldPosition, traced)
         if (traced.segments == path.segments) return
         path = traced
         setChanged()
@@ -97,13 +101,11 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     private fun traced(level: ServerLevel): BeamPath {
-        val facing = blockState.getValue(AstriteEmitterBlock.FACING)
-        val sunlight = level.getEffectiveSkyBrightness(worldPosition.relative(facing.opposite))
+        val fed = Light.together(listOfNotNull(atItsBack.lightAt(level.gameTime), LightNetworks.lightFor(level, worldPosition)))
         val isPutOut = level.hasNeighborSignal(worldPosition)
-        if (sunlight <= 0 || isPutOut) return BeamPath.DARK
-        val range = (MOST_RANGE * sunlight + BRIGHTEST - 1) / BRIGHTEST
-        val colour = crystal?.let { ARGB.opaque(it.tint) } ?: Beam.WHITE
-        return Beam.trace(level, worldPosition, facing, colour, range)
+        if (fed == null || isPutOut) return BeamPath.DARK
+        val laser = crystal?.let { fed.copy(colour = it) } ?: fed
+        return Beam.trace(level, worldPosition, blockState.getValue(AstriteEmitterBlock.FACING), laser, RANGE, diffuse = false)
     }
 
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
@@ -113,7 +115,7 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     override fun loadAdditional(input: ValueInput) {
         super.loadAdditional(input)
         crystal = CrystalHolder.load(input)
-        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), emptyList())
+        path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), null)
     }
 
     override fun saveAdditional(output: ValueOutput) {
@@ -128,13 +130,6 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
 
     private companion object {
         const val SEGMENTS_KEY = "beam"
-
-        /** How often the beam is followed again, in ticks, and how long a receiver stays lit by one look. */
-        const val LOOKS_AGAIN_EVERY = 10L
-        const val LIT_FOR = 12L
-
-        /** The beam's reach in full sunlight; dimmer light reaches proportionally less far. */
-        const val MOST_RANGE = 32
-        const val BRIGHTEST = 15
+        const val RANGE = 32
     }
 }

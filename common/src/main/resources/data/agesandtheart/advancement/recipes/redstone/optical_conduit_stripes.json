@@ -1,0 +1,41 @@
+{
+  "_comment": "[AI] Every stripe learned on first holding a conduit.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:optical_conduit"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_the_item"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:optical_conduit_white",
+      "agesandtheart:optical_conduit_orange",
+      "agesandtheart:optical_conduit_magenta",
+      "agesandtheart:optical_conduit_light_blue",
+      "agesandtheart:optical_conduit_yellow",
+      "agesandtheart:optical_conduit_lime",
+      "agesandtheart:optical_conduit_pink",
+      "agesandtheart:optical_conduit_gray",
+      "agesandtheart:optical_conduit_light_gray",
+      "agesandtheart:optical_conduit_cyan",
+      "agesandtheart:optical_conduit_purple",
+      "agesandtheart:optical_conduit_blue",
+      "agesandtheart:optical_conduit_brown",
+      "agesandtheart:optical_conduit_green",
+      "agesandtheart:optical_conduit_red",
+      "agesandtheart:optical_conduit_black"
+    ]
+  }
+}

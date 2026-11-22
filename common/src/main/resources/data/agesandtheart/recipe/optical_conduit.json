@@ -1,0 +1,18 @@
+{
+  "_comment": "[AI] Glass round a mirror: a fibre is a mirror-lined tube. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "G": "minecraft:glass",
+    "M": "agesandtheart:astrite_mirror"
+  },
+  "pattern": [
+    "GGG",
+    "GMG",
+    "GGG"
+  ],
+  "result": {
+    "id": "agesandtheart:optical_conduit",
+    "count": 8
+  }
+}

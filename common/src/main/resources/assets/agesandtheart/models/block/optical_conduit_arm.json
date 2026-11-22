@@ -1,0 +1,39 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). One arm, toward the north; the blockstate turns it to each side.",
+  "textures": {
+    "particle": "minecraft:block/glass",
+    "glass": "minecraft:block/glass"
+  },
+  "elements": [
+    {
+      "from": [
+        5,
+        5,
+        0
+      ],
+      "to": [
+        11,
+        11,
+        5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "cullface": "north"
+        },
+        "east": {
+          "texture": "#glass"
+        },
+        "west": {
+          "texture": "#glass"
+        },
+        "up": {
+          "texture": "#glass"
+        },
+        "down": {
+          "texture": "#glass"
+        }
+      }
+    }
+  ]
+}

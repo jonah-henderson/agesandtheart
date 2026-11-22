@@ -137,6 +137,7 @@ object ClientRegistrations {
         RendererForBlockEntity(DryingRack.ENTITY) { DryingRackRenderer(it) },
         RendererForBlockEntity(AgeContent.TOOLBOX_ENTITY) { ToolboxRenderer(it) },
         RendererForBlockEntity(Optics.EMITTER_ENTITY) { BeamRenderer() },
+        RendererForBlockEntity(Optics.COLLECTOR_ENTITY) { SunlightCollectorRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

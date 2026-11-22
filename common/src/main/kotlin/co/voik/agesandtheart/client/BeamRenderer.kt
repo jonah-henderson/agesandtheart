@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.optics.AstriteEmitterBlockEntity
 import co.voik.agesandtheart.optics.BeamSegment
+import co.voik.agesandtheart.optics.ShinesABeam
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.blockentity.BeaconRenderer
@@ -9,36 +9,37 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer
 import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
 import kotlin.math.ceil
 
-class BeamRenderState : BlockEntityRenderState() {
+open class BeamRenderState : BlockEntityRenderState() {
     var segments: List<BeamSegment> = emptyList()
     var animationTime: Float = 0f
 }
 
 /**
- * An emitter's beam, segment by segment: vanilla's beacon beam, narrower, laid along each segment's direction rather
- * than straight up.
+ * A beam, segment by segment: vanilla's beacon beam laid along each segment's direction rather than straight up, narrow
+ * for a laser and wide and faint for a collector's diffuse light.
  */
-class BeamRenderer : BlockEntityRenderer<AstriteEmitterBlockEntity, BeamRenderState> {
+object BeamDrawing {
+    private const val MIDDLE = 0.5f
+    private const val ANIMATION_CYCLE = 40L
+    private const val LASER_SOLID_RADIUS = 0.06f
+    private const val LASER_GLOW_RADIUS = 0.1f
 
-    override fun createRenderState(): BeamRenderState = BeamRenderState()
+    /** The beacon's solid core divides by its radius, so a diffuse beam keeps a hair of one. */
+    private const val DIFFUSE_SOLID_RADIUS = 0.01f
+    private const val DIFFUSE_GLOW_RADIUS = 0.3f
 
-    override fun extractRenderState(
-        emitter: AstriteEmitterBlockEntity,
-        state: BeamRenderState,
-        partialTicks: Float,
-        cameraPosition: Vec3,
-        breakProgress: ModelFeatureRenderer.CrumblingOverlay?,
-    ) {
-        super.extractRenderState(emitter, state, partialTicks, cameraPosition, breakProgress)
-        state.segments = emitter.path.segments
-        val gameTime = emitter.level?.gameTime ?: 0L
+    fun extract(shining: ShinesABeam, level: Level?, state: BeamRenderState, partialTicks: Float) {
+        state.segments = shining.path.segments
+        val gameTime = level?.gameTime ?: 0L
         state.animationTime = Math.floorMod(gameTime, ANIMATION_CYCLE).toFloat() + partialTicks
     }
 
-    override fun submit(state: BeamRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
+    fun submit(state: BeamRenderState, poseStack: PoseStack, collector: SubmitNodeCollector) {
         for (segment in state.segments) {
             val wholeBlocks = ceil(segment.length).toInt().coerceAtLeast(1)
             poseStack.pushPose()
@@ -61,20 +62,34 @@ class BeamRenderer : BlockEntityRenderer<AstriteEmitterBlockEntity, BeamRenderSt
                 0,
                 wholeBlocks,
                 segment.colour,
-                SOLID_RADIUS,
-                GLOW_RADIUS,
+                if (segment.diffuse) DIFFUSE_SOLID_RADIUS else LASER_SOLID_RADIUS,
+                if (segment.diffuse) DIFFUSE_GLOW_RADIUS else LASER_GLOW_RADIUS,
             )
             poseStack.popPose()
         }
     }
+}
 
-    /** A beam reaches well past its emitter's block, so it is drawn whether or not that block is in view. */
-    override fun shouldRenderOffScreen(): Boolean = true
+/** A block entity's beam and nothing else: the emitter's laser. */
+class BeamRenderer<T> : BlockEntityRenderer<T, BeamRenderState> where T : BlockEntity, T : ShinesABeam {
 
-    private companion object {
-        const val MIDDLE = 0.5f
-        const val ANIMATION_CYCLE = 40L
-        const val SOLID_RADIUS = 0.06f
-        const val GLOW_RADIUS = 0.1f
+    override fun createRenderState(): BeamRenderState = BeamRenderState()
+
+    override fun extractRenderState(
+        shining: T,
+        state: BeamRenderState,
+        partialTicks: Float,
+        cameraPosition: Vec3,
+        breakProgress: ModelFeatureRenderer.CrumblingOverlay?,
+    ) {
+        super.extractRenderState(shining, state, partialTicks, cameraPosition, breakProgress)
+        BeamDrawing.extract(shining, shining.level, state, partialTicks)
     }
+
+    override fun submit(state: BeamRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, camera: CameraRenderState) {
+        BeamDrawing.submit(state, poseStack, collector)
+    }
+
+    /** A beam reaches well past its block, so it is drawn whether or not that block is in view. */
+    override fun shouldRenderOffScreen(): Boolean = true
 }

@@ -243,6 +243,8 @@
   "block.agesandtheart.astrite_emitter": "[AI] Astrite Emitter",
   "block.agesandtheart.beam_receiver": "[AI] Beam Receiver",
   "block.agesandtheart.reflector": "[AI] Reflector",
+  "block.agesandtheart.sunlight_collector": "[AI] Sunlight Collector",
+  "block.agesandtheart.optical_conduit": "[AI] Optical Conduit",
   "block.agesandtheart.grazed_torchflower": "Grazed Torchflower",
   "block.agesandtheart.green_rime_crystal": "Green Rime Crystal",
   "block.agesandtheart.grinder": "Grinder",
