@@ -110,6 +110,10 @@ accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Lj
 # missing from the panel rather than as anything that fails.
 accessible	method	net/minecraft/client/Camera	prepareCullFrustum	(Lorg/joml/Matrix4fc;Lorg/joml/Matrix4f;Lnet/minecraft/world/phys/Vec3;)V
 accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V
+# A mirror's camera stands outside the player it reflects, which vanilla draws only for a camera that has the player as
+# its entity and is detached, as in third person (co.voik.agesandtheart.client.mirror.MirrorReflection). The field is
+# set only by `Camera.setup`, from the player's own camera type.
+accessible	field	net/minecraft/client/Camera	detached	Z
 
 # So the linking panel's renderer reads the panel's OWN render state (co.voik.agesandtheart.client.panel.PreviewLevel).
 #

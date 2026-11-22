@@ -12,7 +12,10 @@ import com.mojang.renderpearl.api.textures.GpuTextureView
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
@@ -61,6 +64,7 @@ object MirrorReflection {
     private var target: TextureTarget? = null
     private val painter = PreviewPainter()
     private var probeTickedAt = Long.MIN_VALUE
+    private var toldOfTheLoadedChunks = false
 
     private var nearestSeen: MirrorPlane? = null
     private var nearestSeenDistance = Double.MAX_VALUE
@@ -127,6 +131,7 @@ object MirrorReflection {
             fieldOfView = playersCamera.getFov(),
             cullingReach = (reach * BLOCKS_PER_CHUNK).toFloat(),
         )
+        minecraft.player?.let(reflectedCamera::seesFromOutside)
         if (level.gameTime != probeTickedAt) {
             reflectedCamera.tickProbe()
             probeTickedAt = level.gameTime
@@ -134,12 +139,14 @@ object MirrorReflection {
 
         isDrawing = true
         try {
-            painter.paint(
-                reflectingWorld, reflectedCamera, reflectingTarget, reach, delta,
-                advanceLight = {},
-                showsNames = false,
-                adjustProjection = { projection -> clipBehind(projection, plane, reflectedEye, reflectingWorld) },
-            )
+            sharingTheChunkNews(level, minecraft) {
+                painter.paint(
+                    reflectingWorld, reflectedCamera, reflectingTarget, reach, delta,
+                    advanceLight = {},
+                    showsNames = false,
+                    adjustProjection = { projection -> clipBehind(projection, plane, reflectedEye, reflectingWorld) },
+                )
+            }
         } finally {
             isDrawing = false
         }
@@ -156,6 +163,61 @@ object MirrorReflection {
         world = null
         camera = null
         drawnPlane = null
+        toldOfTheLoadedChunks = false
+    }
+
+    /**
+     * Runs [render] with the reflection's renderer told which chunks have come and gone, and the player's left as
+     * vanilla would leave it.
+     *
+     * **The chunk cache keeps one set of chunk-loading news**, and an extraction takes it and flips to a fresh one
+     * (`flipUpdateTrackingSets`). The player's extraction has just taken this frame's, and its renderer reads it only
+     * later, when the world is drawn; a renderer told nothing of chunks draws no ground at all. So the reflection's is
+     * handed a copy of the same news, and every chunk already loaded the first time it looks, and afterwards the cache
+     * is flipped back and the player's news, which the reflection's flip emptied, put back.
+     */
+    private fun <T> sharingTheChunkNews(level: ClientLevel, minecraft: Minecraft, render: () -> T): T {
+        val cache = level.chunkSource
+        val players = minecraft.gameRenderer.gameRenderState().levelRenderState.chunkLoadingRenderState
+        val addedEmptySections = LongOpenHashSet(players.addedEmptySections)
+        val removedEmptySections = LongOpenHashSet(players.removedEmptySections)
+        val addedLoadedChunks = LongOpenHashSet(players.addedLoadedChunks)
+        val removedLoadedChunks = LongOpenHashSet(players.removedLoadedChunks)
+        cache.addedEmptySections().addAll(addedEmptySections)
+        cache.removedEmptySections().addAll(removedEmptySections)
+        cache.addedLoadedChunks().addAll(addedLoadedChunks)
+        cache.removedLoadedChunks().addAll(removedLoadedChunks)
+        if (!toldOfTheLoadedChunks) {
+            tellOfTheLoadedChunks(level, minecraft)
+            toldOfTheLoadedChunks = true
+        }
+        try {
+            return render()
+        } finally {
+            val reflectionFlipped = cache.addedLoadedChunks() === players.addedLoadedChunks
+            if (reflectionFlipped) cache.flipUpdateTrackingSets()
+            players.addedEmptySections.addAll(addedEmptySections)
+            players.removedEmptySections.addAll(removedEmptySections)
+            players.addedLoadedChunks.addAll(addedLoadedChunks)
+            players.removedLoadedChunks.addAll(removedLoadedChunks)
+        }
+    }
+
+    /** Every chunk loaded within the render distance, and its empty sections, as news of their arriving. */
+    private fun tellOfTheLoadedChunks(level: ClientLevel, minecraft: Minecraft) {
+        val cache = level.chunkSource
+        val centre = ChunkPos.containing(minecraft.gameRenderer.mainCamera().blockPosition())
+        val radius = minecraft.options.getEffectiveRenderDistance()
+        for (x in centre.x - radius..centre.x + radius) {
+            for (z in centre.z - radius..centre.z + radius) {
+                val chunk = cache.getChunk(x, z, false) ?: continue
+                cache.addedLoadedChunks().add(ChunkPos.pack(x, z))
+                for (index in chunk.sections.indices) {
+                    if (!chunk.sections[index].hasOnlyAir()) continue
+                    cache.addedEmptySections().add(SectionPos.asLong(x, level.getSectionYFromSectionIndex(index), z))
+                }
+            }
+        }
     }
 
     private fun worldOver(level: ClientLevel, minecraft: Minecraft): PreviewWorld {

@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
 import net.minecraft.world.level.material.FogType
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 
@@ -95,6 +96,12 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
         drawProjection.setupPerspective(NEAR_PLANE, FAR_PLANE, fieldOfView, width.toFloat(), height.toFloat())
         prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height, fieldOfView, cullingReach), position())
+    }
+
+    /** Draws [entity] as a camera outside it would, the player included, which vanilla leaves out of its own view. */
+    fun seesFromOutside(entity: Entity) {
+        setEntity(entity)
+        detached = true
     }
 
     /**
