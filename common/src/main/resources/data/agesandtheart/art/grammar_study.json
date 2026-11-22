@@ -1,0 +1,16 @@
+{
+  "_comment": "[AI] What studying an empty grammar guide takes (design 7.4): the points that fill one, what a page is worth by its word's rarity, and what a survey report is worth. Set so that a player finishes the guide after the desk's first upgrade and before its second (Jonah, 2026-11-22).",
+  "full": 200,
+  "pages": {
+    "common": 1,
+    "staple": 1,
+    "critical": 1,
+    "uncommon": 3,
+    "rare": 8
+  },
+  "items": {
+    "agesandtheart:sunlit_age_survey": 20,
+    "agesandtheart:lightless_age_survey": 20,
+    "agesandtheart:cramped_age_survey": 20
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "_comment": "[AI] Three empty notebooks over an ink bottle, a bookstand and a feather (Jonah, 2026-11-22). A notebook holding pages is refused, so its pages are never crafted away.",
+  "type": "agesandtheart:crafting_empty_notebooks",
+  "category": "misc",
+  "pattern": [
+    "NNN",
+    "IBF"
+  ],
+  "key": {
+    "N": "agesandtheart:notebook",
+    "I": "agesandtheart:ink_bottle",
+    "B": "agesandtheart:bookstand",
+    "F": "minecraft:feather"
+  },
+  "result": {
+    "id": "agesandtheart:empty_grammar_guide"
+  }
+}

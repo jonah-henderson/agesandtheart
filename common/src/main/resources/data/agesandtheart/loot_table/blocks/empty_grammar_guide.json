@@ -1,0 +1,29 @@
+{
+  "_comment": "[AI] The progress goes with the item, so breaking a guide part studied loses nothing.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:empty_grammar_guide",
+          "modifier": [
+            {
+              "type": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": [
+                "agesandtheart:grammar_studied"
+              ]
+            }
+          ]
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/empty_grammar_guide"
+}

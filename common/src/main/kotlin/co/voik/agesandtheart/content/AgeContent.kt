@@ -34,6 +34,10 @@ import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
 import co.voik.agesandtheart.desk.ArchiveBlock
+import co.voik.agesandtheart.desk.EmptyGrammarGuideBlock
+import co.voik.agesandtheart.desk.EmptyGrammarGuideBlockEntity
+import co.voik.agesandtheart.desk.EmptyGrammarGuideItem
+import co.voik.agesandtheart.desk.GrammarStudyMenu
 import co.voik.agesandtheart.desk.ArchiveBlockEntity
 import co.voik.agesandtheart.desk.ArchiveItem
 import co.voik.agesandtheart.desk.ArchiveRecipe
@@ -1434,6 +1438,28 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GRAMMAR_GUIDE_ID)).useBlockDescriptionPrefix(),
     )
 
+    private val EMPTY_GRAMMAR_GUIDE_ID: Identifier = "empty_grammar_guide".location()
+
+    /** A grammar guide not yet studied — see [co.voik.agesandtheart.desk.EmptyGrammarGuideBlock]. */
+    val EMPTY_GRAMMAR_GUIDE_BLOCK: EmptyGrammarGuideBlock = EmptyGrammarGuideBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, EMPTY_GRAMMAR_GUIDE_ID))
+            .mapColor(MapColor.WOOD)
+            .strength(STUDY_STRENGTH)
+            .sound(SoundType.WOOD),
+    )
+
+    val EMPTY_GRAMMAR_GUIDE: Item = EmptyGrammarGuideItem(
+        EMPTY_GRAMMAR_GUIDE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, EMPTY_GRAMMAR_GUIDE_ID))
+            .useBlockDescriptionPrefix()
+            .stacksTo(1),
+    )
+
+    val EMPTY_GRAMMAR_GUIDE_ENTITY: BlockEntityType<EmptyGrammarGuideBlockEntity> =
+        BlockEntityType({ pos, state -> EmptyGrammarGuideBlockEntity(pos, state) }, setOf(EMPTY_GRAMMAR_GUIDE_BLOCK))
+
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
     /** Blanks stack; a written one stands alone, each being a different door (`LinkingBookItem.bindTo`). */
@@ -2108,6 +2134,7 @@ object AgeContent {
         Transcriber.ID to Transcriber.BLOCK,
         FrequencyTuner.ID to FrequencyTuner.BLOCK,
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
+        EMPTY_GRAMMAR_GUIDE_ID to EMPTY_GRAMMAR_GUIDE_BLOCK,
         SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
         SCARAB_PILLAR_ID to SCARAB_PILLAR_BLOCK,
         GRAZED_TORCHFLOWER_ID to GRAZED_TORCHFLOWER_BLOCK,
@@ -2140,6 +2167,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX_ENTITY,
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         ARCHIVE_ID to ARCHIVE_ENTITY,
+        EMPTY_GRAMMAR_GUIDE_ID to EMPTY_GRAMMAR_GUIDE_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
@@ -2215,6 +2243,12 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /** An empty grammar guide's: one slot studied at once, and its progress in two synced data slots. */
+    val GRAMMAR_STUDY_MENU: MenuType<GrammarStudyMenu> = MenuType(
+        { containerId, inventory -> GrammarStudyMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     /** Both stations', which differ only in what their block entity works. */
     val STATION_MENU: MenuType<StationMenu> = MenuType(
         { containerId, inventory -> StationMenu(containerId, inventory) },
@@ -2232,6 +2266,7 @@ object AgeContent {
         FrequencyTuner.ID to FrequencyTuner.MENU,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
+        EMPTY_GRAMMAR_GUIDE_ID to GRAMMAR_STUDY_MENU,
         STATION_ID to STATION_MENU,
         Compounder.ID to Compounder.MENU,
         Bookbinder.ID to Bookbinder.MENU,
@@ -2241,6 +2276,7 @@ object AgeContent {
         listOf(
             ShapelessIntoOneBottleRecipe.ID to ShapelessIntoOneBottleRecipe.SERIALIZER,
             ShapelessKeepingRecipe.ID to ShapelessKeepingRecipe.SERIALIZER,
+            EmptyNotebooksRecipe.ID to EmptyNotebooksRecipe.SERIALIZER,
             ArchiveRecipe.ID to ArchiveRecipe.SERIALIZER,
         ) + StationRecipes.serializers +
             (Compounding.ID to Compounding.SERIALIZER) + (Drying.ID to Drying.SERIALIZER)
@@ -2325,6 +2361,7 @@ object AgeContent {
         PAPER_TREE_PULP_ID to PAPER_TREE_PULP,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,
+        EMPTY_GRAMMAR_GUIDE_ID to EMPTY_GRAMMAR_GUIDE,
         PITCHSTONE_ID to PITCHSTONE,
         PITCHSTONE_PLATE_ID to PITCHSTONE_PLATE,
         PITCHSTONE_HELMET_ID to PITCHSTONE_HELMET,

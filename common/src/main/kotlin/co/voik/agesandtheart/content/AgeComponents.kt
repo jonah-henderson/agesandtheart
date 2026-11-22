@@ -94,6 +94,12 @@ object AgeComponents {
         .networkSynchronized(PageArchive.STREAM_CODEC)
         .build()
 
+    /** How far an empty grammar guide is studied, in points, carried on the item when the block is broken. */
+    val GRAMMAR_STUDIED: DataComponentType<Int> = DataComponentType.builder<Int>()
+        .persistent(Codec.INT)
+        .networkSynchronized(ByteBufCodecs.VAR_INT)
+        .build()
+
     /** The sentence a Descriptive Book carries, in order — page order is word order. */
     val BOOK_WORDS: DataComponentType<List<Identifier>> = DataComponentType.builder<List<Identifier>>()
         .persistent(Identifier.CODEC.listOf())
@@ -216,6 +222,7 @@ object AgeComponents {
         "notebook_pages".location() to NOTEBOOK_PAGES,
         "notebook_selected".location() to NOTEBOOK_SELECTED,
         "archive_pages".location() to ARCHIVE_PAGES,
+        "grammar_studied".location() to GRAMMAR_STUDIED,
         "cover_layout".location() to COVER_LAYOUT,
         "title_colour".location() to TITLE_COLOUR,
         "title_glows".location() to TITLE_GLOWS,

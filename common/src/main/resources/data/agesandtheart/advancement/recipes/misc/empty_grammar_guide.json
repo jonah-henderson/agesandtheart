@@ -1,0 +1,33 @@
+{
+  "_comment": "[AI] Shown with the first page held, so a player can start studying the guide from their first find.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_a_page": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:page"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:empty_grammar_guide"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_a_page",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:empty_grammar_guide"
+    ]
+  }
+}
