@@ -7,10 +7,12 @@ import co.voik.agesandtheart.age.words.Acceptance
 import co.voik.agesandtheart.age.words.Audience
 import co.voik.agesandtheart.age.words.CoreConcepts
 import co.voik.agesandtheart.age.words.EffectTemplate
+import co.voik.agesandtheart.age.words.JoinedPair
 import co.voik.agesandtheart.age.words.Offer
 import co.voik.agesandtheart.age.words.Outcome
 import co.voik.agesandtheart.age.words.Sense
 import co.voik.agesandtheart.age.words.Value
+import co.voik.agesandtheart.age.words.ValueType
 import co.voik.agesandtheart.age.words.Words
 import co.voik.agesandtheart.math.mix64
 import kotlin.random.Random
@@ -188,6 +190,7 @@ private class Pass(
     /** The Age: what it accepts itself — a template, a ban — and the rest to every part that takes it. */
     private fun handOut(at: Int) {
         val age = words.word(pages[at])?.defaultSense
+        val toParts = mutableListOf<Placement>()
         for (reaching in travelling.flatMap { listOf(it) + it.carrying }) {
             val ownAcceptance = age?.let { matching.acceptanceFor(it, reaching.offer, isTheAge = true) }
             if (ownAcceptance != null) {
@@ -200,11 +203,30 @@ private class Pass(
                 val acceptance = matching.acceptanceFor(page, reaching.offer, isTheAge = true) ?: continue
                 val chance = reaching.offer.chanceFromWholeAge * willingness(acceptance, reaching.offer, part)
                 if (chance <= 0.0 || !matching.valueFits(page, acceptance, reaching.offer)) continue
-                handedOut += placementOf(at, page, part, acceptance, reaching).copy(chance = chance)
-                placed += reaching.page
+                toParts += placementOf(at, page, part, acceptance, reaching).copy(chance = chance)
             }
         }
+        val kept = withoutWhatAnAimedOfferReplaces(toParts)
+        handedOut += kept
+        placed += kept.map(Placement::from)
         travelling = emptyList()
+    }
+
+    /**
+     * Where the whole Age hands a part a page's offer aimed at it by name, the page's offer of that concept to anyone does
+     * not reach that part too: `looming age` presses the clouds down rather than raising them with the land. A concept a
+     * part holds several values of is exempt, since those add up rather than replace one another.
+     */
+    private fun withoutWhatAnAimedOfferReplaces(placements: List<Placement>): List<Placement> {
+        fun conceptAt(placement: Placement) = Triple(placement.from, placement.part, placement.offer.concept)
+        fun holdsOneValue(placement: Placement): Boolean {
+            val concept = words.concepts[placement.offer.concept]
+            return concept?.joined != JoinedPair.DIVIDE && concept?.values != ValueType.WEIGHTS
+        }
+        val aimedAt = placements.filter { it.part != null && it.offer.audience == Audience.Part(it.part) }.map(::conceptAt).toSet()
+        fun isReplaced(placement: Placement) =
+            placement.offer.audience == Audience.Anyone && holdsOneValue(placement) && conceptAt(placement) in aimedAt
+        return placements.filterNot(::isReplaced)
     }
 
     /**

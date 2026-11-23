@@ -110,6 +110,18 @@ class ResolutionCheck : FunSpec({
         check(asked.incoherentPairs().isEmpty()) { "a climate divided on purpose was charged: ${asked.instability}" }
     }
 
+    test("what a word said of the whole Age aims at a part replaces what it offers everything there") {
+        for (book in listOf("looming age sheer landmass low clouds", "looming age skyborne landmass overcast clouds")) {
+            val charged = (1L..5L).map { seed -> resolved(book, seed).incoherentPairs() }
+            check(charged.all { it.isEmpty() }) { "'$book' was charged $charged" }
+        }
+        for (seed in 1L..5L) {
+            val looming = resolved("looming age", seed)
+            val ceiling = looming.option(Aspect.CLOUD, "ceiling").mapNotNull(Span::read)
+            check(ceiling.none { it.least >= RAISED_WITH_THE_LAND }) { "a looming Age raised its clouds: ${looming.spelled()}" }
+        }
+    }
+
     /** Laid bare, `beautiful` offers a blue sky; an aimed `red sky` overrules it, and nothing is charged for that. */
     test("a minting is made of what its clause laid, at the size its clause asked") {
         val obelisks = resolved("age colossal gold_block obelisks")
@@ -210,3 +222,6 @@ class ResolutionCheck : FunSpec({
         check(cost == 1 + 4) { "age and sunless cost $cost, where the age page is one and sunless four" }
     }
 })
+
+/** The least of the height `looming` offers the land. */
+private const val RAISED_WITH_THE_LAND = 0.35
