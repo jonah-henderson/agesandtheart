@@ -29,23 +29,18 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * The faces of a splitter or merger, which are a half-silvered reflector: the straight face (`first`), on the axis a
- * beam carries straight along, and the turned face (`second`), at right angles to it. Placed as a reflector of the same
- * plane is; using a face on the straight axis makes it the straight face, and on the horizontal form any other makes it
- * the turned one.
+ * beam carries straight along, and the turned face (`second`), at right angles to it. Placed and turned as a reflector of
+ * the same plane is, but using the straight face, where its lens is, swaps the two.
  */
 object HalfSilvered {
     val FACES: EnumProperty<Mirror> = EnumProperty.create("faces", Mirror::class.java)
 
-    /** The faces after [face], a level face not already open, is used on the horizontal form. */
-    fun levelOpening(faces: Mirror, face: Direction): Mirror = when (face.axis) {
-        faces.first.axis -> Mirror.of(face, faces.second)
-        else -> Mirror.of(faces.first, face)
-    }
-
-    fun use(plane: OpticPlane, state: BlockState, level: Level, pos: BlockPos, hitResult: BlockHitResult): InteractionResult {
-        val opened = plane.opening(state.getValue(FACES), hitResult.direction, ::levelOpening) ?: return InteractionResult.PASS
+    fun use(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
+        val faces = state.getValue(FACES)
+        val usedTheLens = hitResult.direction == faces.first
+        val turned = if (usedTheLens) faces.swapped() else faces.turned(back = player.isSecondaryUseActive)
         if (!level.isClientSide) {
-            level.setBlock(pos, state.setValue(FACES, opened), Block.UPDATE_ALL)
+            level.setBlock(pos, state.setValue(FACES, turned), Block.UPDATE_ALL)
             level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, 1f, 1f)
         }
         return InteractionResult.SUCCESS
@@ -59,7 +54,7 @@ object HalfSilvered {
 class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.FRAME))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.STAND))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
@@ -72,7 +67,7 @@ class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : BaseEnt
         defaultBlockState().setValue(HalfSilvered.FACES, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult =
-        HalfSilvered.use(plane, state, level, pos, hitResult)
+        HalfSilvered.use(state, level, pos, player, hitResult)
 
     companion object {
         /** Where the turned half of a beam travelling [direction] into a splitter in [state] leaves it, or none where it stops. */
@@ -91,7 +86,7 @@ class BeamSplitterBlock(properties: Properties, val plane: OpticPlane) : BaseEnt
 class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.FRAME))
+        registerDefaultState(stateDefinition.any().setValue(HalfSilvered.FACES, OpticPlane.resting(plane)).setValue(ReflectorBlock.PIECE, OpticPiece.STAND))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
@@ -102,7 +97,7 @@ class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntit
         defaultBlockState().setValue(HalfSilvered.FACES, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult =
-        HalfSilvered.use(plane, state, level, pos, hitResult)
+        HalfSilvered.use(state, level, pos, player, hitResult)
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BeamMergerBlockEntity(pos, state)
 

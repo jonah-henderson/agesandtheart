@@ -28,18 +28,6 @@ enum class OpticPlane {
         }
     }
 
-    /**
-     * The faces after [face] is used, [faces]' first and second kept in their places: on the horizontal form, as
-     * [levelOpening] says; on the vertical, [face] takes the place of whichever of the two is as level as it is. None
-     * where nothing changes or the face is not this form's to open.
-     */
-    fun opening(faces: Mirror, face: Direction, levelOpening: (Mirror, Direction) -> Mirror?): Mirror? = when {
-        face == faces.first || face == faces.second -> null
-        this == HORIZONTAL -> if (face.axis.isVertical) null else levelOpening(faces, face)
-        face.axis.isVertical == faces.first.axis.isVertical -> Mirror.of(face, faces.second)
-        else -> Mirror.of(faces.first, face)
-    }
-
     companion object {
         /** The default faces of a block of [plane]. */
         fun resting(plane: OpticPlane): Mirror = when (plane) {

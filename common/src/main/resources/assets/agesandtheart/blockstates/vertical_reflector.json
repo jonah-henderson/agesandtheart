@@ -1,13 +1,39 @@
 {
-  "variants": {
-    "piece=frame": {
-      "model": "agesandtheart:block/reflector_frame"
+  "multipart": [
+    {
+      "when": {
+        "piece": "stand",
+        "mirror": "north_up|north_down|south_up|south_down|up_north|down_north|up_south|down_south"
+      },
+      "apply": {
+        "model": "agesandtheart:block/vertical_reflector_stand"
+      }
     },
-    "piece=mirror": {
-      "model": "agesandtheart:block/reflector_pane"
+    {
+      "when": {
+        "piece": "stand",
+        "mirror": "east_up|east_down|west_up|west_down|up_east|down_east|up_west|down_west"
+      },
+      "apply": {
+        "model": "agesandtheart:block/vertical_reflector_stand",
+        "y": 90
+      }
     },
-    "piece=lens": {
-      "model": "agesandtheart:block/optic_lens"
+    {
+      "when": {
+        "piece": "mirror"
+      },
+      "apply": {
+        "model": "agesandtheart:block/reflector_pane"
+      }
+    },
+    {
+      "when": {
+        "piece": "lens"
+      },
+      "apply": {
+        "model": "agesandtheart:block/optic_lens"
+      }
     }
-  }
+  ]
 }

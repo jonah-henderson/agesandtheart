@@ -1,7 +1,7 @@
 {
   "variants": {
-    "piece=frame": {
-      "model": "agesandtheart:block/beam_merger_frame"
+    "piece=stand": {
+      "model": "agesandtheart:block/beam_merger_stand"
     },
     "piece=mirror": {
       "model": "agesandtheart:block/beam_merger_pane"

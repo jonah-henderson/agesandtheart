@@ -9,11 +9,11 @@ import org.joml.Vector3f
 import kotlin.math.abs
 
 /**
- * Which of a reflector, splitter or merger's models: the open frame the world draws, or the mirror plane and the lens on
- * the straight face, which its renderer turns.
+ * Which of a reflector, splitter or merger's models: the stand the world draws, or the mirror plane and the lens on the
+ * straight face, which its renderer turns.
  */
 enum class OpticPiece(private val serializedName: String) : StringRepresentable {
-    FRAME("frame"),
+    STAND("stand"),
     MIRROR("mirror"),
     LENS("lens"),
     ;

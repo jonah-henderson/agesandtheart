@@ -19,13 +19,13 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * Two open faces at right angles, joined by a mirror: a beam entering by one leaves by the other, and a beam meeting
- * any other face stops. Its [plane] says which faces it can join. Using a face opens it, the mirror turning to join it
- * with the face opened before, or on the vertical form with whichever of the two is not as level as it.
+ * any other face stops. Its [plane] says which faces it is placed joining. Using it turns the mirror a quarter turn
+ * about its pivot, and back while sneaking.
  */
 class ReflectorBlock(properties: Properties, val plane: OpticPlane) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(MIRROR, OpticPlane.resting(plane)).setValue(PIECE, OpticPiece.FRAME))
+        registerDefaultState(stateDefinition.any().setValue(MIRROR, OpticPlane.resting(plane)).setValue(PIECE, OpticPiece.STAND))
     }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
@@ -37,16 +37,15 @@ class ReflectorBlock(properties: Properties, val plane: OpticPlane) : BaseEntity
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState = defaultBlockState().setValue(MIRROR, plane.placed(context))
 
     override fun useWithoutItem(state: BlockState, level: Level, pos: BlockPos, player: Player, hitResult: BlockHitResult): InteractionResult {
-        val opened = plane.opening(state.getValue(MIRROR), hitResult.direction) { mirror, face -> mirror.opening(face) }
-            ?: return InteractionResult.PASS
+        val turned = state.getValue(MIRROR).turned(back = player.isSecondaryUseActive)
         if (!level.isClientSide) {
-            level.setBlock(pos, state.setValue(MIRROR, opened), UPDATE_ALL)
+            level.setBlock(pos, state.setValue(MIRROR, turned), UPDATE_ALL)
             level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, 1f, 1f)
         }
         return InteractionResult.SUCCESS
     }
 
-    /** The faces a mirror joins: [first] the one opened before [second], which matters only to the next turn. */
+    /** The faces a mirror joins; which is [first] matters only to a splitter or merger, whose straight face it is. */
     enum class Mirror(val first: Direction, val second: Direction) : StringRepresentable {
         DOWN_NORTH(Direction.DOWN, Direction.NORTH),
         DOWN_SOUTH(Direction.DOWN, Direction.SOUTH),
@@ -76,12 +75,17 @@ class ReflectorBlock(properties: Properties, val plane: OpticPlane) : BaseEntity
 
         override fun getSerializedName(): String = "${first.serializedName}_${second.serializedName}"
 
-        /** The mirror after [face] is opened, keeping the last face opened where it can; none where nothing changes. */
-        fun opening(face: Direction): Mirror? {
-            if (face == first || face == second) return null
-            val kept = if (face.axis != second.axis) second else first
-            return of(kept, face)
+        /** The axis it turns about, square to both its faces. */
+        val pivot: Direction.Axis get() = Direction.Axis.entries.first { it != first.axis && it != second.axis }
+
+        /** A quarter turn about its [pivot], or [back] the other way, which never takes it out of its plane. */
+        fun turned(back: Boolean): Mirror {
+            fun turn(face: Direction) = if (back) face.getCounterClockWise(pivot) else face.getClockWise(pivot)
+            return of(turn(first), turn(second))
         }
+
+        /** The same faces, the other first. */
+        fun swapped(): Mirror = of(second, first)
 
         companion object {
             fun of(first: Direction, second: Direction): Mirror =

@@ -1,0 +1,72 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). What a level reflector, splitter or merger stands on: a plate, and a post up to the pivot its pane turns about.",
+  "textures": {
+    "particle": "#stand"
+  },
+  "elements": [
+    {
+      "from": [
+        3,
+        0,
+        3
+      ],
+      "to": [
+        13,
+        1,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stand"
+        },
+        "south": {
+          "texture": "#stand"
+        },
+        "east": {
+          "texture": "#stand"
+        },
+        "west": {
+          "texture": "#stand"
+        },
+        "up": {
+          "texture": "#stand"
+        },
+        "down": {
+          "texture": "#stand"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        1,
+        7
+      ],
+      "to": [
+        9,
+        1.75,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stand"
+        },
+        "south": {
+          "texture": "#stand"
+        },
+        "east": {
+          "texture": "#stand"
+        },
+        "west": {
+          "texture": "#stand"
+        },
+        "up": {
+          "texture": "#stand"
+        },
+        "down": {
+          "texture": "#stand"
+        }
+      }
+    }
+  ]
+}

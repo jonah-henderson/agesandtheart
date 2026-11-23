@@ -1,0 +1,6 @@
+{
+  "parent": "agesandtheart:block/optic_stand",
+  "textures": {
+    "stand": "minecraft:block/weathered_cut_copper"
+  }
+}

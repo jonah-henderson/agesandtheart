@@ -1,7 +1,7 @@
 {
   "variants": {
-    "piece=frame": {
-      "model": "agesandtheart:block/reflector_frame"
+    "piece=stand": {
+      "model": "agesandtheart:block/reflector_stand"
     },
     "piece=mirror": {
       "model": "agesandtheart:block/reflector_pane"

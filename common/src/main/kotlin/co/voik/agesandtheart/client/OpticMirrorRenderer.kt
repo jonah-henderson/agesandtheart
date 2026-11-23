@@ -27,7 +27,7 @@ class OpticMirrorRenderState : BeamRenderState() {
 }
 
 /**
- * A reflector, splitter or merger's mirror plane, standing at 45 degrees between its two faces inside the open frame the
+ * A reflector, splitter or merger's mirror plane, standing at 45 degrees between its two faces above the stand the
  * block's own model is, and easing round when they change ([MirrorTurning]); on a splitter or merger, the lens on its
  * straight face; and a merger's beam.
  */

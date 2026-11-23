@@ -1,5 +1,5 @@
 {
-  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). A half-silvered pane between its straight face and its turned one. Modelled standing between the north and east faces; the renderer turns it onto the block's own.",
+  "_comment": "[AI] Vanilla textures stand in until the asset pass (Phase 9). A half-silvered pane between its straight face and its turned one. Short enough to turn clear of its stand; modelled standing between the north and east faces; the renderer turns it onto the block's own.",
   "textures": {
     "particle": "minecraft:block/purple_stained_glass",
     "face": "minecraft:block/purple_stained_glass",
@@ -8,13 +8,13 @@
   "elements": [
     {
       "from": [
-        0,
-        0,
+        1.25,
+        2,
         7.75
       ],
       "to": [
-        16,
-        16,
+        14.75,
+        14,
         8.25
       ],
       "faces": {
@@ -44,8 +44,7 @@
           8
         ],
         "axis": "y",
-        "angle": -45,
-        "rescale": true
+        "angle": -45
       }
     }
   ]
