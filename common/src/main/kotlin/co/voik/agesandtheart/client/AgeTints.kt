@@ -11,6 +11,8 @@ import co.voik.agesandtheart.book.BookWheels
 import co.voik.agesandtheart.book.Bookstands
 import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.client.light.TintedLights
+import co.voik.agesandtheart.optics.DispersedLightBlock
+import co.voik.agesandtheart.optics.Optics
 import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.client.GroundTints
 import net.minecraft.core.BlockPos
@@ -65,6 +67,10 @@ object AgeTints {
             TintedLights.cast(block) { state ->
                 if (state.getValue(BlockStateProperties.POWERED)) colour.tint else null
             }
+        }
+        // A lens's light in a rime colour casts that colour; its plain white light is left as daylight is.
+        TintedLights.cast(Optics.DISPERSED_LIGHT) { state ->
+            state.getValue(DispersedLightBlock.COLOUR).takeIf { it != RimeColour.WHITE }?.tint
         }
         registrar(
             listOf(BlockTintSources.constant(opaque(AgeContent.ASTRITE_TINT))),

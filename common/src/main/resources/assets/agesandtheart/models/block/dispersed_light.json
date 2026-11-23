@@ -1,0 +1,6 @@
+{
+  "_comment": "[AI] Never drawn: only its particle is ever asked for.",
+  "textures": {
+    "particle": "minecraft:block/glass"
+  }
+}

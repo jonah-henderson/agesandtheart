@@ -154,6 +154,7 @@ class OpticalConduitBlock(properties: Properties) : Block(properties) {
          */
         fun joiningSide(endpoint: BlockState): Direction? = when (endpoint.block) {
             is AstriteEmitterBlock -> endpoint.getValue(AstriteEmitterBlock.FACING).opposite
+            is DispersionLensBlock -> endpoint.getValue(DispersionLensBlock.FACING).opposite
             is SunlightCollectorBlock -> endpoint.getValue(SunlightCollectorBlock.FACING)
             is BeamReceiverBlock -> endpoint.getValue(BeamReceiverBlock.FACING)
             else -> null

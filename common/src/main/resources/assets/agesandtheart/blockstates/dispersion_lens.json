@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "agesandtheart:block/dispersion_lens"
+    },
+    "facing=east": {
+      "model": "agesandtheart:block/dispersion_lens",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "agesandtheart:block/dispersion_lens",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "agesandtheart:block/dispersion_lens",
+      "y": 270
+    },
+    "facing=up": {
+      "model": "agesandtheart:block/dispersion_lens",
+      "x": 270
+    },
+    "facing=down": {
+      "model": "agesandtheart:block/dispersion_lens",
+      "x": 90
+    }
+  }
+}

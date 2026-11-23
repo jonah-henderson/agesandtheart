@@ -188,7 +188,8 @@ object Beam {
         }
     }
 
-    private fun passes(state: BlockState, level: Level, pos: BlockPos): Boolean {
+    /** Whether light goes on through [state]: what has no collision and glass, but never tinted glass. */
+    fun passes(state: BlockState, level: Level, pos: BlockPos): Boolean {
         if (state.`is`(STOPS_BEAMS)) return false
         return state.`is`(LETS_BEAMS_THROUGH) || state.getCollisionShape(level, pos).isEmpty
     }

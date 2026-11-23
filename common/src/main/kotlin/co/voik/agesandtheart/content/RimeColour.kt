@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.math.mix64
 import co.voik.agesandtheart.math.unitDouble
+import net.minecraft.util.StringRepresentable
 
 /**
  * The eight colours a rime crystal grows in (design §7.1.2).
@@ -15,7 +16,7 @@ import co.voik.agesandtheart.math.unitDouble
  * the same way — `13` is 1, `cat` is 2, `blocks` is 3 — and a composter returns its level raw. There is no
  * spreading across the range and no gaps; the reader is a comparator, which does not attenuate.
  */
-enum class RimeColour(val key: String, val tint: Int, val signal: Int) {
+enum class RimeColour(val key: String, val tint: Int, val signal: Int) : StringRepresentable {
     RED("red", 0xFF2030, 1),
     ORANGE("orange", 0xFF7A14, 2),
     YELLOW("yellow", 0xFFE01C, 3),
@@ -25,6 +26,8 @@ enum class RimeColour(val key: String, val tint: Int, val signal: Int) {
     MAGENTA("magenta", 0xF52CE0, 7),
     WHITE("white", 0xF2F7FF, 8),
     ;
+
+    override fun getSerializedName(): String = key
 
     /** `cyan_rime_crystal`, on vanilla's own colour-first naming — `red_wool`, `blue_candle`. */
     val id: String get() = "${key}_rime_crystal"

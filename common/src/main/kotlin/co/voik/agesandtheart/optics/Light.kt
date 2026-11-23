@@ -34,12 +34,15 @@ data class Light(val intensity: Int, val colour: RimeColour, val arc: Arc? = nul
         /** Every light in [lights] added together, or null where there are none. */
         fun together(lights: Iterable<Light>): Light? = lights.reduceOrNull(Light::plus)
 
-        /** Two colours of light mixed: the larger of each channel, snapped to the nearest rime colour. */
-        fun mixed(first: RimeColour, second: RimeColour): RimeColour {
+        fun mixed(first: RimeColour, second: RimeColour): RimeColour = mixed(listOf(first, second))
+
+        /** Colours of light mixed: the largest of each channel, snapped to the nearest rime colour; white where none. */
+        fun mixed(colours: Collection<RimeColour>): RimeColour {
+            if (colours.isEmpty()) return RimeColour.WHITE
             val brightest = ARGB.color(
-                maxOf(ARGB.red(first.tint), ARGB.red(second.tint)),
-                maxOf(ARGB.green(first.tint), ARGB.green(second.tint)),
-                maxOf(ARGB.blue(first.tint), ARGB.blue(second.tint)),
+                colours.maxOf { ARGB.red(it.tint) },
+                colours.maxOf { ARGB.green(it.tint) },
+                colours.maxOf { ARGB.blue(it.tint) },
             )
             return nearestRimeColour(brightest)
         }

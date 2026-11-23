@@ -7,7 +7,8 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * Astrite's optics at noon (`optics/`): a collector's diffuse light focused by an emitter into a laser, bounced over a
  * wall, split and merged, light shared across a conduit network, colours mixed in one, stripes keeping conduits apart,
- * redstone putting an emitter out, and lasers armed by arc crystal hurting and burning.
+ * redstone putting an emitter out, lasers armed by arc crystal hurting and burning, and a dispersion lens laying light,
+ * mixing colours where two meet, and burning what it lights.
  */
 @Tags(NEEDS_SERVER)
 class BeamOnServerCheck : FunSpec({
@@ -182,6 +183,54 @@ class BeamOnServerCheck : FunSpec({
         check(lit(x + 20, Z)) { "the receiver past the stone was burnt or not lit" }
         inWorld("kill @e[type=item]")
     }
+
+    test("a dispersion lens lays light before the wall its cone reaches, and takes it away once it is no longer fed") {
+        val x = DISPERSED_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:dispersion_lens[facing=east,aperture=0]")
+        set(x + 8, Z, "minecraft:stone")
+        server.sprint(SETTLING_TICKS)
+        check(passes("if block ${x + 7} $Y $Z agesandtheart:dispersed_light")) { "no light was laid before the wall" }
+        set(x, Z, "minecraft:air")
+        server.sprint(SETTLING_TICKS)
+        check(passes("if block ${x + 7} $Y $Z minecraft:air")) { "the light stayed after the lens went dark" }
+    }
+
+    test("two dispersion lenses lighting the same air mix their colours, and one going dark leaves the other's") {
+        val x = DISPERSED_MIXED_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 1, Z, "minecraft:red_stained_glass")
+        set(x + 2, Z, "agesandtheart:dispersion_lens[facing=east,aperture=0]")
+        set(x + 8, Z, "minecraft:stone")
+        set(x + 7, Z + 8, "agesandtheart:sunlight_collector[facing=north]")
+        set(x + 7, Z + 7, "minecraft:blue_stained_glass")
+        set(x + 7, Z + 6, "agesandtheart:dispersion_lens[facing=north,aperture=0]")
+        set(x + 7, Z - 1, "minecraft:stone")
+        server.sprint(SETTLING_TICKS)
+        val sharedLight = "${x + 7} $Y $Z agesandtheart:dispersed_light"
+        check(passes("if block $sharedLight[colour=magenta]")) { "red and blue light laid in one place did not mix to magenta" }
+        set(x + 7, Z + 8, "minecraft:air")
+        server.sprint(SETTLING_TICKS)
+        check(passes("if block $sharedLight[colour=red]")) { "the red lens's light did not stay red once the blue went dark" }
+    }
+
+    test("a burning laser spread by a dispersion lens burns what it lights, more slowly than the laser") {
+        val x = SPREAD_BURNING_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
+        set(x + 2, Z + 1, "agesandtheart:arc_crystal_block[charge=7]")
+        set(x + 4, Z, "agesandtheart:dispersion_lens[facing=east,aperture=0]")
+        set(x + 10, Z, "minecraft:stone")
+        server.sprint(LONGER_THAN_A_LASER_BURNS_STONE_TICKS)
+        check(passes("if block ${x + 10} $Y $Z minecraft:stone")) { "the spread laser burnt stone as fast as the laser" }
+        server.sprint(SPREAD_BURNING_STONE_TICKS)
+        check(passes("if block ${x + 10} $Y $Z minecraft:air")) { "the spread laser did not burn the stone it lit" }
+        check(passes("if block ${x + 4} $Y $Z agesandtheart:dispersion_lens")) { "the laser burnt the lens" }
+        inWorld("kill @e[type=item]")
+    }
 })
 
 private const val Y = 220
@@ -196,9 +245,16 @@ private const val SPLIT_X = -9800
 private const val MERGED_X = -9900
 private const val HARMING_X = -10000
 private const val BURNING_X = -10100
+private const val DISPERSED_X = -10200
+private const val SPREAD_BURNING_X = -10300
+private const val DISPERSED_MIXED_X = -10400
 
 /** Sixteen stone at a full laser's thirty ticks apiece, and room to spare. */
 private const val BURNING_SIXTEEN_STONE_TICKS = 560
+
+/** A full laser burns stone in thirty ticks, and the arc is counted every ten; spread, it takes sixty. */
+private const val LONGER_THAN_A_LASER_BURNS_STONE_TICKS = 40
+private const val SPREAD_BURNING_STONE_TICKS = 120
 
 /** Light is passed on every tick, and this is room to spare for a chain of three. */
 private const val SETTLING_TICKS = 10

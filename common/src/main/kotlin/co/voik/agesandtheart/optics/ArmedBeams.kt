@@ -124,6 +124,12 @@ object ArmedBeams {
     }
 
     /**
+     * One block a source is burning, its light [travelling] that way and armed by [arc], burning on each tick by [rate]
+     * of what a full laser does.
+     */
+    data class Burn(val travelling: Direction, val arc: Arc, val rate: Float)
+
+    /**
      * What one source's burning lasers have done so far to the blocks they end against, each block's burn kept until
      * the beam leaves it. Held by the block entity sending the beam, and never saved: a burn starts over on reload.
      */
@@ -132,10 +138,18 @@ object ArmedBeams {
 
         /** Burns on at every block a branch of [path] ends against, burning away those burnt through. */
         fun tick(level: ServerLevel, path: BeamPath) {
-            val burningNow = mutableMapOf<BlockPos, BeamHit>()
-            for (hit in path.hits) if (hit.light.burns) burningNow.merge(hit.pos, hit) { kept, _ -> kept }
+            val burningNow = mutableMapOf<BlockPos, Burn>()
+            for (hit in path.hits) {
+                val arc = hit.light.arc ?: continue
+                if (hit.light.burns) burningNow.putIfAbsent(hit.pos, Burn(hit.travelling, arc, hit.light.intensity.toFloat() / Light.FULL))
+            }
+            burn(level, burningNow)
+        }
+
+        /** Burns on at each of [burningNow], burning away those burnt through, and puts out every other burn. */
+        fun burn(level: ServerLevel, burningNow: Map<BlockPos, Burn>) {
             for (left in burnt.keys - burningNow.keys) stop(level, left)
-            for ((pos, hit) in burningNow) burnOn(level, pos, hit)
+            for ((pos, burn) in burningNow) burnOn(level, pos, burn)
         }
 
         /** Every burn put out, as when the source is removed. */
@@ -143,22 +157,22 @@ object ArmedBeams {
             for (pos in burnt.keys.toList()) stop(level, pos)
         }
 
-        private fun burnOn(level: ServerLevel, pos: BlockPos, hit: BeamHit) {
+        private fun burnOn(level: ServerLevel, pos: BlockPos, burn: Burn) {
             val state = level.getBlockState(pos)
             val hardness = state.getDestroySpeed(level, pos)
             if (!canBurn(level, pos, state, hardness)) return stop(level, pos)
             val needed = maxOf(FEWEST_TICKS, hardness * TICKS_A_HARDNESS)
-            val done = burnt.getOrDefault(pos, 0f) + hit.light.intensity.toFloat() / Light.FULL
+            val done = burnt.getOrDefault(pos, 0f) + burn.rate
             if (done < needed) {
                 burnt[pos] = done
                 level.destroyBlockProgress(crackId(pos), pos, (done / needed * CRACK_STAGES).toInt().coerceAtMost(CRACK_STAGES - 1))
-                if (level.gameTime % SMOKES_EVERY == 0L) smoke(level, pos, hit.travelling)
+                if (level.gameTime % SMOKES_EVERY == 0L) smoke(level, pos, burn.travelling)
                 return
             }
             stop(level, pos)
             Block.dropResources(state, level, pos, level.getBlockEntity(pos), null, ItemStack(MINED_AS_BY))
             level.destroyBlock(pos, false)
-            hit.light.arc?.let { arc -> (level.getBlockEntity(arc.armedBy) as? AstriteEmitterBlockEntity)?.burntThrough(level) }
+            (level.getBlockEntity(burn.arc.armedBy) as? AstriteEmitterBlockEntity)?.burntThrough(level)
         }
 
         private fun stop(level: Level, pos: BlockPos) {

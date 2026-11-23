@@ -1,0 +1,19 @@
+{
+  "_comment": "[AI] Stand-in: astrite round a lens, glass across it to spread the light, a daylight detector at the back to take it in. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": "agesandtheart:astrite_shard",
+    "L": "agesandtheart:astrite_lens",
+    "G": "minecraft:glass",
+    "D": "minecraft:daylight_detector"
+  },
+  "pattern": [
+    "GGG",
+    "ALA",
+    "ADA"
+  ],
+  "result": {
+    "id": "agesandtheart:dispersion_lens"
+  }
+}

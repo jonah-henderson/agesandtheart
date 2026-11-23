@@ -1,0 +1,13 @@
+{
+  "_comment": "[AI] Vanilla textures stand in until Jonah's model. The front, where the light spreads out, is glass; the back, where light is fed in, is the emitter's.",
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "minecraft:block/amethyst_block",
+    "north": "minecraft:block/glass",
+    "south": "minecraft:block/daylight_detector_top",
+    "east": "minecraft:block/amethyst_block",
+    "west": "minecraft:block/amethyst_block",
+    "up": "minecraft:block/amethyst_block",
+    "down": "minecraft:block/amethyst_block"
+  }
+}

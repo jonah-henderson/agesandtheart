@@ -2,6 +2,7 @@ package co.voik.agesandtheart.imaging.client
 
 import co.voik.agesandtheart.imaging.Imaging
 import co.voik.agesandtheart.imaging.SlideCarouselBlock
+import co.voik.agesandtheart.optics.DispersionLensBlock
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
@@ -22,9 +23,10 @@ import kotlin.math.pow
  *
  * The picture's size follows the distances, as a real projector's does: a slide [SLIDE_WIDTH] wide, [toLens] blocks
  * behind the lens, is as wide as `SLIDE_WIDTH * d / toLens` at `d` blocks past it, and each further layer of glass makes
- * it [EACH_LAYER] times wider again. What it lands on is found by rays across the cone; each face they reach is cut into
- * pieces, and a piece is lit where a ray from the lens reaches it first, so a rough wall shows the picture whole only
- * from near the projector's line.
+ * it [EACH_LAYER] times wider again; a dispersion lens among the glass, facing the way the carousel throws, counts as
+ * one layer for each step its aperture is open, in place of the glass's own. What it lands on is found by rays across
+ * the cone; each face they reach is cut into pieces, and a piece is lit where a ray from the lens reaches it first, so
+ * a rough wall shows the picture whole only from near the projector's line.
  */
 class ProjectorThrow private constructor(
     /** The lit pieces: four corners a piece, x, y, z, u, v each, in the world. */
@@ -35,9 +37,17 @@ class ProjectorThrow private constructor(
     /**
      * What the throw was worked out from, so it is only worked out again when one of them moves. [tint] is the lens's
      * colour, mixed from its stained layers as a beacon mixes its beam's, white where every layer is clear. With no lens
-     * [toLens] is nought and the throw is unfocused, spreading wide from the carousel's own front.
+     * [toLens] is nought and the throw is unfocused, spreading wide from the carousel's own front. [aperture] is a
+     * dispersion lens's, where one is among the glass.
      */
-    data class Assembly(val facing: Direction, val light: BlockState, val toLens: Int, val layers: Int, val tint: Int) {
+    data class Assembly(
+        val facing: Direction,
+        val light: BlockState,
+        val toLens: Int,
+        val layers: Int,
+        val tint: Int,
+        val aperture: Int? = null,
+    ) {
         val isFocused: Boolean get() = toLens > 0
     }
 
@@ -72,16 +82,18 @@ class ProjectorThrow private constructor(
             var toLens = 1
             while (toLens <= FARTHEST_LENS) {
                 val ahead = level.getBlockState(carousel.relative(facing, toLens))
-                if (isALens(ahead)) break
+                if (isALens(ahead, facing)) break
                 if (!ahead.isAir) return null
                 toLens++
             }
             if (toLens > FARTHEST_LENS) return null
             var layers = 1
-            while (layers < MOST_LAYERS && isALens(level.getBlockState(carousel.relative(facing, toLens + layers)))) layers++
-            val stained = (0..<layers).mapNotNull { (level.getBlockState(carousel.relative(facing, toLens + it)).block as? BeaconBeamBlock)?.color }
+            while (layers < MOST_LAYERS && isALens(level.getBlockState(carousel.relative(facing, toLens + layers)), facing)) layers++
+            val glass = (0..<layers).map { level.getBlockState(carousel.relative(facing, toLens + it)) }
+            val stained = glass.mapNotNull { (it.block as? BeaconBeamBlock)?.color }
             val tint = stained.map { it.textureDiffuseColor and WHITE }.reduceOrNull { mixed, next -> ARGB.average(mixed, next) and WHITE } ?: WHITE
-            return Assembly(facing, light, toLens, layers, tint)
+            val aperture = glass.firstOrNull { it.block is DispersionLensBlock }?.getValue(DispersionLensBlock.APERTURE)
+            return Assembly(facing, light, toLens, layers, tint, aperture)
         }
 
         /** A lit carousel with no lens ahead of it, throwing unfocused; null where there is no light behind it. */
@@ -92,8 +104,14 @@ class ProjectorThrow private constructor(
             return Assembly(facing, light, UNFOCUSED, UNFOCUSED, WHITE)
         }
 
-        /** Clear glass, or stained, which colours the throw as it colours a beacon's beam. */
-        private fun isALens(state: BlockState): Boolean = state.`is`(LENSES) || state.block is BeaconBeamBlock
+        /**
+         * Clear glass, or stained, which colours the throw as it colours a beacon's beam, or a dispersion lens facing
+         * [throwing], the way the carousel throws.
+         */
+        private fun isALens(state: BlockState, throwing: Direction): Boolean {
+            val isADispersionLensAlongTheThrow = state.block is DispersionLensBlock && state.getValue(DispersionLensBlock.FACING) == throwing
+            return state.`is`(LENSES) || state.block is BeaconBeamBlock || isADispersionLensAlongTheThrow
+        }
 
         private const val WHITE = 0xFFFFFF
 
@@ -107,7 +125,8 @@ class ProjectorThrow private constructor(
             } else {
                 Vec3.atCenterOf(carousel).add(forward.scale(0.5))
             }
-            val tanAcross = if (assembly.isFocused) SLIDE_WIDTH / 2.0 / assembly.toLens * EACH_LAYER.pow(assembly.layers - 1) else UNFOCUSED_SPREAD
+            val layers = assembly.aperture?.let { it + 1 } ?: assembly.layers
+            val tanAcross = if (assembly.isFocused) SLIDE_WIDTH / 2.0 / assembly.toLens * EACH_LAYER.pow(layers - 1) else UNFOCUSED_SPREAD
             val tanDown = tanAcross / PICTURE_ASPECT
             val cone = Cone(lens, forward, right, up, tanAcross, tanDown)
 

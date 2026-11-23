@@ -3,6 +3,7 @@
   "replace": false,
   "values": [
     "agesandtheart:astrite_emitter",
+    "agesandtheart:dispersion_lens",
     "agesandtheart:beam_receiver",
     "agesandtheart:reflector",
     "agesandtheart:vertical_reflector",

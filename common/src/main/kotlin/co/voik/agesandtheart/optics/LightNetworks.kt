@@ -7,8 +7,8 @@ import net.minecraft.server.level.ServerLevel
 /**
  * Light across optical conduits: everything joined to one network of them shares, at once, the light put into it.
  *
- * Collectors and receivers a beam is reaching put light in; emitters fed at their back and receivers no beam is
- * reaching take it out, each an equal share of all of it, whether or not it uses its share.
+ * Collectors and receivers a beam is reaching put light in; emitters and dispersion lenses fed at their back and
+ * receivers no beam is reaching take it out, each an equal share of all of it, whether or not it uses its share.
  */
 object LightNetworks {
     /** Past this many conduits a network is not followed further. */
@@ -67,6 +67,7 @@ object LightNetworks {
 
     private fun takesLightOut(level: ServerLevel, endpoint: BlockPos): Boolean = when (val entity = level.getBlockEntity(endpoint)) {
         is AstriteEmitterBlockEntity -> true
+        is DispersionLensBlockEntity -> true
         is BeamReceiverBlockEntity -> entity.beamLight(level) == null
         else -> false
     }

@@ -11,10 +11,12 @@ import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.MapColor
+import net.minecraft.world.level.material.PushReaction
 
 /**
  * Astrite's optics (design §7.4): the lens and mirror, the collector gathering sunlight, the emitter focusing it into a
- * laser, the reflector, splitter, merger and receiver a beam runs between, and the conduit carrying light between them.
+ * laser, the reflector, splitter, merger and receiver a beam runs between, the conduit carrying light between them, and
+ * the dispersion lens spreading it over a cone as real light.
  */
 object Optics {
     val LENS_ID: Identifier = "astrite_lens".location()
@@ -29,10 +31,16 @@ object Optics {
     val VERTICAL_REFLECTOR_ID: Identifier = "vertical_reflector".location()
     val VERTICAL_SPLITTER_ID: Identifier = "vertical_beam_splitter".location()
     val VERTICAL_MERGER_ID: Identifier = "vertical_beam_merger".location()
+    val DISPERSION_LENS_ID: Identifier = "dispersion_lens".location()
+    val DISPERSED_LIGHT_ID: Identifier = "dispersed_light".location()
 
     private const val STRENGTH = 3.0f
     private const val CONDUIT_STRENGTH = 0.5f
     private const val MIRROR_STRENGTH = 0.3f
+
+    /** Vanilla's own light block's: never broken by hand, never by a blast. */
+    private const val UNBREAKABLE = -1.0f
+    private const val UNBLASTABLE = 3600000.8f
 
     private fun properties(id: Identifier): BlockBehaviour.Properties = BlockBehaviour.Properties.of()
         .setId(ResourceKey.create(Registries.BLOCK, id))
@@ -56,6 +64,18 @@ object Optics {
     val VERTICAL_MERGER: BeamMergerBlock = BeamMergerBlock(properties(VERTICAL_MERGER_ID).noOcclusion(), OpticPlane.VERTICAL)
     val COLLECTOR: SunlightCollectorBlock = SunlightCollectorBlock(properties(COLLECTOR_ID).noOcclusion())
     val MIRROR_BLOCK: AstriteMirrorBlock = AstriteMirrorBlock(properties(MIRROR_ID).strength(MIRROR_STRENGTH).sound(SoundType.GLASS).noOcclusion())
+    val DISPERSION_LENS: DispersionLensBlock = DispersionLensBlock(properties(DISPERSION_LENS_ID).noOcclusion())
+    val DISPERSED_LIGHT: DispersedLightBlock = DispersedLightBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, DISPERSED_LIGHT_ID))
+            .replaceable()
+            .noCollision()
+            .noOcclusion()
+            .noLootTable()
+            .strength(UNBREAKABLE, UNBLASTABLE)
+            .pushReaction(PushReaction.POPPED)
+            .lightLevel { DispersedLightBlock.BRIGHTNESS },
+    )
     val CONDUIT: OpticalConduitBlock = OpticalConduitBlock(
         properties(CONDUIT_ID).strength(CONDUIT_STRENGTH).sound(SoundType.GLASS).noOcclusion().isRedstoneConductor { _, _, _ -> false },
     )
@@ -73,6 +93,7 @@ object Optics {
     val VERTICAL_SPLITTER_ITEM: Item = itemFor(VERTICAL_SPLITTER, VERTICAL_SPLITTER_ID)
     val VERTICAL_MERGER_ITEM: Item = itemFor(VERTICAL_MERGER, VERTICAL_MERGER_ID)
     val CONDUIT_ITEM: Item = itemFor(CONDUIT, CONDUIT_ID)
+    val DISPERSION_LENS_ITEM: Item = itemFor(DISPERSION_LENS, DISPERSION_LENS_ID)
 
     val EMITTER_ENTITY: BlockEntityType<AstriteEmitterBlockEntity> =
         BlockEntityType({ pos, state -> AstriteEmitterBlockEntity(pos, state) }, setOf(EMITTER))
@@ -88,6 +109,8 @@ object Optics {
         BlockEntityType({ pos, state -> BeamMergerBlockEntity(pos, state) }, setOf(MERGER, VERTICAL_MERGER))
     val MIRROR_ENTITY: BlockEntityType<AstriteMirrorBlockEntity> =
         BlockEntityType({ pos, state -> AstriteMirrorBlockEntity(pos, state) }, setOf(MIRROR_BLOCK))
+    val DISPERSION_LENS_ENTITY: BlockEntityType<DispersionLensBlockEntity> =
+        BlockEntityType({ pos, state -> DispersionLensBlockEntity(pos, state) }, setOf(DISPERSION_LENS))
 
     val BLOCKS: List<Pair<Identifier, Block>> = listOf(
         EMITTER_ID to EMITTER,
@@ -101,6 +124,8 @@ object Optics {
         VERTICAL_REFLECTOR_ID to VERTICAL_REFLECTOR,
         VERTICAL_SPLITTER_ID to VERTICAL_SPLITTER,
         VERTICAL_MERGER_ID to VERTICAL_MERGER,
+        DISPERSION_LENS_ID to DISPERSION_LENS,
+        DISPERSED_LIGHT_ID to DISPERSED_LIGHT,
     )
     val ITEMS: List<Pair<Identifier, Item>> = listOf(
         LENS_ID to LENS,
@@ -115,6 +140,7 @@ object Optics {
         VERTICAL_REFLECTOR_ID to VERTICAL_REFLECTOR_ITEM,
         VERTICAL_SPLITTER_ID to VERTICAL_SPLITTER_ITEM,
         VERTICAL_MERGER_ID to VERTICAL_MERGER_ITEM,
+        DISPERSION_LENS_ID to DISPERSION_LENS_ITEM,
     )
     val BLOCK_ENTITIES: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         EMITTER_ID to EMITTER_ENTITY,
@@ -124,5 +150,6 @@ object Optics {
         MERGER_ID to MERGER_ENTITY,
         REFLECTOR_ID to REFLECTOR_ENTITY,
         SPLITTER_ID to SPLITTER_ENTITY,
+        DISPERSION_LENS_ID to DISPERSION_LENS_ENTITY,
     )
 }
