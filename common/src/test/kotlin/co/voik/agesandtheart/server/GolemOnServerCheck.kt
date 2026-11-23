@@ -51,7 +51,7 @@ private const val Y = 220
 private const val Z = -9200
 private const val FIRING_X = -11000
 private const val REFILLING_X = -11100
-private const val FULL_CHARGE = 32
+private const val FULL_CHARGE = 48
 
 /** Four shots at a shot a second, with time to find the zombie and turn to it. */
 private const val LONG_ENOUGH_TO_FELL_A_ZOMBIE = 160

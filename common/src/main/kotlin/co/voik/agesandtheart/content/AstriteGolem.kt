@@ -294,7 +294,7 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
         private const val NO_TARGET = -1
         private const val CHARGE_KEY = "laser_charge"
 
-        const val FULL_CHARGE = 32
+        const val FULL_CHARGE = 48
 
         /** Its laser: what a shot hurts, how often, and how far, in blocks; closer than [MELEE_REACH] it swings. */
         private const val LASER_DAMAGE = 6f
@@ -310,7 +310,7 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
         private const val SUNLIT = 12
         private const val LAMPLIT = 8
         private const val TICKS_A_SHOT_IN_SUNLIGHT = 40f
-        private const val TICKS_A_SHOT_IN_LAMPLIGHT = 200f
+        private const val TICKS_A_SHOT_IN_LAMPLIGHT = 400f
         private const val MOST_SUNLIGHT = 4f
         private const val LIGHT_READ_EVERY = 20
 
