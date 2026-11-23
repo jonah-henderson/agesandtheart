@@ -92,4 +92,11 @@ class ThingsCheck : FunSpec({
         check(set("high lakes age", Aspect.FEATURES, "altitude") == listOf("0.6..1.0")) { "high lakes did not lie high" }
         check(effects("monuments age").count { it is Effect.Mints } == 7) { "monuments did not mint every monumental shape" }
     }
+
+    test("monuments lean the structures toward the monumental and the underground toward great halls, and no more") {
+        val leans = effects("monuments age").filterIsInstance<Effect.Leans>()
+        check(Effect.Leans(Aspect.STRUCTURES, mapOf("#monumental" to 1.0)) in leans) { "monuments: $leans" }
+        check(Effect.Leans(Aspect.UNDERGROUND, mapOf("great_halls" to 1.0)) in leans) { "monuments: $leans" }
+        check(leans.none { it.aspect == Aspect.FEATURES || it.aspect == Aspect.TERRAIN }) { "monuments leaned too far: $leans" }
+    }
 })

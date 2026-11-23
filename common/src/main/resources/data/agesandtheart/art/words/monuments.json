@@ -1,7 +1,8 @@
 {
   "_comment": [
     "Shapes built at a scale nobody would build them: every monumental formation, each as often as its weight says.",
-    "`gold_block monuments` are all of gold."
+    "`gold_block monuments` are all of gold.",
+    "[AI] It leans the structures toward every monumental one, and the underground toward great halls."
   ],
   "speech": "plural",
   "kind": "minted",
@@ -53,6 +54,16 @@
         "pattern": "agesandtheart:boulders",
         "unstated": "#agesandtheart:formation_substance",
         "frequency": 0.1
+      }
+    },
+    {
+      "leans": {
+        "structures": {
+          "#monumental": 1.0
+        },
+        "underground": {
+          "great_halls": 1.0
+        }
       }
     }
   ]
