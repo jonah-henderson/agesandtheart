@@ -64,36 +64,77 @@ object BeamDrawing {
     fun submit(state: BeamRenderState, poseStack: PoseStack, collector: SubmitNodeCollector, cameraPosition: Vec3) {
         if (state.segments.isEmpty()) return
         val origin = Vec3.atLowerCornerOf(state.blockPos)
-        val shimmer = 1f - SHIMMER_DEPTH * (0.5f + 0.5f * sin(state.animationTime / ANIMATION_CYCLE * SHIMMER_TURNS * TURN).toFloat())
+        val cameraFromOrigin = cameraPosition.subtract(origin)
+        val shimmer = shimmerAt(state.animationTime)
         collector.submitCustomGeometry(poseStack, AgeRenderTypes.lightThroughFog) { pose, buffer ->
             for (segment in state.segments) {
                 val (start, end) = endsOf(segment, origin)
-                val towardCamera = cameraPosition.subtract(origin.add(start.add(end).scale(MIDDLE)))
-                val along = end.subtract(start)
-                val across = along.cross(towardCamera)
-                if (across.lengthSqr() < END_ON) continue
-                val side = across.normalize()
+                val side = sideFacing(start, end, cameraFromOrigin) ?: continue
                 val colour = Rgba.of(segment.colour)
                 if (segment.diffuse) {
                     ribbon(pose.pose(), buffer, start, end, side.scale(DIFFUSE_HALF_WIDTH), colour, DIFFUSE_ALPHA)
                     ribbon(pose.pose(), buffer, start, end, side.scale(DIFFUSE_INNER_HALF_WIDTH), colour, DIFFUSE_INNER_ALPHA)
                 } else {
-                    ribbon(pose.pose(), buffer, start, end, side.scale(LASER_GLOW_HALF_WIDTH), colour, LASER_GLOW_ALPHA * shimmer)
-                    val core = colour.lerp(WHITE, CORE_WHITENESS)
-                    ribbon(pose.pose(), buffer, start, end, side.scale(LASER_CORE_HALF_WIDTH), core, LASER_CORE_ALPHA)
+                    laserRibbons(pose.pose(), buffer, start, end, side, colour, shimmer)
                 }
             }
         }
         for (segment in state.segments.filterNot { it.diffuse }) {
             val (start, end) = endsOf(segment, origin)
-            val flare = Rgba.of(segment.colour).lerp(WHITE, CORE_WHITENESS).let { Rgba(it.red, it.green, it.blue, FLARE_ALPHA * shimmer) }
-            for (point in listOf(start, end)) {
-                poseStack.pushPose()
-                poseStack.translate(point.x, point.y, point.z)
-                val towardCamera = cameraPosition.subtract(origin.add(point))
-                AddedLight.halo(collector, poseStack, towardCamera, flare, FLARE_RADIUS, AgeRenderTypes.lightThroughFog)
-                poseStack.popPose()
-            }
+            flares(poseStack, collector, listOf(start, end), Rgba.of(segment.colour), shimmer, cameraFromOrigin)
+        }
+    }
+
+    /**
+     * One laser from [start] to [end], neither on a block's axis: both measured from the pose's origin, with
+     * [cameraFromOrigin] the camera from there.
+     */
+    fun submitLaser(
+        poseStack: PoseStack,
+        collector: SubmitNodeCollector,
+        start: Vec3,
+        end: Vec3,
+        colour: Rgba,
+        animationTime: Float,
+        cameraFromOrigin: Vec3,
+    ) {
+        val side = sideFacing(start, end, cameraFromOrigin) ?: return
+        val shimmer = shimmerAt(animationTime)
+        collector.submitCustomGeometry(poseStack, AgeRenderTypes.lightThroughFog) { pose, buffer ->
+            laserRibbons(pose.pose(), buffer, start, end, side, colour, shimmer)
+        }
+        flares(poseStack, collector, listOf(start, end), colour, shimmer, cameraFromOrigin)
+    }
+
+    private fun shimmerAt(animationTime: Float): Float =
+        1f - SHIMMER_DEPTH * (0.5f + 0.5f * sin(animationTime / ANIMATION_CYCLE * SHIMMER_TURNS * TURN).toFloat())
+
+    /** The unit sideways from a run, square to it and to the camera, or null where the camera looks straight along it. */
+    private fun sideFacing(start: Vec3, end: Vec3, cameraFromOrigin: Vec3): Vec3? {
+        val towardCamera = cameraFromOrigin.subtract(start.add(end).scale(MIDDLE))
+        val across = end.subtract(start).cross(towardCamera)
+        return if (across.lengthSqr() < END_ON) null else across.normalize()
+    }
+
+    private fun laserRibbons(pose: Matrix4fc, buffer: VertexConsumer, start: Vec3, end: Vec3, side: Vec3, colour: Rgba, shimmer: Float) {
+        ribbon(pose, buffer, start, end, side.scale(LASER_GLOW_HALF_WIDTH), colour, LASER_GLOW_ALPHA * shimmer)
+        ribbon(pose, buffer, start, end, side.scale(LASER_CORE_HALF_WIDTH), colour.lerp(WHITE, CORE_WHITENESS), LASER_CORE_ALPHA)
+    }
+
+    private fun flares(
+        poseStack: PoseStack,
+        collector: SubmitNodeCollector,
+        points: List<Vec3>,
+        colour: Rgba,
+        shimmer: Float,
+        cameraFromOrigin: Vec3,
+    ) {
+        val flare = colour.lerp(WHITE, CORE_WHITENESS).let { Rgba(it.red, it.green, it.blue, FLARE_ALPHA * shimmer) }
+        for (point in points) {
+            poseStack.pushPose()
+            poseStack.translate(point.x, point.y, point.z)
+            AddedLight.halo(collector, poseStack, cameraFromOrigin.subtract(point), flare, FLARE_RADIUS, AgeRenderTypes.lightThroughFog)
+            poseStack.popPose()
         }
     }
 
