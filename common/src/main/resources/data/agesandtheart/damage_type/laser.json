@@ -1,0 +1,6 @@
+{
+  "_comment": "[AI] A laser armed by arc crystal, burning whatever stands in it (design 7.4). Scaled 'never': it is light, not a creature's blow.",
+  "message_id": "laser",
+  "scaling": "never",
+  "exhaustion": 0.1
+}

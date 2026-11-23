@@ -584,6 +584,8 @@
   "death.attack.astrite_shard.player": "%1$s was cut open on a shard of astrite while fighting %2$s",
   "death.attack.plasma": "%1$s was consumed by plasma",
   "death.attack.plasma.player": "%1$s was consumed by plasma while fighting %2$s",
+  "death.attack.laser": "[AI] %1$s was burnt through by a laser",
+  "death.attack.laser.player": "[AI] %1$s was burnt through by a laser while fighting %2$s",
   "death.attack.pressure": "%1$s was crushed by the deep",
   "death.attack.pressure.player": "%1$s was crushed by the deep while fighting %2$s",
   "death.attack.scouring_sand": "%1$s was scoured away by falling sand",

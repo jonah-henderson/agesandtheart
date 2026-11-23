@@ -1,0 +1,26 @@
+{
+  "_comment": "[AI] What a laser armed by charged arc crystal never burns through, beside what cannot be broken at all (design 7.4): every optical block, so a beam may be aimed through a build of them; tinted glass, which stops beams and is the backstop; nara, which stands against everything; and the blocks a world is built of rather than made of. A pack extends it here.",
+  "replace": false,
+  "values": [
+    "agesandtheart:astrite_emitter",
+    "agesandtheart:beam_receiver",
+    "agesandtheart:reflector",
+    "agesandtheart:vertical_reflector",
+    "agesandtheart:beam_splitter",
+    "agesandtheart:vertical_beam_splitter",
+    "agesandtheart:beam_merger",
+    "agesandtheart:vertical_beam_merger",
+    "agesandtheart:sunlight_collector",
+    "agesandtheart:optical_conduit",
+    "agesandtheart:astrite_mirror",
+    "minecraft:tinted_glass",
+    "agesandtheart:compounded_stone",
+    "agesandtheart:star_fissure",
+    "agesandtheart:collapsing_fissure",
+    "minecraft:end_portal_frame",
+    "minecraft:end_portal",
+    "minecraft:end_gateway",
+    "minecraft:nether_portal",
+    "minecraft:reinforced_deepslate"
+  ]
+}

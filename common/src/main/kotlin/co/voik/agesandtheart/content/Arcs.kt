@@ -282,6 +282,32 @@ object Arcs {
         mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(MASTS) }
 
     /**
+     * One discharge from every charged block in the piles [crystals] belong to — what a bite costs, and what a burning
+     * laser pays now and then (`optics/ArmedBeams`).
+     */
+    fun spendACharge(level: Level, crystals: Collection<BlockPos>) {
+        // Walked once per *pile*, not once per crystal touching the machine: every crystal on one pile
+        // returns the same component, so a wall of them was re-flooding the identical five hundred blocks
+        // for each and throwing all but the first away.
+        val feeding = LinkedHashSet<BlockPos>()
+        for (crystal in crystals) {
+            if (crystal in feeding) continue
+            feeding += pileConnectedTo(level, crystal)
+        }
+        for (at in feeding) {
+            val state = level.getBlockState(at)
+            if (!state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
+            val left = state.getValue(ArcCrystalBlock.CHARGE)
+            if (left <= ArcCrystalBlock.FLAT) continue
+            // Told to the clients and no further. Nothing reads a crystal's charge through a neighbour
+            // update, and a pile spending one every ten ticks would otherwise fire the whole comparator
+            // and redstone cascade for every block in it. The light still re-propagates: that is decided
+            // by the emission changing, not by these flags.
+            level.setBlock(at, state.setValue(ArcCrystalBlock.CHARGE, left - 1), Block.UPDATE_CLIENTS)
+        }
+    }
+
+    /**
      * How far a charged mass bites past itself, given the rods on it — nothing at all without one.
      *
      * The first rod is worth four blocks and each after it [EACH_FURTHER_ROD_REACHES] more, so a mast is

@@ -16,7 +16,8 @@ import net.minecraft.world.level.block.state.BlockState
 
 /**
  * One straight run of a beam, in one colour: from [shiftedStart] blocks along [direction] past the centre of [from],
- * for [length] blocks. A [diffuse] one is a collector's unfocused light rather than a laser.
+ * for [length] blocks. A [diffuse] one is a collector's unfocused light rather than a laser; an armed one carries what
+ * it hurts a hit as [harm], which is 0 where it hurts nothing ([Light.harms]).
  */
 data class BeamSegment(
     val from: BlockPos,
@@ -25,6 +26,7 @@ data class BeamSegment(
     val length: Float,
     val colour: Int,
     val diffuse: Boolean = false,
+    val harm: Float = 0f,
 ) {
     companion object {
         val CODEC: Codec<BeamSegment> = RecordCodecBuilder.create { instance ->
@@ -35,6 +37,7 @@ data class BeamSegment(
                 Codec.FLOAT.fieldOf("length").forGetter(BeamSegment::length),
                 Codec.INT.fieldOf("colour").forGetter(BeamSegment::colour),
                 Codec.BOOL.optionalFieldOf("diffuse", false).forGetter(BeamSegment::diffuse),
+                Codec.FLOAT.optionalFieldOf("harm", 0f).forGetter(BeamSegment::harm),
             ).apply(instance, ::BeamSegment)
         }
     }
@@ -126,7 +129,15 @@ object Beam {
                     (endBlock.y - segmentFrom.y) * direction.stepY +
                     (endBlock.z - segmentFrom.z) * direction.stepZ
                 val length = blocksBetween + endShift - segmentShift
-                if (length > 0f) segments += BeamSegment(segmentFrom, direction, segmentShift, length, ARGB.opaque(lightNow.colour.tint), diffuse)
+                if (length > 0f) segments += BeamSegment(
+                    segmentFrom,
+                    direction,
+                    segmentShift,
+                    length,
+                    ARGB.opaque(lightNow.colour.tint),
+                    diffuse,
+                    lightNow.arc?.takeIf { lightNow.harms }?.hurts ?: 0f,
+                )
             }
 
             fun endAgainst(block: BlockPos) {

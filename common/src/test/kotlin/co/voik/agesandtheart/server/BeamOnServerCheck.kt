@@ -1,12 +1,13 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.optics.ArmedBeams
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
  * Astrite's optics at noon (`optics/`): a collector's diffuse light focused by an emitter into a laser, bounced over a
  * wall, split and merged, light shared across a conduit network, colours mixed in one, stripes keeping conduits apart,
- * and redstone putting an emitter out.
+ * redstone putting an emitter out, and lasers armed by arc crystal hurting and burning.
  */
 @Tags(NEEDS_SERVER)
 class BeamOnServerCheck : FunSpec({
@@ -146,6 +147,41 @@ class BeamOnServerCheck : FunSpec({
         server.sprint(SETTLING_TICKS)
         check(lit(x + 1, Z + 5)) { "light did not cross between two red conduits" }
     }
+
+    test("a laser hurts a pig standing in it once arc crystal is set beside its emitter") {
+        val x = HARMING_X
+        bench(x)
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
+        inWorld("summon minecraft:pig ${x + 6} $Y $Z {NoAI:1b,NoGravity:1b,Tags:[\"in_the_laser\"]}")
+        server.sprint(SETTLING_TICKS)
+        val unhurt = "if entity @e[tag=in_the_laser,nbt={Health:10.0f}]"
+        check(passes(unhurt)) { "a laser with no arc crystal beside its emitter hurt a pig" }
+        set(x + 2, Z + 1, "agesandtheart:arc_crystal_block")
+        server.sprint(SETTLING_TICKS + ArmedBeams.COUNTED_EVERY.toInt())
+        check(!passes(unhurt)) { "a laser armed by arc crystal did not hurt a pig standing in it" }
+        inWorld("kill @e[tag=in_the_laser]")
+    }
+
+    test("a laser armed by charged arc crystal burns through stone to a receiver, spending a charge on the sixteenth") {
+        val x = BURNING_X
+        bench(x)
+        inWorld("forceload add ${x + 12} ${Z - 2} ${x + 24} ${Z + 2}")
+        set(x, Z, "agesandtheart:sunlight_collector[facing=east]")
+        set(x + 2, Z, "agesandtheart:astrite_emitter[facing=east]")
+        set(x + 2, Z + 1, "agesandtheart:arc_crystal_block[charge=7]")
+        inWorld("fill ${x + 3} ${Y - 1} $Z ${x + 21} ${Y - 1} $Z minecraft:glass")
+        inWorld("fill ${x + 4} $Y $Z ${x + 19} $Y $Z minecraft:stone")
+        set(x + 20, Z, "agesandtheart:beam_receiver")
+        server.sprint(BURNING_SIXTEEN_STONE_TICKS)
+        check(passes("if blocks ${x + 4} $Y $Z ${x + 19} $Y $Z ${x + 4} ${Y + 1} $Z all")) { "the stone was not all burnt away" }
+        check(passes("if block ${x + 2} $Y ${Z + 1} agesandtheart:arc_crystal_block[charge=6]")) {
+            "sixteen blocks burnt did not spend exactly one charge"
+        }
+        check(passes("if entity @e[type=item,nbt={Item:{id:\"minecraft:cobblestone\"}}]")) { "burnt stone dropped no cobblestone" }
+        check(lit(x + 20, Z)) { "the receiver past the stone was burnt or not lit" }
+        inWorld("kill @e[type=item]")
+    }
 })
 
 private const val Y = 220
@@ -158,6 +194,11 @@ private const val STRIPED_X = -9600
 private const val BOUNCED_X = -9700
 private const val SPLIT_X = -9800
 private const val MERGED_X = -9900
+private const val HARMING_X = -10000
+private const val BURNING_X = -10100
+
+/** Sixteen stone at a full laser's thirty ticks apiece, and room to spare. */
+private const val BURNING_SIXTEEN_STONE_TICKS = 560
 
 /** Light is passed on every tick, and this is room to spare for a chain of three. */
 private const val SETTLING_TICKS = 10

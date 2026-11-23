@@ -107,7 +107,9 @@ class BeamMergerBlock(properties: Properties, val plane: OpticPlane) : BaseEntit
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = BeamMergerBlockEntity(pos, state)
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
-        if (level.isClientSide) null
+        if (level.isClientSide) createTickerHelper(type, Optics.MERGER_ENTITY) { tickedIn, _, _, merger ->
+            ArmedBeams.sparkAlong(tickedIn, merger.path, tickedIn.random)
+        }
         else createTickerHelper(type, Optics.MERGER_ENTITY) { tickedIn, _, _, merger -> merger.tick(tickedIn as ServerLevel) }
 }
 
@@ -129,6 +131,8 @@ class BeamMergerBlockEntity(pos: BlockPos, state: BlockState) :
 
     private val coming = IncomingBeams()
 
+    private val burning = ArmedBeams.Burning()
+
     override val faces: Mirror get() = blockState.getValue(HalfSilvered.FACES)
 
     /** A beam travelling toward its straight face, through the face opposite or in at its turned face. */
@@ -141,6 +145,8 @@ class BeamMergerBlockEntity(pos: BlockPos, state: BlockState) :
     fun tick(level: ServerLevel) {
         val traced = traced(level)
         Beam.deliver(level, worldPosition, traced)
+        ArmedBeams.harm(level, traced)
+        burning.tick(level, traced)
         if (traced.segments == path.segments) return
         path = traced
         setChanged()
@@ -152,6 +158,10 @@ class BeamMergerBlockEntity(pos: BlockPos, state: BlockState) :
         val diffuse = coming.isAllDiffuseAt(level.gameTime)
         val range = if (diffuse) DIFFUSE_RANGE else LASER_RANGE
         return Beam.trace(level, worldPosition, faces.first, merged, range, diffuse)
+    }
+
+    override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
+        level?.let(burning::stopAll)
     }
 
     override fun loadAdditional(input: ValueInput) {

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.optics
 
+import co.voik.agesandtheart.content.Arcs
 import co.voik.agesandtheart.content.RimeColour
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -29,7 +30,8 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * An astrite emitter: light reaching its back, from a conduit or a beam, is focused through its lens into a laser out
- * of its front, in the colour it was fed or that of a rime crystal slotted in. A redstone signal puts it out.
+ * of its front, in the colour it was fed or that of a rime crystal slotted in, and armed by arc crystal joined to it
+ * ([ArmedBeams]). A redstone signal puts it out.
  */
 class AstriteEmitterBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -48,7 +50,9 @@ class AstriteEmitterBlock(properties: Properties) : BaseEntityBlock(properties) 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = AstriteEmitterBlockEntity(pos, state)
 
     override fun <T : BlockEntity> getTicker(level: Level, state: BlockState, type: BlockEntityType<T>): BlockEntityTicker<T>? =
-        if (level.isClientSide) null
+        if (level.isClientSide) createTickerHelper(type, Optics.EMITTER_ENTITY) { tickedIn, _, _, emitter ->
+            ArmedBeams.sparkAlong(tickedIn, emitter.path, tickedIn.random)
+        }
         else createTickerHelper(type, Optics.EMITTER_ENTITY) { tickedIn, _, _, emitter -> emitter.tick(tickedIn as ServerLevel) }
 
     override fun useItemOn(
@@ -85,6 +89,14 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
 
     private val atItsBack = IncomingBeams()
 
+    private val burning = ArmedBeams.Burning()
+
+    /** Blocks its light has burnt through since its crystal last paid a charge. */
+    private var burntSincePaid = 0
+
+    /** What the crystal joined to it arms its laser with, as last counted. */
+    private var arc: Arc? = null
+
     /** A beam travelling the way it faces has come in at its back. */
     override fun takeBeam(source: BlockPos, travelling: Direction, light: Light, diffuse: Boolean, until: Long) {
         if (travelling == blockState.getValue(AstriteEmitterBlock.FACING)) atItsBack.take(source, travelling, light, diffuse, until)
@@ -93,6 +105,8 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
     fun tick(level: ServerLevel) {
         val traced = traced(level)
         Beam.deliver(level, worldPosition, traced)
+        ArmedBeams.harm(level, traced)
+        burning.tick(level, traced)
         if (traced.segments == path.segments) return
         path = traced
         setChanged()
@@ -103,23 +117,38 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
         val fed = Light.together(listOfNotNull(atItsBack.lightAt(level.gameTime), LightNetworks.lightFor(level, worldPosition)))
         val isPutOut = level.hasNeighborSignal(worldPosition)
         if (fed == null || isPutOut) return BeamPath.DARK
-        val laser = crystal?.let { fed.copy(colour = it) } ?: fed
+        if (level.gameTime % ArmedBeams.COUNTED_EVERY == 0L) arc = ArmedBeams.arcFrom(level, worldPosition)
+        val laser = fed.copy(colour = crystal ?: fed.colour, arc = arc)
         return Beam.trace(level, worldPosition, blockState.getValue(AstriteEmitterBlock.FACING), laser, RANGE, diffuse = false)
     }
 
+    /** A block its light burnt through, paid for with a charge from the crystal beside it every so many. */
+    fun burntThrough(level: ServerLevel) {
+        burntSincePaid++
+        if (burntSincePaid < ArmedBeams.BURNT_FOR_A_CHARGE) return
+        burntSincePaid = 0
+        Arcs.spendACharge(level, ArmedBeams.crystalsBeside(level, worldPosition))
+        arc = ArmedBeams.arcFrom(level, worldPosition)
+    }
+
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
-        level?.let { CrystalHolder.drop(this, it, pos) }
+        level?.let {
+            CrystalHolder.drop(this, it, pos)
+            burning.stopAll(it)
+        }
     }
 
     override fun loadAdditional(input: ValueInput) {
         super.loadAdditional(input)
         crystal = CrystalHolder.load(input)
+        burntSincePaid = input.getIntOr(BURNT_KEY, 0)
         path = BeamPath(input.read(SEGMENTS_KEY, BeamSegment.CODEC.listOf()).orElse(emptyList()), emptyList())
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         CrystalHolder.save(this, output)
+        if (burntSincePaid > 0) output.putInt(BURNT_KEY, burntSincePaid)
         if (path.segments.isNotEmpty()) output.store(SEGMENTS_KEY, BeamSegment.CODEC.listOf(), path.segments)
     }
 
@@ -129,6 +158,7 @@ class AstriteEmitterBlockEntity(pos: BlockPos, state: BlockState) :
 
     private companion object {
         const val SEGMENTS_KEY = "beam"
+        const val BURNT_KEY = "burnt_since_paid"
         const val RANGE = 32
     }
 }

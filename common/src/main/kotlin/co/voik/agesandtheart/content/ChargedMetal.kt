@@ -334,25 +334,7 @@ object ChargedMetal {
         // bite each turn and vanilla's invulnerability window lets exactly one of them land, so charging
         // only the winner would have made a big pile last as many times longer as it was big — which is
         // the opposite of "the whole pile for some number of discharges".
-        // Walked once per *pile*, not once per crystal touching the machine: every crystal on one pile
-        // returns the same component, so a wall of them was re-flooding the identical five hundred blocks
-        // for each and throwing all but the first away.
-        val feeding = LinkedHashSet<BlockPos>()
-        for (crystal in Arcs.crystalsAround(level, run.blocks)) {
-            if (crystal in feeding) continue
-            feeding += Arcs.pileConnectedTo(level, crystal)
-        }
-        for (at in feeding) {
-            val state = level.getBlockState(at)
-            if (!state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
-            val left = state.getValue(ArcCrystalBlock.CHARGE)
-            if (left <= ArcCrystalBlock.FLAT) continue
-            // Told to the clients and no further. Nothing reads a crystal's charge through a neighbour
-            // update, and a pile spending one every ten ticks would otherwise fire the whole comparator
-            // and redstone cascade for every block in it. The light still re-propagates: that is decided
-            // by the emission changing, not by these flags.
-            level.setBlock(at, state.setValue(ArcCrystalBlock.CHARGE, left - 1), Block.UPDATE_CLIENTS)
-        }
+        Arcs.spendACharge(level, Arcs.crystalsAround(level, run.blocks))
     }
 
     /**
