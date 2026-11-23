@@ -376,13 +376,17 @@ class WritersDeskScreen(
     /** The runs of the template as the desk last read them, with the text they were read from. */
     private fun marks(): MarkedText? {
         val readFrom = DeskModel.template() ?: return null
-        return MarkedText(readFrom, DeskModel.read().map(::markFor))
+        val read = DeskModel.read()
+        // Only a learned word is a page of the book, so a run's page is how many learned runs came before it.
+        val pageOf = read.runningFold(0) { pages, run -> if (run.state == WordState.LEARNED) pages + 1 else pages }
+        return MarkedText(readFrom, read.mapIndexed { index, run -> markFor(run, pageOf[index]) })
     }
 
-    private fun markFor(read: ReadWord): TextMark = when (read.state) {
+    private fun markFor(read: ReadWord, page: Int): TextMark = when (read.state) {
         WordState.LEARNED -> {
             val word = read.word
-            val quarrels = DeskModel.quarrels().filter { it.word == word }
+            fun marks(quarrel: Quarrel) = quarrel.word == word && (quarrel.page == null || quarrel.page == page)
+            val quarrels = DeskModel.quarrels().filter(::marks)
             val isWrong = quarrels.isNotEmpty()
             TextMark(
                 read.start, read.end,

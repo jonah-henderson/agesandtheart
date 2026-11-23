@@ -111,14 +111,14 @@ class WritersDeskMenu(
         val flaws = resolved?.instability?.flaws ?: return emptyList()
         val byName = words.associateBy { it.path }
         return flaws.flatMap { flaw ->
-            val named = flaw.words.mapNotNull(byName::get)
-            val first = named.firstOrNull() ?: return@flatMap emptyList()
-            val second = named.getOrNull(1)
+            val named = flaw.words.mapIndexedNotNull { index, word -> byName[word]?.let { it to flaw.pages.getOrNull(index) } }
+            val (first, firstPage) = named.firstOrNull() ?: return@flatMap emptyList()
+            val (second, secondPage) = named.getOrNull(1) ?: (null to null)
             val conflicts = flaw.register == Register.INCOHERENT && second != null && second != first
             if (conflicts) {
-                listOf(Quarrel(first, second), Quarrel(requireNotNull(second), first))
+                listOf(Quarrel(first, second, firstPage), Quarrel(requireNotNull(second), first, secondPage))
             } else {
-                listOf(Quarrel(first, against = null))
+                listOf(Quarrel(first, against = null, page = firstPage))
             }
         }.distinct()
     }

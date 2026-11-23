@@ -72,4 +72,7 @@ interface WorldFacts {
 
     /** Whether two tags mean opposite things. */
     fun areOpposed(first: String, second: String): Boolean
+
+    /** Whether the block [named] carries the tag a material [query] asks for, so naming it answers the query. */
+    fun answers(named: String, query: String): Boolean
 }

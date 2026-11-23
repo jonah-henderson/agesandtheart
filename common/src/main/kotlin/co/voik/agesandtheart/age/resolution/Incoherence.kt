@@ -4,24 +4,24 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Setting
 
 /**
  * Two landings that could not both be what they said where they met (`the-world-model.md` §8), the firmer holding, and
  * what over. Found among what could land before anything is drawn, so the same book clashes the same at every seed; the
- * weaker comes to nothing there, and is drawn elsewhere where its page then placed nothing — but a suggestion meeting a
- * certainty only yields ([isAYield]).
+ * weaker comes to nothing there, and is drawn elsewhere where its page then placed nothing — but where the weaker only
+ * yields ([isAYield]), it does not apply there and nothing is charged.
  */
-data class Clash(val firmer: Landing, val weaker: Landing, val aspect: Aspect, val over: List<String>) {
-    /**
-     * Whether the weaker was only a suggestion meeting a certainty — a mood's green grass beside `orange grass` — and
-     * yields: it does not apply there, and nothing is charged (Jonah).
-     */
-    val isAYield: Boolean get() = weaker.chance < CERTAIN && firmer.chance >= CERTAIN
+data class Clash(val firmer: Landing, val weaker: Landing, val aspect: Aspect, val over: List<String>, val isAYield: Boolean) {
 
     /** The flaw it costs, naming the two words in the order they were laid. */
-    val flaw: Flaw get() = Flaw(Register.INCOHERENT, listOf(firmer, weaker).sortedBy { it.page }.map(Landing::word), aspect, over)
+    val flaw: Flaw get() {
+        val inOrder = listOf(firmer, weaker).sortedBy { it.page }
+        return Flaw(Register.INCOHERENT, inOrder.map(Landing::word), aspect, over, inOrder.map(Landing::page))
+    }
 }
 
 /**
@@ -35,6 +35,7 @@ data class Clash(val firmer: Landing, val weaker: Landing, val aspect: Aspect, v
 fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<Clash> {
     val ofItsParts = possible.filter { it.banned.isEmpty() && it.linksIn == null }
     val mintingClauses = mintingClausesIn(ofItsParts)
+    val sayings = ofItsParts.groupBy(::whereSaid)
     val found = mutableListOf<Clash>()
     for ((aspect, here) in ofItsParts.groupBy { it.aspect }.toSortedMap(compareBy(Aspect::ordinal))) {
         val ranking = firmestFirst(aspect, draw)
@@ -44,15 +45,15 @@ fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<C
                 val other = here[second]
                 if (one.word == other.word || !meet(one, other, mintingClauses)) continue
                 val over = clashBetween(world, aspect, one, other) ?: clashBetween(world, aspect, other, one) ?: continue
-                val oneYields = one.chance < CERTAIN && other.chance >= CERTAIN
-                val otherYields = other.chance < CERTAIN && one.chance >= CERTAIN
+                fun yieldsTo(weaker: Landing, firmer: Landing) =
+                    isASuggestionMeetingACertainty(weaker, firmer) || givesWayToANamedBlock(weaker, firmer, sayings)
                 val (firmer, weaker) = when {
-                    oneYields -> other to one
-                    otherYields -> one to other
+                    yieldsTo(one, other) -> other to one
+                    yieldsTo(other, one) -> one to other
                     ranking.compare(one, other) <= 0 -> one to other
                     else -> other to one
                 }
-                found += Clash(firmer, weaker, aspect, over)
+                found += Clash(firmer, weaker, aspect, over, isAYield = yieldsTo(weaker, firmer))
             }
         }
     }
@@ -63,6 +64,46 @@ fun clashesAmong(world: WorldFacts, possible: List<Landing>, draw: Long): List<C
 fun flawsOf(clashes: List<Clash>): List<Flaw> = clashes.filterNot(Clash::isAYield).distinctBy { it.flaw.words.toSet() }.map(Clash::flaw)
 
 private const val CERTAIN = 1.0
+
+/** A mood's green grass beside `orange grass`: a suggestion yields to a certainty (Jonah). */
+private fun isASuggestionMeetingACertainty(weaker: Landing, firmer: Landing) = weaker.chance < CERTAIN && firmer.chance >= CERTAIN
+
+/**
+ * Whether [asker] asks only for a material by tag where [namer] names a block, and its page says something more of the
+ * same thing there, among [sayings]: `ancient gold_block arches` are gold, and still worn. A word that says nothing else
+ * there — `red blackstone arches` — has nothing left if its material gives way, and clashes; nor does a lean toward
+ * the very tag it asked for count as more (`molten granite landmass`).
+ */
+private fun givesWayToANamedBlock(asker: Landing, namer: Landing, sayings: Map<WhereSaid, List<Landing>>): Boolean {
+    fun namesWhatIsAsked(parameter: String, asked: String): Boolean {
+        val named = namer.materials[parameter]
+        return Materials.isQuery(asked) && named != null && !Materials.isQuery(named)
+    }
+    val asksWhatTheOtherNames = isOnlyAMaterial(asker) && asker.materials.any { (parameter, asked) -> namesWhatIsAsked(parameter, asked) }
+    val askedFor = asker.materials.values.filter(Materials::isQuery).toSet()
+    fun saysMore(effect: Effect): Boolean {
+        val leansOnlyTowardWhatItAsked = effect is Effect.Leans && effect.weights.keys.all { it in askedFor }
+        return !isAMaterial(effect) && !leansOnlyTowardWhatItAsked
+    }
+    val saidThere = sayings[whereSaid(asker)].orEmpty()
+    return asksWhatTheOtherNames && saidThere.any { landing -> landing.effects.any(::saysMore) }
+}
+
+/** One page's saying of one thing at one place. */
+private data class WhereSaid(val page: Int, val saidOf: Int, val place: Place)
+
+private fun whereSaid(landing: Landing) = WhereSaid(landing.page, landing.saidOf, landing.place)
+
+private const val MADE_OF = "made_of"
+
+/** What it makes a thing of, by parameter, or [MADE_OF] for what a minting is made of. */
+private val Landing.materials: Map<String, String>
+    get() = settings.filterKeys { it in MATERIAL_PARAMETERS } + listOfNotNull(madeOf?.let { MADE_OF to it })
+
+private fun isAMaterial(effect: Effect): Boolean =
+    effect is Effect.MadeOf || (effect is Effect.Sets && effect.parameter.name in MATERIAL_PARAMETERS)
+
+private fun isOnlyAMaterial(landing: Landing): Boolean = landing.effects.all(::isAMaterial)
 
 /**
  * Whether two landings are in one place to disagree: the same members in part, the same body, the same biome,
@@ -83,11 +124,11 @@ private fun meet(one: Landing, other: Landing, mintingClauses: Set<Pair<Aspect, 
 private fun clashBetween(world: WorldFacts, aspect: Aspect, one: Landing, other: Landing): List<String>? {
     for ((parameter, mine) in one.settings) {
         val theirs = other.settings[parameter] ?: continue
-        if (!canBothHold(mine, theirs)) return listOf(parameter)
+        if (!canBothHold(mine, theirs) && !world.agreeOnAMaterial(mine, theirs)) return listOf(parameter)
     }
     val oneSubstance = one.madeOf
     val otherSubstance = other.madeOf
-    val madeOfTwoThings = oneSubstance != null && otherSubstance != null && oneSubstance != otherSubstance
+    val madeOfTwoThings = oneSubstance != null && otherSubstance != null && !world.agreeOnAMaterial(oneSubstance, otherSubstance)
     if (madeOfTwoThings) return listOfNotNull(oneSubstance, otherSubstance)
     val oneChoice = one.choice
     val otherChoice = other.choice
@@ -105,6 +146,13 @@ private fun clashBetween(world: WorldFacts, aspect: Aspect, one: Landing, other:
     if (onlyAgainstAnother) return listOf(Polarity.ONLY.name.lowercase())
     return null
 }
+
+/**
+ * Whether two materials asked for agree: the same, or one asked for by tag and the other a block carrying it — `black
+ * blackstone arches`, `ancient blackstone arches` — which is then what both are.
+ */
+internal fun WorldFacts.agreeOnAMaterial(one: String, other: String): Boolean =
+    one == other || answers(one, other) || answers(other, one)
 
 /**
  * Whether two values one parameter was settled to can both hold: the same value, or two settings of a range that
@@ -136,7 +184,7 @@ internal fun bannedButAskedFor(possible: List<Landing>): List<Flaw> {
     return bans.flatMap { ban ->
         ban.banned.flatMap { block ->
             possible.filter { it.banned.isEmpty() && asksFor(it, block) }.map { asking ->
-                Flaw(Register.INCOHERENT, listOf(ban.word, asking.word), asking.aspect, listOf(block))
+                Flaw(Register.INCOHERENT, listOf(ban.word, asking.word), asking.aspect, listOf(block), listOf(ban.page, asking.page))
             }
         }
     }.distinctBy { it.words.sorted() }

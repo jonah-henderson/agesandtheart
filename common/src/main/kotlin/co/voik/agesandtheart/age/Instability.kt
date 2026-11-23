@@ -70,6 +70,8 @@ data class Flaw(
     val aspect: Aspect?,
     /** The tags that disagreed, where two did. */
     val tags: List<String>,
+    /** The page each of [words] was laid on, in order, as far as they were pages of the book: none for a flaw saved before. */
+    val pages: List<Int> = emptyList(),
 ) {
     /** What makes two flaws the same one: the kind, the words whichever way round, and the place. */
     val identity: Triple<Register, List<String>, Aspect?> get() = Triple(register, words.sorted(), aspect)
@@ -98,7 +100,7 @@ data class Flaw(
     override fun toString(): String = "${register.key}: ${describe()}"
 
     companion object {
-        val CODEC: Codec<Flaw> = SavedFlaw.CODEC.comapFlatMap(SavedFlaw::read) { SavedFlaw(it.register.key, it.words, it.aspect, it.tags) }
+        val CODEC: Codec<Flaw> = SavedFlaw.CODEC.comapFlatMap(SavedFlaw::read) { SavedFlaw(it.register.key, it.words, it.aspect, it.tags, it.pages) }
     }
 }
 
@@ -111,10 +113,10 @@ private const val MOVED = "rehomed"
 private const val PAGES_THE_ART_ONCE_MOVED = "pages the Art once moved"
 
 /** A flaw as it was saved, before its register is read. */
-private data class SavedFlaw(val key: String, val words: List<String>, val aspect: Aspect?, val tags: List<String>) {
+private data class SavedFlaw(val key: String, val words: List<String>, val aspect: Aspect?, val tags: List<String>, val pages: List<Int>) {
     fun read(): DataResult<Flaw> = Register.byKey(key).map { register ->
         val named = if (key == MOVED) listOf(PAGES_THE_ART_ONCE_MOVED) else words
-        Flaw(register, named, aspect, tags)
+        Flaw(register, named, aspect, tags, pages)
     }
 
     companion object {
@@ -124,7 +126,8 @@ private data class SavedFlaw(val key: String, val words: List<String>, val aspec
                 Codec.STRING.listOf().fieldOf("words").forGetter(SavedFlaw::words),
                 ASPECT_CODEC.optionalFieldOf("aspect").forGetter { Optional.ofNullable(it.aspect) },
                 Codec.STRING.listOf().optionalFieldOf("tags", emptyList()).forGetter(SavedFlaw::tags),
-            ).apply(instance) { key, words, aspect, tags -> SavedFlaw(key, words, aspect.orElse(null), tags) }
+                Codec.INT.listOf().optionalFieldOf("pages", emptyList()).forGetter(SavedFlaw::pages),
+            ).apply(instance) { key, words, aspect, tags, pages -> SavedFlaw(key, words, aspect.orElse(null), tags, pages) }
         }
     }
 }

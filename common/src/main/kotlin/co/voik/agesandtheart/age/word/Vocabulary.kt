@@ -395,6 +395,9 @@ data class Vocabulary(
 
     override fun areOpposed(first: String, second: String): Boolean = opposition(first, second) != null
 
+    override fun answers(named: String, query: String): Boolean =
+        Materials.isQuery(query) && (materials.carries(named, query) || flowingSubstances.carries(named, query))
+
     override fun drawnMaterial(query: String, parameter: String, seed: Long): String? =
         materials.drawFor(query, seed, MaterialTable.mayDrawFor(parameter))
 

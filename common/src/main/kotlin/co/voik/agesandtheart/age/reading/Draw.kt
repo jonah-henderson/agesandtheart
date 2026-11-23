@@ -105,7 +105,7 @@ private class Drawing(
         val overruledWhole = possible.groupBy { it.page }.filterValues { ofThePage -> ofThePage.none(::stands) && lostAClash(ofThePage) }.keys
         val dangling = (reading.dangling.map(PageRead::index) + overruledWhole).distinct().sorted().map(::drawnOnto)
         val danglingFlaws = dangling.filter { (dangled, _) -> dangled.page !in overruledWhole }.map { (dangled, drawnLandings) ->
-            Flaw(Register.DANGLES, listOfNotNull(dangled.written, dangled.drawnOnto), drawnLandings.firstOrNull()?.place?.aspect, emptyList())
+            Flaw(Register.DANGLES, listOfNotNull(dangled.written, dangled.drawnOnto), drawnLandings.firstOrNull()?.place?.aspect, emptyList(), listOf(dangled.page))
         }
         val template = handedOutLanding.filter { it.part == null }.flatMap { it.effects }
             .filterIsInstance<Effect.Template>().firstOrNull()?.name

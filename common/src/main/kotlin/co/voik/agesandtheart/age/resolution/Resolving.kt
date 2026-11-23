@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.resolution
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.word.MaterialTable
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
@@ -18,8 +19,11 @@ internal class Resolving(
     private val couldLand: Set<LandingAt> = landings.map(Landing::at).toSet(),
 ) {
 
-    /** What landed, with every material asked for by tag settled to one block for this Age. */
-    val said: List<Landing> = landings.map(::materialised)
+    /**
+     * What landed, with every material asked for by tag settled to one block for this Age: the block named for the same
+     * thing where one answers it, or else one drawn.
+     */
+    val said: List<Landing> = landings.map { materialised(it, landings) }
 
     val flaws = mutableListOf<Flaw>()
 
@@ -103,15 +107,22 @@ internal class Resolving(
     /** [landings] firmest first ([firmestFirst]), ties settled by the Age's draw. */
     fun ranked(aspect: Aspect, landings: List<Landing>): List<Landing> = landings.sortedWith(firmestFirst(aspect, draw))
 
-    fun flaw(register: Register, landings: List<Landing>, aspect: Aspect?, tags: List<String> = emptyList()) =
-        Flaw(register, landings.map(Landing::word).distinct(), aspect, tags)
+    fun flaw(register: Register, landings: List<Landing>, aspect: Aspect?, tags: List<String> = emptyList()): Flaw {
+        val oneForEachWord = landings.distinctBy(Landing::word)
+        return Flaw(register, oneForEachWord.map(Landing::word), aspect, tags, oneForEachWord.map(Landing::page))
+    }
 
     /** [landing] with each material it asks for by tag — `"stone": "#frozen"` — drawn to one block for this Age. */
-    private fun materialised(landing: Landing): Landing {
+    private fun materialised(landing: Landing, all: List<Landing>): Landing {
         val asksByTag = landing.effects.any { it is Effect.Sets && MaterialTable.asksByTag(it.parameter.name, it.value) }
         if (!asksByTag) return landing
+        fun namedAnswering(effect: Effect.Sets): String? = all.asSequence()
+            .filter { it !== landing && it.place == landing.place && it.sitedIn == landing.sitedIn }
+            .mapNotNull { it.settings[effect.parameter.name] }
+            .firstOrNull { !Materials.isQuery(it) && world.answers(it, effect.value) }
         val drawn = landing.effects.mapNotNull { effect ->
             if (effect !is Effect.Sets || !MaterialTable.asksByTag(effect.parameter.name, effect.value)) return@mapNotNull effect
+            namedAnswering(effect)?.let { return@mapNotNull effect.copy(value = it) }
             val seed = draw xor landing.word.hashCode().toLong() xor effect.parameter.name.hashCode().toLong() xor MATERIAL_SALT
             world.drawnMaterial(effect.value, effect.parameter.name, seed)?.let { effect.copy(value = it) }
         }

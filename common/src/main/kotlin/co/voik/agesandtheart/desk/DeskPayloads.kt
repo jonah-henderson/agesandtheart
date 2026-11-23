@@ -18,7 +18,12 @@ import java.util.Optional
  * so naming one as the casualty would be a guess dressed as a fact — where "these two are asking for
  * different things" is true however the draw falls. Both words are marked and each names the other.
  */
-data class Quarrel(val word: Identifier, val against: Identifier?)
+data class Quarrel(
+    val word: Identifier,
+    val against: Identifier?,
+    /** Which page of the book it marks, or every page of [word] where that is unknown. */
+    val page: Int? = null,
+)
 
 private val TIER_STREAM: StreamCodec<ByteBuf, InkTier> =
     ByteBufCodecs.idMapper({ InkTier.entries[it] }, { it.ordinal })
@@ -79,7 +84,8 @@ data class DeskSyncPayload(
         private val QUARREL_STREAM: StreamCodec<ByteBuf, Quarrel> = StreamCodec.composite(
             Identifier.STREAM_CODEC, Quarrel::word,
             ByteBufCodecs.optional(Identifier.STREAM_CODEC), { Optional.ofNullable(it.against) },
-            { word, against -> Quarrel(word, against.orElse(null)) },
+            ByteBufCodecs.optional(ByteBufCodecs.VAR_INT), { Optional.ofNullable(it.page) },
+            { word, against, page -> Quarrel(word, against.orElse(null), page.orElse(null)) },
         )
 
         private val READING_STREAM: StreamCodec<ByteBuf, List<ReadoutClause>> =

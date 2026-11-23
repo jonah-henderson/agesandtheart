@@ -122,6 +122,33 @@ class ResolutionCheck : FunSpec({
         }
     }
 
+    test("a block named answers a material asked for by tag where it carries the tag, and the thing is made of it") {
+        for (book in listOf("age ancient blackstone arches", "age black blackstone arches", "age black blackstone landmass")) {
+            val written = resolved(book)
+            check(written.incoherentPairs().isEmpty()) { "'$book' was charged: ${written.instability}" }
+        }
+        val arches = resolved("age ancient blackstone arches").option(Aspect.FEATURES, Features.PLACES.name)
+        check(arches.any { "arches" in it && "blackstone" in it }) { "ancient blackstone arches were made of $arches" }
+        val rock = resolved("age black blackstone landmass").option(Aspect.TERRAIN, Terrain.STONE.name)
+        check(rock.map(Any::toString) == listOf("minecraft:blackstone")) { "black blackstone land was $rock" }
+    }
+
+    test("a material asked for by tag gives way to a block named where its word says more of the thing, and clashes where not") {
+        val gold = resolved("age ancient gold_block arches")
+        check(gold.incoherentPairs().isEmpty()) { "ancient gold arches were charged: ${gold.instability}" }
+        val placed = gold.option(Aspect.FEATURES, Features.PLACES.name)
+        check(placed.any { "arches" in it && "gold_block" in it }) { "ancient gold arches were made of $placed" }
+        val red = resolved("age red blackstone arches").incoherentPairs()
+        check(red == setOf(setOf("red", "blackstone"))) { "red blackstone went uncharged: $red" }
+        val molten = resolved("age molten granite landmass").incoherentPairs()
+        check(molten == setOf(setOf("molten", "granite"))) { "molten granite went uncharged: $molten" }
+    }
+
+    test("a flaw names the page it was laid on, so a word laid twice is marked only where it went wrong") {
+        val flaws = resolved("age teeming cow teeming").instability.flaws
+        check(flaws.size == 1 && flaws.single().pages == listOf(3)) { "the second 'teeming' was flawed as $flaws" }
+    }
+
     /** Laid bare, `beautiful` offers a blue sky; an aimed `red sky` overrules it, and nothing is charged for that. */
     test("a minting is made of what its clause laid, at the size its clause asked") {
         val obelisks = resolved("age colossal gold_block obelisks")

@@ -78,7 +78,10 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
  * pattern's own where none was laid, or null where it has neither and so mints nothing.
  */
 private fun Resolving.madeOf(minting: Minting): List<String>? {
-    val substances = ranked(Aspect.FEATURES, minting.substances)
+    val named = minting.substances.mapNotNull { it.substance }.filterNot(Materials::isQuery)
+    // A substance asked for by tag that a block named beside it carries is that block, and leads nothing of its own.
+    fun isAnsweredByANamedOne(said: Landing) = said.substance?.let { asked -> named.any { world.answers(it, asked) } } == true
+    val substances = ranked(Aspect.FEATURES, minting.substances.filterNot(::isAnsweredByANamedOne))
     val leading = substances.firstOrNull() ?: return minting.mints.unstated?.let(::listOf)
     fun minglesWithTheLeader(said: Landing) = said === leading || said.isJoinedTo(leading) || said.substance == leading.substance
     val (mingled, outranked) = substances.partition(::minglesWithTheLeader)

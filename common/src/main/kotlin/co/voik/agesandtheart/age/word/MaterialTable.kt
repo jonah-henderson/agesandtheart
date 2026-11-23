@@ -51,6 +51,9 @@ data class MaterialTable(
      * word and the parameter, so the same book always builds the same rock and two material parameters
      * asking the same tag need not land on the same block. Only a block [mayDraw] answers is drawn.
      */
+    /** Whether [block] carries the tag [query] asks for at all, whether or not a broad word may draw it. */
+    fun carries(block: String, query: String): Boolean = (tags.byKey(block).tags[query.removePrefix(Materials.QUERY_MARK)] ?: 0.0) > 0.0
+
     fun drawFor(query: String, seed: Long, mayDraw: (String) -> Boolean = { true }): String? {
         val carriers = carriersOf(query.removePrefix(Materials.QUERY_MARK), mayDraw)
         val total = carriers.sumOf { it.second }
